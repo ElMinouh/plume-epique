@@ -1,7 +1,7 @@
 'use strict';
 // Changez ce numéro de version à chaque mise à jour majeure des fichiers
 // pour forcer les navigateurs à récupérer la nouvelle version.
-const CACHE = 'plume-epique-v2';
+const CACHE = 'plume-epique-v3';
 
 const CORE_ASSETS = [
   './',
@@ -69,6 +69,16 @@ self.addEventListener('fetch', event => {
     }
     try {
       const res = await fetch(event.request);
+      if (res.redirected) {
+        // Chrome refuse qu'une réponse "redirected" serve une navigation :
+        // on la reconstruit à l'identique, sans ce flag, avant de la renvoyer.
+        const body = await res.blob();
+        const finalRes = new Response(body, { headers: res.headers, status: res.status, statusText: res.statusText });
+        if (res.ok || res.type === 'opaque') {
+          event.waitUntil(caches.open(CACHE).then(c => c.put(event.request, finalRes.clone())));
+        }
+        return finalRes;
+      }
       const toCache = await cacheableResponse(res);
       if (toCache) {
         event.waitUntil(caches.open(CACHE).then(c => c.put(event.request, toCache)));
