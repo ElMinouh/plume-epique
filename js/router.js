@@ -30,7 +30,7 @@ const DEFAULT_DB = () => ({
   chars:[], places:[], quests:[], timeline:[], history:{}, plugins:{},
   weakWords:['juste','très'],
   tabOrder:['tab-map','tab-sprint','tab-config','tab-quests','tab-chars','tab-places','tab-snaps','tab-wordcloud','tab-timeline','tab-stats','tab-ai','tab-history','tab-graph','tab-analytics','tab-plugins','tab-memory'],
-  darkMode:false, gistId:'', dailyGoal:500, sessionStats:{}, encrypted:false
+  darkMode:false, gistId:'', dailyGoal:500, sessionStats:{}, encrypted:false, sprint:null
 });
 
 // ═══════════════════════════════════════════════════════
@@ -111,6 +111,7 @@ function initApp(){
   sessionStartTime=Date.now();
   renderTabs();renderChapterList();loadChapter(0);updateDailyStats();
   renderLibrary('chars');renderLibrary('places');renderQuests();renderWeakWords();initGoalUI();
+  resumeSprintIfNeeded();
 
   const ctx=document.getElementById('tensionChart').getContext('2d');
   if (tensionChart) { tensionChart.destroy(); tensionChart = null; }

@@ -42,13 +42,17 @@ function buildNarrativeIndex() {
   _narrativeIndex = [];
   let totalPassages = 0;
 
+  // Correction v6.0.0 : on indexe désormais par ID de chapitre stable (ch.id)
+  // plutôt que par position (chIdx). Ainsi, si des chapitres sont supprimés
+  // ou réorganisés APRÈS l'indexation, cliquer sur une source dans les
+  // résultats de recherche narrative continue de pointer vers le bon chapitre.
   db.chapters.forEach((ch, chIdx) => {
     const plainText = getPlainText(ch.content);
     if (!plainText || plainText.length < 30) return;
     const passages = splitPassages(plainText);
     passages.forEach((text, pIdx) => {
       _narrativeIndex.push({
-        chIdx,
+        chId: ch.id,
         chTitle: ch.title || `Chapitre ${chIdx+1}`,
         passageIdx: pIdx,
         text,
@@ -60,11 +64,11 @@ function buildNarrativeIndex() {
 
   db.chars.forEach(c => {
     const text = `Personnage ${c.name}: rôle ${c.role||'?'}, âge ${c.age||'?'}, ${c.phys||''} ${c.info||''}`;
-    _narrativeIndex.push({ chIdx:-1, chTitle:'📚 Personnages', passageIdx:0, text, keywords: extractKeywords(text) });
+    _narrativeIndex.push({ chId:null, chTitle:'📚 Personnages', passageIdx:0, text, keywords: extractKeywords(text) });
   });
   db.places.forEach(p => {
     const text = `Lieu ${p.name}: type ${p.type||'?'}, ambiance ${p.mood||'?'}, ${p.info||''}`;
-    _narrativeIndex.push({ chIdx:-2, chTitle:'🏰 Lieux', passageIdx:0, text, keywords: extractKeywords(text) });
+    _narrativeIndex.push({ chId:null, chTitle:'🏰 Lieux', passageIdx:0, text, keywords: extractKeywords(text) });
   });
 
   _indexBuilt = true;
@@ -126,9 +130,13 @@ async function queryNarrativeMemory() {
       const card = document.createElement('div');
       card.style.cssText = 'background:var(--item-bg);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:.76rem;line-height:1.55;cursor:pointer;';
       card.innerHTML = `<div style="font-weight:700;color:var(--accent);margin-bottom:4px;">${DOMPurify.sanitize(p.chTitle)} <span style="opacity:.5;">· score: ${p.score}</span></div><div style="opacity:.8;">${DOMPurify.sanitize(p.text.substring(0, 200))}${p.text.length>200?'…':''}</div>`;
-      if (p.chIdx >= 0) {
+      if (p.chId) {
         card.title = 'Cliquer pour aller à ce chapitre';
-        card.addEventListener('click', () => changeCh(p.chIdx));
+        card.addEventListener('click', () => {
+          const idx = db.chapters.findIndex(c => c.id === p.chId);
+          if (idx !== -1) changeCh(idx);
+          else toast('Ce chapitre a été supprimé depuis l\'indexation.', 'error');
+        });
       }
       resultsEl.appendChild(card);
     });

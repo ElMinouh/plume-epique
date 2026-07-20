@@ -30,16 +30,45 @@ function renderStats() {
 }
 
 // ═══════════════════════════════════════════════════════
-// SPRINT (Pomodoro d'écriture)
+// SPRINT (Pomodoro d'écriture) — persistant depuis v6.0.0
+// L'état du sprint (heure de fin + mots de départ) est sauvegardé dans `db`,
+// ce qui permet de reprendre le compte à rebours après un rechargement de
+// page ou une fermeture accidentelle de l'onglet.
 // ═══════════════════════════════════════════════════════
+const SPRINT_DURATION = 1500; // 25 minutes en secondes
+
 function startSprint() {
-  if(sprintInterval) return;
-  sprintWordsStart=getWordCount(document.getElementById('writer').innerText);
-  let time=1500;
-  sprintInterval=setInterval(()=>{
-    time--; document.getElementById('sprint-timer').innerText=Math.floor(time/60)+':'+(time%60).toString().padStart(2,'0');
-    document.getElementById('sprint-progress').innerText=getWordCount(document.getElementById('writer').innerText)-sprintWordsStart;
-    if(time<=0)resetSprint();
-  },1000);
+  if (sprintInterval) return;
+  sprintWordsStart = getWordCount(document.getElementById('writer').innerText);
+  db.sprint = { endTime: Date.now() + SPRINT_DURATION * 1000, wordsStart: sprintWordsStart };
+  save();
+  runSprintTick();
 }
-function resetSprint(){clearInterval(sprintInterval);sprintInterval=null;document.getElementById('sprint-timer').innerText='25:00';document.getElementById('sprint-progress').innerText='0';}
+
+function runSprintTick() {
+  clearInterval(sprintInterval);
+  sprintInterval = setInterval(() => {
+    if (!db.sprint) { resetSprint(); return; }
+    const remaining = Math.max(0, Math.round((db.sprint.endTime - Date.now()) / 1000));
+    document.getElementById('sprint-timer').innerText = Math.floor(remaining/60)+':'+(remaining%60).toString().padStart(2,'0');
+    document.getElementById('sprint-progress').innerText = getWordCount(document.getElementById('writer').innerText) - db.sprint.wordsStart;
+    if (remaining <= 0) resetSprint();
+  }, 1000);
+}
+
+function resetSprint() {
+  clearInterval(sprintInterval); sprintInterval = null;
+  db.sprint = null; save();
+  document.getElementById('sprint-timer').innerText = '25:00';
+  document.getElementById('sprint-progress').innerText = '0';
+}
+
+// Appelée une fois au démarrage de l'app (voir router.js) : reprend un
+// sprint encore en cours, ou nettoie silencieusement un sprint expiré.
+function resumeSprintIfNeeded() {
+  if (!db.sprint) return;
+  if (db.sprint.endTime <= Date.now()) { db.sprint = null; save(); return; }
+  sprintWordsStart = db.sprint.wordsStart;
+  runSprintTick();
+  toast('Sprint d\'écriture repris.', 'info');
+}

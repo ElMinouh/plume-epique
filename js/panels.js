@@ -10,11 +10,31 @@ function openGlobalSearch() {
   document.getElementById('search-count').textContent = '';
 }
 function closeGlobalSearch() { document.getElementById('search-overlay').classList.remove('active'); }
+
+// Correction v6.0.0 : la recherche globale couvre désormais aussi les
+// personnages, lieux et quêtes (plus seulement le contenu des chapitres).
 function doGlobalSearch(query) {
   const q = query.trim().toLowerCase(), container = document.getElementById('search-results'), countEl = document.getElementById('search-count');
   container.innerHTML = '';
   if (q.length < 2) { countEl.textContent = ''; return; }
   let total = 0;
+  const qEscaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  function addResult(icon, label, snippetText, onClick) {
+    const highlighted = snippetText.replace(new RegExp(`(${qEscaped})`,'gi'),'<mark>$1</mark>');
+    const el = document.createElement('div');
+    el.className='search-result-item'; el.setAttribute('role','listitem');
+    el.innerHTML = `<div class="sr-chapter">${icon} ${DOMPurify.sanitize(label)}</div><div>...${DOMPurify.sanitize(highlighted)}...</div>`;
+    el.addEventListener('click', () => { onClick(); closeGlobalSearch(); });
+    container.appendChild(el);
+  }
+
+  function goToTab(tabId) {
+    const btn = document.querySelector(`button[data-tab-id="${tabId}"]`);
+    if (btn) toggleTab(tabId, btn);
+  }
+
+  // Chapitres
   db.chapters.forEach((ch, i) => {
     const text = ch.content.replace(/<[^>]*>/g,' '), lower = text.toLowerCase();
     let idx = 0, occs = [];
@@ -24,14 +44,40 @@ function doGlobalSearch(query) {
     occs.slice(0,3).forEach(pos => {
       const s=Math.max(0,pos-60), e=Math.min(text.length,pos+q.length+60);
       const snippet = text.slice(s,e).replace(/\s+/g,' ').trim();
-      const highlighted = snippet.replace(new RegExp(`(${q})`,'gi'),'<mark>$1</mark>');
-      const el = document.createElement('div');
-      el.className='search-result-item'; el.setAttribute('role','listitem');
-      el.innerHTML = `<div class="sr-chapter">📖 ${DOMPurify.sanitize(ch.title)}</div><div>...${DOMPurify.sanitize(highlighted)}...</div>`;
-      el.addEventListener('click', () => { changeCh(i); closeGlobalSearch(); });
-      container.appendChild(el);
+      addResult('📖', ch.title, snippet, () => changeCh(i));
     });
   });
+
+  // Personnages
+  db.chars.forEach((c, i) => {
+    const text = `${c.name||''} ${c.role||''} ${c.age||''} ${c.phys||''} ${c.info||''}`;
+    if (!text.toLowerCase().includes(q)) return;
+    total++;
+    addResult('👥', c.name||'Personnage', text.replace(/\s+/g,' ').trim().substring(0,140), () => {
+      goToTab('tab-chars'); showEdit('chars', i);
+    });
+  });
+
+  // Lieux
+  db.places.forEach((p, i) => {
+    const text = `${p.name||''} ${p.type||''} ${p.mood||''} ${p.info||''}`;
+    if (!text.toLowerCase().includes(q)) return;
+    total++;
+    addResult('🏰', p.name||'Lieu', text.replace(/\s+/g,' ').trim().substring(0,140), () => {
+      goToTab('tab-places'); showEdit('places', i);
+    });
+  });
+
+  // Quêtes
+  db.quests.forEach((qst, i) => {
+    const text = `${qst.text||''} ${qst.reward||''} ${qst.steps||''}`;
+    if (!text.toLowerCase().includes(q)) return;
+    total++;
+    addResult('🎯', qst.text||'Quête', text.replace(/\s+/g,' ').trim().substring(0,140), () => {
+      goToTab('tab-quests'); showQuestEdit(i);
+    });
+  });
+
   countEl.textContent = total ? `${total} occurrence(s)` : 'Aucun résultat.';
 }
 const debouncedSearch = debounce(doGlobalSearch, 250);

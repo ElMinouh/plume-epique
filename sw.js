@@ -1,7 +1,7 @@
 'use strict';
 // Changez ce numéro de version à chaque mise à jour majeure des fichiers
 // pour forcer les navigateurs à récupérer la nouvelle version.
-const CACHE = 'plume-epique-v3';
+const CACHE = 'plume-epique-v6.0.0';
 
 const CORE_ASSETS = [
   './',
@@ -30,7 +30,15 @@ self.addEventListener('install', event => {
       CDN_ASSETS.map(url => cache.add(new Request(url, { mode: 'no-cors' })).catch(() => {}))
     );
   })());
-  self.skipWaiting();
+  // Correction v6.0.0 : on ne saute plus l'attente automatiquement.
+  // Le nouveau Service Worker reste "waiting" tant que l'utilisateur n'a
+  // pas cliqué sur "Mettre à jour" dans la bannière (voir pwa.js) — ça
+  // évite d'activer une nouvelle version en silence pendant qu'une page
+  // encore ouverte utilise les anciens fichiers.
+});
+
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {

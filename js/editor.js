@@ -121,6 +121,8 @@ function analyzeStyle() {
   writer.innerHTML = DOMPurify.sanitize(txt);
 }
 function clearStyle() {
+  // Correction v6.0.0 : confirmation demandée avant de supprimer les surlignages.
+  if (!confirm('Supprimer tous les surlignages de style (mots faibles) ? Le texte lui-même ne sera pas modifié.')) return;
   const writer = document.getElementById('writer');
   writer.innerHTML = DOMPurify.sanitize(writer.innerHTML.replace(/<mark[^>]*>|<\/mark>/g,''));
   liveCounter();

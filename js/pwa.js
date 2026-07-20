@@ -1,11 +1,54 @@
 'use strict';
-// Enregistrement du vrai Service Worker (sw.js à la racine) — le manifeste est
-// désormais un fichier statique (manifest.json), lié directement dans index.html.
+// Correction v6.0.0 : le Service Worker n'active plus automatiquement une
+// nouvelle version (voir sw.js). On détecte ici quand une mise à jour est
+// prête et on affiche une bannière pour laisser l'utilisateur décider du
+// moment du rechargement.
+let _swRegistration = null;
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      _swRegistration = reg;
+      if (reg.waiting) showUpdateBanner();
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdateBanner();
+          }
+        });
+      });
+    }).catch(() => {});
+  });
+
+  let _reloadingForUpdate = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (_reloadingForUpdate) return;
+    _reloadingForUpdate = true;
+    location.reload();
   });
 }
+
+function showUpdateBanner() {
+  const el = document.getElementById('sw-update-banner');
+  if (el) el.classList.add('show');
+}
+function applyUpdate() {
+  if (_swRegistration && _swRegistration.waiting) {
+    _swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+  }
+  const el = document.getElementById('sw-update-banner');
+  if (el) el.classList.remove('show');
+}
+
+const _swUpdateBtn = document.getElementById('sw-update-btn');
+if (_swUpdateBtn) _swUpdateBtn.addEventListener('click', applyUpdate);
+const _swDismissBtn = document.getElementById('sw-update-dismiss-btn');
+if (_swDismissBtn) _swDismissBtn.addEventListener('click', () => {
+  const el = document.getElementById('sw-update-banner');
+  if (el) el.classList.remove('show');
+});
 
 let _pwaPrompt = null;
 window.addEventListener('beforeinstallprompt', e => {

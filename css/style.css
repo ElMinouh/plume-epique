@@ -265,6 +265,12 @@ mark{background-color:rgba(192,57,43,.22);color:var(--text);border-radius:3px;}
   padding:12px 20px;box-shadow:var(--shadow);z-index:5000;
   align-items:center;gap:12px;font-size:.82rem;max-width:400px;}
 #pwa-banner.show{display:flex;}
+/* Bannière de mise à jour du Service Worker — ajoutée en v6.0.0 */
+#sw-update-banner{display:none;position:fixed;top:14px;left:50%;transform:translateX(-50%);
+  background:var(--glass);border:1px solid var(--accent);border-radius:12px;
+  padding:12px 20px;box-shadow:var(--shadow);z-index:6000;
+  align-items:center;gap:12px;font-size:.82rem;max-width:400px;}
+#sw-update-banner.show{display:flex;}
 @media(max-width:768px){
   main{grid-template-columns:1fr;height:auto;}
   #chapter-sidebar{max-height:200px;}

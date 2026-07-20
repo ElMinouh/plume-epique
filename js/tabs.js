@@ -7,6 +7,7 @@ function renderTabs(){
     btn.className='tab-btn';btn.textContent=tabLabels[id]||id;
     btn.dataset.tabId=id;btn.setAttribute('role','tab');
     btn.setAttribute('draggable','true');
+    btn.title='Alt+← / Alt+→ pour réordonner au clavier';
     btn.addEventListener('click',()=>toggleTab(id,btn));
     btn.addEventListener('dragstart',e=>{
       btn.classList.add('dragging');
@@ -31,6 +32,22 @@ function renderTabs(){
       if(fromIdx===-1||toIdx===-1)return;
       db.tabOrder.splice(fromIdx,1);db.tabOrder.splice(toIdx,0,draggedId);
       debouncedSave();renderTabs();
+    });
+    // Correction v6.0.0 : réordonnancement au clavier (Alt+← / Alt+→),
+    // en plus du drag & drop souris.
+    btn.addEventListener('keydown', e => {
+      if (!e.altKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+      e.preventDefault();
+      const fromIdx = db.tabOrder.indexOf(id);
+      const toIdx = e.key === 'ArrowLeft' ? fromIdx - 1 : fromIdx + 1;
+      if (toIdx < 0 || toIdx >= db.tabOrder.length) return;
+      db.tabOrder.splice(fromIdx, 1);
+      db.tabOrder.splice(toIdx, 0, id);
+      debouncedSave(); renderTabs();
+      requestAnimationFrame(() => {
+        const newBtn = nav.querySelector(`[data-tab-id="${id}"]`);
+        if (newBtn) newBtn.focus();
+      });
     });
     nav.appendChild(btn);
   });
