@@ -209,8 +209,6 @@ window.onload = async () => {
   const raw = await loadData();
   if (!raw) {
     document.getElementById('lock-screen').classList.add('active');
-    document.getElementById('lock-new-btn').style.display='block';
-    document.getElementById('lock-new-btn').addEventListener('click',handleNewProject);
     document.getElementById('lock-btn').textContent='Créer avec ce mot de passe';
     document.getElementById('lock-btn').addEventListener('click',async()=>{
       const pwd=document.getElementById('lock-input').value;
