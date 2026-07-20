@@ -46,14 +46,30 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   event.respondWith((async () => {
     const cached = await caches.match(event.request);
-    // Stratégie "stale-while-revalidate" : sert le cache immédiatement,
-    // et le met à jour en tâche de fond pour la prochaine visite.
-    const fetchPromise = fetch(event.request).then(res => {
+    if (cached) {
+      // Ressource déjà en cache : on la sert tout de suite, et on met à jour
+      // le cache en arrière-plan pour la prochaine visite (sans bloquer ni cloner).
+      event.waitUntil(
+        fetch(event.request).then(res => {
+          if (res && (res.ok || res.type === 'opaque')) {
+            return caches.open(CACHE).then(c => c.put(event.request, res));
+          }
+        }).catch(() => {})
+      );
+      return cached;
+    }
+    // Pas encore en cache : on récupère la ressource, on clone AVANT de la
+    // renvoyer (cloner après lecture provoque l'erreur "body is already used"),
+    // et on stocke la copie sans bloquer la réponse.
+    try {
+      const res = await fetch(event.request);
       if (res && (res.ok || res.type === 'opaque')) {
-        caches.open(CACHE).then(c => c.put(event.request, res.clone()));
+        const resClone = res.clone();
+        event.waitUntil(caches.open(CACHE).then(c => c.put(event.request, resClone)));
       }
       return res;
-    }).catch(() => cached);
-    return cached || fetchPromise;
+    } catch (e) {
+      return new Response('Hors ligne', { status: 503, statusText: 'Offline' });
+    }
   })());
 });
