@@ -187,8 +187,9 @@ function initApp(){
   document.getElementById('search-input').addEventListener('input',e=>debouncedSearch(e.target.value));
   document.getElementById('search-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeGlobalSearch();});
 
-  document.getElementById('pwa-install-btn').addEventListener('click',async()=>{if(_pwaPrompt){await _pwaPrompt.prompt();document.getElementById('pwa-banner').classList.remove('show');}});
+  document.getElementById('pwa-install-btn').addEventListener('click',installPWA);
   document.getElementById('pwa-dismiss-btn').addEventListener('click',()=>document.getElementById('pwa-banner').classList.remove('show'));
+  document.getElementById('install-app-btn').addEventListener('click',installPWA);
 
   document.getElementById('new-weak-word').addEventListener('keydown',e=>{if(e.key==='Enter')addWeakWord();});
   document.getElementById('q-in').addEventListener('keydown',e=>{if(e.key==='Enter')addQuest();});

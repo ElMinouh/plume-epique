@@ -12,3 +12,15 @@ window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault(); _pwaPrompt = e;
   document.getElementById('pwa-banner').classList.add('show');
 });
+
+async function installPWA() {
+  if (_pwaPrompt) {
+    _pwaPrompt.prompt();
+    const choice = await _pwaPrompt.userChoice;
+    document.getElementById('pwa-banner').classList.remove('show');
+    _pwaPrompt = null;
+    if (choice.outcome === 'accepted') toast('Application installée sur le bureau !', 'success');
+  } else {
+    toast('Installation indisponible : déjà installée, ou non supportée par ce navigateur.', 'error');
+  }
+}
