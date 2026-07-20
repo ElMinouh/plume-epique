@@ -1,8 +1,12 @@
 'use strict';
+// URL du Worker Cloudflare qui relaie les appels vers l'API Anthropic
+// (garde la clé API cachée côté serveur, jamais exposée dans le navigateur).
+const WORKER_URL = 'https://plume-epique-ai.air7841.workers.dev';
+
 async function callClaude(prompt, maxTokens=1000) {
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+  const resp = await fetch(WORKER_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:maxTokens, messages:[{role:'user',content:prompt}] })
+    body:JSON.stringify({ prompt, max_tokens:maxTokens })
   });
   if (!resp.ok) { const err=await resp.json(); throw new Error(err.error?.message||`HTTP ${resp.status}`); }
   const data = await resp.json();
