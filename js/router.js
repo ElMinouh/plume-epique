@@ -1,0 +1,230 @@
+'use strict';
+// ═══════════════════════════════════════════════════════
+// SCHÉMA & VERSIONING
+// ═══════════════════════════════════════════════════════
+const SCHEMA_VERSION = 3;
+function migrateDb(data) {
+  const v = data._schemaVersion || 1;
+  if (v < 2) { if (!data.timeline) data.timeline = []; if (!data.tabOrder) data.tabOrder = []; if (!data.weakWords) data.weakWords = ['juste','très']; }
+  if (v < 3) { if (!data.history) data.history = {}; if (!data.plugins) data.plugins = {}; if (!data.sessionStats) data.sessionStats = {}; }
+  data._schemaVersion = SCHEMA_VERSION;
+  return data;
+}
+const DEFAULT_DB = () => ({
+  _schemaVersion: SCHEMA_VERSION,
+  chapters: [{ title:'Chapitre 1', content:'', tension:20, summary:'' }],
+  chars:[], places:[], quests:[], timeline:[], history:{}, plugins:{},
+  weakWords:['juste','très'],
+  tabOrder:['tab-map','tab-sprint','tab-config','tab-quests','tab-chars','tab-places','tab-snaps','tab-wordcloud','tab-timeline','tab-stats','tab-ai','tab-history','tab-graph','tab-analytics','tab-plugins','tab-memory'],
+  darkMode:false, gistId:'', dailyGoal:500, sessionStats:{}, encrypted:false
+});
+
+// ═══════════════════════════════════════════════════════
+// INDEXEDDB
+// ═══════════════════════════════════════════════════════
+let idbStore = null;
+async function initIDB() {
+  try { idbStore = await idb.openDB('plume_v55', 1, { upgrade(db) { db.createObjectStore('data'); } }); }
+  catch(e) { console.warn('IDB unavailable'); }
+}
+async function persistData(payload) {
+  if (idbStore) await idbStore.put('data', payload, 'main');
+  else localStorage.setItem('plume_v55', JSON.stringify(payload));
+}
+async function loadData() {
+  if (idbStore) return idbStore.get('data', 'main');
+  const r = localStorage.getItem('plume_v55'); return r ? JSON.parse(r) : null;
+}
+
+// ═══════════════════════════════════════════════════════
+// ÉTAT GLOBAL
+// ═══════════════════════════════════════════════════════
+let db = DEFAULT_DB(), _cloudToken = '', _encPassword = '';
+let cur = 0, tensionChart, sessionChart, dialogChart;
+let sprintInterval = null, sprintWordsStart = 0;
+let sessionWordsStart = 0, sessionStartTime = Date.now();
+let _switching = false;
+
+const tabLabels = {
+  'tab-map':'🏗️ Structure','tab-sprint':'⏱️ Sprint',
+  'tab-config':'⚙️ Config','tab-quests':'🎯 Quêtes','tab-chars':'👥 Personnages',
+  'tab-places':'🏰 Lieux','tab-snaps':'📦 Backup','tab-wordcloud':'☁️ Mots',
+  'tab-timeline':'🕐 Chronologie','tab-stats':'📊 Stats','tab-ai':'🤖 IA',
+  'tab-history':'🔖 Versions','tab-graph':'🕸️ Relations',
+  'tab-analytics':'📈 Analyse','tab-plugins':'🔌 Plugins','tab-memory':'🧠 Mémoire'
+};
+
+// ═══════════════════════════════════════════════════════
+// UTILITAIRES
+// ═══════════════════════════════════════════════════════
+function debounce(fn, delay) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), delay); }; }
+function getTodayKey() { return new Date().toISOString().slice(0,10); }
+function getWordCount(t) { const m=(t||'').replace(/<[^>]*>/g,' ').match(/[a-zA-Z0-9À-ÿ]+/g); return m?m.length:0; }
+function getPlainText(html) { return (html||'').replace(/<br\s*\/?>/gi,'\n').replace(/<\/p>/gi,'\n').replace(/<[^>]*>/g,'').trim(); }
+
+// ═══════════════════════════════════════════════════════
+// PERSISTANCE
+// ═══════════════════════════════════════════════════════
+const save = async () => {
+  const payload = { ...db }; delete payload.cloudToken;
+  if (db.encrypted && _encPassword) {
+    const cipher = await Crypto.encrypt(JSON.stringify(payload), _encPassword);
+    await persistData({ _enc:true, data:cipher });
+  } else { await persistData(payload); }
+  flashSave(); updateDailyStats();
+};
+const debouncedSave = debounce(save, 600);
+
+// ═══════════════════════════════════════════════════════
+// CHIFFREMENT — verrouillage
+// ═══════════════════════════════════════════════════════
+async function handleLockSubmit(){
+  const pwd=document.getElementById('lock-input').value;const errEl=document.getElementById('lock-err');errEl.style.display='none';
+  const raw=await loadData();
+  if(!raw){_encPassword=pwd;db.encrypted=true;document.getElementById('lock-screen').classList.remove('active');initApp();return;}
+  if(raw._enc){const dec=await Crypto.decrypt(raw.data,pwd);if(!dec){errEl.textContent='Mot de passe incorrect.';errEl.style.display='block';return;}db=migrateDb(JSON.parse(dec));_encPassword=pwd;}
+  else{db=migrateDb(raw);}
+  document.getElementById('lock-screen').classList.remove('active');initApp();
+}
+async function handleNewProject(){if(!confirm('Effacer tout ?'))return;await persistData(null);location.reload();}
+
+// ═══════════════════════════════════════════════════════
+// INIT APP — câblage de tous les événements
+// ═══════════════════════════════════════════════════════
+function initApp(){
+  if(db.darkMode)document.body.classList.add('dark-mode');
+  sessionWordsStart=db.chapters.reduce((s,c)=>s+getWordCount(c.content),0);
+  sessionStartTime=Date.now();
+  renderTabs();renderChapterList();loadChapter(0);updateDailyStats();
+  renderLibrary('chars');renderLibrary('places');renderQuests();renderWeakWords();initGoalUI();
+
+  const ctx=document.getElementById('tensionChart').getContext('2d');
+  if (tensionChart) { tensionChart.destroy(); tensionChart = null; }
+  tensionChart=new Chart(ctx,{type:'line',data:{labels:db.chapters.map((_,i)=>i+1),datasets:[{label:'Tension',data:db.chapters.map(c=>c.tension),borderColor:'#c0392b',backgroundColor:'rgba(192,57,43,.08)',tension:.3,fill:true}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+
+  const gi=document.getElementById('gist-id');if(gi&&db.gistId)gi.value=db.gistId;
+
+  document.getElementById('add-chapter-btn').addEventListener('click',addChapter);
+  // Mise en forme riche (nouveau V56)
+  document.getElementById('fmt-bold-btn').addEventListener('click',()=>formatText('bold'));
+  document.getElementById('fmt-italic-btn').addEventListener('click',()=>formatText('italic'));
+  document.getElementById('fmt-underline-btn').addEventListener('click',()=>formatText('underline'));
+  document.getElementById('fmt-title-btn').addEventListener('click',()=>formatParagraph('h3'));
+  document.getElementById('fmt-para-btn').addEventListener('click',()=>formatParagraph('p'));
+  document.getElementById('analyze-btn').addEventListener('click',analyzeStyle);
+  document.getElementById('clear-btn').addEventListener('click',clearStyle);
+  document.getElementById('search-btn').addEventListener('click', handleSearch);
+  document.getElementById('lex-panel-close').addEventListener('click', () => document.getElementById('lex-panel').classList.remove('active'));
+  document.getElementById('writer').addEventListener('mouseup', saveCursorPosition);
+  document.getElementById('writer').addEventListener('keyup', saveCursorPosition);
+  document.getElementById('toggle-dark-btn').addEventListener('click',toggleMode);
+  document.getElementById('add-weak-word-btn').addEventListener('click',addWeakWord);
+  document.getElementById('add-quest-btn').addEventListener('click',addQuest);
+  document.getElementById('add-char-btn').addEventListener('click',()=>addItem('chars'));
+  document.getElementById('add-place-btn').addEventListener('click',()=>addItem('places'));
+  document.getElementById('export-btn').addEventListener('click',megaExport);
+  document.getElementById('export-docx-btn').addEventListener('click',exportDocx);
+  document.getElementById('import-trigger-btn').addEventListener('click',()=>document.getElementById('import-file').click());
+  document.getElementById('import-file').addEventListener('change',e=>importProject(e.target));
+  document.getElementById('sync-cloud-btn').addEventListener('click',syncCloud);
+  document.getElementById('load-cloud-btn').addEventListener('click',loadCloud);
+  document.getElementById('sprint-start-btn').addEventListener('click',startSprint);
+  document.getElementById('sprint-reset-btn').addEventListener('click',resetSprint);
+
+  document.getElementById('focus-btn').addEventListener('click',enterFocus);
+  document.getElementById('focus-close-btn').addEventListener('click',exitFocus);
+  document.getElementById('focus-writer').addEventListener('input',updateFocusCount);
+
+  document.getElementById('ai-summary-btn').addEventListener('click',generateAISummary);
+  document.getElementById('ai-panel-close').addEventListener('click',()=>document.getElementById('ai-summary-panel').classList.remove('active'));
+  document.getElementById('ai-summary-copy').addEventListener('click',copyAISummaryToChapter);
+  document.getElementById('ai-continue-btn').addEventListener('click',aiContinueSuggestions);
+  document.getElementById('ai-check-btn').addEventListener('click',aiCheckInconsistencies);
+  document.getElementById('ai-names-btn').addEventListener('click',aiGenerateNames);
+
+  document.getElementById('wc-gen-btn').addEventListener('click',renderWordCloud);
+  document.getElementById('tl-add-btn').addEventListener('click',addTimelineEvent);
+
+  document.getElementById('snapshot-btn').addEventListener('click',()=>{flushCurrentChapter();takeSnapshot(cur,'Manuel — '+new Date().toLocaleString('fr'));save();renderHistoryTab();toast('Snapshot sauvegardé','success');});
+  document.getElementById('open-diff-btn').addEventListener('click',openDiffViewer);
+  document.getElementById('history-close-btn').addEventListener('click',()=>document.getElementById('history-overlay').classList.remove('active'));
+
+  document.getElementById('graph-rebuild-btn').addEventListener('click',renderGraph);
+
+  document.getElementById('voice-btn').addEventListener('click',()=>document.getElementById('tts-panel').classList.toggle('active'));
+  document.getElementById('tts-close-btn').addEventListener('click',()=>document.getElementById('tts-panel').classList.remove('active'));
+  document.getElementById('tts-play-btn').addEventListener('click',ttsPlay);
+  document.getElementById('tts-pause-btn').addEventListener('click',ttsPause);
+  document.getElementById('tts-stop-btn').addEventListener('click',ttsStop);
+  document.getElementById('dictate-btn').addEventListener('click',toggleDictation);
+  document.getElementById('tts-rate').addEventListener('input',e=>{document.getElementById('tts-rate-val').textContent=parseFloat(e.target.value).toFixed(1)+'×';});
+  initTTS(); initDictation();
+
+  document.getElementById('gh-token').addEventListener('input',e=>{_cloudToken=e.target.value;});
+  document.getElementById('gist-id').addEventListener('input',e=>{db.gistId=e.target.value;debouncedSave();});
+  document.getElementById('writer').addEventListener('input',liveCounter);
+  document.getElementById('chapter-title').addEventListener('blur',e=>updateTitle(e.target.innerText.trim()));
+  document.getElementById('tension-slider').addEventListener('input',e=>updateTension(e.target.value));
+  document.getElementById('daily-goal-input').addEventListener('input',e=>{db.dailyGoal=parseInt(e.target.value)||500;debouncedSave();updateDailyStats();});
+  document.getElementById('change-pwd-btn').addEventListener('click',async()=>{const np=prompt('Nouveau mot de passe :\n⚠️ Si vous le perdez, vos données seront définitivement illisibles.');if(!np)return;_encPassword=np;db.encrypted=true;await save();toast('Mot de passe changé','success');});
+  document.getElementById('disable-enc-btn').addEventListener('click',async()=>{if(!confirm('Désactiver le chiffrement ?'))return;_encPassword='';db.encrypted=false;await save();toast('Chiffrement désactivé');});
+
+  document.getElementById('global-search-btn').addEventListener('click',openGlobalSearch);
+  document.getElementById('search-input').addEventListener('input',e=>debouncedSearch(e.target.value));
+  document.getElementById('search-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeGlobalSearch();});
+
+  document.getElementById('pwa-install-btn').addEventListener('click',async()=>{if(_pwaPrompt){await _pwaPrompt.prompt();document.getElementById('pwa-banner').classList.remove('show');}});
+  document.getElementById('pwa-dismiss-btn').addEventListener('click',()=>document.getElementById('pwa-banner').classList.remove('show'));
+
+  document.getElementById('new-weak-word').addEventListener('keydown',e=>{if(e.key==='Enter')addWeakWord();});
+  document.getElementById('q-in').addEventListener('keydown',e=>{if(e.key==='Enter')addQuest();});
+  document.getElementById('tl-event-text').addEventListener('keydown',e=>{if(e.key==='Enter')addTimelineEvent();});
+  document.getElementById('lex-in').addEventListener('keydown',e=>{if(e.key==='Enter')handleSearch();});
+
+  document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openGlobalSearch();}
+    if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();flushCurrentChapter();save();}
+    if(e.key==='Escape'){
+      if(document.getElementById('focus-overlay').classList.contains('active'))exitFocus();
+      if(document.getElementById('search-overlay').classList.contains('active'))closeGlobalSearch();
+      if(document.getElementById('history-overlay').classList.contains('active'))document.getElementById('history-overlay').classList.remove('active');
+      if(document.getElementById('ai-summary-panel').classList.contains('active'))document.getElementById('ai-summary-panel').classList.remove('active');
+      if(document.getElementById('tts-panel').classList.contains('active'))document.getElementById('tts-panel').classList.remove('active');
+      if(document.getElementById('lex-panel').classList.contains('active'))document.getElementById('lex-panel').classList.remove('active');
+    }
+  });
+
+  if(db.chapters.some(c=>c.content)) { takeSnapshot(cur, 'Ouverture — '+new Date().toLocaleString('fr')); }
+
+  document.getElementById('memory-index-btn').addEventListener('click', indexNarrative);
+  document.getElementById('memory-query-btn').addEventListener('click', queryNarrativeMemory);
+  document.getElementById('memory-query-input').addEventListener('keydown', e => { if(e.key==='Enter') queryNarrativeMemory(); });
+}
+
+// ═══════════════════════════════════════════════════════
+// BOOTSTRAP
+// ═══════════════════════════════════════════════════════
+window.onload = async () => {
+  await initIDB();
+  const raw = await loadData();
+  if (!raw) {
+    document.getElementById('lock-screen').classList.add('active');
+    document.getElementById('lock-new-btn').style.display='block';
+    document.getElementById('lock-new-btn').addEventListener('click',handleNewProject);
+    document.getElementById('lock-btn').textContent='Créer avec ce mot de passe';
+    document.getElementById('lock-btn').addEventListener('click',async()=>{
+      const pwd=document.getElementById('lock-input').value;
+      if(pwd){_encPassword=pwd;db.encrypted=true;}
+      document.getElementById('lock-screen').classList.remove('active');initApp();
+    });
+    document.getElementById('lock-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('lock-btn').click();});
+  } else if (raw._enc) {
+    document.getElementById('lock-screen').classList.add('active');
+    document.getElementById('lock-new-btn').style.display='block';
+    document.getElementById('lock-new-btn').addEventListener('click',handleNewProject);
+    document.getElementById('lock-btn').addEventListener('click',handleLockSubmit);
+    document.getElementById('lock-input').addEventListener('keydown',e=>{if(e.key==='Enter')handleLockSubmit();});
+  } else {
+    db=migrateDb(raw);initApp();
+  }
+};

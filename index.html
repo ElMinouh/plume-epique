@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2c3e50">
+<link rel="manifest" id="pwa-manifest">
+<title>Plume Épique Studio | V56</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/idb@8/build/umd.js"></script>
+<script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+
+<!-- LOCK -->
+<div id="lock-screen" role="dialog" aria-modal="true">
+  <div class="lock-title">🔐 Plume Épique Studio</div>
+  <div class="lock-hint">Mot de passe pour déchiffrer vos données</div>
+  <input id="lock-input" type="password" placeholder="Mot de passe..." aria-label="Mot de passe" autocomplete="current-password">
+  <button class="action-btn" id="lock-btn">Déverrouiller</button>
+  <div class="lock-hint" id="lock-err" style="color:#e74c3c;display:none;"></div>
+  <div class="lock-hint" style="max-width:280px;text-align:center;opacity:.8;">⚠️ Ce mot de passe n'est jamais envoyé nulle part et n'est pas récupérable. En cas de perte, les données resteront illisibles définitivement.</div>
+  <button class="action-btn" id="lock-new-btn" style="background:#555;font-size:.72rem;margin-top:8px;display:none;">Nouveau projet (efface tout)</button>
+</div>
+
+<!-- GLOBAL SEARCH -->
+<div id="search-overlay" role="dialog" aria-modal="true">
+  <div id="search-box">
+    <input id="search-input" type="search" placeholder="🔍 Rechercher dans tout le projet..." aria-label="Rechercher">
+    <div id="search-count"></div>
+    <div id="search-results" role="list"></div>
+  </div>
+</div>
+
+<!-- HISTORY OVERLAY -->
+<div id="history-overlay" role="dialog" aria-modal="true" aria-label="Historique des versions">
+  <div id="history-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <strong>🕐 Historique du chapitre : <span id="history-chapter-name"></span></strong>
+      <button class="action-btn btn-sm" id="history-close-btn">✕ Fermer</button>
+    </div>
+    <div style="display:flex;gap:10px;flex-grow:1;overflow:hidden;min-height:0;">
+      <div style="width:220px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;">
+        <strong style="font-size:.78rem;">Snapshots</strong>
+        <div id="history-list"></div>
+        <button class="action-btn btn-sm" style="background:var(--danger);" id="history-restore-btn" disabled>↩ Restaurer cette version</button>
+      </div>
+      <div style="flex-grow:1;display:flex;flex-direction:column;gap:6px;min-width:0;">
+        <strong style="font-size:.78rem;">Aperçu / Diff</strong>
+        <div id="history-diff">Sélectionnez un snapshot…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NODE TOOLTIP for graph -->
+<div id="node-tooltip" class="node-tooltip"></div>
+
+<!-- TTS/DICTÉE PANEL -->
+<div id="tts-panel" role="dialog" aria-label="Dictée et lecture vocale">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <strong style="font-size:.82rem;">🎙️ Voix</strong>
+    <button id="tts-close-btn" style="background:none;border:none;cursor:pointer;color:inherit;font-size:1.1rem;">×</button>
+  </div>
+  <div style="font-size:.75rem;color:var(--text-muted);">Lecture à voix haute</div>
+  <div class="tts-row">
+    <button class="voice-btn" id="tts-play-btn" style="background:var(--success);color:#fff;" aria-label="Lire">▶</button>
+    <button class="voice-btn" id="tts-pause-btn" style="background:var(--warn);color:#fff;" aria-label="Pause">⏸</button>
+    <button class="voice-btn" id="tts-stop-btn" style="background:var(--danger);color:#fff;" aria-label="Arrêter">⏹</button>
+    <div style="flex-grow:1;">
+      <select id="tts-voice-sel" class="field" style="font-size:.7rem;padding:4px;" aria-label="Voix"></select>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;font-size:.72rem;">
+    Vitesse : <input type="range" id="tts-rate" min="0.5" max="2" step="0.1" value="1" style="flex-grow:1;" aria-label="Vitesse de lecture">
+    <span id="tts-rate-val">1×</span>
+  </div>
+  <div id="tts-progress"><div id="tts-progress-bar"></div></div>
+  <hr style="border-color:var(--border);margin:4px 0;">
+  <div style="font-size:.75rem;color:var(--text-muted);">Dictée vocale</div>
+  <div class="tts-row">
+    <button class="voice-btn" id="dictate-btn" style="background:var(--accent);color:#fff;" aria-label="Démarrer la dictée">🎤</button>
+    <span id="dictate-status" style="font-size:.72rem;color:var(--text-muted);">Prêt</span>
+  </div>
+  <div id="dictate-preview" style="font-size:.75rem;color:var(--text-muted);min-height:24px;font-style:italic;"></div>
+</div>
+
+<!-- PWA BANNER -->
+<div id="pwa-banner">
+  <span>📱 Installer Plume Épique comme application ?</span>
+  <button class="action-btn btn-sm" id="pwa-install-btn">Installer</button>
+  <button class="btn-sm" id="pwa-dismiss-btn" style="background:none;border:none;cursor:pointer;color:var(--text-muted);">Plus tard</button>
+</div>
+
+<header role="banner">
+<nav class="tab-menu" id="tab-menu" aria-label="Onglets principaux"></nav>
+<div id="tab-container" role="region">
+
+  <div id="tab-map" class="tab-content" role="tabpanel">
+    <div class="db-grid">
+      <div><strong>Tension narrative</strong><br><small style="opacity:.6;">Curseur dans la sidebar</small></div>
+      <div style="height:280px;"><canvas id="tensionChart"></canvas></div>
+    </div>
+  </div>
+
+  <div id="tab-sprint" class="tab-content" role="tabpanel">
+    <div style="text-align:center;padding:20px;">
+      <div style="font-size:3rem;font-weight:700;letter-spacing:2px;" id="sprint-timer" aria-live="polite">25:00</div>
+      <div style="display:flex;gap:8px;justify-content:center;margin:12px 0;">
+        <button class="action-btn" id="sprint-start-btn">▶ Démarrer</button>
+        <button class="action-btn" style="background:#7f8c8d" id="sprint-reset-btn">↺ Reset</button>
+      </div>
+      Progression : <strong><span id="sprint-progress" aria-live="polite">0</span></strong> mots
+    </div>
+  </div>
+
+  <div id="tab-config" class="tab-content" role="tabpanel">
+    <strong>Mots faibles</strong>
+    <div id="weak-words-list" style="margin:8px 0;"></div>
+    <div style="display:flex;gap:6px;">
+      <input id="new-weak-word" class="field" placeholder="Ex: soudain" style="flex:1;">
+      <button class="action-btn" id="add-weak-word-btn">Ajouter</button>
+    </div>
+    <hr style="border-color:var(--border);margin:10px 0;">
+    <strong>Objectif quotidien</strong>
+    <div id="goal-section" style="margin-top:8px;">
+      <input type="number" id="daily-goal-input" class="field" style="width:90px;" min="100" max="10000" step="100">
+      <span>mots/jour</span>
+      <div id="goal-bar-wrap"><div id="goal-bar"></div></div>
+      <span id="goal-label" style="min-width:60px;">0 %</span>
+    </div>
+    <hr style="border-color:var(--border);margin:10px 0;">
+    <strong>🔐 Chiffrement</strong>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button class="action-btn btn-sm" style="background:#8e44ad;" id="change-pwd-btn">Changer mot de passe</button>
+      <button class="action-btn btn-sm" style="background:var(--danger);" id="disable-enc-btn">Désactiver</button>
+    </div>
+  </div>
+
+  <div id="tab-quests" class="tab-content" role="tabpanel">
+    <div class="db-grid">
+      <div>
+        <div id="quest-list" class="list-box" style="height:260px;" role="list"></div>
+        <div style="display:flex;gap:6px;margin-top:8px;">
+          <input id="q-in" class="field" style="flex:1;" placeholder="Nouvelle quête...">
+          <button class="action-btn" id="add-quest-btn">+</button>
+        </div>
+      </div>
+      <div class="edit-box" id="quest-edit">...</div>
+    </div>
+  </div>
+
+  <div id="tab-chars" class="tab-content" role="tabpanel">
+    <div class="db-grid">
+      <div>
+        <div class="list-box" id="char-list-db" style="height:260px;" role="list"></div>
+        <button class="action-btn" id="add-char-btn" style="width:100%;margin-top:8px;">+ Personnage</button>
+      </div>
+      <div class="edit-box" id="char-edit">...</div>
+    </div>
+  </div>
+
+  <div id="tab-places" class="tab-content" role="tabpanel">
+    <div class="db-grid">
+      <div>
+        <div class="list-box" id="place-list-db" style="height:260px;" role="list"></div>
+        <button class="action-btn" id="add-place-btn" style="width:100%;margin-top:8px;">+ Lieu</button>
+      </div>
+      <div class="edit-box" id="place-edit">...</div>
+    </div>
+  </div>
+
+  <div id="tab-snaps" class="tab-content" role="tabpanel" style="text-align:center;">
+    <h3 style="margin:0 0 10px;">🛡️ Backup & Export</h3>
+    <div class="export-row" style="justify-content:center;margin-bottom:12px;">
+      <button class="action-btn" style="background:#27ae60;" id="export-btn">💾 JSON</button>
+      <button class="action-btn" style="background:#2980b9;" id="export-docx-btn">📄 DOCX</button>
+      <button class="action-btn" style="background:#e67e22;" id="import-trigger-btn">📥 Import</button>
+      <input type="file" id="import-file" style="display:none" accept=".json">
+    </div>
+    <div style="background:rgba(0,0,0,.05);padding:14px;border-radius:10px;border:1px dashed var(--border);">
+      <strong>☁️ GitHub Gist (privé)</strong><br>
+      <input type="password" id="gh-token" class="field" placeholder="Token (non sauvegardé)" style="width:175px;margin:5px;">
+      <input type="text" id="gist-id" class="field" placeholder="Gist ID" style="width:175px;"><br>
+      <div style="display:flex;gap:6px;justify-content:center;margin-top:8px;">
+        <button class="action-btn" style="background:#2980b9;" id="sync-cloud-btn">🔄 Sauver</button>
+        <button class="action-btn" style="background:#34495e;" id="load-cloud-btn">📥 Charger</button>
+      </div>
+      <p id="cloud-status" style="font-size:.72rem;color:var(--accent);margin:6px 0 0;" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <div id="tab-wordcloud" class="tab-content" role="tabpanel">
+    <div id="wordcloud-controls">
+      <button class="action-btn btn-sm" id="wc-gen-btn">🔄 Générer</button>
+      <label style="font-size:.78rem;display:flex;align-items:center;gap:4px;cursor:pointer;">
+        <input type="checkbox" id="wc-all-chapters"> Tout le projet
+      </label>
+    </div>
+    <div id="wc-top-list"></div>
+    <canvas id="wordcloud-canvas"></canvas>
+  </div>
+
+  <div id="tab-timeline" class="tab-content" role="tabpanel">
+    <div id="tl-add-form">
+      <input id="tl-event-text" class="field" placeholder="Événement..." style="flex:1;min-width:130px;">
+      <input id="tl-event-date" class="field" placeholder="Date / Moment" style="width:105px;">
+      <select id="tl-chapter-sel" class="field" style="max-width:135px;"></select>
+      <button class="action-btn btn-sm" id="tl-add-btn">+ Ajouter</button>
+    </div>
+    <div id="timeline-container">
+      <div id="timeline-track">
+        <div class="timeline-axis"></div>
+        <div class="timeline-events" id="timeline-events"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-stats" class="tab-content" role="tabpanel">
+    <div class="stats-grid" id="stats-grid"></div>
+    <div style="flex-grow:1;min-height:120px;"><canvas id="sessionChart"></canvas></div>
+  </div>
+
+  <div id="tab-ai" class="tab-content" role="tabpanel">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:180px;background:var(--item-bg);border-radius:10px;padding:14px;border:1px solid var(--border);">
+        <strong>💡 Continuation</strong>
+        <p style="font-size:.75rem;opacity:.7;margin:5px 0;">3 façons de poursuivre.</p>
+        <button class="action-btn btn-sm" id="ai-continue-btn">Générer</button>
+        <div id="ai-continue-result" style="margin-top:8px;font-size:.78rem;line-height:1.6;"></div>
+      </div>
+      <div style="flex:1;min-width:180px;background:var(--item-bg);border-radius:10px;padding:14px;border:1px solid var(--border);">
+        <strong>🔍 Incohérences</strong>
+        <p style="font-size:.75rem;opacity:.7;margin:5px 0;">Croise Personnages & texte.</p>
+        <button class="action-btn btn-sm" id="ai-check-btn">Analyser</button>
+        <div id="ai-check-result" style="margin-top:8px;font-size:.78rem;line-height:1.6;"></div>
+      </div>
+      <div style="flex:1;min-width:180px;background:var(--item-bg);border-radius:10px;padding:14px;border:1px solid var(--border);">
+        <strong>✨ Générateur de noms</strong>
+        <div style="display:flex;gap:6px;margin:6px 0;flex-wrap:wrap;">
+          <select id="name-genre-sel" class="field" style="width:auto;">
+            <option value="fantasy">Fantasy</option><option value="sci-fi">Sci-Fi</option>
+            <option value="historique">Historique</option><option value="contemporain">Contemporain</option>
+          </select>
+          <select id="name-sex-sel" class="field" style="width:auto;">
+            <option value="mixte">Mixte</option><option value="féminin">Féminin</option><option value="masculin">Masculin</option>
+          </select>
+        </div>
+        <button class="action-btn btn-sm" id="ai-names-btn">Générer</button>
+        <div id="ai-names-result" style="margin-top:8px;font-size:.78rem;line-height:1.8;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-history" class="tab-content" role="tabpanel">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <strong>Snapshots auto : chapitre courant</strong>
+      <button class="action-btn btn-sm" id="snapshot-btn">📸 Snapshot manuel</button>
+      <button class="action-btn btn-sm" style="background:#2980b9;" id="open-diff-btn">↔ Comparer versions</button>
+    </div>
+    <div id="snapshot-list" style="overflow-y:auto;flex-grow:1;display:flex;flex-direction:column;gap:5px;"></div>
+  </div>
+
+  <div id="tab-graph" class="tab-content" role="tabpanel">
+    <div id="graph-controls">
+      <button class="action-btn btn-sm" id="graph-rebuild-btn">🔄 Reconstruire</button>
+      <div class="graph-legend">
+        <span><span class="legend-dot" style="background:#c0392b;"></span>Perso</span>
+        <span><span class="legend-dot" style="background:#2980b9;"></span>Lieu</span>
+        <span><span class="legend-dot" style="background:#27ae60;"></span>Quête</span>
+        <span><span class="legend-dot" style="background:#f39c12;"></span>Chapitre</span>
+      </div>
+    </div>
+    <div id="graph-container"><svg id="graph-svg"></svg></div>
+  </div>
+
+  <div id="tab-analytics" class="tab-content" role="tabpanel">
+    <div id="analytics-global" class="analytics-grid"></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;flex-grow:1;overflow:hidden;">
+      <div style="flex:1;min-width:200px;overflow-y:auto;">
+        <strong style="font-size:.82rem;">Longueur par chapitre</strong>
+        <div id="analytics-bars" style="margin-top:8px;"></div>
+      </div>
+      <div style="flex:1;min-width:200px;">
+        <strong style="font-size:.82rem;">Lisibilité Flesch-Kincaid</strong>
+        <div id="analytics-flesch" class="flesch-gauge" style="margin-top:10px;"></div>
+        <hr style="border-color:var(--border);margin:10px 0;">
+        <strong style="font-size:.82rem;">Densité dialogue vs narration</strong>
+        <div style="height:140px;margin-top:8px;"><canvas id="dialogChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-plugins" class="tab-content" role="tabpanel">
+    <strong style="font-size:.85rem;">🔌 Plugins actifs</strong>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:10px;" id="plugins-grid"></div>
+  </div>
+
+  <div id="tab-memory" class="tab-content" role="tabpanel">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+      <strong>&#129504; Memoire Narrative</strong>
+      <button class="action-btn btn-sm" id="memory-index-btn" style="background:#16a085;">&#128260; Indexer le roman</button>
+      <span id="memory-index-status" style="font-size:.72rem;color:var(--text-muted);"></span>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <input id="memory-query-input" class="field" style="flex:1;" placeholder="Que portait Lea au ch.3 ? Ou est mentionne le chateau ?">
+      <button class="action-btn" id="memory-query-btn">&#128269; Interroger</button>
+    </div>
+    <div id="memory-results" style="flex-grow:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;">
+      <div style="opacity:.5;font-size:.82rem;text-align:center;padding:20px;">
+        Indexez d'abord votre roman, puis posez n'importe quelle question sur votre texte.
+      </div>
+    </div>
+  </div>
+
+</div>
+</header>
+
+<main role="main">
+  <aside id="chapter-sidebar" aria-label="Chapitres">
+    <button class="action-btn" id="add-chapter-btn" style="width:100%;">+ Chapitre</button>
+    <div class="chapter-list-container" id="chapter-list" role="list"></div>
+    <div class="sidebar-stats">
+      📝 <strong id="total-words">0</strong> mots &nbsp;|&nbsp; 📅 <strong id="today-words">0</strong> aujourd'hui
+      <div class="daily-bar-wrap"><div class="daily-bar" id="sidebar-goal-bar"></div></div>
+      Tension : <input type="range" id="tension-slider" min="0" max="100" value="20" aria-label="Tension">
+    </div>
+  </aside>
+  <div id="editor-wrapper">
+    <div class="toolbar" role="toolbar">
+      <!-- Mise en forme riche (nouveau V56) -->
+      <button class="action-btn btn-sm" style="background:#34495e;" id="fmt-bold-btn" title="Gras (Ctrl+B)"><b>G</b></button>
+      <button class="action-btn btn-sm" style="background:#34495e;" id="fmt-italic-btn" title="Italique (Ctrl+I)"><i>I</i></button>
+      <button class="action-btn btn-sm" style="background:#34495e;" id="fmt-underline-btn" title="Souligné (Ctrl+U)"><u>S</u></button>
+      <button class="action-btn btn-sm" style="background:#34495e;" id="fmt-title-btn" title="Sous-titre">Titre</button>
+      <button class="action-btn btn-sm" style="background:#34495e;" id="fmt-para-btn" title="Paragraphe normal">¶</button>
+      <span style="width:1px;height:20px;background:var(--border);margin:0 4px;"></span>
+      <button class="action-btn" style="background:#c0392b;" id="analyze-btn">🔍 Style</button>
+      <button class="action-btn" style="background:#7f8c8d;" id="clear-btn">🧹 Nettoyer</button>
+      <button class="action-btn" style="background:#2c3e50;" id="focus-btn">🎯 Focus</button>
+      <button class="action-btn" style="background:#8e44ad;" id="ai-summary-btn">✨ Résumé IA</button>
+      <button class="action-btn" style="background:#1a1a2e;" id="global-search-btn">🔎 Ctrl+F</button>
+      <button class="action-btn" style="background:#16a085;" id="voice-btn">🎙️ Voix</button>
+      <div style="flex-grow:1;"></div>
+      <select id="search-mode" class="field" style="width:auto;" aria-label="Mode dictionnaire">
+        <option value="syn">✨ Synonymes</option><option value="ant">🌑 Antonymes</option>
+      </select>
+      <input id="lex-in" class="field" style="width:85px;" placeholder="mot…" aria-label="Mot à chercher">
+      <button class="action-btn" id="search-btn" aria-label="Rechercher">GO</button>
+    </div>
+    <div id="chapter-title" contenteditable="true" role="textbox" aria-label="Titre"
+      style="font-size:1.45rem;font-weight:700;color:var(--accent);outline:none;margin-bottom:6px;min-height:28px;"></div>
+    <div id="writer" contenteditable="true" role="textbox" aria-multiline="true"
+      aria-label="Zone d'écriture" spellcheck="false"></div>
+    <div id="ai-summary-panel" role="dialog" aria-label="Résumé IA">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong style="font-size:.82rem;">✨ Résumé IA</strong>
+        <button id="ai-panel-close" style="background:none;border:none;cursor:pointer;color:inherit;font-size:1.1rem;">×</button>
+      </div>
+      <div id="ai-summary-text" aria-live="polite"></div>
+      <button class="action-btn btn-sm" style="background:#8e44ad;" id="ai-summary-copy">📋 Copier résumé</button>
+    </div>
+
+    <div id="lex-panel" role="dialog" aria-label="Synonymes et antonymes">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span id="lex-panel-title">✨ Synonymes</span>
+        <button id="lex-panel-close" style="background:none;border:none;cursor:pointer;color:inherit;font-size:1.1rem;" aria-label="Fermer">×</button>
+      </div>
+      <div style="font-size:.7rem;color:var(--text-muted);" id="lex-panel-word"></div>
+      <div id="lex-words"></div>
+      <div style="font-size:.68rem;color:var(--text-muted);">Cliquer sur un mot pour l'insérer à la position du curseur</div>
+    </div>
+    <div id="mode-bar">
+      <div id="save-indicator" aria-hidden="true"></div>
+      <span id="autosave-label" style="font-size:.7rem;color:var(--text-muted);"></span>
+      <button class="mode-indicator" id="toggle-dark-btn">🌙 Nuit</button>
+    </div>
+  </div>
+</main>
+
+<!-- FOCUS -->
+<div id="focus-overlay" role="dialog" aria-modal="true">
+  <input id="focus-title" type="text" placeholder="Titre du chapitre...">
+  <!-- Correction V56 : contenteditable au lieu de textarea, pour ne plus perdre le gras/italique/souligné -->
+  <div id="focus-writer" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Écriture en mode focus" data-placeholder="Écrivez librement... (Échap pour quitter)"></div>
+  <div id="focus-bar">
+    <span id="focus-wordcount">0</span> mots
+    <span style="opacity:.3;">|</span><span id="focus-chapter-label" style="opacity:.55;"></span>
+    <span style="opacity:.3;">|</span><span style="opacity:.4;font-size:.68rem;">Échap pour quitter</span>
+    <button id="focus-close-btn">✕ Quitter</button>
+  </div>
+</div>
+
+<div id="toast" role="alert" aria-live="assertive"></div>
+
+<!-- Modules JS (ordre indifférent : tout s'exécute avant window.onload) -->
+<script src="js/pwa.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/crypto.js"></script>
+<script src="js/router.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/tabs.js"></script>
+<script src="js/panels.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/snapshots.js"></script>
+<script src="js/diff.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/readability.js"></script>
+<script src="js/relations.js"></script>
+<script src="js/timeline.js"></script>
+<script src="js/tts.js"></script>
+<script src="js/wordcloud.js"></script>
+<script src="js/pluginSystem.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/database.js"></script>
+<script src="js/memory.js"></script>
+</body>
+</html>
