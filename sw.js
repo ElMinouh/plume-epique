@@ -1,7 +1,7 @@
 'use strict';
 // Changez ce numéro de version à chaque mise à jour majeure des fichiers
 // pour forcer les navigateurs à récupérer la nouvelle version.
-const CACHE = 'plume-epique-v1';
+const CACHE = 'plume-epique-v2';
 
 const CORE_ASSETS = [
   './',
@@ -26,7 +26,6 @@ self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
     await cache.addAll(CORE_ASSETS).catch(() => {});
-    // Requêtes cross-origin en no-cors (réponses "opaques", mais ça suffit pour le cache hors-ligne)
     await Promise.allSettled(
       CDN_ASSETS.map(url => cache.add(new Request(url, { mode: 'no-cors' })).catch(() => {}))
     );
@@ -42,30 +41,37 @@ self.addEventListener('activate', event => {
   })());
 });
 
+// Prépare une réponse avant mise en cache : neutralise le flag "redirected"
+// (sinon Chrome refuse de reservir cette réponse en cache pour une navigation).
+async function cacheableResponse(res) {
+  if (!res || !(res.ok || res.type === 'opaque')) return null;
+  if (res.redirected) {
+    const body = await res.clone().blob();
+    return new Response(body, { headers: res.headers, status: res.status, statusText: res.statusText });
+  }
+  return res.clone();
+}
+
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  // Ignore les requêtes non-http (ex : chrome-extension://) — non cachables et hors sujet.
+  if (!event.request.url.startsWith('http')) return;
+
   event.respondWith((async () => {
     const cached = await caches.match(event.request);
     if (cached) {
-      // Ressource déjà en cache : on la sert tout de suite, et on met à jour
-      // le cache en arrière-plan pour la prochaine visite (sans bloquer ni cloner).
       event.waitUntil(
-        fetch(event.request).then(res => {
-          if (res && (res.ok || res.type === 'opaque')) {
-            return caches.open(CACHE).then(c => c.put(event.request, res));
-          }
+        fetch(event.request).then(res => cacheableResponse(res)).then(toCache => {
+          if (toCache) return caches.open(CACHE).then(c => c.put(event.request, toCache));
         }).catch(() => {})
       );
       return cached;
     }
-    // Pas encore en cache : on récupère la ressource, on clone AVANT de la
-    // renvoyer (cloner après lecture provoque l'erreur "body is already used"),
-    // et on stocke la copie sans bloquer la réponse.
     try {
       const res = await fetch(event.request);
-      if (res && (res.ok || res.type === 'opaque')) {
-        const resClone = res.clone();
-        event.waitUntil(caches.open(CACHE).then(c => c.put(event.request, resClone)));
+      const toCache = await cacheableResponse(res);
+      if (toCache) {
+        event.waitUntil(caches.open(CACHE).then(c => c.put(event.request, toCache)));
       }
       return res;
     } catch (e) {
