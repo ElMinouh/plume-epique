@@ -25,13 +25,50 @@ function renderChapterList() {
   const list = document.getElementById('chapter-list');
   list.innerHTML = db.chapters.map((ch,i) =>
     `<div class="chapter-item ${i===cur?'active':''}" data-idx="${i}" role="listitem" tabindex="0" aria-current="${i===cur}">
-      <span class="ch-num">${i+1}.</span> ${DOMPurify.sanitize(ch.title||'')}
+      <span class="ch-num">${i+1}.</span>
+      <span class="ch-title-text" style="flex-grow:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${DOMPurify.sanitize(ch.title||'')}</span>
+      <span class="ch-actions" style="display:flex;gap:2px;flex-shrink:0;">
+        <button class="ch-action-btn" data-move="up" data-idx="${i}" title="Monter" ${i===0?'disabled':''}>↑</button>
+        <button class="ch-action-btn" data-move="down" data-idx="${i}" title="Descendre" ${i===db.chapters.length-1?'disabled':''}>↓</button>
+        <button class="ch-action-btn ch-del-btn" data-del="${i}" title="Supprimer">✕</button>
+      </span>
     </div>`
   ).join('');
   list.querySelectorAll('.chapter-item').forEach(el => {
-    el.addEventListener('click', () => changeCh(parseInt(el.dataset.idx)));
-    el.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' ') changeCh(parseInt(el.dataset.idx)); });
+    el.addEventListener('click', (e) => { if(e.target.closest('.ch-actions')) return; changeCh(parseInt(el.dataset.idx)); });
+    el.addEventListener('keydown', e => { if((e.key==='Enter'||e.key===' ')&&!e.target.closest('.ch-actions')) changeCh(parseInt(el.dataset.idx)); });
   });
+  list.querySelectorAll('[data-move]').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); moveChapter(parseInt(btn.dataset.idx), btn.dataset.move); });
+  });
+  list.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); deleteChapter(parseInt(btn.dataset.del)); });
+  });
+}
+function deleteChapter(i) {
+  if (db.chapters.length <= 1) { toast('Impossible de supprimer le dernier chapitre.','error'); return; }
+  const ch = db.chapters[i];
+  if (!confirm(`Supprimer « ${ch.title||'ce chapitre'} » ? Cette action est irréversible (y compris son historique de versions).`)) return;
+  _switching = true;
+  flushCurrentChapter();
+  db.chapters.splice(i,1);
+  if (db.history && ch.id) delete db.history[ch.id];
+  if (cur >= db.chapters.length) cur = db.chapters.length - 1;
+  else if (i < cur) cur--;
+  renderChapterList(); loadChapter(cur); updateDailyStats();
+  _switching = false; save();
+  toast('Chapitre supprimé','success');
+}
+function moveChapter(i, dir) {
+  const j = dir==='up' ? i-1 : i+1;
+  if (j<0 || j>=db.chapters.length) return;
+  _switching = true;
+  flushCurrentChapter();
+  const activeId = db.chapters[cur].id;
+  [db.chapters[i], db.chapters[j]] = [db.chapters[j], db.chapters[i]];
+  cur = db.chapters.findIndex(c => c.id === activeId);
+  renderChapterList(); loadChapter(cur);
+  _switching = false; save();
 }
 function renderChapters() {
   _switching = true;
@@ -47,15 +84,15 @@ function changeCh(i) {
 function addChapter() {
   _switching = true;
   flushCurrentChapter();
-  db.chapters.push({ title:`Chapitre ${db.chapters.length+1}`, content:'', tension:20, summary:'' });
+  db.chapters.push({ id: genChapterId(), title:`Chapitre ${db.chapters.length+1}`, content:'', tension:20, summary:'' });
   cur = db.chapters.length - 1;
   renderChapterList(); loadChapter(cur); updateDailyStats();
   _switching = false; save();
 }
 function updateTitle(t) {
   db.chapters[cur].title = t; debouncedSave();
-  const items = document.querySelectorAll('#chapter-list .chapter-item');
-  if (items[cur]) items[cur].innerHTML = `<span class="ch-num">${cur+1}.</span> ${DOMPurify.sanitize(t)}`;
+  const titleEl = document.querySelectorAll('#chapter-list .ch-title-text')[cur];
+  if (titleEl) titleEl.textContent = t;
 }
 function updateTension(v) { db.chapters[cur].tension = parseInt(v); debouncedSave(); if (tensionChart) updateChart(); }
 

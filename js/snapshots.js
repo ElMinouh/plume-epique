@@ -2,10 +2,10 @@
 const MAX_SNAPSHOTS = 30;
 function takeSnapshot(chIdx, label) {
   if (!db.history) db.history = {};
-  const key = String(chIdx);
-  if (!db.history[key]) db.history[key] = [];
   const ch = db.chapters[chIdx];
-  if (!ch) return;
+  if (!ch || !ch.id) return;
+  const key = ch.id;
+  if (!db.history[key]) db.history[key] = [];
   const last = db.history[key][0];
   if (last && last.content === ch.content) return;
   db.history[key].unshift({
@@ -21,7 +21,7 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 
 function renderHistoryTab() {
-  const key = String(cur), snaps = db.history[key] || [];
+  const key = db.chapters[cur]?.id, snaps = (key && db.history[key]) || [];
   const list = document.getElementById('snapshot-list');
   list.innerHTML = snaps.length ? '' : '<div style="opacity:.5;font-size:.8rem;padding:10px;">Aucun snapshot pour ce chapitre.</div>';
   snaps.forEach((snap, i) => {
@@ -47,7 +47,7 @@ function showHistoryPreview(key, idx, el) {
 
 function openDiffViewer() {
   flushCurrentChapter();
-  const key = String(cur), snaps = db.history[key] || [];
+  const key = db.chapters[cur]?.id, snaps = (key && db.history[key]) || [];
   document.getElementById('history-chapter-name').textContent = db.chapters[cur].title;
   const list = document.getElementById('history-list');
   list.innerHTML = snaps.length ? '' : '<div style="opacity:.5;font-size:.8rem;">Aucun snapshot.</div>';
