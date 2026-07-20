@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Tests — Plume Épique</title>
+<style>
+  body{font-family:'Consolas',monospace;background:#0d0d1a;color:#e8e0d0;padding:24px;line-height:1.6;}
+  h2{margin-top:0;}
+  .pass{color:#27ae60;}
+  .fail{color:#e74c3c;font-weight:700;}
+  .line{padding:2px 0;font-size:.88rem;}
+  .group{margin-top:16px;font-weight:700;color:#c0392b;font-size:.95rem;}
+  #summary{font-size:1.15rem;margin-top:20px;padding:12px 16px;border-radius:8px;display:inline-block;}
+  .ok{background:rgba(39,174,96,.15);}
+  .ko{background:rgba(231,76,60,.15);}
+  p.hint{opacity:.6;font-size:.82rem;}
+</style>
+</head>
+<body>
+<h2>🧪 Tests automatisés — Plume Épique</h2>
+<p class="hint">Ouvrez ce fichier directement dans un navigateur (double-clic). Aucune installation, aucun serveur requis.
+Couvre les fonctions les plus sensibles du projet : migration de schéma, chiffrement, et diff de versions.</p>
+<div id="results"></div>
+<div id="summary"></div>
+
+<script src="../js/schema.js"></script>
+<script src="../js/crypto.js"></script>
+<script src="../js/diff.js"></script>
+<script>
+'use strict';
+// Stub minimal : diff.js appelle DOMPurify.sanitize(), non chargé ici volontairement
+// (le vrai DOMPurify n'apporte rien à ces tests et alourdirait ce fichier autonome).
+if (typeof DOMPurify === 'undefined') { window.DOMPurify = { sanitize: s => s }; }
+
+let _pass = 0, _fail = 0;
+function assert(cond, label) {
+  const el = document.createElement('div'); el.className = 'line';
+  if (cond) { _pass++; el.innerHTML = `<span class="pass">✔</span> ${label}`; }
+  else { _fail++; el.innerHTML = `<span class="fail">✘ ÉCHEC</span> — ${label}`; }
+  document.getElementById('results').appendChild(el);
+}
+function group(title) {
+  const el = document.createElement('div'); el.className = 'group';
+  el.textContent = title; document.getElementById('results').appendChild(el);
+}
+
+(async () => {
+  group('genChapterId()');
+  const id1 = genChapterId(), id2 = genChapterId();
+  assert(!!id1 && typeof id1 === 'string', 'génère un ID non vide');
+  assert(id1 !== id2, 'deux appels donnent des IDs différents');
+
+  group('migrateDb() — schéma v1 → actuel');
+  const v1 = { _schemaVersion: 1, chapters: [{ title:'Ch1', content:'texte' }, { title:'Ch2', content:'texte 2' }] };
+  const migrated = migrateDb(JSON.parse(JSON.stringify(v1)));
+  assert(migrated._schemaVersion === SCHEMA_VERSION, `_schemaVersion mis à jour (attendu ${SCHEMA_VERSION})`);
+  assert(Array.isArray(migrated.timeline), 'timeline initialisé');
+  assert(Array.isArray(migrated.tabOrder), 'tabOrder initialisé');
+  assert(typeof migrated.history === 'object', 'history initialisé');
+  assert(migrated.chapters.every(c => !!c.id), 'chaque chapitre a un ID stable');
+  assert(migrated.chapters.every(c => !!c.status), 'chaque chapitre a un statut par défaut');
+
+  group("migrateDb() — remapping de l'historique v3 → v4 (par ID, pas par position)");
+  const v3 = {
+    _schemaVersion: 3,
+    chapters: [{ title:'A', content:'a' }, { title:'B', content:'b' }],
+    history: { '0': [{ label:'snap A', content:'a', date:'x' }], '1': [{ label:'snap B', content:'b', date:'x' }] }
+  };
+  const migratedV3 = migrateDb(JSON.parse(JSON.stringify(v3)));
+  const idA = migratedV3.chapters[0].id, idB = migratedV3.chapters[1].id;
+  assert(!!migratedV3.history[idA] && migratedV3.history[idA][0].label === 'snap A', "historique du chapitre A remappé sur son ID");
+  assert(!!migratedV3.history[idB] && migratedV3.history[idB][0].label === 'snap B', "historique du chapitre B remappé sur son ID");
+
+  group('DEFAULT_DB()');
+  const fresh = DEFAULT_DB();
+  assert(fresh.chapters.length === 1, 'un chapitre par défaut');
+  assert(fresh.chapters[0].status === 'draft', 'statut par défaut = brouillon');
+  assert(fresh.sprint === null, 'aucun sprint actif par défaut');
+
+  group('Crypto — chiffrement / déchiffrement (AES-GCM + PBKDF2)');
+  const secret = 'Ceci est un texte de test avec des accents éàù.';
+  const pwd = 'motdepasse-test-123';
+  const cipher = await Crypto.encrypt(secret, pwd);
+  assert(typeof cipher === 'string' && cipher.length > 0, 'encrypt() renvoie une chaîne non vide');
+  const decrypted = await Crypto.decrypt(cipher, pwd);
+  assert(decrypted === secret, 'decrypt() restitue exactement le texte original');
+  const wrongDecrypt = await Crypto.decrypt(cipher, 'mauvais-mot-de-passe');
+  assert(wrongDecrypt === null, 'un mauvais mot de passe échoue proprement (renvoie null, pas d\'exception)');
+
+  group('diff.js — computeDiff() (algorithme LCS)');
+  const d1 = computeDiff('le chat noir dort', 'le chat noir dort');
+  assert(!/diff-add|diff-del/.test(d1), 'aucun changement détecté sur deux textes identiques');
+  const d2 = computeDiff('le chat dort', 'le chat noir dort');
+  assert(/diff-add/.test(d2) && d2.includes('noir'), 'un mot ajouté est bien détecté');
+  const d3 = computeDiff('le chat noir dort', 'le chat dort');
+  assert(/diff-del/.test(d3) && d3.includes('noir'), 'un mot supprimé est bien détecté');
+
+  const total = _pass + _fail;
+  const summary = document.getElementById('summary');
+  summary.className = _fail === 0 ? 'ok' : 'ko';
+  summary.textContent = _fail === 0
+    ? `✅ ${_pass}/${total} tests réussis.`
+    : `❌ ${_fail}/${total} test(s) en échec (${_pass} réussis sur ${total}).`;
+})();
+</script>
+</body>
+</html>

@@ -1,37 +1,6 @@
 'use strict';
-// ═══════════════════════════════════════════════════════
-// SCHÉMA & VERSIONING
-// ═══════════════════════════════════════════════════════
-const SCHEMA_VERSION = 4;
-function genChapterId() {
-  return (crypto.randomUUID ? crypto.randomUUID() : 'ch_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
-}
-function migrateDb(data) {
-  const v = data._schemaVersion || 1;
-  if (v < 2) { if (!data.timeline) data.timeline = []; if (!data.tabOrder) data.tabOrder = []; if (!data.weakWords) data.weakWords = ['juste','très']; }
-  if (v < 3) { if (!data.history) data.history = {}; if (!data.plugins) data.plugins = {}; if (!data.sessionStats) data.sessionStats = {}; }
-  if (v < 4) {
-    // Attribution d'un identifiant stable à chaque chapitre + migration de l'historique
-    // (auparavant indexé par position, ce qui cassait tout en cas de suppression/réorganisation)
-    const oldHistory = data.history || {};
-    const newHistory = {};
-    (data.chapters||[]).forEach((ch, idx) => {
-      if (!ch.id) ch.id = genChapterId();
-      if (oldHistory[String(idx)]) newHistory[ch.id] = oldHistory[String(idx)];
-    });
-    data.history = newHistory;
-  }
-  data._schemaVersion = SCHEMA_VERSION;
-  return data;
-}
-const DEFAULT_DB = () => ({
-  _schemaVersion: SCHEMA_VERSION,
-  chapters: [{ id: genChapterId(), title:'Chapitre 1', content:'', tension:20, summary:'' }],
-  chars:[], places:[], quests:[], timeline:[], history:{}, plugins:{},
-  weakWords:['juste','très'],
-  tabOrder:['tab-map','tab-sprint','tab-config','tab-quests','tab-chars','tab-places','tab-snaps','tab-wordcloud','tab-timeline','tab-stats','tab-ai','tab-history','tab-graph','tab-analytics','tab-plugins','tab-memory'],
-  darkMode:false, gistId:'', dailyGoal:500, sessionStats:{}, encrypted:false, sprint:null
-});
+// SCHÉMA & VERSIONING : voir schema.js (extrait en v6.1.0 pour être testable
+// indépendamment de l'app — tests/test-runner.html)
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -139,10 +108,13 @@ function initApp(){
   document.getElementById('add-place-btn').addEventListener('click',()=>addItem('places'));
   document.getElementById('export-btn').addEventListener('click',megaExport);
   document.getElementById('export-docx-btn').addEventListener('click',exportDocx);
+  document.getElementById('export-epub-btn').addEventListener('click',exportEpub);
   document.getElementById('import-trigger-btn').addEventListener('click',()=>document.getElementById('import-file').click());
   document.getElementById('import-file').addEventListener('change',e=>importProject(e.target));
   document.getElementById('sync-cloud-btn').addEventListener('click',syncCloud);
   document.getElementById('load-cloud-btn').addEventListener('click',loadCloud);
+  document.getElementById('gist-history-btn').addEventListener('click',openGistHistory);
+  document.getElementById('gist-history-close-btn').addEventListener('click',closeGistHistory);
   document.getElementById('sprint-start-btn').addEventListener('click',startSprint);
   document.getElementById('sprint-reset-btn').addEventListener('click',resetSprint);
 
@@ -180,6 +152,13 @@ function initApp(){
   document.getElementById('writer').addEventListener('input',liveCounter);
   document.getElementById('chapter-title').addEventListener('blur',e=>updateTitle(e.target.innerText.trim()));
   document.getElementById('tension-slider').addEventListener('input',e=>updateTension(e.target.value));
+  document.getElementById('chapter-status-sel').addEventListener('change',e=>{db.chapters[cur].status=e.target.value;renderChapterList();debouncedSave();});
+  document.getElementById('find-replace-btn').addEventListener('click',openFindReplace);
+  document.getElementById('fr-panel-close').addEventListener('click',closeFindReplace);
+  document.getElementById('fr-find-input').addEventListener('input',doFind);
+  document.getElementById('fr-next-btn').addEventListener('click',frNext);
+  document.getElementById('fr-replace-btn').addEventListener('click',frReplaceOne);
+  document.getElementById('fr-replace-all-btn').addEventListener('click',frReplaceAll);
   document.getElementById('daily-goal-input').addEventListener('input',e=>{db.dailyGoal=parseInt(e.target.value)||500;debouncedSave();updateDailyStats();});
   document.getElementById('change-pwd-btn').addEventListener('click',async()=>{const np=prompt('Nouveau mot de passe :\n⚠️ Si vous le perdez, vos données seront définitivement illisibles.');if(!np)return;_encPassword=np;db.encrypted=true;await save();toast('Mot de passe changé','success');});
   document.getElementById('disable-enc-btn').addEventListener('click',async()=>{if(!confirm('Désactiver le chiffrement ?'))return;_encPassword='';db.encrypted=false;await save();toast('Chiffrement désactivé');});
@@ -207,6 +186,8 @@ function initApp(){
       if(document.getElementById('ai-summary-panel').classList.contains('active'))document.getElementById('ai-summary-panel').classList.remove('active');
       if(document.getElementById('tts-panel').classList.contains('active'))document.getElementById('tts-panel').classList.remove('active');
       if(document.getElementById('lex-panel').classList.contains('active'))document.getElementById('lex-panel').classList.remove('active');
+      if(document.getElementById('fr-panel').classList.contains('active'))closeFindReplace();
+      if(document.getElementById('gist-history-overlay').classList.contains('active'))closeGistHistory();
     }
   });
 

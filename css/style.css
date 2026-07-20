@@ -43,6 +43,8 @@ main{flex-grow:1;width:98%;max-width:1500px;margin:0 auto 6px;
 .chapter-item.active{border-color:var(--accent);background:rgba(192,57,43,.08);font-weight:700;}
 .chapter-item:focus-visible{outline:2px solid var(--accent);}
 .ch-num{opacity:.45;font-weight:700;min-width:18px;font-size:.7rem;}
+.ch-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.ch-wordcount{font-size:.65rem;opacity:.45;flex-shrink:0;min-width:26px;text-align:right;}
 .ch-action-btn{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.7rem;
   padding:2px 4px;border-radius:4px;line-height:1;}
 .ch-action-btn:hover{background:rgba(0,0,0,.08);color:var(--text);}
@@ -172,6 +174,14 @@ mark{background-color:rgba(192,57,43,.22);color:var(--text);border-radius:3px;}
   cursor:pointer;border:1px solid var(--border);transition:.15s;}
 .lex-word:hover{border-color:var(--accent);background:rgba(192,57,43,.1);}
 .lex-empty{font-size:.78rem;opacity:.5;font-style:italic;padding:8px 0;}
+#fr-panel{position:absolute;left:16px;top:58px;width:270px;background:var(--glass);
+  border:1px solid var(--border);border-radius:14px;padding:14px;
+  box-shadow:0 10px 40px rgba(0,0,0,.25);z-index:55;display:none;flex-direction:column;gap:8px;}
+#fr-panel.active{display:flex;animation:slideIn .25s ease;}
+#gist-history-overlay{display:none;position:fixed;inset:0;z-index:8500;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;}
+#gist-history-overlay.active{display:flex;}
 #wordcloud-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 .wc-chip{display:inline-flex;align-items:center;gap:4px;background:var(--item-bg);
   border-radius:20px;padding:3px 10px;font-size:.72rem;border:1px solid var(--border);}
