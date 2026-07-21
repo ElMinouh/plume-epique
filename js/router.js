@@ -49,6 +49,25 @@ const tabLabels = {
   'tab-history':'🔖 Versions','tab-graph':'🕸️ Relations',
   'tab-analytics':'📈 Analyse','tab-plugins':'🔌 Plugins','tab-memory':'🧠 Mémoire'
 };
+// Descriptifs affichés en infobulle sur chaque onglet (neophytes).
+const tabDescriptions = {
+  'tab-map':'Courbe de tension narrative du roman',
+  'tab-sprint':'Chronomètre pour une session d\'écriture concentrée',
+  'tab-config':'Mots faibles, objectifs d\'écriture, profil',
+  'tab-quests':'Suivi des intrigues et fils narratifs',
+  'tab-chars':'Fiches de vos personnages',
+  'tab-places':'Fiches de vos lieux',
+  'tab-snaps':'Export, import et sauvegarde du projet',
+  'tab-wordcloud':'Nuage des mots les plus utilisés',
+  'tab-timeline':'Chronologie des événements du roman',
+  'tab-stats':'Statistiques d\'écriture',
+  'tab-ai':'Continuation, incohérences et noms générés par IA',
+  'tab-history':'Anciennes versions de chaque chapitre',
+  'tab-graph':'Graphe des relations entre personnages, lieux et quêtes',
+  'tab-analytics':'Longueur des chapitres et lisibilité du texte',
+  'tab-plugins':'Modules complémentaires activables',
+  'tab-memory':'Poser des questions sur le contenu déjà écrit'
+};
 
 // ═══════════════════════════════════════════════════════
 // UTILITAIRES
@@ -95,6 +114,7 @@ function initApp(){
   document.getElementById('add-chapter-btn').addEventListener('click',addChapter);
   document.getElementById('document-title').addEventListener('blur',e=>updateDocumentTitle(e.target.innerText.trim()));
   document.getElementById('back-to-library-btn').addEventListener('click',backToLibrary);
+  document.getElementById('editor-home-btn').addEventListener('click',goHome);
   // Mise en forme riche (nouveau V56)
   document.getElementById('fmt-bold-btn').addEventListener('click',()=>formatText('bold'));
   document.getElementById('fmt-italic-btn').addEventListener('click',()=>formatText('italic'));

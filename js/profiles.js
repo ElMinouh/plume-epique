@@ -281,6 +281,14 @@ function logout() {
   location.reload();
 }
 
+// Bouton "Accueil" (bibliothèque + éditeur) : retour à l'écran de connexion.
+// Techniquement identique à logout() (aucun état sensible ne doit rester en
+// mémoire), mais formulé pour un usage de navigation plutôt que de sécurité.
+function goHome() {
+  if (!confirm('Retourner à l\'écran de connexion ? Les modifications non enregistrées seront perdues.')) return;
+  location.reload();
+}
+
 // ── ÉCRAN 2 : Gestion des profils (administrateur) ──────────────────────
 async function openManageProfiles() {
   if (!_currentProfile || _currentProfile.role !== 'admin') { toast('Réservé à l\'administrateur.', 'error'); return; }

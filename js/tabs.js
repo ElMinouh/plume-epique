@@ -7,7 +7,7 @@ function renderTabs(){
     btn.className='tab-btn';btn.textContent=tabLabels[id]||id;
     btn.dataset.tabId=id;btn.setAttribute('role','tab');
     btn.setAttribute('draggable','true');
-    btn.title='Alt+← / Alt+→ pour réordonner au clavier';
+    btn.title=(tabDescriptions[id]?tabDescriptions[id]+' — ':'')+'Alt+← / Alt+→ pour réordonner au clavier';
     btn.addEventListener('click',()=>toggleTab(id,btn));
     btn.addEventListener('dragstart',e=>{
       btn.classList.add('dragging');

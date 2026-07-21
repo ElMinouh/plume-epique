@@ -59,6 +59,7 @@ function wireLibraryStaticUI() {
   document.getElementById('library-my-profile-btn').addEventListener('click', openMyProfile);
   document.getElementById('library-manage-profiles-btn').addEventListener('click', openManageProfiles);
   document.getElementById('library-logout-btn').addEventListener('click', logout);
+  document.getElementById('library-home-btn').addEventListener('click', goHome);
 }
 
 // Migration silencieuse : un profil v7.0/v7.1 a son roman unique sous
@@ -104,10 +105,11 @@ async function renderLibraryScreen() {
   document.getElementById('library-count').textContent = sorted.length + ' manuscrit' + (sorted.length > 1 ? 's' : '');
 
   const container = document.getElementById('library-grid');
-  container.innerHTML = `<div class="library-card library-new" id="library-new-btn" role="button" tabindex="0" aria-label="Nouveau projet">
+  container.innerHTML = `<div class="library-card library-new" id="library-new-btn" role="button" tabindex="0" aria-label="Nouveau projet" title="Créer un nouveau manuscrit vierge">
       <span class="library-new-icon">+</span><span>Nouveau projet</span>
     </div>` + sorted.map(d => `
-    <div class="library-card" data-doc-id="${d.id}" role="button" tabindex="0">
+    <div class="library-card" data-doc-id="${d.id}" role="button" tabindex="0" title="Ouvrir « ${DOMPurify.sanitize(d.title || 'Sans titre')} »">
+      <button class="library-delete-btn" data-delete-doc="${d.id}" title="Supprimer définitivement ce manuscrit">Supprimer</button>
       <div class="library-cover">📖</div>
       <div class="library-card-body">
         <p class="library-card-title">${DOMPurify.sanitize(d.title || 'Sans titre')}</p>
@@ -120,8 +122,11 @@ async function renderLibraryScreen() {
   newBtn.addEventListener('click', createNewDocument);
   newBtn.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); createNewDocument(); } });
   container.querySelectorAll('[data-doc-id]').forEach(card => {
-    card.addEventListener('click', () => openDocument(card.dataset.docId));
-    card.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); openDocument(card.dataset.docId); } });
+    card.addEventListener('click', (e) => { if (e.target.closest('.library-delete-btn')) return; openDocument(card.dataset.docId); });
+    card.addEventListener('keydown', e => { if ((e.key==='Enter'||e.key===' ')&&!e.target.closest('.library-delete-btn')) { e.preventDefault(); openDocument(card.dataset.docId); } });
+  });
+  container.querySelectorAll('[data-delete-doc]').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); deleteDocument(btn.dataset.deleteDoc); });
   });
 }
 
@@ -152,6 +157,23 @@ async function createNewDocument() {
   cur = 0;
   hideLibraryScreen();
   initApp();
+}
+
+// Suppression définitive d'un manuscrit depuis la bibliothèque — confirmation
+// forte (retaper le titre exact), même principe que la suppression de profil.
+async function deleteDocument(docId) {
+  const list = await loadDocList();
+  const entry = list.documents.find(d => d.id === docId);
+  if (!entry) return;
+  const title = entry.title || 'Sans titre';
+  const confirmTitle = prompt(`⚠️ SUPPRESSION DÉFINITIVE\n\nCela effacera le manuscrit « ${title} » ainsi que tous ses chapitres, sans possibilité de récupération.\n\nPour confirmer, tapez exactement le titre du manuscrit :`);
+  if (confirmTitle === null) return;
+  if (confirmTitle.trim().toLowerCase() !== title.toLowerCase()) { toast('Titre incorrect, suppression annulée.', 'error'); return; }
+  await persistData(docDataKey(_currentProfileId, docId), null);
+  list.documents = list.documents.filter(d => d.id !== docId);
+  await saveDocList(list);
+  await renderLibraryScreen();
+  toast('Manuscrit supprimé définitivement', 'success');
 }
 
 async function backToLibrary() {
