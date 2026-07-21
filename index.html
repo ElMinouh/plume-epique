@@ -451,6 +451,29 @@
   </div>
 
   <div id="tab-config" class="tab-content" role="tabpanel">
+    <strong>🎨 Apparence</strong>
+    <div style="font-size:.78rem;color:var(--text-muted);margin:10px 0 8px;">Palette de couleurs</div>
+    <div id="palette-picker" style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px;">
+      <button class="palette-swatch" data-palette="rouge-violet" title="Rouge &amp; Violet" aria-label="Rouge &amp; Violet"><span style="background:#c0392b;"></span><span style="background:#8e44ad;"></span></button>
+      <button class="palette-swatch" data-palette="bleu-ocean" title="Bleu Océan" aria-label="Bleu Océan"><span style="background:#2980b9;"></span><span style="background:#16a085;"></span></button>
+      <button class="palette-swatch" data-palette="emeraude" title="Émeraude" aria-label="Émeraude"><span style="background:#27ae60;"></span><span style="background:#2c3e50;"></span></button>
+      <button class="palette-swatch" data-palette="rose-poudre" title="Rose Poudré" aria-label="Rose Poudré"><span style="background:#c2185b;"></span><span style="background:#d4af37;"></span></button>
+      <button class="palette-swatch" data-palette="ardoise" title="Ardoise" aria-label="Ardoise"><span style="background:#34495e;"></span><span style="background:#7f8c8d;"></span></button>
+    </div>
+    <div style="font-size:.78rem;color:var(--text-muted);margin:0 0 8px;">Thème</div>
+    <div id="theme-picker" style="display:flex;gap:8px;margin-bottom:14px;">
+      <button class="mode-indicator" data-theme="light" title="Thème clair">☀️ Clair</button>
+      <button class="mode-indicator" data-theme="dark" title="Thème sombre">🌙 Sombre</button>
+      <button class="mode-indicator" data-theme="paper" title="Thème papier/sépia">📜 Papier</button>
+    </div>
+    <div style="font-size:.78rem;color:var(--text-muted);margin:0 0 8px;">Police d'écriture</div>
+    <div id="font-picker" style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px;">
+      <div class="font-option" data-font="palatino" tabindex="0" role="radio" title="Police par défaut"><span class="font-dot"></span><span style="font-family:'Palatino Linotype',Georgia,serif;">Palatino / Georgia (défaut)</span></div>
+      <div class="font-option" data-font="times" tabindex="0" role="radio" title="Times New Roman"><span class="font-dot"></span><span style="font-family:'Times New Roman',Times,serif;">Times New Roman</span></div>
+      <div class="font-option" data-font="verdana" tabindex="0" role="radio" title="Verdana, sans-serif"><span class="font-dot"></span><span style="font-family:Verdana,Arial,sans-serif;">Verdana (sans-serif)</span></div>
+      <div class="font-option" data-font="courier" tabindex="0" role="radio" title="Courier New, façon machine à écrire"><span class="font-dot"></span><span style="font-family:'Courier New',Courier,monospace;">Courier New (machine à écrire)</span></div>
+    </div>
+    <hr style="border-color:var(--border);margin:10px 0;">
     <strong>Mots faibles</strong>
     <div id="weak-words-list" style="margin:8px 0;"></div>
     <div style="display:flex;gap:6px;">
@@ -613,7 +636,7 @@
       <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre">🌙 Nuit</button>
       <button id="install-app-btn" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.72rem;font-weight:700;font-family:inherit;box-shadow:0 2px 8px rgba(192,57,43,.3);" title="Installer Plume Épique comme application sur cet ordinateur">📲 Installer sur le bureau</button>
       <button id="shortcuts-hint-btn" class="mode-indicator" style="margin-left:auto;padding:2px 8px;" title="Voir les raccourcis clavier (touche ?)">❔</button>
-      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.6.0</span>
+      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.7.0</span>
     </div>
   </div>
 </main>

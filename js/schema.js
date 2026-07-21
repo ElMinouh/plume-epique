@@ -5,7 +5,7 @@
 // pour pouvoir être testé indépendamment de l'application
 // (voir tests/test-runner.html).
 // ═══════════════════════════════════════════════════════
-const SCHEMA_VERSION = 8;
+const SCHEMA_VERSION = 9;
 
 function genChapterId() {
   return (crypto.randomUUID ? crypto.randomUUID() : 'ch_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
@@ -56,6 +56,13 @@ function migrateDb(data) {
     // pas conservé).
     data.tabOrder = ['tab-map','tab-sprint','tab-univers','tab-ia-memoire','tab-analysegroup','tab-systeme','tab-config'];
   }
+  if (v < 9) {
+    // Apparence personnalisable : palette de couleurs, thème papier, police
+    // d'écriture (v7.7.0). Valeurs par défaut = rendu identique à avant.
+    if (!data.accentPalette) data.accentPalette = 'rouge-violet';
+    if (typeof data.paperMode !== 'boolean') data.paperMode = false;
+    if (!data.editorFont) data.editorFont = 'palatino';
+  }
   data._schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -67,5 +74,6 @@ const DEFAULT_DB = () => ({
   chars:[], places:[], quests:[], timeline:[], history:{}, plugins:{},
   weakWords:['juste','très'],
   tabOrder:['tab-map','tab-sprint','tab-univers','tab-ia-memoire','tab-analysegroup','tab-systeme','tab-config'],
-  darkMode:false, gistId:'', dailyGoal:500, weeklyGoal:3000, monthlyGoal:12000, sessionStats:{}, sprint:null, trash:[]
+  darkMode:false, gistId:'', dailyGoal:500, weeklyGoal:3000, monthlyGoal:12000, sessionStats:{}, sprint:null, trash:[],
+  accentPalette:'rouge-violet', paperMode:false, editorFont:'palatino'
 });

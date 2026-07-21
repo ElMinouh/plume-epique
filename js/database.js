@@ -91,10 +91,75 @@ function showQuestEdit(i){const q=db.quests[i],c=document.getElementById('quest-
 function addQuest(){const i=document.getElementById('q-in');if(i.value.trim()){db.quests.push({text:i.value.trim(),done:false});i.value='';save();renderQuests();}}
 
 // ═══════════════════════════════════════════════════════
+// APPARENCE — palette de couleurs, thème, police d'écriture (nouveau v7.7.0)
+// Stocké par manuscrit (comme darkMode), appliqué via des variables CSS/classes
+// posées sur <html>/<body> — le fichier style.css garde ses valeurs par défaut
+// intactes, elles ne servent que tant qu'aucun manuscrit n'est encore ouvert.
+// ═══════════════════════════════════════════════════════
+const ACCENT_PALETTES = {
+  'rouge-violet': { label:'Rouge & Violet', a:'#c0392b', b:'#8e44ad' },
+  'bleu-ocean':   { label:'Bleu Océan',     a:'#2980b9', b:'#16a085' },
+  'emeraude':     { label:'Émeraude',       a:'#27ae60', b:'#2c3e50' },
+  'rose-poudre':  { label:'Rose Poudré',    a:'#c2185b', b:'#d4af37' },
+  'ardoise':      { label:'Ardoise',        a:'#34495e', b:'#7f8c8d' }
+};
+const EDITOR_FONTS = {
+  'palatino': { css:"'Palatino Linotype',Georgia,serif" },
+  'times':    { css:"'Times New Roman',Times,serif" },
+  'verdana':  { css:'Verdana,Arial,sans-serif' },
+  'courier':  { css:"'Courier New',Courier,monospace" }
+};
+function applyAccentPalette(key) {
+  const p = ACCENT_PALETTES[key] || ACCENT_PALETTES['rouge-violet'];
+  document.documentElement.style.setProperty('--accent', p.a);
+  document.documentElement.style.setProperty('--accent2', p.b);
+}
+function applyEditorFont(key) {
+  document.body.classList.remove('font-times','font-verdana','font-courier');
+  if (key && key !== 'palatino' && EDITOR_FONTS[key]) document.body.classList.add('font-'+key);
+}
+function selectPalette(key) {
+  if (!ACCENT_PALETTES[key]) return;
+  db.accentPalette = key;
+  applyAccentPalette(key);
+  renderAppearanceUI();
+  save();
+}
+function selectFont(key) {
+  if (!EDITOR_FONTS[key]) return;
+  db.editorFont = key;
+  applyEditorFont(key);
+  renderAppearanceUI();
+  debouncedSave();
+}
+function selectTheme(mode) {
+  db.darkMode = (mode === 'dark');
+  db.paperMode = (mode === 'paper');
+  document.body.classList.toggle('dark-mode', db.darkMode);
+  document.body.classList.toggle('paper-mode', db.paperMode);
+  renderAppearanceUI();
+  save();
+}
+// Reflète db.accentPalette/darkMode+paperMode/editorFont sur les 3 sélecteurs
+// de l'onglet Config — appelée à l'ouverture du manuscrit et après tout choix.
+function renderAppearanceUI() {
+  document.querySelectorAll('#palette-picker .palette-swatch').forEach(b => b.classList.toggle('active', b.dataset.palette === (db.accentPalette||'rouge-violet')));
+  const currentTheme = db.paperMode ? 'paper' : (db.darkMode ? 'dark' : 'light');
+  document.querySelectorAll('#theme-picker .mode-indicator').forEach(b => b.classList.toggle('active', b.dataset.theme === currentTheme));
+  document.querySelectorAll('#font-picker .font-option').forEach(el => el.classList.toggle('active', el.dataset.font === (db.editorFont||'palatino')));
+}
+
+// ═══════════════════════════════════════════════════════
 // DIVERS
 // ═══════════════════════════════════════════════════════
 function updateChart(){if(!tensionChart)return;tensionChart.data.labels=db.chapters.map((_,i)=>i+1);tensionChart.data.datasets[0].data=db.chapters.map(c=>c.tension);tensionChart.update();}
-function toggleMode(){db.darkMode=!db.darkMode;document.body.classList.toggle('dark-mode',db.darkMode);save();}
+function toggleMode(){
+  db.darkMode=!db.darkMode;
+  // Le thème papier est exclusif du mode sombre (voir selectTheme ci-dessus).
+  if (db.darkMode && db.paperMode) { db.paperMode=false; document.body.classList.remove('paper-mode'); renderAppearanceUI(); }
+  document.body.classList.toggle('dark-mode',db.darkMode);
+  save();
+}
 function addItem(k){const n=prompt('Nom :');if(n){db[k].push({name:n,info:''});save();renderLibrary(k);}}
 
 // ═══════════════════════════════════════════════════════

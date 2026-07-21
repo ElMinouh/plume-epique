@@ -91,6 +91,10 @@ const debouncedSave = (() => {
 // ═══════════════════════════════════════════════════════
 function initApp(){
   if(db.darkMode)document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');
+  // v7.7.0 — Apparence : thème papier, palette de couleurs, police d'écriture.
+  document.body.classList.toggle('paper-mode', !!db.paperMode);
+  applyAccentPalette(db.accentPalette);
+  applyEditorFont(db.editorFont);
   const dt = document.getElementById('document-title'); if (dt) dt.innerText = db.title || '';
   sessionWordsStart=db.chapters.reduce((s,c)=>s+getWordCount(c.content),0);
   sessionStartTime=Date.now();
@@ -102,6 +106,7 @@ function initApp(){
   resumeSprintIfNeeded();
   purgeOldTrash();
   updateTrashBadge();
+  renderAppearanceUI();
 
   const ctx=document.getElementById('tensionChart').getContext('2d');
   if (tensionChart) { tensionChart.destroy(); tensionChart = null; }
@@ -149,6 +154,12 @@ function wireAppEventListenersOnce(){
   document.getElementById('writer').addEventListener('mouseup', saveCursorPosition);
   document.getElementById('writer').addEventListener('keyup', saveCursorPosition);
   document.getElementById('toggle-dark-btn').addEventListener('click',toggleMode);
+  document.querySelectorAll('#palette-picker .palette-swatch').forEach(btn=>btn.addEventListener('click',()=>selectPalette(btn.dataset.palette)));
+  document.querySelectorAll('#theme-picker .mode-indicator').forEach(btn=>btn.addEventListener('click',()=>selectTheme(btn.dataset.theme)));
+  document.querySelectorAll('#font-picker .font-option').forEach(el=>{
+    el.addEventListener('click',()=>selectFont(el.dataset.font));
+    el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectFont(el.dataset.font);}});
+  });
   document.getElementById('add-weak-word-btn').addEventListener('click',addWeakWord);
   document.getElementById('add-quest-btn').addEventListener('click',addQuest);
   document.getElementById('add-char-btn').addEventListener('click',()=>addItem('chars'));
