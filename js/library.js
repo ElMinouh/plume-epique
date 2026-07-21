@@ -48,7 +48,7 @@ function formatRelativeDate(ts) {
 async function enterLibrary() {
   await migrateLegacyDocumentIfNeeded();
   wireLibraryStaticUI();
-  await renderLibrary();
+  await renderLibraryScreen();
   showLibraryScreen();
 }
 
@@ -95,7 +95,7 @@ async function migrateLegacyDocumentIfNeeded() {
   await persistData('data_' + _currentProfileId, null);
 }
 
-async function renderLibrary() {
+async function renderLibraryScreen() {
   const list = await loadDocList();
   const sorted = list.documents.slice().sort((a,b) => b.lastModified - a.lastModified);
 
@@ -157,7 +157,7 @@ async function createNewDocument() {
 async function backToLibrary() {
   flushCurrentChapter();
   await save();
-  await renderLibrary();
+  await renderLibraryScreen();
   showLibraryScreen();
 }
 
