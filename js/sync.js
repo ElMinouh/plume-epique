@@ -114,13 +114,13 @@ async function syncCloud(){
   flushCurrentChapter();
   if(!_cloudToken){toast('Token requis','error');return;}
   try{
-    const payload = (db.encrypted && _encPassword)
+    const payload = _encPassword
       ? JSON.stringify({ _enc:true, data: await Crypto.encrypt(JSON.stringify(db), _encPassword) })
       : JSON.stringify(db);
     const method=db.gistId?'PATCH':'POST',url=db.gistId?`https://api.github.com/gists/${db.gistId}`:'https://api.github.com/gists';
     const resp=await fetch(url,{method,headers:{'Authorization':`token ${_cloudToken}`,'Content-Type':'application/json'},body:JSON.stringify({public:false,files:{"plume.json":{content:payload}}})});
     if(!resp.ok)throw new Error(`HTTP ${resp.status}`);const data=await resp.json();
-    if(data.id){db.gistId=data.id;document.getElementById('gist-id').value=data.id;save();document.getElementById('cloud-status').innerText='✅ Sauvegardé (gist privé'+(db.encrypted?', chiffré':'')+')';}
+    if(data.id){db.gistId=data.id;document.getElementById('gist-id').value=data.id;save();document.getElementById('cloud-status').innerText='✅ Sauvegardé (gist privé'+(_encPassword?', chiffré':'')+')';}
   }catch(e){document.getElementById('cloud-status').innerText='❌ '+e.message;}
 }
 async function loadCloud(){
@@ -190,7 +190,7 @@ async function applyRemoteProjectJson(raw, statusElId) {
       return;
     }
     parsed = JSON.parse(dec);
-    _encPassword = pwd; db = migrateDb(parsed); db.encrypted = true; save(); location.reload();
+    _encPassword = pwd; db = migrateDb(parsed); save(); location.reload();
     return;
   }
   if (!parsed.chapters) throw new Error('Format invalide');
@@ -206,7 +206,7 @@ async function applyRemoteProjectJson(raw, statusElId) {
 async function megaExport(){
   flushCurrentChapter();
   const payload = JSON.stringify(db);
-  if (db.encrypted && _encPassword) {
+  if (_encPassword) {
     const cipher = await Crypto.encrypt(payload, _encPassword);
     saveAs(new Blob([JSON.stringify({ _enc:true, data:cipher })], {type:'application/json'}), 'projet_plume_chiffre.json');
     toast('Export JSON chiffré (même mot de passe que le projet)', 'success');
@@ -227,7 +227,7 @@ function importProject(input){
         if (!dec) { toast('Mot de passe incorrect.','error'); return; }
         const parsed = JSON.parse(dec);
         if(!parsed.chapters||!Array.isArray(parsed.chapters))throw new Error('Chapitres invalides');
-        db=migrateDb(parsed);_encPassword=pwd;db.encrypted=true;save();location.reload();
+        db=migrateDb(parsed);_encPassword=pwd;save();location.reload();
         return;
       }
       if(!p.chapters||!Array.isArray(p.chapters))throw new Error('Chapitres invalides');

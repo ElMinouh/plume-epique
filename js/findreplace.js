@@ -1,10 +1,14 @@
 'use strict';
 // ═══════════════════════════════════════════════════════
-// RECHERCHER / REMPLACER dans l'éditeur (nouveau v6.1.0)
-// Fonctionne au niveau des nœuds texte du contenteditable : couvre le cas
-// standard (mot/expression à l'intérieur d'un même passage de mise en
-// forme). Une occurrence qui chevauche une limite gras/italique n'est pas
-// remplacée automatiquement — cas rare, à corriger manuellement.
+// RECHERCHER / REMPLACER dans l'éditeur (v6.1.0, corrigé v7.1.0)
+// Fonctionne au niveau des nœuds texte du contenteditable. Correction :
+// une occurrence est désormais retrouvée même si elle chevauche une limite
+// de mise en forme (ex. un mot moitié en gras, moitié non, donc réparti sur
+// deux nœuds texte adjacents) — la recherche se fait sur un texte "à plat"
+// reconstitué à partir de tous les nœuds, avec une correspondance
+// caractère → (nœud, position) pour retrouver l'emplacement exact ensuite.
+// Le remplacement utilise l'API Range du navigateur, qui gère nativement
+// la coupure/fusion des nœuds concernés, y compris à cheval sur plusieurs.
 // ═══════════════════════════════════════════════════════
 let _frMatches = [], _frIndex = -1;
 
@@ -16,21 +20,41 @@ function collectTextNodes(root) {
   return nodes;
 }
 
+// Reconstitue le texte complet du writer en une seule chaîne, avec pour
+// chaque caractère la référence exacte (nœud, position dans ce nœud).
+function buildFlatIndex(root) {
+  const nodes = collectTextNodes(root);
+  let flat = '';
+  const map = [];
+  nodes.forEach(node => {
+    const text = node.textContent;
+    for (let i = 0; i < text.length; i++) map.push({ node, offset: i });
+    flat += text;
+  });
+  return { flat, map };
+}
+
+function findAllMatches(root, query) {
+  const { flat, map } = buildFlatIndex(root);
+  const lowerFlat = flat.toLowerCase(), lowerQ = query.toLowerCase();
+  const matches = [];
+  let idx = 0;
+  while ((idx = lowerFlat.indexOf(lowerQ, idx)) !== -1) {
+    const startPos = map[idx], endPos = map[idx + query.length - 1];
+    if (startPos && endPos) {
+      matches.push({ startNode: startPos.node, startOffset: startPos.offset, endNode: endPos.node, endOffset: endPos.offset + 1 });
+    }
+    idx += query.length;
+  }
+  return matches;
+}
+
 function doFind() {
   const query = document.getElementById('fr-find-input').value;
   const writer = document.getElementById('writer');
   _frMatches = [];
   if (!query) { _frIndex = -1; updateFrStatus(); return; }
-  const nodes = collectTextNodes(writer);
-  const lowerQ = query.toLowerCase();
-  nodes.forEach(node => {
-    const text = node.textContent.toLowerCase();
-    let idx = 0;
-    while ((idx = text.indexOf(lowerQ, idx)) !== -1) {
-      _frMatches.push({ node, start: idx, end: idx + query.length });
-      idx += query.length;
-    }
-  });
+  _frMatches = findAllMatches(writer, query);
   _frIndex = _frMatches.length ? 0 : -1;
   highlightCurrentMatch();
   updateFrStatus();
@@ -41,12 +65,12 @@ function highlightCurrentMatch() {
   const m = _frMatches[_frIndex];
   try {
     const range = document.createRange();
-    range.setStart(m.node, m.start);
-    range.setEnd(m.node, m.end);
+    range.setStart(m.startNode, m.startOffset);
+    range.setEnd(m.endNode, m.endOffset);
     const sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
-    const el = m.node.parentElement;
+    const el = m.startNode.parentElement;
     if (el && el.scrollIntoView) el.scrollIntoView({ block:'center', behavior:'smooth' });
   } catch(e) { /* le DOM a changé entre-temps, on ignore */ }
 }
@@ -61,8 +85,13 @@ function frReplaceOne() {
   if (_frIndex < 0 || !_frMatches[_frIndex]) { toast('Aucune occurrence sélectionnée.', 'error'); return; }
   const replacement = document.getElementById('fr-replace-input').value;
   const m = _frMatches[_frIndex];
-  const text = m.node.textContent;
-  m.node.textContent = text.slice(0, m.start) + replacement + text.slice(m.end);
+  try {
+    const range = document.createRange();
+    range.setStart(m.startNode, m.startOffset);
+    range.setEnd(m.endNode, m.endOffset);
+    range.deleteContents();
+    if (replacement) range.insertNode(document.createTextNode(replacement));
+  } catch(e) { toast('Remplacement impossible (le texte a changé entre-temps).', 'error'); return; }
   liveCounter();
   doFind();
 }
@@ -72,19 +101,20 @@ function frReplaceAll() {
   const replacement = document.getElementById('fr-replace-input').value;
   if (!query) { toast('Entrez un texte à rechercher.', 'error'); return; }
   const writer = document.getElementById('writer');
-  const nodes = collectTextNodes(writer);
-  const lowerQ = query.toLowerCase();
+  const matches = findAllMatches(writer, query);
   let count = 0;
-  nodes.forEach(node => {
-    const text = node.textContent, lower = text.toLowerCase();
-    let out = '', i = 0, changed = false;
-    while (true) {
-      const idx = lower.indexOf(lowerQ, i);
-      if (idx === -1) { out += text.slice(i); break; }
-      out += text.slice(i, idx) + replacement;
-      i = idx + query.length; changed = true; count++;
-    }
-    if (changed) node.textContent = out;
+  // Remplacement en partant de la fin du document vers le début : ainsi,
+  // modifier une occurrence n'invalide jamais la position des occurrences
+  // précédentes qu'il reste à traiter.
+  matches.slice().reverse().forEach(m => {
+    try {
+      const range = document.createRange();
+      range.setStart(m.startNode, m.startOffset);
+      range.setEnd(m.endNode, m.endOffset);
+      range.deleteContents();
+      if (replacement) range.insertNode(document.createTextNode(replacement));
+      count++;
+    } catch(e) { /* occurrence devenue invalide entre-temps, on l'ignore */ }
   });
   liveCounter();
   _frMatches = []; _frIndex = -1;

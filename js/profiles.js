@@ -38,6 +38,11 @@ function hideGate() { gateEl().style.display = 'none'; }
 async function bootProfiles() {
   const idx = await loadProfilesIndex();
   if (idx && Array.isArray(idx.profiles) && idx.profiles.length) {
+    // Le système de profils est actif : la migration a forcément déjà eu
+    // lieu. L'ancienne clé mono-profil 'main' n'est donc plus nécessaire
+    // — on la purge silencieusement si elle traîne encore.
+    const legacy = await loadData('main');
+    if (legacy) await persistData('main', null);
     renderLoginScreen(idx);
     return;
   }

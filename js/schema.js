@@ -54,5 +54,5 @@ const DEFAULT_DB = () => ({
   chars:[], places:[], quests:[], timeline:[], history:{}, plugins:{},
   weakWords:['juste','très'],
   tabOrder:['tab-map','tab-sprint','tab-config','tab-quests','tab-chars','tab-places','tab-snaps','tab-wordcloud','tab-timeline','tab-stats','tab-ai','tab-history','tab-graph','tab-analytics','tab-plugins','tab-memory'],
-  darkMode:false, gistId:'', dailyGoal:500, weeklyGoal:3000, monthlyGoal:12000, sessionStats:{}, encrypted:false, sprint:null, trash:[]
+  darkMode:false, gistId:'', dailyGoal:500, weeklyGoal:3000, monthlyGoal:12000, sessionStats:{}, sprint:null, trash:[]
 });

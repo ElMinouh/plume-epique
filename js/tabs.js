@@ -52,10 +52,16 @@ function renderTabs(){
     nav.appendChild(btn);
   });
 }
-function toggleTab(id,btn){
+// Correction : ajout du paramètre forceOpen (v7.1.0). Un clic manuel sur un
+// onglet déjà actif doit toujours le refermer (comportement "interrupteur"
+// voulu). En revanche, une navigation programmatique (ex. depuis la
+// recherche globale ou un lien personnage/lieu/quête) doit TOUJOURS ouvrir
+// l'onglet cible, même s'il était déjà actif — auparavant, cliquer sur un
+// tel lien alors que l'onglet était déjà ouvert le refermait par erreur.
+function toggleTab(id,btn,forceOpen){
   const cont=document.getElementById('tab-container'),active=btn.classList.contains('active');
   document.querySelectorAll('.tab-btn,.tab-content').forEach(e=>e.classList.remove('active'));
-  if(!active){
+  if(!active||forceOpen){
     btn.classList.add('active');document.getElementById(id).classList.add('active');cont.classList.add('open');
     if(id==='tab-map')updateChart();
     if(id==='tab-chars')renderLibrary('chars');if(id==='tab-places')renderLibrary('places');
