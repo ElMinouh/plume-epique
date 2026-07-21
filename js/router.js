@@ -40,6 +40,9 @@ let _switching = false;
 // v7.0.0 — profil courant : identifiant, métadonnées, et clé de données (DEK)
 // qui chiffre/déchiffre les données de CE profil uniquement.
 let _currentProfileId = null, _currentProfile = null, _dataKey = null;
+// v7.5.0 — des modifications sont-elles en attente de sauvegarde ? Utilisé
+// par la confirmation de fermeture d'onglet ci-dessous (wireAppEventListenersOnce).
+let _unsavedChanges = false;
 
 const tabLabels = {
   'tab-map':'🏗️ Structure','tab-sprint':'⏱️ Sprint',
@@ -66,11 +69,6 @@ function getTodayKey() { return new Date().toISOString().slice(0,10); }
 function getWordCount(t) { const m=(t||'').replace(/<[^>]*>/g,' ').match(/[a-zA-Z0-9À-ÿ]+/g); return m?m.length:0; }
 function getPlainText(html) { return (html||'').replace(/<br\s*\/?>/gi,'\n').replace(/<\/p>/gi,'\n').replace(/<[^>]*>/g,'').trim(); }
 
-// ═══════════════════════════════════════════════════════
-// PERSISTANCE
-// ═══════════════════════════════════════════════════════
-// v7.0.0 : les données du profil courant sont toujours chiffrées par sa clé
-// de données (DEK), et stockées sous 'data_<id>'.
 const save = async () => {
   if (!_currentProfileId || !_dataKey || !_currentDocumentId) return;
   const payload = { ...db }; delete payload.cloudToken;
@@ -78,8 +76,15 @@ const save = async () => {
   await persistData(docDataKey(_currentProfileId, _currentDocumentId), { _enc:true, data:cipher });
   await touchDocumentMeta();
   flashSave(); updateDailyStats();
+  _unsavedChanges = false;
 };
-const debouncedSave = debounce(save, 600);
+// v7.5.0 : debouncedSave marque _unsavedChanges=true immédiatement (avant les
+// 600ms d'attente), pour que la confirmation de fermeture d'onglet sache
+// qu'une frappe récente n'est pas encore persistée.
+const debouncedSave = (() => {
+  const inner = debounce(save, 600);
+  return () => { _unsavedChanges = true; inner(); };
+})();
 
 // ═══════════════════════════════════════════════════════
 // INIT APP — câblage de tous les événements
@@ -93,6 +98,7 @@ function initApp(){
   renderLibrary('chars');renderLibrary('places');renderQuests();renderWeakWords();initGoalUI();
   resumeSprintIfNeeded();
   purgeOldTrash();
+  updateTrashBadge();
 
   const ctx=document.getElementById('tensionChart').getContext('2d');
   if (tensionChart) { tensionChart.destroy(); tensionChart = null; }
@@ -232,9 +238,23 @@ function wireAppEventListenersOnce(){
   document.getElementById('tl-event-text').addEventListener('keydown',e=>{if(e.key==='Enter')addTimelineEvent();});
   document.getElementById('lex-in').addEventListener('keydown',e=>{if(e.key==='Enter')handleSearch();});
 
+  // Filtres de recherche dans les listes Personnages / Lieux / Quêtes (v7.5.0)
+  document.getElementById('char-filter').addEventListener('input',e=>filterChars(e.target.value));
+  document.getElementById('place-filter').addEventListener('input',e=>filterPlaces(e.target.value));
+  document.getElementById('quest-filter').addEventListener('input',e=>filterQuests(e.target.value));
+
+  // Aide-mémoire des raccourcis clavier (v7.5.0)
+  document.getElementById('shortcuts-close-btn').addEventListener('click',closeShortcutsHelp);
+  document.getElementById('shortcuts-hint-btn').addEventListener('click',openShortcutsHelp);
+
   document.addEventListener('keydown',e=>{
     if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openGlobalSearch();}
     if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();flushCurrentChapter();save();}
+    // v7.5.0 : "?" ouvre l'aide-mémoire, sauf si l'utilisateur est en train de
+    // taper (sinon impossible d'écrire un vrai "?" dans le texte du roman).
+    if(e.key==='?' && e.target.tagName!=='INPUT' && e.target.tagName!=='TEXTAREA' && !e.target.isContentEditable){
+      e.preventDefault();openShortcutsHelp();
+    }
     if(e.key==='Escape'){
       if(document.getElementById('focus-overlay').classList.contains('active'))exitFocus();
       if(document.getElementById('search-overlay').classList.contains('active'))closeGlobalSearch();
@@ -247,7 +267,14 @@ function wireAppEventListenersOnce(){
       if(document.getElementById('trash-overlay').classList.contains('active'))closeTrash();
       if(document.getElementById('reading-overlay').classList.contains('active'))exitReadingMode();
       if(document.getElementById('export-select-overlay').classList.contains('active'))closeExportSelect();
+      if(document.getElementById('shortcuts-overlay').classList.contains('active'))closeShortcutsHelp();
     }
+  });
+
+  // v7.5.0 : confirmation avant de fermer/recharger l'onglet s'il reste des
+  // modifications non encore persistées (frappe des 600 dernières ms).
+  window.addEventListener('beforeunload', e => {
+    if (_unsavedChanges) { e.preventDefault(); e.returnValue = ''; }
   });
 
   document.getElementById('memory-index-btn').addEventListener('click', indexNarrative);

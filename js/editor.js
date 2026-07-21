@@ -91,7 +91,7 @@ function deleteChapter(i) {
   if (db.history && ch.id) delete db.history[ch.id];
   if (cur >= db.chapters.length) cur = db.chapters.length - 1;
   else if (i < cur) cur--;
-  renderChapterList(); loadChapter(cur); updateDailyStats();
+  renderChapterList(); loadChapter(cur); updateDailyStats(); updateTrashBadge();
   _switching = false; save();
   toast('Chapitre déplacé vers la corbeille','success');
 }
@@ -103,6 +103,7 @@ function deleteChapter(i) {
 function purgeOldTrash() {
   const THIRTY_DAYS = 30*24*60*60*1000, now = Date.now();
   db.trash = (db.trash||[]).filter(t => (now - t.deletedAt) < THIRTY_DAYS);
+  updateTrashBadge();
 }
 function openTrash() {
   purgeOldTrash();
@@ -135,13 +136,13 @@ function restoreFromTrash(i) {
   db.chapters.push(item.chapter);
   if (item.history) { if (!db.history) db.history = {}; db.history[item.chapter.id] = item.history; }
   db.trash.splice(i,1);
-  renderChapterList(); renderTrashList(); save();
+  renderChapterList(); renderTrashList(); updateTrashBadge(); save();
   toast('Chapitre restauré','success');
 }
 function permanentlyPurge(i) {
   if (!confirm('Supprimer définitivement ce chapitre ? Cette action est irréversible.')) return;
   db.trash.splice(i,1);
-  renderTrashList(); save();
+  renderTrashList(); updateTrashBadge(); save();
 }
 function moveChapter(i, dir) {
   const j = dir==='up' ? i-1 : i+1;

@@ -2,9 +2,21 @@
 // ═══════════════════════════════════════════════════════
 // BIBLIOTHÈQUE (personnages / lieux)
 // ═══════════════════════════════════════════════════════
+// Filtres de recherche (v7.5.0) — état volatile, non persisté, remis à zéro
+// à chaque rechargement de page.
+let _charFilter = '', _placeFilter = '', _questFilter = '';
+function filterChars(v){ _charFilter = v; renderLibrary('chars'); }
+function filterPlaces(v){ _placeFilter = v; renderLibrary('places'); }
+function filterQuests(v){ _questFilter = v; renderQuests(); }
+
 function renderLibrary(k){
   const id=k==='chars'?'char-list-db':'place-list-db';const c=document.getElementById(id);
-  c.innerHTML=db[k].map((item,i)=>`<div class="chapter-item" data-type="${k}" data-idx="${i}" role="listitem" tabindex="0">${DOMPurify.sanitize(item.name)}</div>`).join('');
+  const filter=(k==='chars'?_charFilter:_placeFilter).trim().toLowerCase();
+  c.innerHTML=db[k]
+    .map((item,i)=>({item,i}))
+    .filter(({item})=>!filter||(item.name||'').toLowerCase().includes(filter))
+    .map(({item,i})=>`<div class="chapter-item" data-type="${k}" data-idx="${i}" role="listitem" tabindex="0">${DOMPurify.sanitize(item.name)}</div>`).join('')
+    || `<div style="opacity:.5;font-size:.78rem;padding:10px;text-align:center;">${filter?'Aucun résultat.':'Aucun élément pour le moment.'}</div>`;
   c.querySelectorAll('.chapter-item').forEach(el=>{el.addEventListener('click',()=>showEdit(el.dataset.type,parseInt(el.dataset.idx)));el.addEventListener('keydown',e=>{if(e.key==='Enter')showEdit(el.dataset.type,parseInt(el.dataset.idx));});});
 }
 function showEdit(k,i){
@@ -64,7 +76,17 @@ function execAddLink(fromType,fromIdx){const toType=document.getElementById('lin
 // ═══════════════════════════════════════════════════════
 // QUÊTES
 // ═══════════════════════════════════════════════════════
-function renderQuests(){const c=document.getElementById('quest-list');c.innerHTML=db.quests.map((q,i)=>`<div class="chapter-item" data-quest-idx="${i}" role="listitem" tabindex="0"><input type="checkbox" ${q.done?'checked':''} data-quest-check="${i}"> ${DOMPurify.sanitize(q.text)}</div>`).join('');c.querySelectorAll('[data-quest-check]').forEach(cb=>cb.addEventListener('click',e=>{e.stopPropagation();db.quests[parseInt(cb.dataset.questCheck)].done=cb.checked;save();}));c.querySelectorAll('[data-quest-idx]').forEach(el=>el.addEventListener('click',()=>showQuestEdit(parseInt(el.dataset.questIdx))));}
+function renderQuests(){
+  const c=document.getElementById('quest-list');
+  const filter=_questFilter.trim().toLowerCase();
+  c.innerHTML=db.quests
+    .map((q,i)=>({q,i}))
+    .filter(({q})=>!filter||(q.text||'').toLowerCase().includes(filter))
+    .map(({q,i})=>`<div class="chapter-item" data-quest-idx="${i}" role="listitem" tabindex="0"><input type="checkbox" ${q.done?'checked':''} data-quest-check="${i}"> ${DOMPurify.sanitize(q.text)}</div>`).join('')
+    || `<div style="opacity:.5;font-size:.78rem;padding:10px;text-align:center;">${filter?'Aucun résultat.':'Aucune quête pour le moment.'}</div>`;
+  c.querySelectorAll('[data-quest-check]').forEach(cb=>cb.addEventListener('click',e=>{e.stopPropagation();db.quests[parseInt(cb.dataset.questCheck)].done=cb.checked;save();}));
+  c.querySelectorAll('[data-quest-idx]').forEach(el=>el.addEventListener('click',()=>showQuestEdit(parseInt(el.dataset.questIdx))));
+}
 function showQuestEdit(i){const q=db.quests[i],c=document.getElementById('quest-edit');c.innerHTML='';const ti=document.createElement('input');ti.className='field';ti.value=q.text;ti.addEventListener('input',()=>{db.quests[i].text=ti.value;debouncedSave();renderQuests();});const rl=document.createElement('label');rl.textContent='Récompense';rl.style.fontSize='.72rem';const ri=document.createElement('input');ri.className='field';ri.value=q.reward||'';ri.addEventListener('input',()=>{db.quests[i].reward=ri.value;debouncedSave();});const sl=document.createElement('label');sl.textContent='Étapes';sl.style.fontSize='.72rem';const sta=document.createElement('textarea');sta.className='field';sta.value=q.steps||'';sta.rows=4;sta.addEventListener('input',()=>{db.quests[i].steps=sta.value;debouncedSave();});c.append(ti,rl,ri,sl,sta);c.insertAdjacentHTML('beforeend',renderLinkPanel('quests',i));updateLinkItems();}
 function addQuest(){const i=document.getElementById('q-in');if(i.value.trim()){db.quests.push({text:i.value.trim(),done:false});i.value='';save();renderQuests();}}
 

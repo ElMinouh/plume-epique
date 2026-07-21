@@ -117,6 +117,23 @@
   </div>
 </div>
 
+<!-- AIDE-MÉMOIRE DES RACCOURCIS CLAVIER (nouveau v7.5.0) -->
+<div id="shortcuts-overlay" role="dialog" aria-modal="true" aria-label="Raccourcis clavier">
+  <div style="background:var(--glass);border-radius:16px;padding:20px;width:min(420px,92vw);max-height:75vh;overflow-y:auto;display:flex;flex-direction:column;gap:4px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <strong>⌨️ Raccourcis clavier</strong>
+      <button class="action-btn btn-sm" id="shortcuts-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
+    </div>
+    <div class="shortcut-row"><span>Gras</span><span class="shortcut-key">Ctrl+B</span></div>
+    <div class="shortcut-row"><span>Italique</span><span class="shortcut-key">Ctrl+I</span></div>
+    <div class="shortcut-row"><span>Souligné</span><span class="shortcut-key">Ctrl+U</span></div>
+    <div class="shortcut-row"><span>Rechercher dans tout le projet</span><span class="shortcut-key">Ctrl+F</span></div>
+    <div class="shortcut-row"><span>Sauvegarder immédiatement</span><span class="shortcut-key">Ctrl+S</span></div>
+    <div class="shortcut-row"><span>Fermer la fenêtre active</span><span class="shortcut-key">Échap</span></div>
+    <div class="shortcut-row"><span>Afficher cette aide</span><span class="shortcut-key">?</span></div>
+  </div>
+</div>
+
 <!-- EXPORT SELECT OVERLAY (nouveau v6.2.0) -->
 <div id="export-select-overlay" role="dialog" aria-modal="true" aria-label="Sélection des chapitres à exporter">
   <div style="background:var(--glass);border-radius:16px;padding:20px;width:min(420px,92vw);max-height:75vh;display:flex;flex-direction:column;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);">
@@ -226,6 +243,7 @@
     <div id="tab-chars" class="subtab-content active" role="tabpanel">
       <div class="db-grid">
         <div>
+          <input id="char-filter" class="field" style="margin-bottom:6px;" placeholder="🔍 Filtrer les personnages..." aria-label="Filtrer les personnages" title="Filtrer la liste par nom">
           <div class="list-box" id="char-list-db" style="height:260px;" role="list"></div>
           <button class="action-btn" id="add-char-btn" style="width:100%;margin-top:8px;" title="Ajouter un nouveau personnage">+ Personnage</button>
         </div>
@@ -236,6 +254,7 @@
     <div id="tab-places" class="subtab-content" role="tabpanel">
       <div class="db-grid">
         <div>
+          <input id="place-filter" class="field" style="margin-bottom:6px;" placeholder="🔍 Filtrer les lieux..." aria-label="Filtrer les lieux" title="Filtrer la liste par nom">
           <div class="list-box" id="place-list-db" style="height:260px;" role="list"></div>
           <button class="action-btn" id="add-place-btn" style="width:100%;margin-top:8px;" title="Ajouter un nouveau lieu">+ Lieu</button>
         </div>
@@ -246,6 +265,7 @@
     <div id="tab-quests" class="subtab-content" role="tabpanel">
       <div class="db-grid">
         <div>
+          <input id="quest-filter" class="field" style="margin-bottom:6px;" placeholder="🔍 Filtrer les quêtes..." aria-label="Filtrer les quêtes" title="Filtrer la liste par texte">
           <div id="quest-list" class="list-box" style="height:260px;" role="list"></div>
           <div style="display:flex;gap:6px;margin-top:8px;">
             <input id="q-in" class="field" style="flex:1;" placeholder="Nouvelle quête...">
@@ -484,7 +504,7 @@
     </div>
     <div style="display:flex;gap:6px;">
       <button class="action-btn" id="add-chapter-btn" style="flex-grow:1;" title="Ajouter un nouveau chapitre à ce manuscrit">+ Chapitre</button>
-      <button class="action-btn" id="open-trash-btn" style="background:#7f8c8d;" title="Voir les chapitres supprimés (récupérables 30 jours)">🗑️</button>
+      <button class="action-btn" id="open-trash-btn" style="background:#7f8c8d;" title="Voir les chapitres supprimés (récupérables 30 jours)">🗑️<span class="trash-badge" id="trash-badge" aria-hidden="true"></span></button>
     </div>
     <div class="chapter-list-container" id="chapter-list" role="list"></div>
     <div class="sidebar-stats">
@@ -588,7 +608,8 @@
       <span id="autosave-label" style="font-size:.7rem;color:var(--text-muted);"></span>
       <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre">🌙 Nuit</button>
       <button id="install-app-btn" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.72rem;font-weight:700;font-family:inherit;box-shadow:0 2px 8px rgba(192,57,43,.3);" title="Installer Plume Épique comme application sur cet ordinateur">📲 Installer sur le bureau</button>
-      <span style="margin-left:auto;font-size:.65rem;opacity:.35;">Plume Épique · v7.4.0</span>
+      <button id="shortcuts-hint-btn" class="mode-indicator" style="margin-left:auto;padding:2px 8px;" title="Voir les raccourcis clavier (touche ?)">❔</button>
+      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.5.0</span>
     </div>
   </div>
 </main>
