@@ -110,15 +110,56 @@ mark{background-color:rgba(192,57,43,.22);color:var(--text);border-radius:3px;}
   box-shadow:0 8px 30px rgba(0,0,0,.4);border-left:4px solid var(--accent);
   transform:translateY(20px);opacity:0;transition:all .3s ease;pointer-events:none;}
 #toast.show{transform:translateY(0);opacity:1;}
-#lock-screen{display:none;position:fixed;inset:0;z-index:99999;
-  background:linear-gradient(135deg,#0d0d1a,#1a1a2e);flex-direction:column;
-  align-items:center;justify-content:center;gap:16px;}
-#lock-screen.active{display:flex;}
-#lock-input{padding:14px 20px;font-size:1.1rem;border-radius:10px;border:2px solid var(--accent);
-  background:rgba(255,255,255,.07);color:#e8e0d0;outline:none;width:280px;
-  text-align:center;font-family:inherit;}
-.lock-title{color:#d4c5a9;font-size:1.4rem;font-weight:700;}
-.lock-hint{color:#888;font-size:.78rem;}
+/* ── GATE PROFILS (v7.0.0) : connexion / création / récupération / migration ── */
+.profile-gate{display:none;position:fixed;inset:0;z-index:99999;
+  background:linear-gradient(135deg,#0d0d1a,#1a1a2e);
+  align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
+.gate-card{width:340px;max-width:100%;display:flex;flex-direction:column;gap:10px;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;padding:26px 24px;margin:auto;}
+.gate-title{color:#d4c5a9;font-size:1.15rem;font-weight:700;text-align:center;line-height:1.35;}
+.gate-title i{font-style:normal;}
+.gate-sub{color:#9a95a8;font-size:.78rem;text-align:center;line-height:1.55;margin-bottom:4px;}
+.gate-label{color:#9a95a8;font-size:.72rem;margin-top:4px;}
+.gate-field{width:100%;height:38px;background:rgba(255,255,255,.07);color:#e8e0d0;
+  border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:0 12px;outline:none;
+  font-family:inherit;font-size:.9rem;}
+.gate-field:focus{border-color:var(--accent);}
+select.gate-field{height:38px;}
+.gate-section{border-top:1px solid rgba(255,255,255,.1);padding-top:10px;margin-top:6px;
+  display:flex;flex-direction:column;gap:8px;}
+.gate-err{color:#e8a09a;font-size:.75rem;min-height:16px;text-align:center;}
+.gate-btn{width:100%;height:40px;border:none;border-radius:8px;cursor:pointer;
+  font-family:inherit;font-size:.9rem;font-weight:700;transition:filter .2s;}
+.gate-btn:hover{filter:brightness(1.1);}
+.gate-btn:disabled{opacity:.4;cursor:not-allowed;}
+.gate-btn-primary{background:var(--accent);color:#fff;}
+.gate-btn-accent{background:#8e44ad;color:#fff;}
+.gate-btn-ghost{background:transparent;color:#c5bfd0;border:1px solid rgba(255,255,255,.18);}
+.gate-link{background:none;border:none;color:#9a95a8;font-size:.78rem;cursor:pointer;
+  font-family:inherit;text-decoration:underline;padding:4px;}
+.gate-divider{height:1px;background:rgba(255,255,255,.1);margin:6px 0;}
+.gate-code{background:rgba(255,255,255,.06);border:1px dashed #8e44ad;border-radius:10px;
+  padding:16px;font-family:monospace;font-size:1rem;color:#e8e0d0;letter-spacing:1px;
+  text-align:center;line-height:1.8;word-break:break-all;}
+.gate-check{display:flex;align-items:center;gap:8px;color:#9a95a8;font-size:.8rem;cursor:pointer;}
+.gate-box{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;}
+.gate-box-title{color:#e8e0d0;font-size:.82rem;font-weight:700;}
+.gate-q{color:#9a95a8;font-size:.78rem;}
+.gate-or{text-align:center;color:#6a6578;font-size:.75rem;}
+/* Overlays profil (Mon profil / Gestion) — même gabarit que les autres overlays */
+#my-profile-overlay,#manage-profiles-overlay{display:none;position:fixed;inset:0;z-index:8600;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
+#my-profile-overlay.active,#manage-profiles-overlay.active{display:flex;}
+.mp-row{display:flex;align-items:center;gap:10px;background:var(--item-bg);
+  border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
+.mp-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+.mp-name{flex:1;font-size:.88rem;}
+.mp-badge{font-size:.62rem;color:#e8a09a;background:rgba(192,57,43,.2);padding:2px 8px;border-radius:20px;margin-left:4px;}
+.mp-you{font-size:.62rem;color:#9a95a8;background:rgba(255,255,255,.08);padding:2px 8px;border-radius:20px;margin-left:4px;}
+.mp-actions{display:flex;gap:4px;flex-shrink:0;}
 #search-overlay{display:none;position:fixed;inset:0;z-index:10000;
   background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
   align-items:flex-start;justify-content:center;padding-top:80px;}

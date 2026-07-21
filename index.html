@@ -14,18 +14,49 @@
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
 
-<!-- LOCK -->
-<div id="lock-screen" role="dialog" aria-modal="true">
-  <div class="lock-title">🔐 Plume Épique Studio</div>
-  <div class="lock-hint">Mot de passe pour déchiffrer vos données</div>
-  <input id="lock-input" type="password" placeholder="Mot de passe..." aria-label="Mot de passe" autocomplete="current-password">
-  <button class="action-btn" id="lock-btn">Déverrouiller</button>
-  <div class="lock-hint" id="lock-err" style="color:#e74c3c;display:none;"></div>
-  <div class="lock-hint" style="max-width:280px;text-align:center;opacity:.8;">⚠️ Ce mot de passe n'est jamais envoyé nulle part et n'est pas récupérable. En cas de perte, les données resteront illisibles définitivement.</div>
-  <button class="action-btn" id="lock-new-btn" style="background:#555;font-size:.72rem;margin-top:8px;display:none;">Nouveau projet (efface tout)</button>
+<!-- GATE PROFILS (v7.0.0) — écrans connexion/création/récupération/migration -->
+<div id="profile-gate" class="profile-gate" role="dialog" aria-modal="true"></div>
+
+<!-- OVERLAY : Mon profil -->
+<div id="my-profile-overlay" role="dialog" aria-modal="true" aria-label="Mon profil">
+  <div style="background:var(--glass);border-radius:16px;padding:22px;width:min(420px,92vw);max-height:82vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <strong>👤 Mon profil</strong>
+      <button class="action-btn btn-sm" id="my-profile-close-btn">✕</button>
+    </div>
+    <label style="font-size:12px;color:var(--text-muted);">Nom du profil</label>
+    <div style="display:flex;gap:6px;">
+      <input id="mp-my-name" class="field" style="flex:1;">
+      <button class="action-btn btn-sm" id="mp-save-name-btn">Enregistrer</button>
+    </div>
+    <hr style="border-color:var(--border);margin:6px 0;">
+    <strong style="font-size:.85rem;">🔑 Changer le mot de passe</strong>
+    <input id="mp-old-pwd" type="password" class="field" placeholder="Mot de passe actuel" autocomplete="current-password">
+    <input id="mp-new-pwd" type="password" class="field" placeholder="Nouveau mot de passe" autocomplete="new-password">
+    <input id="mp-new-pwd2" type="password" class="field" placeholder="Confirmer le nouveau mot de passe" autocomplete="new-password">
+    <button class="action-btn btn-sm" style="background:#8e44ad;align-self:flex-start;" id="mp-save-pwd-btn">Modifier le mot de passe</button>
+    <hr style="border-color:var(--border);margin:6px 0;">
+    <strong style="font-size:.85rem;">❔ Question de sécurité</strong>
+    <select id="mp-my-question" class="field"></select>
+    <input id="mp-my-answer" class="field" placeholder="Nouvelle réponse">
+    <button class="action-btn btn-sm" style="align-self:flex-start;" id="mp-save-question-btn">Mettre à jour la question</button>
+  </div>
+</div>
+
+<!-- OVERLAY : Gestion des profils (admin) -->
+<div id="manage-profiles-overlay" role="dialog" aria-modal="true" aria-label="Gestion des profils">
+  <div style="background:var(--glass);border-radius:16px;padding:22px;width:min(480px,92vw);max-height:80vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <strong>🛡️ Gestion des profils</strong>
+      <button class="action-btn btn-sm" id="manage-profiles-close-btn">✕</button>
+    </div>
+    <div id="manage-profiles-list" style="overflow-y:auto;flex-grow:1;display:flex;flex-direction:column;gap:8px;"></div>
+    <button class="action-btn" style="background:#8e44ad;align-self:flex-start;" id="manage-add-profile-btn">➕ Ajouter un profil</button>
+  </div>
 </div>
 
 <!-- GLOBAL SEARCH -->
@@ -202,10 +233,11 @@
       <span id="month-goal-label" style="font-size:.72rem;color:var(--text-muted);"></span>
     </div>
     <hr style="border-color:var(--border);margin:10px 0;">
-    <strong>🔐 Chiffrement</strong>
-    <div style="display:flex;gap:8px;margin-top:8px;">
-      <button class="action-btn btn-sm" style="background:#8e44ad;" id="change-pwd-btn">Changer mot de passe</button>
-      <button class="action-btn btn-sm" style="background:var(--danger);" id="disable-enc-btn">Désactiver</button>
+    <strong>👤 Profil</strong>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+      <button class="action-btn btn-sm" id="my-profile-btn">Mon profil</button>
+      <button class="action-btn btn-sm" style="background:#8e44ad;" id="manage-profiles-btn">Gérer les profils</button>
+      <button class="action-btn btn-sm" style="background:#7f8c8d;" id="logout-btn">Se déconnecter</button>
     </div>
   </div>
 
@@ -477,7 +509,7 @@
       <span id="autosave-label" style="font-size:.7rem;color:var(--text-muted);"></span>
       <button class="mode-indicator" id="toggle-dark-btn">🌙 Nuit</button>
       <button id="install-app-btn" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.72rem;font-weight:700;font-family:inherit;box-shadow:0 2px 8px rgba(192,57,43,.3);">📲 Installer sur le bureau</button>
-      <span style="margin-left:auto;font-size:.65rem;opacity:.35;">Plume Épique · v6.2.1</span>
+      <span style="margin-left:auto;font-size:.65rem;opacity:.35;">Plume Épique · v7.0.0</span>
     </div>
   </div>
 </main>
@@ -509,6 +541,7 @@
 <script src="js/notifications.js"></script>
 <script src="js/crypto.js"></script>
 <script src="js/router.js"></script>
+<script src="js/profiles.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/tabs.js"></script>
 <script src="js/panels.js"></script>

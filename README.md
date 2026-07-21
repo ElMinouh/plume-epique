@@ -1,4 +1,4 @@
-# Plume Épique Studio — v6.2.0
+# Plume Épique Studio — v7.0.0
 
 Outil d'aide et de suivi d'écriture (roman). Application 100% cliente (aucun serveur
 applicatif requis pour le cœur de l'app), stockage local chiffré (IndexedDB), déployée
@@ -22,9 +22,11 @@ plume-epique/
 ├── js/
 │   ├── schema.js           → schéma de données, migrations, ID de chapitre (sans DOM,
 │   │                          testable indépendamment — voir tests/test-runner.html)
-│   ├── router.js            → état global, sauvegarde, bootstrap de l'appli
+│   ├── router.js            → état global, sauvegarde par profil, bootstrap de l'appli
+│   ├── profiles.js           → système multi-profils (connexion, création, récupération,
+│   │                            administration, migration) — voir section dédiée
 │   ├── pwa.js                → installation PWA + notification de mise à jour du SW
-│   ├── crypto.js              → chiffrement AES-GCM du projet
+│   ├── crypto.js              → chiffrement AES-GCM + enveloppes de clé (multi-profils)
 │   ├── notifications.js       → messages toast, indicateur de sauvegarde
 │   ├── editor.js               → chapitres (CRUD, suppression/réorganisation/duplication,
 │   │                              statut brouillon/à revoir/final), éditeur, mode focus,
@@ -63,6 +65,49 @@ synopsis, mémoire narrative) passent par un Worker Cloudflare relais
 `ai.js` ne dépend que d'un format de réponse interne normalisé (`{content:[{type:'text',
 text}]}`) — changer de fournisseur IA à l'avenir ne nécessite de modifier que
 `worker/worker.js`, jamais `ai.js` ni ses appelants.
+
+## Multi-profils (v7.0.0)
+
+L'accès à l'application passe par un écran de connexion : on choisit un profil
+dans une liste déroulante, on saisit son mot de passe. Le premier profil créé
+est administrateur (« Cyril » par défaut) ; l'administrateur peut ajouter,
+renommer et supprimer des profils. Chaque utilisateur peut, dans « Mon profil »
+(onglet Config), modifier son propre nom, son mot de passe et sa question de
+sécurité.
+
+### Profils étanches — comment ça marche
+
+Chaque profil possède une clé de données (DEK) aléatoire qui chiffre **ses**
+données, et elle seule : aucun profil ne peut lire les données d'un autre, pas
+même l'administrateur. Cette clé n'est jamais stockée en clair — elle est
+« enveloppée » (chiffrée) séparément par trois secrets qui ouvrent tous la même
+clé : le mot de passe, la réponse à la question de sécurité, et un code de
+récupération. Oublier le mot de passe ne perd donc pas les données : on ré-ouvre
+la clé via la question **ou** le code, puis on redéfinit un mot de passe.
+
+L'index des profils (noms, rôles, enveloppes de clé) est stocké en clair sous la
+clé IndexedDB `profiles` ; les données de chaque profil sous `data_<id>`,
+toujours chiffrées par la DEK du profil.
+
+### Récupération
+
+Deux mécanismes complémentaires, tous deux sans serveur :
+- **Question de sécurité** : pratique, mais choisir une réponse non devinable.
+- **Code de récupération** : généré à la création, affiché une seule fois, et
+  téléchargeable en PDF (librairie jsPDF). Très solide, à conserver en lieu sûr.
+
+La réinitialisation de mot de passe par l'administrateur n'existe pas
+volontairement (elle casserait l'étanchéité) — la récupération se fait toujours
+via la question ou le code, par l'utilisateur lui-même.
+
+### Migration depuis l'ancien format mono-profil
+
+Au premier lancement de la v7.0.0, si des données existaient déjà (ancien
+stockage mono-profil sous la clé `main`), un écran de migration les rattache
+automatiquement au profil administrateur « Cyril » : l'utilisateur saisit son
+mot de passe actuel (ou en définit un si les données n'étaient pas chiffrées),
+choisit une question de sécurité, et reçoit son code de récupération. Aucune
+donnée n'est perdue. L'ancienne clé `main` est conservée intacte par sécurité.
 
 ## Sécurité — Content Security Policy
 
@@ -131,6 +176,16 @@ Chaque mise à jour doit :
 - **Export EPUB** (en plus de DOCX/JSON).
 - **Statut par chapitre** (Brouillon / À revoir / Final), visible dans la sidebar et
   modifiable depuis l'éditeur.
+
+### v7.0.0
+
+- **Système multi-profils** — voir section dédiée plus haut. Écran de connexion,
+  profils étanches (chiffrement par profil), administration (ajout / renommage /
+  suppression), gestion de son propre profil, récupération par question de
+  sécurité et par code de récupération téléchargeable en PDF, et migration
+  automatique des données existantes vers le profil administrateur.
+- Le stockage passe d'une clé unique (`main`) à un index de profils (`profiles`)
+  plus une entrée chiffrée par profil (`data_<id>`).
 
 ### v6.2.0
 

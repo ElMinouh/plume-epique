@@ -10,13 +10,23 @@ async function initIDB() {
   try { idbStore = await idb.openDB('plume_v55', 1, { upgrade(db) { db.createObjectStore('data'); } }); }
   catch(e) { console.warn('IDB unavailable'); }
 }
-async function persistData(payload) {
-  if (idbStore) await idbStore.put('data', payload, 'main');
-  else localStorage.setItem('plume_v55', JSON.stringify(payload));
+// v7.0.0 : persistData/loadData prennent désormais une clé de stockage
+// explicite ('profiles' pour l'index, 'data_<id>' pour chaque profil,
+// 'main' pour les anciennes données mono-profil à migrer).
+async function persistData(key, payload) {
+  if (idbStore) await idbStore.put('data', payload, key);
+  else {
+    if (payload === null) localStorage.removeItem('plume_' + key);
+    else localStorage.setItem('plume_' + key, JSON.stringify(payload));
+  }
 }
-async function loadData() {
-  if (idbStore) return idbStore.get('data', 'main');
-  const r = localStorage.getItem('plume_v55'); return r ? JSON.parse(r) : null;
+async function loadData(key) {
+  if (idbStore) return idbStore.get('data', key);
+  let r = localStorage.getItem('plume_' + key);
+  // Compat : en mode localStorage, l'ancien format mono-profil était stocké
+  // sous 'plume_v55'. On le retrouve quand on cherche les données 'main'.
+  if (!r && key === 'main') r = localStorage.getItem('plume_v55');
+  return r ? JSON.parse(r) : null;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -27,6 +37,9 @@ let cur = 0, tensionChart, sessionChart, dialogChart;
 let sprintInterval = null, sprintWordsStart = 0;
 let sessionWordsStart = 0, sessionStartTime = Date.now();
 let _switching = false;
+// v7.0.0 — profil courant : identifiant, métadonnées, et clé de données (DEK)
+// qui chiffre/déchiffre les données de CE profil uniquement.
+let _currentProfileId = null, _currentProfile = null, _dataKey = null;
 
 const tabLabels = {
   'tab-map':'🏗️ Structure','tab-sprint':'⏱️ Sprint',
@@ -48,28 +61,16 @@ function getPlainText(html) { return (html||'').replace(/<br\s*\/?>/gi,'\n').rep
 // ═══════════════════════════════════════════════════════
 // PERSISTANCE
 // ═══════════════════════════════════════════════════════
+// v7.0.0 : les données du profil courant sont toujours chiffrées par sa clé
+// de données (DEK), et stockées sous 'data_<id>'.
 const save = async () => {
+  if (!_currentProfileId || !_dataKey) return;
   const payload = { ...db }; delete payload.cloudToken;
-  if (db.encrypted && _encPassword) {
-    const cipher = await Crypto.encrypt(JSON.stringify(payload), _encPassword);
-    await persistData({ _enc:true, data:cipher });
-  } else { await persistData(payload); }
+  const cipher = await Crypto.encrypt(JSON.stringify(payload), _dataKey);
+  await persistData('data_' + _currentProfileId, { _enc:true, data:cipher });
   flashSave(); updateDailyStats();
 };
 const debouncedSave = debounce(save, 600);
-
-// ═══════════════════════════════════════════════════════
-// CHIFFREMENT — verrouillage
-// ═══════════════════════════════════════════════════════
-async function handleLockSubmit(){
-  const pwd=document.getElementById('lock-input').value;const errEl=document.getElementById('lock-err');errEl.style.display='none';
-  const raw=await loadData();
-  if(!raw){_encPassword=pwd;db.encrypted=true;document.getElementById('lock-screen').classList.remove('active');initApp();return;}
-  if(raw._enc){const dec=await Crypto.decrypt(raw.data,pwd);if(!dec){errEl.textContent='Mot de passe incorrect.';errEl.style.display='block';return;}db=migrateDb(JSON.parse(dec));_encPassword=pwd;}
-  else{db=migrateDb(raw);}
-  document.getElementById('lock-screen').classList.remove('active');initApp();
-}
-async function handleNewProject(){if(!confirm('Effacer tout ?'))return;await persistData(null);location.reload();}
 
 // ═══════════════════════════════════════════════════════
 // INIT APP — câblage de tous les événements
@@ -171,8 +172,18 @@ function initApp(){
   document.getElementById('daily-goal-input').addEventListener('input',e=>{db.dailyGoal=parseInt(e.target.value)||500;debouncedSave();updateDailyStats();});
   document.getElementById('weekly-goal-input').addEventListener('input',e=>{db.weeklyGoal=parseInt(e.target.value)||3000;debouncedSave();updateGoalsUI();});
   document.getElementById('monthly-goal-input').addEventListener('input',e=>{db.monthlyGoal=parseInt(e.target.value)||12000;debouncedSave();updateGoalsUI();});
-  document.getElementById('change-pwd-btn').addEventListener('click',async()=>{const np=prompt('Nouveau mot de passe :\n⚠️ Si vous le perdez, vos données seront définitivement illisibles.');if(!np)return;_encPassword=np;db.encrypted=true;await save();toast('Mot de passe changé','success');});
-  document.getElementById('disable-enc-btn').addEventListener('click',async()=>{if(!confirm('Désactiver le chiffrement ?'))return;_encPassword='';db.encrypted=false;await save();toast('Chiffrement désactivé');});
+  // v7.0.0 — profils
+  document.getElementById('my-profile-btn').addEventListener('click',openMyProfile);
+  document.getElementById('logout-btn').addEventListener('click',logout);
+  const manageBtn = document.getElementById('manage-profiles-btn');
+  if (_currentProfile && _currentProfile.role === 'admin') { manageBtn.style.display=''; manageBtn.addEventListener('click',openManageProfiles); }
+  else { manageBtn.style.display='none'; }
+  document.getElementById('mp-save-name-btn').addEventListener('click',saveMyName);
+  document.getElementById('mp-save-pwd-btn').addEventListener('click',saveMyPassword);
+  document.getElementById('mp-save-question-btn').addEventListener('click',saveMyQuestion);
+  document.getElementById('my-profile-close-btn').addEventListener('click',closeMyProfile);
+  document.getElementById('manage-profiles-close-btn').addEventListener('click',closeManageProfiles);
+  document.getElementById('manage-add-profile-btn').addEventListener('click',adminAddProfile);
 
   document.getElementById('global-search-btn').addEventListener('click',openGlobalSearch);
   document.getElementById('search-input').addEventListener('input',e=>debouncedSearch(e.target.value));
@@ -213,31 +224,9 @@ function initApp(){
 }
 
 // ═══════════════════════════════════════════════════════
-// BOOTSTRAP
+// BOOTSTRAP — v7.0.0 : passe par le système de profils (voir profiles.js)
 // ═══════════════════════════════════════════════════════
 window.onload = async () => {
   await initIDB();
-  const raw = await loadData();
-  if (!raw) {
-    // Nouveau v6.2.0 : à la toute première création du projet, le mode sombre
-    // suit la préférence système. Un choix manuel ultérieur (bouton) prévaut
-    // toujours ensuite, puisqu'il est alors sauvegardé explicitement dans db.
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) db.darkMode = true;
-    document.getElementById('lock-screen').classList.add('active');
-    document.getElementById('lock-btn').textContent='Créer avec ce mot de passe';
-    document.getElementById('lock-btn').addEventListener('click',async()=>{
-      const pwd=document.getElementById('lock-input').value;
-      if(pwd){_encPassword=pwd;db.encrypted=true;}
-      document.getElementById('lock-screen').classList.remove('active');initApp();
-    });
-    document.getElementById('lock-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('lock-btn').click();});
-  } else if (raw._enc) {
-    document.getElementById('lock-screen').classList.add('active');
-    document.getElementById('lock-new-btn').style.display='block';
-    document.getElementById('lock-new-btn').addEventListener('click',handleNewProject);
-    document.getElementById('lock-btn').addEventListener('click',handleLockSubmit);
-    document.getElementById('lock-input').addEventListener('keydown',e=>{if(e.key==='Enter')handleLockSubmit();});
-  } else {
-    db=migrateDb(raw);initApp();
-  }
+  await bootProfiles();
 };
