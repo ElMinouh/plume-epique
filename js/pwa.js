@@ -53,7 +53,30 @@ if (_swDismissBtn) _swDismissBtn.addEventListener('click', () => {
 let _pwaPrompt = null;
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault(); _pwaPrompt = e;
+  // L'app est installable : on révèle le bouton du bandeau bas et la bannière.
   document.getElementById('pwa-banner').classList.add('show');
+  const btn = document.getElementById('install-app-btn');
+  if (btn) btn.style.display = '';
+});
+
+// L'app vient d'être installée (ou l'est déjà) : on masque le bouton permanent
+// et la bannière — il n'y a plus rien à installer.
+window.addEventListener('appinstalled', () => {
+  const btn = document.getElementById('install-app-btn');
+  if (btn) btn.style.display = 'none';
+  const banner = document.getElementById('pwa-banner');
+  if (banner) banner.classList.remove('show');
+  _pwaPrompt = null;
+});
+
+// Au chargement : si l'app tourne déjà en mode installé (fenêtre autonome),
+// le bouton d'installation n'a aucun sens, on le masque d'emblée.
+window.addEventListener('load', () => {
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (standalone) {
+    const btn = document.getElementById('install-app-btn');
+    if (btn) btn.style.display = 'none';
+  }
 });
 
 async function installPWA() {
