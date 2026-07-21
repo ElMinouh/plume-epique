@@ -2,12 +2,14 @@
 // ═══════════════════════════════════════════════════════
 // EXPORT DOCX
 // ═══════════════════════════════════════════════════════
-async function exportDocx() {
+async function exportDocx(indices) {
   flushCurrentChapter();
   if (typeof docx === 'undefined') { toast('Lib DOCX non chargée','error'); return; }
+  const chapters = Array.isArray(indices) ? indices.map(i => db.chapters[i]).filter(Boolean) : db.chapters;
+  if (!chapters.length) { toast('Aucun chapitre sélectionné.','error'); return; }
   const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
   const children = [new Paragraph({ text:'Mon Roman — Plume Épique Studio', heading:HeadingLevel.TITLE })];
-  db.chapters.forEach((ch, i) => {
+  chapters.forEach((ch, i) => {
     children.push(new Paragraph({ text:`Chapitre ${i+1} : ${ch.title}`, heading:HeadingLevel.HEADING_1 }));
     getPlainText(ch.content).split('\n').forEach(line => {
       if (line.trim()) children.push(new Paragraph({ children:[new TextRun({ text:line.trim(), size:24 })] }));
@@ -35,9 +37,11 @@ function toXhtmlSafe(html) {
   const div = doc.body.firstChild;
   return new XMLSerializer().serializeToString(div).replace(/^<div>|<\/div>$/g, '');
 }
-async function exportEpub() {
+async function exportEpub(indices) {
   flushCurrentChapter();
   if (typeof JSZip === 'undefined') { toast('Bibliothèque EPUB non chargée (vérifiez la connexion).', 'error'); return; }
+  const chapters = Array.isArray(indices) ? indices.map(i => db.chapters[i]).filter(Boolean) : db.chapters;
+  if (!chapters.length) { toast('Aucun chapitre sélectionné.','error'); return; }
 
   const zip = new JSZip();
   zip.file('mimetype', 'application/epub+zip', { compression:'STORE' });
@@ -53,7 +57,7 @@ async function exportEpub() {
 
   const manifestItems = [], spineItems = [], navPoints = [];
 
-  db.chapters.forEach((ch, i) => {
+  chapters.forEach((ch, i) => {
     const fname = `chapter${i+1}.xhtml`;
     const chTitle = escapeXml(ch.title || `Chapitre ${i+1}`);
     oebps.file(fname,
@@ -231,4 +235,30 @@ function importProject(input){
     }catch(err){toast('Fichier invalide: '+err.message,'error');}
   };
   reader.onerror=()=>toast('Erreur lecture','error');reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPORT SÉLECTIF (nouveau v6.2.0)
+// Les boutons DOCX/EPUB ouvrent désormais ce panneau de sélection des
+// chapitres à inclure, au lieu d'exporter tout le roman systématiquement.
+// ═══════════════════════════════════════════════════════
+function openExportSelect() {
+  flushCurrentChapter();
+  const listEl = document.getElementById('export-select-list');
+  listEl.innerHTML = db.chapters.map((ch,i) =>
+    `<label style="display:flex;align-items:center;gap:8px;font-size:.82rem;padding:4px 0;cursor:pointer;">
+      <input type="checkbox" class="export-select-cb" data-idx="${i}" checked>
+      ${DOMPurify.sanitize(ch.title||('Chapitre '+(i+1)))}
+    </label>`
+  ).join('');
+  document.getElementById('export-select-overlay').classList.add('active');
+}
+function closeExportSelect() { document.getElementById('export-select-overlay').classList.remove('active'); }
+function getSelectedExportIndices() {
+  return Array.from(document.querySelectorAll('.export-select-cb:checked')).map(cb => parseInt(cb.dataset.idx));
+}
+function toggleAllExportSelect() {
+  const boxes = document.querySelectorAll('.export-select-cb');
+  const allChecked = Array.from(boxes).every(cb => cb.checked);
+  boxes.forEach(cb => cb.checked = !allChecked);
 }

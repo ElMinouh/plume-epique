@@ -68,4 +68,9 @@ function toggleTab(id,btn){
     }
   }else cont.classList.remove('open');
 }
-function initGoalUI(){const i=document.getElementById('daily-goal-input');if(i)i.value=db.dailyGoal||500;}
+function initGoalUI(){
+  const i=document.getElementById('daily-goal-input');if(i)i.value=db.dailyGoal||500;
+  const w=document.getElementById('weekly-goal-input');if(w)w.value=db.weeklyGoal||3000;
+  const m=document.getElementById('monthly-goal-input');if(m)m.value=db.monthlyGoal||12000;
+  updateGoalsUI();
+}

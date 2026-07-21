@@ -58,6 +58,34 @@
   </div>
 </div>
 
+<!-- TRASH OVERLAY (nouveau v6.2.0) -->
+<div id="trash-overlay" role="dialog" aria-modal="true" aria-label="Corbeille">
+  <div style="background:var(--glass);border-radius:16px;padding:20px;width:min(500px,92vw);max-height:70vh;display:flex;flex-direction:column;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <strong>🗑️ Corbeille (chapitres supprimés)</strong>
+      <button class="action-btn btn-sm" id="trash-close-btn">✕ Fermer</button>
+    </div>
+    <div style="font-size:.7rem;color:var(--text-muted);">Les chapitres supprimés restent ici 30 jours avant suppression définitive automatique.</div>
+    <div id="trash-list" style="overflow-y:auto;flex-grow:1;display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+</div>
+
+<!-- EXPORT SELECT OVERLAY (nouveau v6.2.0) -->
+<div id="export-select-overlay" role="dialog" aria-modal="true" aria-label="Sélection des chapitres à exporter">
+  <div style="background:var(--glass);border-radius:16px;padding:20px;width:min(420px,92vw);max-height:75vh;display:flex;flex-direction:column;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <strong>Chapitres à exporter</strong>
+      <button class="action-btn btn-sm" id="export-select-close-btn">✕</button>
+    </div>
+    <button class="action-btn btn-sm" style="background:#7f8c8d;align-self:flex-start;" id="export-select-toggle-btn">Tout (dé)sélectionner</button>
+    <div id="export-select-list" style="overflow-y:auto;flex-grow:1;display:flex;flex-direction:column;gap:4px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="action-btn" style="background:#2980b9;flex:1;" id="export-select-docx-btn">📄 Export DOCX</button>
+      <button class="action-btn" style="background:#9b59b6;flex:1;" id="export-select-epub-btn">📚 Export EPUB</button>
+    </div>
+  </div>
+</div>
+
 <!-- GIST HISTORY OVERLAY (nouveau v6.1.0) -->
 <div id="gist-history-overlay" role="dialog" aria-modal="true" aria-label="Historique Gist">
   <div style="background:var(--glass);border-radius:16px;padding:20px;width:min(500px,92vw);max-height:70vh;display:flex;flex-direction:column;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);">
@@ -152,6 +180,26 @@
       <span>mots/jour</span>
       <div id="goal-bar-wrap"><div id="goal-bar"></div></div>
       <span id="goal-label" style="min-width:60px;">0 %</span>
+    </div>
+    <div style="margin-top:10px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="number" id="weekly-goal-input" class="field" style="width:90px;" min="100" step="100">
+        <span>mots/semaine</span>
+      </div>
+      <div style="background:var(--item-bg);border-radius:8px;height:8px;overflow:hidden;margin-top:4px;">
+        <div id="week-goal-bar" style="height:100%;background:linear-gradient(90deg,#2980b9,#3498db);border-radius:8px;transition:width .5s;width:0;"></div>
+      </div>
+      <span id="week-goal-label" style="font-size:.72rem;color:var(--text-muted);"></span>
+    </div>
+    <div style="margin-top:10px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="number" id="monthly-goal-input" class="field" style="width:90px;" min="100" step="100">
+        <span>mots/mois</span>
+      </div>
+      <div style="background:var(--item-bg);border-radius:8px;height:8px;overflow:hidden;margin-top:4px;">
+        <div id="month-goal-bar" style="height:100%;background:linear-gradient(90deg,#8e44ad,#9b59b6);border-radius:8px;transition:width .5s;width:0;"></div>
+      </div>
+      <span id="month-goal-label" style="font-size:.72rem;color:var(--text-muted);"></span>
     </div>
     <hr style="border-color:var(--border);margin:10px 0;">
     <strong>🔐 Chiffrement</strong>
@@ -344,7 +392,10 @@
 
 <main role="main">
   <aside id="chapter-sidebar" aria-label="Chapitres">
-    <button class="action-btn" id="add-chapter-btn" style="width:100%;">+ Chapitre</button>
+    <div style="display:flex;gap:6px;">
+      <button class="action-btn" id="add-chapter-btn" style="flex-grow:1;">+ Chapitre</button>
+      <button class="action-btn" id="open-trash-btn" style="background:#7f8c8d;" title="Corbeille">🗑️</button>
+    </div>
     <div class="chapter-list-container" id="chapter-list" role="list"></div>
     <div class="sidebar-stats">
       📝 <strong id="total-words">0</strong> mots &nbsp;|&nbsp; 📅 <strong id="today-words">0</strong> aujourd'hui
@@ -364,6 +415,7 @@
       <button class="action-btn" style="background:#c0392b;" id="analyze-btn">🔍 Style</button>
       <button class="action-btn" style="background:#7f8c8d;" id="clear-btn">🧹 Nettoyer</button>
       <button class="action-btn" style="background:#2c3e50;" id="focus-btn">🎯 Focus</button>
+      <button class="action-btn" style="background:#16a085;" id="reading-mode-btn">📖 Lecture</button>
       <button class="action-btn" style="background:#8e44ad;" id="ai-summary-btn">✨ Résumé IA</button>
       <button class="action-btn" style="background:#1a1a2e;" id="global-search-btn">🔎 Ctrl+F</button>
       <button class="action-btn" style="background:#2980b9;" id="find-replace-btn">🔁 Remplacer</button>
@@ -425,7 +477,7 @@
       <span id="autosave-label" style="font-size:.7rem;color:var(--text-muted);"></span>
       <button class="mode-indicator" id="toggle-dark-btn">🌙 Nuit</button>
       <button id="install-app-btn" style="background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.72rem;font-weight:700;font-family:inherit;box-shadow:0 2px 8px rgba(192,57,43,.3);">📲 Installer sur le bureau</button>
-      <span style="margin-left:auto;font-size:.65rem;opacity:.35;">Plume Épique · v6.1.0</span>
+      <span style="margin-left:auto;font-size:.65rem;opacity:.35;">Plume Épique · v6.2.0</span>
     </div>
   </div>
 </main>
@@ -444,6 +496,12 @@
 </div>
 
 <div id="toast" role="alert" aria-live="assertive"></div>
+
+<!-- READING MODE (nouveau v6.2.0) -->
+<div id="reading-overlay" role="dialog" aria-modal="true" aria-label="Mode lecture">
+  <div id="reading-content"></div>
+  <button id="reading-close-btn">✕ Quitter la lecture</button>
+</div>
 
 <!-- Modules JS (ordre indifférent : tout s'exécute avant window.onload) -->
 <script src="js/schema.js"></script>

@@ -81,6 +81,7 @@ function initApp(){
   renderTabs();renderChapterList();loadChapter(0);updateDailyStats();
   renderLibrary('chars');renderLibrary('places');renderQuests();renderWeakWords();initGoalUI();
   resumeSprintIfNeeded();
+  purgeOldTrash();
 
   const ctx=document.getElementById('tensionChart').getContext('2d');
   if (tensionChart) { tensionChart.destroy(); tensionChart = null; }
@@ -107,14 +108,22 @@ function initApp(){
   document.getElementById('add-char-btn').addEventListener('click',()=>addItem('chars'));
   document.getElementById('add-place-btn').addEventListener('click',()=>addItem('places'));
   document.getElementById('export-btn').addEventListener('click',megaExport);
-  document.getElementById('export-docx-btn').addEventListener('click',exportDocx);
-  document.getElementById('export-epub-btn').addEventListener('click',exportEpub);
+  document.getElementById('export-docx-btn').addEventListener('click',openExportSelect);
+  document.getElementById('export-epub-btn').addEventListener('click',openExportSelect);
+  document.getElementById('export-select-close-btn').addEventListener('click',closeExportSelect);
+  document.getElementById('export-select-toggle-btn').addEventListener('click',toggleAllExportSelect);
+  document.getElementById('export-select-docx-btn').addEventListener('click',()=>{exportDocx(getSelectedExportIndices());closeExportSelect();});
+  document.getElementById('export-select-epub-btn').addEventListener('click',()=>{exportEpub(getSelectedExportIndices());closeExportSelect();});
   document.getElementById('import-trigger-btn').addEventListener('click',()=>document.getElementById('import-file').click());
   document.getElementById('import-file').addEventListener('change',e=>importProject(e.target));
   document.getElementById('sync-cloud-btn').addEventListener('click',syncCloud);
   document.getElementById('load-cloud-btn').addEventListener('click',loadCloud);
   document.getElementById('gist-history-btn').addEventListener('click',openGistHistory);
   document.getElementById('gist-history-close-btn').addEventListener('click',closeGistHistory);
+  document.getElementById('open-trash-btn').addEventListener('click',openTrash);
+  document.getElementById('trash-close-btn').addEventListener('click',closeTrash);
+  document.getElementById('reading-mode-btn').addEventListener('click',enterReadingMode);
+  document.getElementById('reading-close-btn').addEventListener('click',exitReadingMode);
   document.getElementById('sprint-start-btn').addEventListener('click',startSprint);
   document.getElementById('sprint-reset-btn').addEventListener('click',resetSprint);
 
@@ -160,6 +169,8 @@ function initApp(){
   document.getElementById('fr-replace-btn').addEventListener('click',frReplaceOne);
   document.getElementById('fr-replace-all-btn').addEventListener('click',frReplaceAll);
   document.getElementById('daily-goal-input').addEventListener('input',e=>{db.dailyGoal=parseInt(e.target.value)||500;debouncedSave();updateDailyStats();});
+  document.getElementById('weekly-goal-input').addEventListener('input',e=>{db.weeklyGoal=parseInt(e.target.value)||3000;debouncedSave();updateGoalsUI();});
+  document.getElementById('monthly-goal-input').addEventListener('input',e=>{db.monthlyGoal=parseInt(e.target.value)||12000;debouncedSave();updateGoalsUI();});
   document.getElementById('change-pwd-btn').addEventListener('click',async()=>{const np=prompt('Nouveau mot de passe :\n⚠️ Si vous le perdez, vos données seront définitivement illisibles.');if(!np)return;_encPassword=np;db.encrypted=true;await save();toast('Mot de passe changé','success');});
   document.getElementById('disable-enc-btn').addEventListener('click',async()=>{if(!confirm('Désactiver le chiffrement ?'))return;_encPassword='';db.encrypted=false;await save();toast('Chiffrement désactivé');});
 
@@ -188,6 +199,9 @@ function initApp(){
       if(document.getElementById('lex-panel').classList.contains('active'))document.getElementById('lex-panel').classList.remove('active');
       if(document.getElementById('fr-panel').classList.contains('active'))closeFindReplace();
       if(document.getElementById('gist-history-overlay').classList.contains('active'))closeGistHistory();
+      if(document.getElementById('trash-overlay').classList.contains('active'))closeTrash();
+      if(document.getElementById('reading-overlay').classList.contains('active'))exitReadingMode();
+      if(document.getElementById('export-select-overlay').classList.contains('active'))closeExportSelect();
     }
   });
 
@@ -205,6 +219,10 @@ window.onload = async () => {
   await initIDB();
   const raw = await loadData();
   if (!raw) {
+    // Nouveau v6.2.0 : à la toute première création du projet, le mode sombre
+    // suit la préférence système. Un choix manuel ultérieur (bouton) prévaut
+    // toujours ensuite, puisqu'il est alors sauvegardé explicitement dans db.
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) db.darkMode = true;
     document.getElementById('lock-screen').classList.add('active');
     document.getElementById('lock-btn').textContent='Créer avec ce mot de passe';
     document.getElementById('lock-btn').addEventListener('click',async()=>{

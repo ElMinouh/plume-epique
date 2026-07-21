@@ -5,7 +5,7 @@
 // pour pouvoir être testé indépendamment de l'application
 // (voir tests/test-runner.html).
 // ═══════════════════════════════════════════════════════
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 function genChapterId() {
   return (crypto.randomUUID ? crypto.randomUUID() : 'ch_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
@@ -38,6 +38,12 @@ function migrateDb(data) {
     // Ajout du statut par chapitre (brouillon / à revoir / final)
     (data.chapters||[]).forEach(ch => { if (!ch.status) ch.status = 'draft'; });
   }
+  if (v < 6) {
+    // Corbeille des chapitres supprimés + objectifs hebdomadaire/mensuel
+    if (!data.trash) data.trash = [];
+    if (typeof data.weeklyGoal !== 'number') data.weeklyGoal = 3000;
+    if (typeof data.monthlyGoal !== 'number') data.monthlyGoal = 12000;
+  }
   data._schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -48,5 +54,5 @@ const DEFAULT_DB = () => ({
   chars:[], places:[], quests:[], timeline:[], history:{}, plugins:{},
   weakWords:['juste','très'],
   tabOrder:['tab-map','tab-sprint','tab-config','tab-quests','tab-chars','tab-places','tab-snaps','tab-wordcloud','tab-timeline','tab-stats','tab-ai','tab-history','tab-graph','tab-analytics','tab-plugins','tab-memory'],
-  darkMode:false, gistId:'', dailyGoal:500, sessionStats:{}, encrypted:false, sprint:null
+  darkMode:false, gistId:'', dailyGoal:500, weeklyGoal:3000, monthlyGoal:12000, sessionStats:{}, encrypted:false, sprint:null, trash:[]
 });

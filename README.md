@@ -1,4 +1,4 @@
-# Plume Épique Studio — v6.1.0
+# Plume Épique Studio — v6.2.0
 
 Outil d'aide et de suivi d'écriture (roman). Application 100% cliente (aucun serveur
 applicatif requis pour le cœur de l'app), stockage local chiffré (IndexedDB), déployée
@@ -13,6 +13,7 @@ plume-epique/
 ├── index.html          → structure de la page
 ├── manifest.json        → manifeste PWA (installation en app)
 ├── sw.js                 → Service Worker (cache hors-ligne + notification de mise à jour)
+├── _headers               → en-têtes HTTP Cloudflare Pages (CSP, nosniff, referrer-policy)
 ├── worker/
 │   └── worker.js          → Worker Cloudflare relais IA (Mistral) — édité manuellement
 │                             dans le dashboard Cloudflare, ce fichier sert de référence
@@ -62,6 +63,22 @@ synopsis, mémoire narrative) passent par un Worker Cloudflare relais
 `ai.js` ne dépend que d'un format de réponse interne normalisé (`{content:[{type:'text',
 text}]}`) — changer de fournisseur IA à l'avenir ne nécessite de modifier que
 `worker/worker.js`, jamais `ai.js` ni ses appelants.
+
+## Sécurité — Content Security Policy
+
+Depuis la v6.2.0, un fichier `_headers` à la racine (reconnu automatiquement par
+Cloudflare Pages, aucune configuration dashboard requise) applique une CSP en
+défense en profondeur contre le XSS : seuls les CDN réellement utilisés
+(jsDelivr, unpkg, d3js.org) peuvent charger du JavaScript, et seules les
+destinations réseau connues du projet (Worker IA, GitHub, LanguageTool) sont
+autorisées en `connect-src`. `style-src` inclut `'unsafe-inline'` car le projet
+utilise des attributs `style=""` en ligne dans tout `index.html` — un choix
+d'implémentation existant, pas une régression introduite par la CSP ; la
+protection principale contre le XSS (l'exécution de script) reste, elle,
+stricte. Si une future dépendance ou un futur appel réseau externe est ajouté
+au projet, il faudra penser à l'ajouter à `_headers`, sans quoi le navigateur
+le bloquera silencieusement (vérifier la console en cas de bouton qui ne
+répond plus après une modification).
 
 ## Versioning
 
@@ -115,14 +132,31 @@ Chaque mise à jour doit :
 - **Statut par chapitre** (Brouillon / À revoir / Final), visible dans la sidebar et
   modifiable depuis l'éditeur.
 
+### v6.2.0
+
+- **Content Security Policy** (`_headers`) — voir section dédiée plus haut.
+- **Corbeille des chapitres supprimés** : la suppression d'un chapitre le déplace
+  désormais vers une corbeille (purge automatique après 30 jours) au lieu de l'effacer
+  immédiatement et définitivement.
+- **Mode lecture linéaire** : parcourir tout le roman à la suite, en lecture seule, sans
+  naviguer chapitre par chapitre.
+- **Export sélectif** : les exports DOCX et EPUB permettent désormais de choisir les
+  chapitres à inclure, plutôt que d'exporter tout le roman systématiquement.
+- **Objectifs hebdomadaire et mensuel**, en plus de l'objectif quotidien déjà existant.
+- **Mode sombre par défaut selon les préférences système** à la toute première création
+  d'un projet (un choix manuel ultérieur reste toujours prioritaire).
+
 ## Limites connues
 
 - Les tests couvrent les fonctions les plus critiques (schéma, chiffrement, diff), pas
   l'ensemble de l'application (pas de tests d'intégration UI).
 - Le rechercher/remplacer ne traite pas les occurrences qui chevauchent une limite de
   mise en forme (ex. un mot moitié en gras, moitié non) — cas rare, à corriger manuellement.
+- `style-src` de la CSP inclut `'unsafe-inline'` (nécessaire vu l'usage d'attributs
+  `style=""` en ligne dans tout le projet) — protection réduite contre les attaques par
+  injection de style pur, sans rapport avec l'exécution de script.
 - Nom interne de la base IndexedDB toujours `plume_v55` (résidu historique du tout
   premier fichier, aucun impact utilisateur).
 - Section bande dessinée / ouvrages illustrés : pas commencée. Nécessitera une structure
   de données séparée (ex. `db.comicPages`) plutôt qu'une réutilisation du modèle de
-  chapitres texte, et une nouvelle version de schéma (`SCHEMA_VERSION` → 6).
+  chapitres texte, et une nouvelle version de schéma (`SCHEMA_VERSION` → 7).

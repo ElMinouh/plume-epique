@@ -73,16 +73,71 @@ function duplicateChapter(i) {
 function deleteChapter(i) {
   if (db.chapters.length <= 1) { toast('Impossible de supprimer le dernier chapitre.','error'); return; }
   const ch = db.chapters[i];
-  if (!confirm(`Supprimer « ${ch.title||'ce chapitre'} » ? Cette action est irréversible (y compris son historique de versions).`)) return;
+  if (!confirm(`Déplacer « ${ch.title||'ce chapitre'} » vers la corbeille ? Il restera récupérable 30 jours.`)) return;
   _switching = true;
   flushCurrentChapter();
+  const history = (db.history && ch.id) ? db.history[ch.id] : null;
+  if (!db.trash) db.trash = [];
+  db.trash.push({
+    chapter: JSON.parse(JSON.stringify(ch)),
+    history: history ? JSON.parse(JSON.stringify(history)) : null,
+    deletedAt: Date.now()
+  });
   db.chapters.splice(i,1);
   if (db.history && ch.id) delete db.history[ch.id];
   if (cur >= db.chapters.length) cur = db.chapters.length - 1;
   else if (i < cur) cur--;
   renderChapterList(); loadChapter(cur); updateDailyStats();
   _switching = false; save();
-  toast('Chapitre supprimé','success');
+  toast('Chapitre déplacé vers la corbeille','success');
+}
+
+// ═══════════════════════════════════════════════════════
+// CORBEILLE — chapitres supprimés (nouveau v6.2.0)
+// Purge automatique après 30 jours ; restauration manuelle sinon.
+// ═══════════════════════════════════════════════════════
+function purgeOldTrash() {
+  const THIRTY_DAYS = 30*24*60*60*1000, now = Date.now();
+  db.trash = (db.trash||[]).filter(t => (now - t.deletedAt) < THIRTY_DAYS);
+}
+function openTrash() {
+  purgeOldTrash();
+  renderTrashList();
+  document.getElementById('trash-overlay').classList.add('active');
+}
+function closeTrash() { document.getElementById('trash-overlay').classList.remove('active'); }
+function renderTrashList() {
+  const listEl = document.getElementById('trash-list');
+  if (!db.trash || !db.trash.length) {
+    listEl.innerHTML = '<div style="opacity:.5;padding:16px;text-align:center;font-size:.82rem;">La corbeille est vide.</div>';
+    return;
+  }
+  listEl.innerHTML = db.trash.map((t,i) => {
+    const daysLeft = Math.max(0, 30 - Math.floor((Date.now()-t.deletedAt)/86400000));
+    return `<div class="history-item" style="cursor:default;">
+      <span>${DOMPurify.sanitize(t.chapter.title||'Sans titre')}<br><span style="opacity:.5;font-size:.68rem;">Supprimé le ${new Date(t.deletedAt).toLocaleDateString('fr')} — purge auto dans ${daysLeft}j</span></span>
+      <span style="display:flex;gap:4px;flex-shrink:0;">
+        <button class="action-btn btn-sm" data-restore="${i}">↩ Restaurer</button>
+        <button class="action-btn btn-sm" style="background:var(--danger);" data-purge="${i}">✕ Définitif</button>
+      </span>
+    </div>`;
+  }).join('');
+  listEl.querySelectorAll('[data-restore]').forEach(btn => btn.addEventListener('click', () => restoreFromTrash(parseInt(btn.dataset.restore))));
+  listEl.querySelectorAll('[data-purge]').forEach(btn => btn.addEventListener('click', () => permanentlyPurge(parseInt(btn.dataset.purge))));
+}
+function restoreFromTrash(i) {
+  const item = db.trash[i];
+  if (!item) return;
+  db.chapters.push(item.chapter);
+  if (item.history) { if (!db.history) db.history = {}; db.history[item.chapter.id] = item.history; }
+  db.trash.splice(i,1);
+  renderChapterList(); renderTrashList(); save();
+  toast('Chapitre restauré','success');
+}
+function permanentlyPurge(i) {
+  if (!confirm('Supprimer définitivement ce chapitre ? Cette action est irréversible.')) return;
+  db.trash.splice(i,1);
+  renderTrashList(); save();
 }
 function moveChapter(i, dir) {
   const j = dir==='up' ? i-1 : i+1;
@@ -181,4 +236,22 @@ function exitFocus() {
 function updateFocusCount() {
   const fw = document.getElementById('focus-writer');
   if (fw) document.getElementById('focus-wordcount').innerText = getWordCount(fw.innerHTML);
+}
+
+// ═══════════════════════════════════════════════════════
+// MODE LECTURE LINÉAIRE (nouveau v6.2.0)
+// Concatène tous les chapitres à la suite, en lecture seule, pour relire
+// le roman comme un lecteur plutôt que de naviguer chapitre par chapitre.
+// ═══════════════════════════════════════════════════════
+function enterReadingMode() {
+  flushCurrentChapter();
+  const container = document.getElementById('reading-content');
+  container.innerHTML = db.chapters.map((ch,i) =>
+    `<div class="reading-chapter"><h2>${DOMPurify.sanitize(ch.title||('Chapitre '+(i+1)))}</h2>${DOMPurify.sanitize(ch.content||'<p><em>(chapitre vide)</em></p>')}</div>`
+  ).join('<hr class="reading-divider">');
+  document.getElementById('reading-overlay').classList.add('active');
+  container.scrollTop = 0;
+}
+function exitReadingMode() {
+  document.getElementById('reading-overlay').classList.remove('active');
 }

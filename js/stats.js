@@ -12,6 +12,31 @@ function updateDailyStats() {
   ['goal-bar','sidebar-goal-bar'].forEach(id => { const el=document.getElementById(id); if(el) el.style.width=pct+'%'; });
   const lbl = document.getElementById('goal-label'); if (lbl) lbl.textContent = pct + ' %';
   if (pct >= 100 && todayW > 0) toast('🎉 Objectif journalier atteint !','success');
+  updateGoalsUI(totalW);
+}
+
+// ═══════════════════════════════════════════════════════
+// OBJECTIFS HEBDOMADAIRE & MENSUEL (nouveau v6.2.0)
+// db.sessionStats stocke le total cumulé de mots par jour ; on retrouve le
+// nombre de mots écrits sur les N derniers jours en soustrayant le total
+// enregistré juste avant le début de la période.
+// ═══════════════════════════════════════════════════════
+function getWordsInLastNDays(n, totalW) {
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-n); cutoff.setHours(0,0,0,0);
+  const cutoffKey = cutoff.toISOString().slice(0,10);
+  const before = Object.entries(db.sessionStats||{}).filter(([k]) => k < cutoffKey).sort((a,b)=>b[0].localeCompare(a[0]));
+  const baseline = before.length ? before[0][1] : 0;
+  return Math.max(0, totalW - baseline);
+}
+function updateGoalsUI(totalW) {
+  totalW = totalW ?? db.chapters.reduce((s,c) => s + getWordCount(c.content), 0);
+  const weekW = getWordsInLastNDays(7, totalW), monthW = getWordsInLastNDays(30, totalW);
+  const wGoal = db.weeklyGoal || 3000, mGoal = db.monthlyGoal || 12000;
+  const wPct = Math.min(100, Math.round(weekW/wGoal*100)), mPct = Math.min(100, Math.round(monthW/mGoal*100));
+  const wBar = document.getElementById('week-goal-bar'); if (wBar) wBar.style.width = wPct+'%';
+  const wLbl = document.getElementById('week-goal-label'); if (wLbl) wLbl.textContent = `${weekW} / ${wGoal} mots (${wPct}%)`;
+  const mBar = document.getElementById('month-goal-bar'); if (mBar) mBar.style.width = mPct+'%';
+  const mLbl = document.getElementById('month-goal-label'); if (mLbl) mLbl.textContent = `${monthW} / ${mGoal} mots (${mPct}%)`;
 }
 
 function renderStats() {

@@ -182,6 +182,23 @@ mark{background-color:rgba(192,57,43,.22);color:var(--text);border-radius:3px;}
   background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
   align-items:center;justify-content:center;}
 #gist-history-overlay.active{display:flex;}
+/* Corbeille & export sélectif (nouveau v6.2.0) — même gabarit d'overlay */
+#trash-overlay,#export-select-overlay{display:none;position:fixed;inset:0;z-index:8500;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;}
+#trash-overlay.active,#export-select-overlay.active{display:flex;}
+/* Mode lecture linéaire (nouveau v6.2.0) */
+#reading-overlay{display:none;position:fixed;inset:0;z-index:9500;background:#0a0a0f;
+  flex-direction:column;align-items:center;padding:50px 20px 90px;overflow-y:auto;}
+#reading-overlay.active{display:flex;animation:focusIn .4s ease;}
+#reading-content{width:100%;max-width:720px;color:#d4c5a9;
+  font-family:'Palatino Linotype',Georgia,serif;font-size:1.1rem;line-height:1.9;}
+.reading-chapter h2{color:var(--accent);margin-top:1.4em;font-size:1.3rem;}
+.reading-divider{border:none;border-top:1px solid rgba(255,255,255,.1);margin:2.5em 0;}
+#reading-close-btn{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:rgba(192,57,43,.3);border:1px solid rgba(192,57,43,.5);
+  color:#e8a09a;padding:8px 20px;border-radius:20px;cursor:pointer;
+  font-size:.78rem;font-weight:700;font-family:inherit;}
 #wordcloud-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 .wc-chip{display:inline-flex;align-items:center;gap:4px;background:var(--item-bg);
   border-radius:20px;padding:3px 10px;font-size:.72rem;border:1px solid var(--border);}
