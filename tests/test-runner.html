@@ -89,7 +89,7 @@ function group(title) {
 
   group('diff.js — computeDiff() (algorithme LCS)');
   const d1 = computeDiff('le chat noir dort', 'le chat noir dort');
-  assert(!/diff-add|diff-del/.test(d1), 'aucun changement détecté sur deux textes identiques');
+  assert(/\+0 mots ajoutés/.test(d1) && /-0 mots supprimés/.test(d1), 'aucun changement compté sur deux textes identiques');
   const d2 = computeDiff('le chat dort', 'le chat noir dort');
   assert(/diff-add/.test(d2) && d2.includes('noir'), 'un mot ajouté est bien détecté');
   const d3 = computeDiff('le chat noir dort', 'le chat dort');
