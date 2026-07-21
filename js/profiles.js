@@ -163,19 +163,15 @@ async function submitCreateProfile(opts) {
     wrapCode: await Crypto.encrypt(dek, Crypto.normalizeCode(code))
   };
 
-  const dbData = opts.migrationDb ? migrateDb(opts.migrationDb) : DEFAULT_DB();
-  // Mode sombre par défaut selon la préférence système (nouveau profil seulement).
-  if (!opts.migrationDb && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) dbData.darkMode = true;
-  await persistData('data_' + profil.id, { _enc: true, data: await Crypto.encrypt(JSON.stringify(dbData), dek) });
   idx.profiles.push(profil);
   await saveProfilesIndex(idx);
 
   // Affiche le code de récupération, puis :
-  //  • création normale / migration → on entre dans le profil
+  //  • création normale → bibliothèque (vide, "+ Nouveau projet" pour commencer)
   //  • création par l'admin pour autrui → retour au panneau admin
   showRecoveryCode(code, name, async () => {
     if (opts.byAdmin) { hideGate(); openManageProfiles(); toast('Profil créé', 'success'); }
-    else { await openProfile(profil, dek, pwd, dbData); }
+    else { await openProfile(profil, dek, pwd); }
   });
 }
 
@@ -270,26 +266,14 @@ async function submitRecovery(profileId) {
   await openProfile(profil, dek, pwd);
 }
 
-// ── Ouverture effective d'un profil (déchiffre ses données, lance l'app) ─
-async function openProfile(profil, dek, pwd, preloadedDb) {
-  let dbData = preloadedDb;
-  if (!dbData) {
-    const stored = await loadData('data_' + profil.id);
-    if (stored && stored._enc) {
-      const dec = await Crypto.decrypt(stored.data, dek);
-      if (!dec) { toast('Impossible de déchiffrer les données du profil.', 'error'); return; }
-      dbData = migrateDb(JSON.parse(dec));
-    } else {
-      dbData = DEFAULT_DB();
-    }
-  }
-  db = dbData;
+// ── Ouverture effective d'un profil : mène à SA bibliothèque de manuscrits ─
+async function openProfile(profil, dek, pwd) {
   _currentProfileId = profil.id;
   _currentProfile = profil;
   _dataKey = dek;
   _encPassword = pwd;
   hideGate();
-  initApp();
+  await enterLibrary();
 }
 
 function logout() {
@@ -347,10 +331,15 @@ async function adminDeleteProfile(pid) {
   const admins = idx.profiles.filter(p => p.role === 'admin');
   if (profil.role === 'admin' && admins.length <= 1) { toast('Impossible de supprimer le dernier administrateur.', 'error'); return; }
 
-  const confirmName = prompt(`⚠️ SUPPRESSION DÉFINITIVE\n\nCela effacera le profil « ${profil.name} » ET tout son roman, sans possibilité de récupération.\n\nPour confirmer, tapez exactement le nom du profil :`);
+  const confirmName = prompt(`⚠️ SUPPRESSION DÉFINITIVE\n\nCela effacera le profil « ${profil.name} » ET tous ses manuscrits, sans possibilité de récupération.\n\nPour confirmer, tapez exactement le nom du profil :`);
   if (confirmName === null) return;
   if (confirmName.trim().toLowerCase() !== profil.name.toLowerCase()) { toast('Nom incorrect, suppression annulée.', 'error'); return; }
 
+  const docList = await loadData(docListKey(pid));
+  if (docList && Array.isArray(docList.documents)) {
+    for (const d of docList.documents) await persistData(docDataKey(pid, d.id), null);
+  }
+  await persistData(docListKey(pid), null);
   await persistData('data_' + pid, null);
   idx.profiles = idx.profiles.filter(p => p.id !== pid);
   await saveProfilesIndex(idx);
@@ -477,8 +466,18 @@ async function submitMigration(legacy, encrypted) {
     wrapAnswer: await Crypto.encrypt(dek, Crypto.normalize(answer)),
     wrapCode: await Crypto.encrypt(dek, Crypto.normalizeCode(code))
   };
-  await persistData('data_' + profil.id, { _enc: true, data: await Crypto.encrypt(JSON.stringify(dbData), dek) });
-  const idx = { version: 1, profiles: [profil] };
-  await saveProfilesIndex(idx);
-  showRecoveryCode(code, name, async () => { await openProfile(profil, dek, pwd, dbData); });
+  await saveProfilesIndex({ version: 1, profiles: [profil] });
+
+  // Le roman récupéré depuis l'ancien format mono-profil devient le premier
+  // manuscrit de la bibliothèque de ce nouvel administrateur.
+  if (!dbData.title) dbData.title = 'Mon manuscrit';
+  const docId = genChapterId();
+  await persistData(docDataKey(profil.id, docId), { _enc: true, data: await Crypto.encrypt(JSON.stringify(dbData), dek) });
+  await persistData(docListKey(profil.id), { version:1, documents:[{
+    id: docId, title: dbData.title, lastModified: Date.now(),
+    chapterCount: (dbData.chapters||[]).length,
+    wordCount: (dbData.chapters||[]).reduce((s,c) => s + getWordCount(c.content), 0)
+  }] });
+
+  showRecoveryCode(code, name, async () => { await openProfile(profil, dek, pwd); });
 }

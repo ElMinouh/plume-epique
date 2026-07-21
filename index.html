@@ -21,6 +21,21 @@
 <!-- GATE PROFILS (v7.0.0) — écrans connexion/création/récupération/migration -->
 <div id="profile-gate" class="profile-gate" role="dialog" aria-modal="true"></div>
 
+<!-- BIBLIOTHÈQUE (nouveau v7.2.0) — écran affiché après connexion, avant l'éditeur -->
+<div id="library-screen">
+  <div id="library-topbar">
+    <span id="library-profile-name"></span>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <button class="action-btn btn-sm" id="library-my-profile-btn">👤 Mon profil</button>
+      <button class="action-btn btn-sm" style="background:#8e44ad;" id="library-manage-profiles-btn">🛡️ Gérer les profils</button>
+      <button class="action-btn btn-sm" style="background:#7f8c8d;" id="library-logout-btn">🚪 Déconnexion</button>
+    </div>
+  </div>
+  <h2 style="margin:18px 0 2px;">📚 Ma bibliothèque</h2>
+  <p id="library-count" style="font-size:.78rem;color:var(--text-muted);margin:0 0 6px;"></p>
+  <div id="library-grid"></div>
+</div>
+
 <!-- OVERLAY : Mon profil -->
 <div id="my-profile-overlay" role="dialog" aria-modal="true" aria-label="Mon profil">
   <div style="background:var(--glass);border-radius:16px;padding:22px;width:min(420px,92vw);max-height:82vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);">
@@ -424,7 +439,9 @@
 
 <main role="main">
   <aside id="chapter-sidebar" aria-label="Chapitres">
+    <div id="document-title" contenteditable="true" role="textbox" aria-label="Titre du manuscrit"></div>
     <div style="display:flex;gap:6px;">
+      <button class="action-btn btn-sm" id="back-to-library-btn" style="background:#7f8c8d;" title="Retour à la bibliothèque">📚</button>
       <button class="action-btn" id="add-chapter-btn" style="flex-grow:1;">+ Chapitre</button>
       <button class="action-btn" id="open-trash-btn" style="background:#7f8c8d;" title="Corbeille">🗑️</button>
     </div>
@@ -509,7 +526,7 @@
       <span id="autosave-label" style="font-size:.7rem;color:var(--text-muted);"></span>
       <button class="mode-indicator" id="toggle-dark-btn">🌙 Nuit</button>
       <button id="install-app-btn" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.72rem;font-weight:700;font-family:inherit;box-shadow:0 2px 8px rgba(192,57,43,.3);">📲 Installer sur le bureau</button>
-      <span style="margin-left:auto;font-size:.65rem;opacity:.35;">Plume Épique · v7.1.0</span>
+      <span style="margin-left:auto;font-size:.65rem;opacity:.35;">Plume Épique · v7.2.0</span>
     </div>
   </div>
 </main>
@@ -542,6 +559,7 @@
 <script src="js/crypto.js"></script>
 <script src="js/router.js"></script>
 <script src="js/profiles.js"></script>
+<script src="js/library.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/tabs.js"></script>
 <script src="js/panels.js"></script>

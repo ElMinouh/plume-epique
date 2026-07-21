@@ -1,13 +1,13 @@
 'use strict';
 // Changez ce numéro de version à chaque mise à jour majeure des fichiers
 // pour forcer les navigateurs à récupérer la nouvelle version.
-const CACHE = 'plume-epique-v7.1.0';
+const CACHE = 'plume-epique-v7.2.0';
 
 const CORE_ASSETS = [
   './',
   './index.html',
   './css/style.css',
-  './js/schema.js','./js/pwa.js','./js/notifications.js','./js/crypto.js','./js/router.js','./js/profiles.js','./js/editor.js',
+  './js/schema.js','./js/pwa.js','./js/notifications.js','./js/crypto.js','./js/router.js','./js/profiles.js','./js/library.js','./js/editor.js',
   './js/tabs.js','./js/panels.js','./js/findreplace.js','./js/ai.js','./js/snapshots.js','./js/diff.js','./js/stats.js',
   './js/readability.js','./js/relations.js','./js/timeline.js','./js/tts.js','./js/wordcloud.js',
   './js/pluginSystem.js','./js/sync.js','./js/database.js','./js/memory.js'

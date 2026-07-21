@@ -64,10 +64,11 @@ function getPlainText(html) { return (html||'').replace(/<br\s*\/?>/gi,'\n').rep
 // v7.0.0 : les données du profil courant sont toujours chiffrées par sa clé
 // de données (DEK), et stockées sous 'data_<id>'.
 const save = async () => {
-  if (!_currentProfileId || !_dataKey) return;
+  if (!_currentProfileId || !_dataKey || !_currentDocumentId) return;
   const payload = { ...db }; delete payload.cloudToken;
   const cipher = await Crypto.encrypt(JSON.stringify(payload), _dataKey);
-  await persistData('data_' + _currentProfileId, { _enc:true, data:cipher });
+  await persistData(docDataKey(_currentProfileId, _currentDocumentId), { _enc:true, data:cipher });
+  await touchDocumentMeta();
   flashSave(); updateDailyStats();
 };
 const debouncedSave = debounce(save, 600);
@@ -77,6 +78,7 @@ const debouncedSave = debounce(save, 600);
 // ═══════════════════════════════════════════════════════
 function initApp(){
   if(db.darkMode)document.body.classList.add('dark-mode');
+  const dt = document.getElementById('document-title'); if (dt) dt.innerText = db.title || '';
   sessionWordsStart=db.chapters.reduce((s,c)=>s+getWordCount(c.content),0);
   sessionStartTime=Date.now();
   renderTabs();renderChapterList();loadChapter(0);updateDailyStats();
@@ -91,6 +93,8 @@ function initApp(){
   const gi=document.getElementById('gist-id');if(gi&&db.gistId)gi.value=db.gistId;
 
   document.getElementById('add-chapter-btn').addEventListener('click',addChapter);
+  document.getElementById('document-title').addEventListener('blur',e=>updateDocumentTitle(e.target.innerText.trim()));
+  document.getElementById('back-to-library-btn').addEventListener('click',backToLibrary);
   // Mise en forme riche (nouveau V56)
   document.getElementById('fmt-bold-btn').addEventListener('click',()=>formatText('bold'));
   document.getElementById('fmt-italic-btn').addEventListener('click',()=>formatText('italic'));

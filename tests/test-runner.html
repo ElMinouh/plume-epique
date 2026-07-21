@@ -31,6 +31,7 @@ Couvre les fonctions les plus sensibles du projet : migration de schéma, chiffr
 <script src="../js/crypto.js"></script>
 <script src="../js/diff.js"></script>
 <script src="../js/profiles.js"></script>
+<script src="../js/library.js"></script>
 <script>
 'use strict';
 // Stub minimal : diff.js appelle DOMPurify.sanitize(), non chargé ici volontairement
@@ -39,11 +40,19 @@ if (typeof DOMPurify === 'undefined') { window.DOMPurify = { sanitize: s => s };
 
 // ── Environnement minimal simulé pour tester profiles.js sans charger
 // tout router.js (qui a des effets de bord au chargement — voir ADR-6) ──
-let db, _currentProfileId, _currentProfile, _dataKey, _encPassword;
+let db, cur, _currentProfileId, _currentProfile, _dataKey, _encPassword;
 const _mockStore = new Map();
 async function persistData(key, payload) { _mockStore.set(key, payload); }
 async function loadData(key) { return _mockStore.has(key) ? _mockStore.get(key) : null; }
 function initApp() { /* stub : non testé ici, seule la logique profils l'est */ }
+function getWordCount(t) { const m=(t||'').replace(/<[^>]*>/g,' ').match(/[a-zA-Z0-9À-ÿ]+/g); return m?m.length:0; }
+async function enterLibrary() { /* stub : l'écran bibliothèque (DOM) n'est pas testé ici, voir createNewDocument()/openDocument() plus bas pour la logique réelle */ }
+const save = async () => {
+  if (!_currentProfileId || !_dataKey || !_currentDocumentId) return;
+  const cipher = await Crypto.encrypt(JSON.stringify(db), _dataKey);
+  await persistData(docDataKey(_currentProfileId, _currentDocumentId), { _enc:true, data:cipher });
+  await touchDocumentMeta();
+};
 let _lastToast = null;
 function toast(msg, type) { _lastToast = { msg, type }; }
 
@@ -147,7 +156,24 @@ function group(title) {
   document.getElementById('login-pwd').value = 'motdepasse1';
   await doLogin();
   assert(_currentProfileId === p1.id, 'connexion réussie : profil courant mis à jour');
-  assert(!!db && Array.isArray(db.chapters), 'les données du profil sont déchiffrées et chargées dans `db`');
+
+  group('library.js — création et ouverture d\'un manuscrit');
+  await createNewDocument();
+  assert(!!_currentDocumentId, 'un document est créé et devient le document courant');
+  assert(!!db && Array.isArray(db.chapters) && db.chapters.length === 1, 'le nouveau manuscrit a un chapitre par défaut');
+  const createdDocId = _currentDocumentId;
+  const listAfterCreate = await loadDocList();
+  assert(listAfterCreate.documents.some(d => d.id === createdDocId), 'le manuscrit apparaît dans l\'index de la bibliothèque');
+  db.title = 'Mon roman de test';
+  db.chapters[0].content = '<p>Un peu de texte pour le compteur de mots.</p>';
+  await save();
+  const listAfterSave = await loadDocList();
+  const entry = listAfterSave.documents.find(d => d.id === createdDocId);
+  assert(entry && entry.title === 'Mon roman de test', 'le titre du manuscrit est répercuté dans la bibliothèque après sauvegarde');
+  assert(entry && entry.wordCount > 0, 'le compteur de mots de la bibliothèque est mis à jour après sauvegarde');
+  _currentDocumentId = null; db = null;
+  await openDocument(createdDocId);
+  assert(_currentDocumentId === createdDocId && db && db.title === 'Mon roman de test', 'réouverture du manuscrit : titre et contenu bien déchiffrés');
 
   group('profiles.js — récupération (mot de passe oublié)');
   renderRecovery(p1.id); // async en interne (.then()) : on laisse le temps au DOM d'apparaître

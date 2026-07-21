@@ -5,7 +5,7 @@
 // pour pouvoir être testé indépendamment de l'application
 // (voir tests/test-runner.html).
 // ═══════════════════════════════════════════════════════
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 
 function genChapterId() {
   return (crypto.randomUUID ? crypto.randomUUID() : 'ch_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
@@ -44,12 +44,17 @@ function migrateDb(data) {
     if (typeof data.weeklyGoal !== 'number') data.weeklyGoal = 3000;
     if (typeof data.monthlyGoal !== 'number') data.monthlyGoal = 12000;
   }
+  if (v < 7) {
+    // Titre du manuscrit (bibliothèque multi-manuscrits, nouveau v7.2.0)
+    if (typeof data.title !== 'string') data.title = '';
+  }
   data._schemaVersion = SCHEMA_VERSION;
   return data;
 }
 
 const DEFAULT_DB = () => ({
   _schemaVersion: SCHEMA_VERSION,
+  title: '',
   chapters: [{ id: genChapterId(), title:'Chapitre 1', content:'', tension:20, summary:'', status:'draft' }],
   chars:[], places:[], quests:[], timeline:[], history:{}, plugins:{},
   weakWords:['juste','très'],

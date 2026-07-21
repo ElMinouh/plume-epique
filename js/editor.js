@@ -38,6 +38,7 @@ function renderChapterList() {
       <span class="ch-title-text" style="flex-grow:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${DOMPurify.sanitize(ch.title||'')}</span>
       <span class="ch-wordcount" title="Nombre de mots">${getWordCount(ch.content)}</span>
       <span class="ch-actions" style="display:flex;gap:2px;flex-shrink:0;">
+        <button class="ch-action-btn" data-rename="${i}" title="Renommer">✏️</button>
         <button class="ch-action-btn" data-move="up" data-idx="${i}" title="Monter" ${i===0?'disabled':''}>↑</button>
         <button class="ch-action-btn" data-move="down" data-idx="${i}" title="Descendre" ${i===db.chapters.length-1?'disabled':''}>↓</button>
         <button class="ch-action-btn" data-dup="${i}" title="Dupliquer">⧉</button>
@@ -46,8 +47,11 @@ function renderChapterList() {
     </div>`;
   }).join('');
   list.querySelectorAll('.chapter-item').forEach(el => {
-    el.addEventListener('click', (e) => { if(e.target.closest('.ch-actions')) return; changeCh(parseInt(el.dataset.idx)); });
+    el.addEventListener('click', (e) => { if(e.target.closest('.ch-actions')||e.target.closest('.ch-rename-input')) return; changeCh(parseInt(el.dataset.idx)); });
     el.addEventListener('keydown', e => { if((e.key==='Enter'||e.key===' ')&&!e.target.closest('.ch-actions')) changeCh(parseInt(el.dataset.idx)); });
+  });
+  list.querySelectorAll('[data-rename]').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); renameChapterInline(parseInt(btn.dataset.rename)); });
   });
   list.querySelectorAll('[data-move]').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); moveChapter(parseInt(btn.dataset.idx), btn.dataset.move); });
@@ -173,6 +177,33 @@ function updateTitle(t) {
   db.chapters[cur].title = t; debouncedSave();
   const titleEl = document.querySelectorAll('#chapter-list .ch-title-text')[cur];
   if (titleEl) titleEl.textContent = t;
+}
+
+// Renommage d'un chapitre directement depuis le panneau de gauche, sans
+// avoir à ouvrir ce chapitre dans l'éditeur principal.
+function renameChapterInline(i) {
+  const item = document.querySelector(`#chapter-list .chapter-item[data-idx="${i}"]`);
+  const span = item && item.querySelector('.ch-title-text');
+  if (!span) return;
+  const current = db.chapters[i].title || '';
+  const input = document.createElement('input');
+  input.className = 'ch-rename-input';
+  input.value = current;
+  input.setAttribute('aria-label', 'Renommer le chapitre');
+  span.replaceWith(input);
+  input.focus(); input.select();
+  const commit = () => {
+    const val = input.value.trim() || current;
+    db.chapters[i].title = val;
+    if (i === cur) { const t = document.getElementById('chapter-title'); if (t) t.innerText = val; }
+    debouncedSave();
+    renderChapterList();
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { e.preventDefault(); input.value = current; input.blur(); }
+  });
 }
 function updateTension(v) { db.chapters[cur].tension = parseInt(v); debouncedSave(); if (tensionChart) updateChart(); }
 
