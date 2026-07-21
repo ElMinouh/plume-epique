@@ -83,6 +83,7 @@ mark{background-color:rgba(192,57,43,.22);color:var(--text);border-radius:3px;}
 .action-btn:hover{filter:brightness(1.12);transform:translateY(-1px);}
 .action-btn:active{transform:translateY(0);}
 .action-btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
+.action-btn:disabled{opacity:.3;cursor:default;transform:none;filter:none;}
 .action-btn.fmt-active{background:var(--accent2);}
 .btn-sm{padding:4px 9px;font-size:.68rem;}
 .field{background:var(--item-bg);color:var(--text);border:1px solid var(--border);

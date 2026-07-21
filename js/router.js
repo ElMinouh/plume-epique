@@ -94,6 +94,9 @@ function initApp(){
   const dt = document.getElementById('document-title'); if (dt) dt.innerText = db.title || '';
   sessionWordsStart=db.chapters.reduce((s,c)=>s+getWordCount(c.content),0);
   sessionStartTime=Date.now();
+  // v7.6.0 : piles Annuler/Rétablir remises à zéro à chaque manuscrit ouvert
+  // (elles sont propres à un document, pas à partager entre deux romans).
+  _undoStacks = {}; _pendingUndoFlush = false; clearTimeout(_undoPushTimer);
   renderTabs();renderChapterList();loadChapter(0);updateDailyStats();
   renderLibrary('chars');renderLibrary('places');renderQuests();renderWeakWords();initGoalUI();
   resumeSprintIfNeeded();
@@ -135,6 +138,8 @@ function wireAppEventListenersOnce(){
   document.getElementById('fmt-bold-btn').addEventListener('click',()=>formatText('bold'));
   document.getElementById('fmt-italic-btn').addEventListener('click',()=>formatText('italic'));
   document.getElementById('fmt-underline-btn').addEventListener('click',()=>formatText('underline'));
+  document.getElementById('undo-btn').addEventListener('click',undoEdit);
+  document.getElementById('redo-btn').addEventListener('click',redoEdit);
   document.getElementById('fmt-title-btn').addEventListener('click',()=>formatParagraph('h3'));
   document.getElementById('fmt-para-btn').addEventListener('click',()=>formatParagraph('p'));
   document.getElementById('analyze-btn').addEventListener('click',analyzeStyle);
@@ -250,6 +255,15 @@ function wireAppEventListenersOnce(){
   document.addEventListener('keydown',e=>{
     if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openGlobalSearch();}
     if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();flushCurrentChapter();save();}
+    // v7.6.0 : Annuler/Rétablir — exclu des autres champs de saisie (voir
+    // isTypingTarget dans editor.js) pour ne pas gêner le undo natif ailleurs
+    // (ex. mode Focus, titres) ni un vrai Ctrl+Z dans un champ de recherche.
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!isTypingTarget(e.target)&&!document.getElementById('focus-overlay').classList.contains('active')){
+      e.preventDefault(); if(e.shiftKey) redoEdit(); else undoEdit();
+    }
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'&&!isTypingTarget(e.target)&&!document.getElementById('focus-overlay').classList.contains('active')){
+      e.preventDefault(); redoEdit();
+    }
     // v7.5.0 : "?" ouvre l'aide-mémoire, sauf si l'utilisateur est en train de
     // taper (sinon impossible d'écrire un vrai "?" dans le texte du roman).
     if(e.key==='?' && e.target.tagName!=='INPUT' && e.target.tagName!=='TEXTAREA' && !e.target.isContentEditable){

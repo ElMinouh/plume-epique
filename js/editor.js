@@ -1,5 +1,96 @@
 'use strict';
 // ═══════════════════════════════════════════════════════
+// ANNULER / RÉTABLIR — nouveau v7.6.0
+// Une pile de versions du texte par chapitre (indexée par l'id stable du
+// chapitre, pas sa position — cohérent avec ADR-4). Les frappes de clavier
+// sont regroupées par rafale (800ms de pause = 1 étape), les actions de
+// mise en forme (Gras/Italique/…) et le mode Focus créent chacune leur
+// propre étape immédiate.
+// ═══════════════════════════════════════════════════════
+const UNDO_LIMIT = 100;
+let _undoStacks = {};
+let _pendingUndoFlush = false;
+let _undoPushTimer = null;
+
+function getUndoStack(chId) {
+  if (!_undoStacks[chId]) _undoStacks[chId] = { stack: [''], index: 0 };
+  return _undoStacks[chId];
+}
+function ensureUndoStack(ch) {
+  if (ch && !_undoStacks[ch.id]) _undoStacks[ch.id] = { stack: [ch.content || ''], index: 0 };
+}
+// Une frappe vient d'avoir lieu : programme une étape dans 800ms si rien
+// d'autre n'est tapé entre-temps (regroupe une rafale de frappe en 1 étape).
+function scheduleUndoSnapshot() {
+  _pendingUndoFlush = true;
+  updateUndoRedoButtons();
+  clearTimeout(_undoPushTimer);
+  _undoPushTimer = setTimeout(commitUndoSnapshot, 800);
+}
+// Force l'enregistrement immédiat (utilisé avant/après une action discrète
+// comme Gras/Italique, pour qu'elle forme sa propre étape d'annulation).
+function checkpointNow() { _pendingUndoFlush = true; commitUndoSnapshot(); }
+function commitUndoSnapshot() {
+  clearTimeout(_undoPushTimer);
+  if (!_pendingUndoFlush) return;
+  _pendingUndoFlush = false;
+  const ch = db.chapters[cur]; if (!ch) return;
+  const st = getUndoStack(ch.id);
+  const html = document.getElementById('writer').innerHTML;
+  if (st.stack[st.index] === html) { updateUndoRedoButtons(); return; }
+  st.stack = st.stack.slice(0, st.index + 1);
+  st.stack.push(html);
+  st.index = st.stack.length - 1;
+  if (st.stack.length > UNDO_LIMIT) { st.stack.shift(); st.index--; }
+  updateUndoRedoButtons();
+}
+function undoEdit() {
+  const ch = db.chapters[cur]; if (!ch) return;
+  const st = getUndoStack(ch.id);
+  if (_pendingUndoFlush) {
+    // Une rafale de frappe pas encore "actée" : on l'annule d'un coup,
+    // comme dans un traitement de texte classique.
+    clearTimeout(_undoPushTimer);
+    _pendingUndoFlush = false;
+    applyUndoState(st);
+    return;
+  }
+  if (st.index <= 0) { toast('Rien à annuler.', 'info'); return; }
+  st.index--;
+  applyUndoState(st);
+}
+function redoEdit() {
+  const ch = db.chapters[cur]; if (!ch) return;
+  const st = getUndoStack(ch.id);
+  if (st.index >= st.stack.length - 1) { toast('Rien à rétablir.', 'info'); return; }
+  st.index++;
+  applyUndoState(st);
+}
+function applyUndoState(st) {
+  const w = document.getElementById('writer');
+  w.innerHTML = st.stack[st.index];
+  db.chapters[cur].content = w.innerHTML;
+  updateDailyStats(); debouncedSave();
+  updateUndoRedoButtons();
+}
+function updateUndoRedoButtons() {
+  const ub = document.getElementById('undo-btn'), rb = document.getElementById('redo-btn');
+  const ch = db.chapters[cur];
+  if (!ch) { if (ub) ub.disabled = true; if (rb) rb.disabled = true; return; }
+  const st = getUndoStack(ch.id);
+  if (ub) ub.disabled = !(_pendingUndoFlush || st.index > 0);
+  if (rb) rb.disabled = _pendingUndoFlush || st.index >= st.stack.length - 1;
+}
+// Exclut les autres champs de saisie (titre, recherche...) du raccourci
+// clavier global Ctrl+Z/Ctrl+Y — #writer reste seul concerné.
+function isTypingTarget(el) {
+  if (!el || el.id === 'writer') return false;
+  if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return true;
+  if (el.isContentEditable) return true;
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════
 // ÉDITEUR — isolation stricte par chapitre
 // ═══════════════════════════════════════════════════════
 function flushCurrentChapter() {
@@ -17,11 +108,13 @@ function loadChapter(i) {
   if (t) t.innerText = ch.title || '';
   if (s) s.value = ch.tension ?? 20;
   if (st) st.value = ch.status || 'draft';
+  ensureUndoStack(ch); updateUndoRedoButtons();
 }
 function liveCounter() {
   if (_switching) return;
   db.chapters[cur].content = document.getElementById('writer').innerHTML;
   updateDailyStats(); debouncedSave();
+  scheduleUndoSnapshot();
 }
 const CH_STATUS_META = {
   draft: { color:'#7f8c8d', label:'Brouillon' },
@@ -64,6 +157,7 @@ function renderChapterList() {
   });
 }
 function duplicateChapter(i) {
+  commitUndoSnapshot();
   _switching = true;
   flushCurrentChapter();
   const orig = db.chapters[i];
@@ -78,6 +172,7 @@ function deleteChapter(i) {
   if (db.chapters.length <= 1) { toast('Impossible de supprimer le dernier chapitre.','error'); return; }
   const ch = db.chapters[i];
   if (!confirm(`Déplacer « ${ch.title||'ce chapitre'} » vers la corbeille ? Il restera récupérable 30 jours.`)) return;
+  commitUndoSnapshot();
   _switching = true;
   flushCurrentChapter();
   const history = (db.history && ch.id) ? db.history[ch.id] : null;
@@ -147,6 +242,7 @@ function permanentlyPurge(i) {
 function moveChapter(i, dir) {
   const j = dir==='up' ? i-1 : i+1;
   if (j<0 || j>=db.chapters.length) return;
+  commitUndoSnapshot();
   _switching = true;
   flushCurrentChapter();
   const activeId = db.chapters[cur].id;
@@ -162,11 +258,13 @@ function renderChapters() {
 }
 function changeCh(i) {
   if (i === cur) return;
+  commitUndoSnapshot();
   _switching = true;
   flushCurrentChapter(); cur = i; renderChapterList(); loadChapter(cur); updateDailyStats();
   _switching = false;
 }
 function addChapter() {
+  commitUndoSnapshot();
   _switching = true;
   flushCurrentChapter();
   db.chapters.push({ id: genChapterId(), title:`Chapitre ${db.chapters.length+1}`, content:'', tension:20, summary:'', status:'draft' });
@@ -213,31 +311,39 @@ function updateTension(v) { db.chapters[cur].tension = parseInt(v); debouncedSav
 // (nouveaux boutons Gras / Italique / Souligné / Titre dans la toolbar)
 // ═══════════════════════════════════════════════════════
 function formatText(cmd) {
+  checkpointNow();
   document.getElementById('writer').focus();
   document.execCommand(cmd, false, null);
   liveCounter();
+  checkpointNow();
 }
 function formatParagraph(tag) {
+  checkpointNow();
   document.getElementById('writer').focus();
   document.execCommand('formatBlock', false, tag);
   liveCounter();
+  checkpointNow();
 }
 
 // ═══════════════════════════════════════════════════════
 // STYLE ANALYSIS (mots faibles surlignés)
 // ═══════════════════════════════════════════════════════
 function analyzeStyle() {
+  checkpointNow();
   const writer = document.getElementById('writer');
   let txt = writer.innerHTML;
   db.weakWords.forEach(w => { txt = txt.replace(new RegExp(`\\b(${w})\\b`,'gi'),'<mark>$1</mark>'); });
   writer.innerHTML = DOMPurify.sanitize(txt);
+  checkpointNow();
 }
 function clearStyle() {
   // Correction v6.0.0 : confirmation demandée avant de supprimer les surlignages.
   if (!confirm('Supprimer tous les surlignages de style (mots faibles) ? Le texte lui-même ne sera pas modifié.')) return;
+  checkpointNow();
   const writer = document.getElementById('writer');
   writer.innerHTML = DOMPurify.sanitize(writer.innerHTML.replace(/<mark[^>]*>|<\/mark>/g,''));
   liveCounter();
+  checkpointNow();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -249,6 +355,7 @@ function clearStyle() {
 // ═══════════════════════════════════════════════════════
 function enterFocus() {
   flushCurrentChapter();
+  commitUndoSnapshot();
   const fw = document.getElementById('focus-writer');
   document.getElementById('focus-title').value = db.chapters[cur].title || '';
   fw.innerHTML = db.chapters[cur].content || '';
@@ -262,6 +369,8 @@ function exitFocus() {
   db.chapters[cur].content = DOMPurify.sanitize(fw.innerHTML);
   db.chapters[cur].title = ft.value.trim() || db.chapters[cur].title;
   loadChapter(cur); renderChapterList();
+  // Toute la session Focus devient une seule étape d'annulation.
+  checkpointNow();
   document.getElementById('focus-overlay').classList.remove('active');
   _switching = false; save();
 }
