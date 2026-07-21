@@ -70,9 +70,8 @@ main{flex-grow:1;width:98%;max-width:1500px;margin:0 auto 6px;
 .chapter-item:hover .ch-drag-handle{opacity:.65;}
 .ch-tags{display:flex;flex-wrap:wrap;gap:4px;padding-left:2px;}
 .ch-tag{background:var(--accent2);color:#fff;font-size:.62rem;padding:1px 7px;border-radius:10px;line-height:1.5;}
-.ch-menu-wrap{flex-shrink:0;}
 .ch-kebab-btn{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;
-  padding:1px 6px;border-radius:4px;line-height:1.4;opacity:0;}
+  padding:1px 6px;border-radius:4px;line-height:1.4;opacity:0;flex-shrink:0;}
 .chapter-item:hover .ch-kebab-btn,.chapter-item.menu-open .ch-kebab-btn,.ch-kebab-btn:focus-visible{opacity:1;}
 .ch-kebab-btn:hover{background:rgba(0,0,0,.08);color:var(--text);}
 .toolbar-menu button.ch-menu-danger{color:#ff8a80;}
@@ -428,6 +427,10 @@ body.library-mode #library-screen{display:block;}
 .toolbar-menu button{background:none;border:none;color:var(--text);text-align:left;
   padding:7px 10px;border-radius:6px;cursor:pointer;font-size:.78rem;font-family:inherit;white-space:nowrap;}
 .toolbar-menu button:hover{background:var(--item-bg);}
+/* Menu ⋮ des chapitres (v7.8.1) : position fixed pour échapper au
+   overflow:hidden/auto de la sidebar (contrairement aux menus de la toolbar,
+   celui-ci doit pouvoir s'afficher par-dessus tout le reste). */
+#chapter-ctx-menu{position:fixed;z-index:5000;min-width:170px;}
 
 /* ── Sous-navigation des onglets groupés (Univers, IA & Mémoire, Analyse, Système) ── */
 .subtab-nav{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;

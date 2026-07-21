@@ -637,7 +637,7 @@
       <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre">🌙 Nuit</button>
       <button id="install-app-btn" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.72rem;font-weight:700;font-family:inherit;box-shadow:0 2px 8px rgba(192,57,43,.3);" title="Installer Plume Épique comme application sur cet ordinateur">📲 Installer sur le bureau</button>
       <button id="shortcuts-hint-btn" class="mode-indicator" style="margin-left:auto;padding:2px 8px;" title="Voir les raccourcis clavier (touche ?)">❔</button>
-      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.8.0</span>
+      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.8.1</span>
     </div>
   </div>
 </main>
@@ -653,6 +653,16 @@
     <span style="opacity:.3;">|</span><span style="opacity:.4;font-size:.68rem;">Échap pour quitter</span>
     <button id="focus-close-btn" title="Revenir à l'écriture normale">✕ Quitter</button>
   </div>
+</div>
+
+<!-- Menu contextuel des chapitres (⋮) — élément unique, hors de la sidebar pour
+     ne pas être rogné par son overflow (nouveau v7.8.1) -->
+<div id="chapter-ctx-menu" class="toolbar-menu" role="menu">
+  <button id="cctx-rename" role="menuitem">✏️ Renommer</button>
+  <button id="cctx-tags" role="menuitem">🏷️ Tags</button>
+  <button id="cctx-dup" role="menuitem">⧉ Dupliquer</button>
+  <hr style="border:none;border-top:1px solid var(--border);margin:4px 2px;">
+  <button id="cctx-del" role="menuitem" class="ch-menu-danger">✕ Supprimer</button>
 </div>
 
 <div id="toast" role="alert" aria-live="assertive"></div>

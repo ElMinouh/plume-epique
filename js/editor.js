@@ -124,10 +124,36 @@ const CH_STATUS_META = {
 // Glisser-déposer des chapitres (remplace les flèches ↑/↓, nouveau v7.8.0) —
 // Alt+↑/↓ au clavier reste disponible via moveChapter() pour l'accessibilité.
 let _dragChapterIdx = null;
-// Ferme tous les menus ⋮ ouverts dans la liste des chapitres.
+// Menu ⋮ du chapitre — nouveau v7.8.1 : UN SEUL élément partagé (#chapter-ctx-menu,
+// défini hors de la sidebar dans index.html), positionné en fixed et déplacé au
+// bon endroit à l'ouverture. Corrige le rognage par le overflow:hidden de la
+// sidebar/liste (l'ancien menu était imbriqué dans chaque ligne de chapitre).
+let _ctxMenuChapterIdx = null;
 function closeAllChapterMenus() {
-  document.querySelectorAll('#chapter-list .toolbar-menu.open').forEach(m => m.classList.remove('open'));
+  const menu = document.getElementById('chapter-ctx-menu');
+  menu.classList.remove('open');
+  _ctxMenuChapterIdx = null;
   document.querySelectorAll('#chapter-list .chapter-item.menu-open').forEach(ci => ci.classList.remove('menu-open'));
+}
+function openChapterCtxMenu(i, btn) {
+  const menu = document.getElementById('chapter-ctx-menu');
+  const alreadyOpenForThis = menu.classList.contains('open') && _ctxMenuChapterIdx === i;
+  closeAllChapterMenus();
+  if (alreadyOpenForThis) return; // un second clic sur le même ⋮ referme le menu
+  _ctxMenuChapterIdx = i;
+  const rect = btn.getBoundingClientRect();
+  menu.style.visibility = 'hidden';
+  menu.classList.add('open');
+  const menuWidth = menu.offsetWidth || 190;
+  let left = rect.right - menuWidth;
+  if (left < 8) left = 8;
+  const maxLeft = window.innerWidth - menuWidth - 8;
+  if (left > maxLeft) left = maxLeft;
+  menu.style.left = left + 'px';
+  menu.style.top = (rect.bottom + 4) + 'px';
+  menu.style.visibility = 'visible';
+  const item = btn.closest('.chapter-item');
+  if (item) item.classList.add('menu-open');
 }
 function reorderChapter(from, to) {
   if (from === to) return;
@@ -167,24 +193,15 @@ function renderChapterList() {
         <span class="ch-num">${i+1}.</span>
         <span class="ch-title-text" style="flex-grow:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${DOMPurify.sanitize(ch.title||'')}</span>
         <span class="ch-wordcount" title="Nombre de mots">${getWordCount(ch.content)}</span>
-        <div class="toolbar-dropdown ch-menu-wrap">
-          <button class="ch-kebab-btn" title="Actions du chapitre" aria-label="Actions du chapitre">⋮</button>
-          <div class="toolbar-menu ch-dropdown-menu">
-            <button data-rename="${i}">✏️ Renommer</button>
-            <button data-tag="${i}">🏷️ Tags${tags.length?` (${tags.length})`:''}</button>
-            <button data-dup="${i}">⧉ Dupliquer</button>
-            <hr style="border:none;border-top:1px solid var(--border);margin:4px 2px;">
-            <button data-del="${i}" class="ch-menu-danger">✕ Supprimer</button>
-          </div>
-        </div>
+        <button class="ch-kebab-btn" data-idx="${i}" title="Actions du chapitre" aria-label="Actions du chapitre">⋮</button>
       </div>
       ${tags.length ? `<div class="ch-tags">${tags.map(t=>`<span class="ch-tag">#${DOMPurify.sanitize(t)}</span>`).join('')}</div>` : ''}
     </div>`;
   }).join('');
   list.querySelectorAll('.chapter-item').forEach(el => {
-    el.addEventListener('click', (e) => { if(e.target.closest('.ch-menu-wrap')||e.target.closest('.ch-rename-input')) return; changeCh(parseInt(el.dataset.idx)); });
+    el.addEventListener('click', (e) => { if(e.target.closest('.ch-kebab-btn')||e.target.closest('.ch-rename-input')) return; changeCh(parseInt(el.dataset.idx)); });
     el.addEventListener('keydown', e => {
-      if((e.key==='Enter'||e.key===' ')&&!e.target.closest('.ch-menu-wrap')) changeCh(parseInt(el.dataset.idx));
+      if((e.key==='Enter'||e.key===' ')&&!e.target.closest('.ch-kebab-btn')) changeCh(parseInt(el.dataset.idx));
       if(e.altKey && (e.key==='ArrowUp'||e.key==='ArrowDown')) { e.preventDefault(); moveChapter(parseInt(el.dataset.idx), e.key==='ArrowUp'?'up':'down'); }
     });
     el.addEventListener('dragstart', e => {
@@ -209,26 +226,7 @@ function renderChapterList() {
     });
   });
   list.querySelectorAll('.ch-kebab-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const menu = btn.nextElementSibling;
-      const item = btn.closest('.chapter-item');
-      const wasOpen = menu.classList.contains('open');
-      closeAllChapterMenus();
-      if (!wasOpen) { menu.classList.add('open'); item.classList.add('menu-open'); }
-    });
-  });
-  list.querySelectorAll('[data-rename]').forEach(btn => {
-    btn.addEventListener('click', e => { e.stopPropagation(); closeAllChapterMenus(); renameChapterInline(parseInt(btn.dataset.rename)); });
-  });
-  list.querySelectorAll('[data-tag]').forEach(btn => {
-    btn.addEventListener('click', e => { e.stopPropagation(); closeAllChapterMenus(); editChapterTags(parseInt(btn.dataset.tag)); });
-  });
-  list.querySelectorAll('[data-dup]').forEach(btn => {
-    btn.addEventListener('click', e => { e.stopPropagation(); closeAllChapterMenus(); duplicateChapter(parseInt(btn.dataset.dup)); });
-  });
-  list.querySelectorAll('[data-del]').forEach(btn => {
-    btn.addEventListener('click', e => { e.stopPropagation(); closeAllChapterMenus(); deleteChapter(parseInt(btn.dataset.del)); });
+    btn.addEventListener('click', e => { e.stopPropagation(); openChapterCtxMenu(parseInt(btn.dataset.idx), btn); });
   });
 }
 function duplicateChapter(i) {

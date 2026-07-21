@@ -156,6 +156,13 @@ function wireAppEventListenersOnce(){
   document.getElementById('toggle-dark-btn').addEventListener('click',toggleMode);
   document.querySelectorAll('#palette-picker .palette-swatch').forEach(btn=>btn.addEventListener('click',()=>selectPalette(btn.dataset.palette)));
   document.querySelectorAll('#theme-picker .mode-indicator').forEach(btn=>btn.addEventListener('click',()=>selectTheme(btn.dataset.theme)));
+  // Menu ⋮ des chapitres — élément unique, câblé une seule fois (v7.8.1)
+  document.getElementById('cctx-rename').addEventListener('click',()=>{const i=_ctxMenuChapterIdx;closeAllChapterMenus();if(i!==null)renameChapterInline(i);});
+  document.getElementById('cctx-tags').addEventListener('click',()=>{const i=_ctxMenuChapterIdx;closeAllChapterMenus();if(i!==null)editChapterTags(i);});
+  document.getElementById('cctx-dup').addEventListener('click',()=>{const i=_ctxMenuChapterIdx;closeAllChapterMenus();if(i!==null)duplicateChapter(i);});
+  document.getElementById('cctx-del').addEventListener('click',()=>{const i=_ctxMenuChapterIdx;closeAllChapterMenus();if(i!==null)deleteChapter(i);});
+  document.getElementById('chapter-list').addEventListener('scroll',closeAllChapterMenus);
+  window.addEventListener('resize',closeAllChapterMenus);
   document.querySelectorAll('#font-picker .font-option').forEach(el=>{
     el.addEventListener('click',()=>selectFont(el.dataset.font));
     el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectFont(el.dataset.font);}});
@@ -293,6 +300,7 @@ function wireAppEventListenersOnce(){
       if(document.getElementById('reading-overlay').classList.contains('active'))exitReadingMode();
       if(document.getElementById('export-select-overlay').classList.contains('active'))closeExportSelect();
       if(document.getElementById('shortcuts-overlay').classList.contains('active'))closeShortcutsHelp();
+      if(document.getElementById('chapter-ctx-menu').classList.contains('open'))closeAllChapterMenus();
     }
   });
 
@@ -328,7 +336,7 @@ function initToolbarDropdowns(){
   });
   document.addEventListener('click',()=>{
     document.querySelectorAll('.toolbar-menu.open').forEach(m=>m.classList.remove('open'));
-    document.querySelectorAll('.chapter-item.menu-open').forEach(ci=>ci.classList.remove('menu-open'));
+    closeAllChapterMenus();
   });
 }
 
