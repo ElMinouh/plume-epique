@@ -52,6 +52,62 @@ function renderTabs(){
     nav.appendChild(btn);
   });
 }
+// Correspondance sous-onglet → catégorie parente (nouveau v7.4.0). Utilisée
+// pour la navigation par lien (personnage/lieu/quête, recherche globale) qui
+// visait auparavant directement ces anciens onglets de premier niveau.
+const SUBTAB_PARENTS = {
+  'tab-chars':'tab-univers','tab-places':'tab-univers','tab-quests':'tab-univers',
+  'tab-timeline':'tab-univers','tab-graph':'tab-univers',
+  'tab-ai':'tab-ia-memoire','tab-memory':'tab-ia-memoire',
+  'tab-stats':'tab-analysegroup','tab-wordcloud':'tab-analysegroup','tab-analytics':'tab-analysegroup',
+  'tab-snaps':'tab-systeme','tab-history':'tab-systeme','tab-plugins':'tab-systeme'
+};
+// Rendu paresseux d'un sous-onglet (identique à ce que faisait toggleTab()
+// avant le regroupement en catégories).
+function renderSubtabContent(id){
+  if(id==='tab-chars')renderLibrary('chars');
+  if(id==='tab-places')renderLibrary('places');
+  if(id==='tab-quests')renderQuests();
+  if(id==='tab-timeline'){populateTimelineChapterSel();renderTimeline();}
+  if(id==='tab-graph')renderGraph();
+  if(id==='tab-stats')renderStats();
+  if(id==='tab-wordcloud')renderWordCloud();
+  if(id==='tab-analytics')renderAnalytics();
+  if(id==='tab-history')renderHistoryTab();
+  if(id==='tab-plugins')renderPlugins();
+  if(id==='tab-memory'){ if(!_indexBuilt) document.getElementById('memory-index-status').textContent='Pas encore indexé.'; }
+}
+function activeSubtabId(categoryEl){
+  const activeBtn = categoryEl && categoryEl.querySelector('.subtab-btn.active');
+  return activeBtn ? activeBtn.dataset.subtab : null;
+}
+function activateSubtab(categoryId, subtabId){
+  const categoryEl = document.getElementById(categoryId);
+  if (!categoryEl) return;
+  categoryEl.querySelectorAll('.subtab-btn').forEach(b => b.classList.toggle('active', b.dataset.subtab === subtabId));
+  categoryEl.querySelectorAll('.subtab-content').forEach(c => c.classList.toggle('active', c.id === subtabId));
+  renderSubtabContent(subtabId);
+}
+// Câblage des barres de sous-onglets (une fois, les éléments sont statiques).
+function initSubtabNavs(){
+  document.querySelectorAll('.subtab-nav').forEach(nav=>{
+    const categoryEl = nav.closest('.tab-content');
+    nav.querySelectorAll('.subtab-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>activateSubtab(categoryEl.id, btn.dataset.subtab));
+    });
+  });
+}
+// Point d'entrée unique pour la navigation programmatique (liens personnage/
+// lieu/quête, recherche globale) : accepte aussi bien un onglet de premier
+// niveau qu'un ancien identifiant de sous-onglet, et ouvre ce qu'il faut.
+function openTabOrSubtab(id){
+  const parentId = SUBTAB_PARENTS[id];
+  const topId = parentId || id;
+  const topBtn = document.querySelector(`button[data-tab-id="${topId}"]`);
+  if (!topBtn) return;
+  toggleTab(topId, topBtn, true);
+  if (parentId) activateSubtab(parentId, id);
+}
 // Correction : ajout du paramètre forceOpen (v7.1.0). Un clic manuel sur un
 // onglet déjà actif doit toujours le refermer (comportement "interrupteur"
 // voulu). En revanche, une navigation programmatique (ex. depuis la
@@ -62,16 +118,15 @@ function toggleTab(id,btn,forceOpen){
   const cont=document.getElementById('tab-container'),active=btn.classList.contains('active');
   document.querySelectorAll('.tab-btn,.tab-content').forEach(e=>e.classList.remove('active'));
   if(!active||forceOpen){
-    btn.classList.add('active');document.getElementById(id).classList.add('active');cont.classList.add('open');
+    btn.classList.add('active');
+    const contentEl=document.getElementById(id);
+    contentEl.classList.add('active');cont.classList.add('open');
     if(id==='tab-map')updateChart();
-    if(id==='tab-chars')renderLibrary('chars');if(id==='tab-places')renderLibrary('places');
-    if(id==='tab-quests')renderQuests();if(id==='tab-config'){renderWeakWords();initGoalUI();}
-    if(id==='tab-wordcloud')renderWordCloud();if(id==='tab-timeline'){populateTimelineChapterSel();renderTimeline();}
-    if(id==='tab-stats')renderStats();if(id==='tab-history')renderHistoryTab();
-    if(id==='tab-graph')renderGraph();if(id==='tab-analytics')renderAnalytics();
-    if(id==='tab-plugins')renderPlugins();if(id==='tab-memory'){
-      if(!_indexBuilt) document.getElementById('memory-index-status').textContent='Pas encore indexé.';
-    }
+    if(id==='tab-config'){renderWeakWords();initGoalUI();}
+    // Catégories groupées (Univers, IA & Mémoire, Analyse, Système) : rendre
+    // le sous-onglet actuellement actif (le premier par défaut).
+    const sub=activeSubtabId(contentEl);
+    if(sub)renderSubtabContent(sub);
   }else cont.classList.remove('open');
 }
 function initGoalUI(){

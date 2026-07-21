@@ -5,7 +5,7 @@
 // pour pouvoir être testé indépendamment de l'application
 // (voir tests/test-runner.html).
 // ═══════════════════════════════════════════════════════
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 
 function genChapterId() {
   return (crypto.randomUUID ? crypto.randomUUID() : 'ch_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
@@ -48,6 +48,14 @@ function migrateDb(data) {
     // Titre du manuscrit (bibliothèque multi-manuscrits, nouveau v7.2.0)
     if (typeof data.title !== 'string') data.title = '';
   }
+  if (v < 8) {
+    // Regroupement des 16 anciens onglets en 7 catégories (v7.4.0) — l'ordre
+    // à plat n'a plus de sens, on le remplace par le nouvel ordre par défaut.
+    // Aucune donnée n'est perdue : seul l'ordre d'affichage des onglets est
+    // réinitialisé (un éventuel réordonnancement manuel des onglets ne sera
+    // pas conservé).
+    data.tabOrder = ['tab-map','tab-sprint','tab-univers','tab-ia-memoire','tab-analysegroup','tab-systeme','tab-config'];
+  }
   data._schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -58,6 +66,6 @@ const DEFAULT_DB = () => ({
   chapters: [{ id: genChapterId(), title:'Chapitre 1', content:'', tension:20, summary:'', status:'draft' }],
   chars:[], places:[], quests:[], timeline:[], history:{}, plugins:{},
   weakWords:['juste','très'],
-  tabOrder:['tab-map','tab-sprint','tab-config','tab-quests','tab-chars','tab-places','tab-snaps','tab-wordcloud','tab-timeline','tab-stats','tab-ai','tab-history','tab-graph','tab-analytics','tab-plugins','tab-memory'],
+  tabOrder:['tab-map','tab-sprint','tab-univers','tab-ia-memoire','tab-analysegroup','tab-systeme','tab-config'],
   darkMode:false, gistId:'', dailyGoal:500, weeklyGoal:3000, monthlyGoal:12000, sessionStats:{}, sprint:null, trash:[]
 });

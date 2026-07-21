@@ -30,8 +30,7 @@ function doGlobalSearch(query) {
   }
 
   function goToTab(tabId) {
-    const btn = document.querySelector(`button[data-tab-id="${tabId}"]`);
-    if (btn) toggleTab(tabId, btn, true);
+    openTabOrSubtab(tabId);
   }
 
   // Chapitres

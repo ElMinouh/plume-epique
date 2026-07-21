@@ -43,30 +43,19 @@ let _currentProfileId = null, _currentProfile = null, _dataKey = null;
 
 const tabLabels = {
   'tab-map':'🏗️ Structure','tab-sprint':'⏱️ Sprint',
-  'tab-config':'⚙️ Config','tab-quests':'🎯 Quêtes','tab-chars':'👥 Personnages',
-  'tab-places':'🏰 Lieux','tab-snaps':'📦 Backup','tab-wordcloud':'☁️ Mots',
-  'tab-timeline':'🕐 Chronologie','tab-stats':'📊 Stats','tab-ai':'🤖 IA',
-  'tab-history':'🔖 Versions','tab-graph':'🕸️ Relations',
-  'tab-analytics':'📈 Analyse','tab-plugins':'🔌 Plugins','tab-memory':'🧠 Mémoire'
+  'tab-univers':'🌍 Univers ▾','tab-ia-memoire':'🤖 IA & Mémoire ▾',
+  'tab-analysegroup':'📊 Analyse ▾','tab-systeme':'💾 Système ▾',
+  'tab-config':'⚙️ Config'
 };
 // Descriptifs affichés en infobulle sur chaque onglet (neophytes).
 const tabDescriptions = {
   'tab-map':'Courbe de tension narrative du roman',
   'tab-sprint':'Chronomètre pour une session d\'écriture concentrée',
-  'tab-config':'Mots faibles, objectifs d\'écriture, profil',
-  'tab-quests':'Suivi des intrigues et fils narratifs',
-  'tab-chars':'Fiches de vos personnages',
-  'tab-places':'Fiches de vos lieux',
-  'tab-snaps':'Export, import et sauvegarde du projet',
-  'tab-wordcloud':'Nuage des mots les plus utilisés',
-  'tab-timeline':'Chronologie des événements du roman',
-  'tab-stats':'Statistiques d\'écriture',
-  'tab-ai':'Continuation, incohérences et noms générés par IA',
-  'tab-history':'Anciennes versions de chaque chapitre',
-  'tab-graph':'Graphe des relations entre personnages, lieux et quêtes',
-  'tab-analytics':'Longueur des chapitres et lisibilité du texte',
-  'tab-plugins':'Modules complémentaires activables',
-  'tab-memory':'Poser des questions sur le contenu déjà écrit'
+  'tab-univers':'Personnages, lieux, quêtes, chronologie et relations',
+  'tab-ia-memoire':'Assistance IA et mémoire narrative du roman',
+  'tab-analysegroup':'Statistiques, mots-clés et analyse détaillée du texte',
+  'tab-systeme':'Sauvegarde, export, versions et plugins',
+  'tab-config':'Mots faibles, objectifs d\'écriture, profil'
 };
 
 // ═══════════════════════════════════════════════════════
@@ -96,7 +85,7 @@ const debouncedSave = debounce(save, 600);
 // INIT APP — câblage de tous les événements
 // ═══════════════════════════════════════════════════════
 function initApp(){
-  if(db.darkMode)document.body.classList.add('dark-mode');
+  if(db.darkMode)document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');
   const dt = document.getElementById('document-title'); if (dt) dt.innerText = db.title || '';
   sessionWordsStart=db.chapters.reduce((s,c)=>s+getWordCount(c.content),0);
   sessionStartTime=Date.now();
@@ -109,7 +98,28 @@ function initApp(){
   if (tensionChart) { tensionChart.destroy(); tensionChart = null; }
   tensionChart=new Chart(ctx,{type:'line',data:{labels:db.chapters.map((_,i)=>i+1),datasets:[{label:'Tension',data:db.chapters.map(c=>c.tension),borderColor:'#c0392b',backgroundColor:'rgba(192,57,43,.08)',tension:.3,fill:true}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}}}});
 
-  const gi=document.getElementById('gist-id');if(gi&&db.gistId)gi.value=db.gistId;
+  const gi=document.getElementById('gist-id');if(gi)gi.value=db.gistId||'';
+
+  if(db.chapters.some(c=>c.content)) { takeSnapshot(cur, 'Ouverture — '+new Date().toLocaleString('fr')); }
+
+  // Câblage des événements : une seule fois par session (voir plus bas), pas
+  // à chaque ouverture de manuscrit — sinon les écouteurs s'empileraient à
+  // chaque passage par la bibliothèque (v7.4.0, correctif).
+  wireAppEventListenersOnce();
+}
+
+// ═══════════════════════════════════════════════════════
+// CÂBLAGE DES ÉVÉNEMENTS — une seule fois par session (v7.4.0)
+// Auparavant fait dans initApp(), rappelée à chaque ouverture de manuscrit
+// depuis la bibliothèque : les écouteurs s'empilaient à chaque changement de
+// manuscrit (un clic déclenchait l'action 2 fois, 3 fois...). Tout ce qui ne
+// dépend pas du manuscrit ouvert (juste des éléments DOM statiques) vit
+// désormais ici, protégé par _appWired.
+// ═══════════════════════════════════════════════════════
+let _appWired = false;
+function wireAppEventListenersOnce(){
+  if (_appWired) return;
+  _appWired = true;
 
   document.getElementById('add-chapter-btn').addEventListener('click',addChapter);
   document.getElementById('document-title').addEventListener('blur',e=>updateDocumentTitle(e.target.innerText.trim()));
@@ -240,11 +250,33 @@ function initApp(){
     }
   });
 
-  if(db.chapters.some(c=>c.content)) { takeSnapshot(cur, 'Ouverture — '+new Date().toLocaleString('fr')); }
-
   document.getElementById('memory-index-btn').addEventListener('click', indexNarrative);
   document.getElementById('memory-query-btn').addEventListener('click', queryNarrativeMemory);
   document.getElementById('memory-query-input').addEventListener('keydown', e => { if(e.key==='Enter') queryNarrativeMemory(); });
+
+  // Menus déroulants de la toolbar + sous-navigation des onglets groupés (v7.4.0)
+  initToolbarDropdowns();
+  initSubtabNavs();
+}
+
+// Menus déroulants de la barre d'outils (¶ Paragraphe / 🛠️ Outils / 🔎 Rechercher).
+function initToolbarDropdowns(){
+  document.querySelectorAll('.toolbar-dropdown').forEach(dd=>{
+    const trigger=dd.querySelector('.toolbar-dropdown-btn');
+    const menu=dd.querySelector('.toolbar-menu');
+    trigger.addEventListener('click',e=>{
+      e.stopPropagation();
+      const wasOpen=menu.classList.contains('open');
+      document.querySelectorAll('.toolbar-menu.open').forEach(m=>m.classList.remove('open'));
+      if(!wasOpen)menu.classList.add('open');
+    });
+    menu.querySelectorAll('button').forEach(item=>{
+      item.addEventListener('click',()=>menu.classList.remove('open'));
+    });
+  });
+  document.addEventListener('click',()=>{
+    document.querySelectorAll('.toolbar-menu.open').forEach(m=>m.classList.remove('open'));
+  });
 }
 
 // ═══════════════════════════════════════════════════════
