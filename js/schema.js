@@ -5,7 +5,7 @@
 // pour pouvoir être testé indépendamment de l'application
 // (voir tests/test-runner.html).
 // ═══════════════════════════════════════════════════════
-const SCHEMA_VERSION = 9;
+const SCHEMA_VERSION = 10;
 
 function genChapterId() {
   return (crypto.randomUUID ? crypto.randomUUID() : 'ch_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
@@ -63,6 +63,10 @@ function migrateDb(data) {
     if (typeof data.paperMode !== 'boolean') data.paperMode = false;
     if (!data.editorFont) data.editorFont = 'palatino';
   }
+  if (v < 10) {
+    // Tags libres sur les chapitres (v7.8.0), en plus du statut fixe.
+    (data.chapters||[]).forEach(ch => { if (!Array.isArray(ch.tags)) ch.tags = []; });
+  }
   data._schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -70,7 +74,7 @@ function migrateDb(data) {
 const DEFAULT_DB = () => ({
   _schemaVersion: SCHEMA_VERSION,
   title: '',
-  chapters: [{ id: genChapterId(), title:'Chapitre 1', content:'', tension:20, summary:'', status:'draft' }],
+  chapters: [{ id: genChapterId(), title:'Chapitre 1', content:'', tension:20, summary:'', status:'draft', tags:[] }],
   chars:[], places:[], quests:[], timeline:[], history:{}, plugins:{},
   weakWords:['juste','très'],
   tabOrder:['tab-map','tab-sprint','tab-univers','tab-ia-memoire','tab-analysegroup','tab-systeme','tab-config'],

@@ -328,6 +328,7 @@ function initToolbarDropdowns(){
   });
   document.addEventListener('click',()=>{
     document.querySelectorAll('.toolbar-menu.open').forEach(m=>m.classList.remove('open'));
+    document.querySelectorAll('.chapter-item.menu-open').forEach(ci=>ci.classList.remove('menu-open'));
   });
 }
 

@@ -121,39 +121,114 @@ const CH_STATUS_META = {
   review: { color:'#f39c12', label:'À revoir' },
   final: { color:'#27ae60', label:'Final' }
 };
+// Glisser-déposer des chapitres (remplace les flèches ↑/↓, nouveau v7.8.0) —
+// Alt+↑/↓ au clavier reste disponible via moveChapter() pour l'accessibilité.
+let _dragChapterIdx = null;
+// Ferme tous les menus ⋮ ouverts dans la liste des chapitres.
+function closeAllChapterMenus() {
+  document.querySelectorAll('#chapter-list .toolbar-menu.open').forEach(m => m.classList.remove('open'));
+  document.querySelectorAll('#chapter-list .chapter-item.menu-open').forEach(ci => ci.classList.remove('menu-open'));
+}
+function reorderChapter(from, to) {
+  if (from === to) return;
+  commitUndoSnapshot();
+  _switching = true;
+  flushCurrentChapter();
+  const activeId = db.chapters[cur].id;
+  const [moved] = db.chapters.splice(from, 1);
+  db.chapters.splice(to, 0, moved);
+  cur = db.chapters.findIndex(c => c.id === activeId);
+  renderChapterList(); loadChapter(cur);
+  _switching = false; save();
+}
+// Tags libres sur un chapitre (en plus du statut fixe), nouveau v7.8.0.
+function editChapterTags(i) {
+  const current = (db.chapters[i].tags || []).join(', ');
+  const input = prompt('Tags de ce chapitre, séparés par des virgules :\nEx. POV Marie, Flashback', current);
+  if (input === null) return;
+  const seen = new Set(); const clean = [];
+  input.split(',').map(t => t.trim()).filter(Boolean).forEach(t => {
+    const k = t.toLowerCase();
+    if (!seen.has(k)) { seen.add(k); clean.push(t); }
+  });
+  db.chapters[i].tags = clean;
+  renderChapterList();
+  debouncedSave();
+}
 function renderChapterList() {
   const list = document.getElementById('chapter-list');
   list.innerHTML = db.chapters.map((ch,i) => {
     const sm = CH_STATUS_META[ch.status] || CH_STATUS_META.draft;
-    return `<div class="chapter-item ${i===cur?'active':''}" data-idx="${i}" role="listitem" tabindex="0" aria-current="${i===cur}">
-      <span class="ch-status-dot" style="background:${sm.color};" title="${sm.label}"></span>
-      <span class="ch-num">${i+1}.</span>
-      <span class="ch-title-text" style="flex-grow:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${DOMPurify.sanitize(ch.title||'')}</span>
-      <span class="ch-wordcount" title="Nombre de mots">${getWordCount(ch.content)}</span>
-      <span class="ch-actions" style="display:flex;gap:2px;flex-shrink:0;">
-        <button class="ch-action-btn" data-rename="${i}" title="Renommer">✏️</button>
-        <button class="ch-action-btn" data-move="up" data-idx="${i}" title="Monter" ${i===0?'disabled':''}>↑</button>
-        <button class="ch-action-btn" data-move="down" data-idx="${i}" title="Descendre" ${i===db.chapters.length-1?'disabled':''}>↓</button>
-        <button class="ch-action-btn" data-dup="${i}" title="Dupliquer">⧉</button>
-        <button class="ch-action-btn ch-del-btn" data-del="${i}" title="Supprimer">✕</button>
-      </span>
+    const tags = ch.tags || [];
+    return `<div class="chapter-item ${i===cur?'active':''}" data-idx="${i}" role="listitem" tabindex="0" aria-current="${i===cur}" draggable="true">
+      <div class="ch-row">
+        <span class="ch-drag-handle" aria-hidden="true" title="Glisser pour réordonner (ou Alt+↑/↓)">⠿</span>
+        <span class="ch-status-dot" style="background:${sm.color};" title="${sm.label}"></span>
+        <span class="ch-num">${i+1}.</span>
+        <span class="ch-title-text" style="flex-grow:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${DOMPurify.sanitize(ch.title||'')}</span>
+        <span class="ch-wordcount" title="Nombre de mots">${getWordCount(ch.content)}</span>
+        <div class="toolbar-dropdown ch-menu-wrap">
+          <button class="ch-kebab-btn" title="Actions du chapitre" aria-label="Actions du chapitre">⋮</button>
+          <div class="toolbar-menu ch-dropdown-menu">
+            <button data-rename="${i}">✏️ Renommer</button>
+            <button data-tag="${i}">🏷️ Tags${tags.length?` (${tags.length})`:''}</button>
+            <button data-dup="${i}">⧉ Dupliquer</button>
+            <hr style="border:none;border-top:1px solid var(--border);margin:4px 2px;">
+            <button data-del="${i}" class="ch-menu-danger">✕ Supprimer</button>
+          </div>
+        </div>
+      </div>
+      ${tags.length ? `<div class="ch-tags">${tags.map(t=>`<span class="ch-tag">#${DOMPurify.sanitize(t)}</span>`).join('')}</div>` : ''}
     </div>`;
   }).join('');
   list.querySelectorAll('.chapter-item').forEach(el => {
-    el.addEventListener('click', (e) => { if(e.target.closest('.ch-actions')||e.target.closest('.ch-rename-input')) return; changeCh(parseInt(el.dataset.idx)); });
-    el.addEventListener('keydown', e => { if((e.key==='Enter'||e.key===' ')&&!e.target.closest('.ch-actions')) changeCh(parseInt(el.dataset.idx)); });
+    el.addEventListener('click', (e) => { if(e.target.closest('.ch-menu-wrap')||e.target.closest('.ch-rename-input')) return; changeCh(parseInt(el.dataset.idx)); });
+    el.addEventListener('keydown', e => {
+      if((e.key==='Enter'||e.key===' ')&&!e.target.closest('.ch-menu-wrap')) changeCh(parseInt(el.dataset.idx));
+      if(e.altKey && (e.key==='ArrowUp'||e.key==='ArrowDown')) { e.preventDefault(); moveChapter(parseInt(el.dataset.idx), e.key==='ArrowUp'?'up':'down'); }
+    });
+    el.addEventListener('dragstart', e => {
+      if (e.target.closest('.ch-rename-input')) { e.preventDefault(); return; }
+      _dragChapterIdx = parseInt(el.dataset.idx);
+      el.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', ''); } catch(err) {}
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging');
+      list.querySelectorAll('.chapter-item').forEach(x => x.classList.remove('drag-over'));
+      _dragChapterIdx = null;
+    });
+    el.addEventListener('dragover', e => { e.preventDefault(); if (_dragChapterIdx===null) return; el.classList.add('drag-over'); });
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+    el.addEventListener('drop', e => {
+      e.preventDefault(); el.classList.remove('drag-over');
+      const targetIdx = parseInt(el.dataset.idx);
+      if (_dragChapterIdx===null || _dragChapterIdx===targetIdx) return;
+      reorderChapter(_dragChapterIdx, targetIdx);
+    });
+  });
+  list.querySelectorAll('.ch-kebab-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const menu = btn.nextElementSibling;
+      const item = btn.closest('.chapter-item');
+      const wasOpen = menu.classList.contains('open');
+      closeAllChapterMenus();
+      if (!wasOpen) { menu.classList.add('open'); item.classList.add('menu-open'); }
+    });
   });
   list.querySelectorAll('[data-rename]').forEach(btn => {
-    btn.addEventListener('click', e => { e.stopPropagation(); renameChapterInline(parseInt(btn.dataset.rename)); });
+    btn.addEventListener('click', e => { e.stopPropagation(); closeAllChapterMenus(); renameChapterInline(parseInt(btn.dataset.rename)); });
   });
-  list.querySelectorAll('[data-move]').forEach(btn => {
-    btn.addEventListener('click', e => { e.stopPropagation(); moveChapter(parseInt(btn.dataset.idx), btn.dataset.move); });
+  list.querySelectorAll('[data-tag]').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); closeAllChapterMenus(); editChapterTags(parseInt(btn.dataset.tag)); });
   });
   list.querySelectorAll('[data-dup]').forEach(btn => {
-    btn.addEventListener('click', e => { e.stopPropagation(); duplicateChapter(parseInt(btn.dataset.dup)); });
+    btn.addEventListener('click', e => { e.stopPropagation(); closeAllChapterMenus(); duplicateChapter(parseInt(btn.dataset.dup)); });
   });
   list.querySelectorAll('[data-del]').forEach(btn => {
-    btn.addEventListener('click', e => { e.stopPropagation(); deleteChapter(parseInt(btn.dataset.del)); });
+    btn.addEventListener('click', e => { e.stopPropagation(); closeAllChapterMenus(); deleteChapter(parseInt(btn.dataset.del)); });
   });
 }
 function duplicateChapter(i) {
@@ -161,7 +236,7 @@ function duplicateChapter(i) {
   _switching = true;
   flushCurrentChapter();
   const orig = db.chapters[i];
-  const copy = { id: genChapterId(), title: (orig.title||'Chapitre') + ' (copie)', content: orig.content, tension: orig.tension, summary: orig.summary, status: 'draft' };
+  const copy = { id: genChapterId(), title: (orig.title||'Chapitre') + ' (copie)', content: orig.content, tension: orig.tension, summary: orig.summary, status: 'draft', tags: [...(orig.tags||[])] };
   db.chapters.splice(i+1, 0, copy);
   if (cur > i) cur++;
   renderChapterList(); loadChapter(cur);
@@ -267,7 +342,7 @@ function addChapter() {
   commitUndoSnapshot();
   _switching = true;
   flushCurrentChapter();
-  db.chapters.push({ id: genChapterId(), title:`Chapitre ${db.chapters.length+1}`, content:'', tension:20, summary:'', status:'draft' });
+  db.chapters.push({ id: genChapterId(), title:`Chapitre ${db.chapters.length+1}`, content:'', tension:20, summary:'', status:'draft', tags:[] });
   cur = db.chapters.length - 1;
   renderChapterList(); loadChapter(cur); updateDailyStats();
   _switching = false; save();
