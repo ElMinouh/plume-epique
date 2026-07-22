@@ -70,12 +70,12 @@ function renderPlugins() {
     const enabled = db.plugins[plugin.id] !== false;
     card.innerHTML = `
       <h4>${plugin.name}
-        <label class="plugin-toggle u-ml-auto">
+        <label class="plugin-toggle" style="margin-left:auto;">
           <input type="checkbox" ${enabled?'checked':''} data-plugin="${plugin.id}">
           <span class="plugin-slider"></span>
         </label>
       </h4>
-      <div class="u-fs-_74rem u-op-_7">${plugin.description}</div>`;
+      <div style="font-size:.74rem;opacity:.7;">${plugin.description}</div>`;
     const runBtn = document.createElement('button'); runBtn.className='action-btn btn-sm'; runBtn.textContent='▶ Exécuter';
     const resultDiv = document.createElement('div'); resultDiv.className='plugin-result';
     runBtn.addEventListener('click', async () => {
@@ -86,7 +86,7 @@ function renderPlugins() {
         const text = getPlainText(db.chapters[cur].content);
         const result = await plugin.run(text);
         resultDiv.innerHTML = result.replace ? result.replace(/\n/g,'<br>') : String(result);
-      } catch(e) { resultDiv.innerHTML = `<span class="u-c-v-danger">❌ ${e.message}</span>`; }
+      } catch(e) { resultDiv.innerHTML = `<span style="color:var(--danger);">❌ ${e.message}</span>`; }
     });
     card.querySelector(`input[data-plugin="${plugin.id}"]`).addEventListener('change', e => {
       db.plugins[plugin.id] = e.target.checked; debouncedSave();
