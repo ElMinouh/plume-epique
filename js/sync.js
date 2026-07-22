@@ -198,6 +198,26 @@ async function applyRemoteProjectJson(raw, statusElId) {
 }
 
 // ═══════════════════════════════════════════════════════
+// SAUVEGARDE GIST AUTOMATIQUE PROGRAMMÉE (nouveau v7.12.0, Lot 9)
+// db.autoGistInterval (minutes, 0 = désactivée) pilote un minuteur qui
+// relance syncCloud() en silence. _cloudToken n'étant jamais persisté (par
+// sécurité — voir router.js), le minuteur ne fait rien tant que
+// l'utilisateur n'a pas collé son token dans le champ "Token" au moins une
+// fois pendant la session en cours ; dès qu'il l'a fait, le prochain
+// déclenchement du minuteur envoie la sauvegarde normalement.
+// ═══════════════════════════════════════════════════════
+let _autoGistTimer = null;
+function scheduleAutoGistBackup() {
+  clearInterval(_autoGistTimer);
+  _autoGistTimer = null;
+  const minutes = db.autoGistInterval || 0;
+  if (minutes <= 0) return;
+  _autoGistTimer = setInterval(() => {
+    if (_cloudToken && db.gistId) syncCloud();
+  }, minutes * 60 * 1000);
+}
+
+// ═══════════════════════════════════════════════════════
 // EXPORT / IMPORT JSON
 // Correction v6.1.0 : si le projet est chiffré, l'export JSON l'est
 // désormais aussi (même mot de passe) — auparavant, le fichier exporté
@@ -235,6 +255,109 @@ function importProject(input){
     }catch(err){toast('Fichier invalide: '+err.message,'error');}
   };
   reader.onerror=()=>toast('Erreur lecture','error');reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════════════
+// IMPORT DOCX (nouveau v7.12.0, Lot 9)
+// mammoth.js convertit le .docx en HTML dans le navigateur (rien n'est
+// envoyé nulle part). Le résultat est toujours passé par DOMPurify avant
+// tout stockage ou affichage (convention XSS du projet, comme partout
+// ailleurs). L'utilisateur choisit ensuite la destination :
+//   - Nouveau manuscrit (avec titre à saisir)
+//   - Nouveau chapitre dans un manuscrit existant de la bibliothèque
+//     (celui actuellement ouvert ou un autre — les deux sont supportés)
+// ═══════════════════════════════════════════════════════
+let _docxImportHtml = null, _docxImportTitleGuess = '';
+function importDocxFile(input) {
+  const file = input.files[0]; if (!file) return;
+  if (typeof mammoth === 'undefined') { toast('Bibliothèque DOCX non chargée (vérifiez la connexion).', 'error'); input.value = ''; return; }
+  _docxImportTitleGuess = file.name.replace(/\.docx$/i, '').trim() || 'Chapitre importé';
+  file.arrayBuffer().then(buf => mammoth.convertToHtml({ arrayBuffer: buf })).then(result => {
+    _docxImportHtml = DOMPurify.sanitize(result.value || '<p></p>');
+    openDocxImportModal(file.name);
+  }).catch(err => { toast('Fichier .docx invalide : ' + err.message, 'error'); }).finally(() => { input.value = ''; });
+}
+async function openDocxImportModal(filename) {
+  document.getElementById('docx-import-filename').textContent = filename;
+  document.getElementById('docx-new-title').value = _docxImportTitleGuess;
+  const list = await loadDocList();
+  const sel = document.getElementById('docx-existing-select');
+  sel.innerHTML = list.documents.slice().sort((a,b)=>b.lastModified-a.lastModified)
+    .map(d => `<option value="${d.id}">${DOMPurify.sanitize(d.title || 'Sans titre')}${d.id===_currentDocumentId?' (ouvert actuellement)':''}</option>`).join('');
+  setDocxImportMode('new');
+  document.getElementById('docx-import-overlay').classList.add('active');
+}
+function closeDocxImportModal() {
+  document.getElementById('docx-import-overlay').classList.remove('active');
+  _docxImportHtml = null;
+}
+function setDocxImportMode(mode) {
+  const isNew = mode === 'new';
+  document.getElementById('docx-mode-new-btn').classList.toggle('active', isNew);
+  document.getElementById('docx-mode-existing-btn').classList.toggle('active', !isNew);
+  document.getElementById('docx-new-fields').style.display = isNew ? 'block' : 'none';
+  document.getElementById('docx-existing-fields').style.display = isNew ? 'none' : 'block';
+}
+async function confirmDocxImport() {
+  if (!_docxImportHtml) { closeDocxImportModal(); return; }
+  const isNew = document.getElementById('docx-mode-new-btn').classList.contains('active');
+  const newChapter = { id: genChapterId(), title: _docxImportTitleGuess, content: _docxImportHtml, tension:20, summary:'', status:'draft', tags:[] };
+
+  if (isNew) {
+    const title = document.getElementById('docx-new-title').value.trim() || 'Nouveau manuscrit';
+    flushCurrentChapter(); await save(); // ne jamais quitter le manuscrit courant sans le sauvegarder d'abord
+    const list = await loadDocList();
+    const docId = genChapterId();
+    const dbData = DEFAULT_DB();
+    dbData.title = title;
+    dbData.chapters = [newChapter];
+    const cipher = await Crypto.encrypt(JSON.stringify(dbData), _dataKey);
+    await persistData(docDataKey(_currentProfileId, docId), { _enc:true, data:cipher });
+    list.documents.push({ id:docId, title, lastModified:Date.now(), chapterCount:1, wordCount:getWordCount(newChapter.content), wordGoal:0, cover:'auto' });
+    await saveDocList(list);
+    closeDocxImportModal();
+    db = dbData; _currentDocumentId = docId; cur = 0;
+    initApp();
+    toast('Nouveau manuscrit créé depuis le fichier Word.', 'success');
+    return;
+  }
+
+  const targetDocId = document.getElementById('docx-existing-select').value;
+  if (!targetDocId) { toast('Aucun manuscrit disponible.', 'error'); closeDocxImportModal(); return; }
+
+  if (targetDocId === _currentDocumentId) {
+    db.chapters.push(newChapter);
+    cur = db.chapters.length - 1;
+    renderChapterList(); loadChapter(cur); updateDailyStats(); save();
+    closeDocxImportModal();
+    toast('Chapitre ajouté au manuscrit actuel.', 'success');
+    return;
+  }
+
+  // Manuscrit différent de celui ouvert : on le charge, on le modifie, on le
+  // referme, sans quitter l'écran d'édition actuel.
+  try {
+    const stored = await loadData(docDataKey(_currentProfileId, targetDocId));
+    if (!stored || !stored._enc) throw new Error('Manuscrit introuvable.');
+    const dec = await Crypto.decrypt(stored.data, _dataKey);
+    if (!dec) throw new Error('Déchiffrement impossible.');
+    const otherDb = migrateDb(JSON.parse(dec));
+    otherDb.chapters.push(newChapter);
+    const cipher = await Crypto.encrypt(JSON.stringify(otherDb), _dataKey);
+    await persistData(docDataKey(_currentProfileId, targetDocId), { _enc:true, data:cipher });
+    const list = await loadDocList();
+    const entry = list.documents.find(d => d.id === targetDocId);
+    if (entry) {
+      entry.chapterCount = otherDb.chapters.length;
+      entry.wordCount = otherDb.chapters.reduce((s,c) => s + getWordCount(c.content), 0);
+      entry.lastModified = Date.now();
+      await saveDocList(list);
+    }
+    closeDocxImportModal();
+    toast(`Chapitre ajouté à « ${entry ? entry.title : 'ce manuscrit'} ».`, 'success');
+  } catch(e) {
+    toast('Erreur : ' + e.message, 'error');
+  }
 }
 
 // ═══════════════════════════════════════════════════════

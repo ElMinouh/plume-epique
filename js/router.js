@@ -110,12 +110,16 @@ function initApp(){
   purgeOldTrash();
   updateTrashBadge();
   renderAppearanceUI();
+  // v7.12.0 (Lot 9) : (re)programme la sauvegarde Gist automatique selon
+  // l'intervalle choisi pour CE manuscrit.
+  scheduleAutoGistBackup();
 
   const ctx=document.getElementById('tensionChart').getContext('2d');
   if (tensionChart) { tensionChart.destroy(); tensionChart = null; }
   tensionChart=new Chart(ctx,{type:'line',data:{labels:db.chapters.map((_,i)=>i+1),datasets:[{label:'Tension',data:db.chapters.map(c=>c.tension),borderColor:'#c0392b',backgroundColor:'rgba(192,57,43,.08)',tension:.3,fill:true}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}}}});
 
   const gi=document.getElementById('gist-id');if(gi)gi.value=db.gistId||'';
+  const agi=document.getElementById('auto-gist-interval-select');if(agi)agi.value=String(db.autoGistInterval??30);
   const mgi=document.getElementById('manuscript-goal-input');if(mgi)mgi.value=db.wordGoal||'';
 
   if(db.chapters.some(c=>c.content)) { takeSnapshot(cur, 'Ouverture — '+new Date().toLocaleString('fr')); }
@@ -187,6 +191,14 @@ function wireAppEventListenersOnce(){
   document.getElementById('export-select-epub-btn').addEventListener('click',()=>{exportEpub(getSelectedExportIndices());closeExportSelect();});
   document.getElementById('import-trigger-btn').addEventListener('click',()=>document.getElementById('import-file').click());
   document.getElementById('import-file').addEventListener('change',e=>importProject(e.target));
+  // Import DOCX + sauvegarde Gist auto programmée — nouveau v7.12.0 (Lot 9).
+  document.getElementById('import-docx-trigger-btn').addEventListener('click',()=>document.getElementById('import-docx-file').click());
+  document.getElementById('import-docx-file').addEventListener('change',e=>importDocxFile(e.target));
+  document.getElementById('docx-import-close-btn').addEventListener('click',closeDocxImportModal);
+  document.getElementById('docx-mode-new-btn').addEventListener('click',()=>setDocxImportMode('new'));
+  document.getElementById('docx-mode-existing-btn').addEventListener('click',()=>setDocxImportMode('existing'));
+  document.getElementById('docx-import-confirm-btn').addEventListener('click',confirmDocxImport);
+  document.getElementById('auto-gist-interval-select').addEventListener('change',e=>{db.autoGistInterval=parseInt(e.target.value)||0;debouncedSave();scheduleAutoGistBackup();});
   document.getElementById('sync-cloud-btn').addEventListener('click',syncCloud);
   document.getElementById('load-cloud-btn').addEventListener('click',loadCloud);
   document.getElementById('gist-history-btn').addEventListener('click',openGistHistory);
@@ -308,6 +320,7 @@ function wireAppEventListenersOnce(){
       if(document.getElementById('reading-overlay').classList.contains('active'))exitReadingMode();
       if(document.getElementById('export-select-overlay').classList.contains('active'))closeExportSelect();
       if(document.getElementById('shortcuts-overlay').classList.contains('active'))closeShortcutsHelp();
+      if(document.getElementById('docx-import-overlay').classList.contains('active'))closeDocxImportModal();
       if(document.getElementById('chapter-ctx-menu').classList.contains('open'))closeAllChapterMenus();
     }
   });

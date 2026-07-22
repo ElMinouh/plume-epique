@@ -5,7 +5,7 @@
 // pour pouvoir être testé indépendamment de l'application
 // (voir tests/test-runner.html).
 // ═══════════════════════════════════════════════════════
-const SCHEMA_VERSION = 11;
+const SCHEMA_VERSION = 12;
 
 function genChapterId() {
   return (crypto.randomUUID ? crypto.randomUUID() : 'ch_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
@@ -72,6 +72,13 @@ function migrateDb(data) {
     // progression sur la carte bibliothèque (v7.9.0).
     if (typeof data.wordGoal !== 'number') data.wordGoal = 0;
   }
+  if (v < 12) {
+    // Statistiques avancées (v7.12.0, Lot 9) : activité par heure de la
+    // journée (pour "meilleur moment d'écriture") + intervalle de
+    // sauvegarde Gist automatique programmée (0 = désactivée).
+    if (!Array.isArray(data.hourlyActivity) || data.hourlyActivity.length !== 24) data.hourlyActivity = new Array(24).fill(0);
+    if (typeof data.autoGistInterval !== 'number') data.autoGistInterval = 30;
+  }
   data._schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -84,5 +91,6 @@ const DEFAULT_DB = () => ({
   weakWords:['juste','très'],
   tabOrder:['tab-map','tab-sprint','tab-univers','tab-ia-memoire','tab-analysegroup','tab-systeme','tab-config'],
   darkMode:false, gistId:'', dailyGoal:500, weeklyGoal:3000, monthlyGoal:12000, sessionStats:{}, sprint:null, trash:[],
-  accentPalette:'rouge-violet', paperMode:false, editorFont:'palatino', wordGoal:0
+  accentPalette:'rouge-violet', paperMode:false, editorFont:'palatino', wordGoal:0,
+  hourlyActivity: new Array(24).fill(0), autoGistInterval:30
 });

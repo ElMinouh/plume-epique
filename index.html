@@ -15,6 +15,7 @@
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.11.0/mammoth.browser.min.js"></script>
 </head>
 <body>
 
@@ -157,6 +158,29 @@
       <button class="action-btn" style="background:#2980b9;flex:1;" id="export-select-docx-btn" title="Télécharger les chapitres sélectionnés au format Word">📄 Export DOCX</button>
       <button class="action-btn" style="background:#9b59b6;flex:1;" id="export-select-epub-btn" title="Télécharger les chapitres sélectionnés au format livre numérique">📚 Export EPUB</button>
     </div>
+  </div>
+</div>
+
+<!-- IMPORT DOCX OVERLAY (nouveau v7.12.0, Lot 9) -->
+<div id="docx-import-overlay" role="dialog" aria-modal="true" aria-label="Importer un fichier Word">
+  <div style="background:var(--glass);border-radius:16px;padding:20px;width:min(420px,92vw);max-height:80vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <strong>📥 Importer « <span id="docx-import-filename"></span> »</strong>
+      <button class="action-btn btn-sm" id="docx-import-close-btn" title="Annuler l'import">✕</button>
+    </div>
+    <div class="ch-view-toggle" role="group" aria-label="Destination de l'import">
+      <button class="mode-indicator active" id="docx-mode-new-btn" title="Créer un nouveau manuscrit à partir de ce fichier">📖 Nouveau manuscrit</button>
+      <button class="mode-indicator" id="docx-mode-existing-btn" title="Ajouter comme chapitre à un manuscrit déjà existant">📑 Chapitre existant</button>
+    </div>
+    <div id="docx-new-fields">
+      <label style="font-size:.75rem;color:var(--text-muted);">Titre du nouveau manuscrit</label>
+      <input type="text" id="docx-new-title" class="field" style="width:100%;margin-top:4px;">
+    </div>
+    <div id="docx-existing-fields" style="display:none;">
+      <label style="font-size:.75rem;color:var(--text-muted);">Manuscrit de destination</label>
+      <select id="docx-existing-select" class="field" style="width:100%;margin-top:4px;"></select>
+    </div>
+    <button class="action-btn" style="background:#27ae60;" id="docx-import-confirm-btn">Importer</button>
   </div>
 </div>
 
@@ -429,15 +453,26 @@
         <button class="action-btn" style="background:#9b59b6;" id="export-epub-btn" title="Télécharger le roman au format livre numérique">📚 EPUB</button>
         <button class="action-btn" style="background:#e67e22;" id="import-trigger-btn" title="Charger un fichier de sauvegarde JSON">📥 Import</button>
         <input type="file" id="import-file" style="display:none" accept=".json">
+        <button class="action-btn" style="background:#d35400;" id="import-docx-trigger-btn" title="Importer un fichier Word (.docx) comme nouveau manuscrit ou nouveau chapitre">📥 Importer DOCX</button>
+        <input type="file" id="import-docx-file" style="display:none" accept=".docx">
       </div>
       <div style="background:rgba(0,0,0,.05);padding:14px;border-radius:10px;border:1px dashed var(--border);">
         <strong>☁️ GitHub Gist (privé)</strong><br>
         <input type="password" id="gh-token" class="field" placeholder="Token (non sauvegardé)" style="width:175px;margin:5px;">
         <input type="text" id="gist-id" class="field" placeholder="Gist ID" style="width:175px;"><br>
-        <div style="display:flex;gap:6px;justify-content:center;margin-top:8px;">
+        <div style="display:flex;gap:6px;justify-content:center;margin-top:8px;align-items:center;flex-wrap:wrap;">
           <button class="action-btn" style="background:#2980b9;" id="sync-cloud-btn" title="Envoyer une sauvegarde chiffrée vers GitHub">🔄 Sauver</button>
           <button class="action-btn" style="background:#34495e;" id="load-cloud-btn" title="Récupérer la dernière sauvegarde depuis GitHub">📥 Charger</button>
           <button class="action-btn" style="background:#16a085;" id="gist-history-btn" title="Voir les anciennes versions sauvegardées">🕐 Historique</button>
+        </div>
+        <div style="margin-top:8px;font-size:.72rem;color:var(--text-muted);">
+          Sauvegarde auto :
+          <select id="auto-gist-interval-select" class="field" style="width:auto;display:inline-block;" title="Fréquence de la sauvegarde Gist automatique (nécessite un Token collé ci-dessus pendant la session)">
+            <option value="0">Désactivée</option>
+            <option value="15">Toutes les 15 min</option>
+            <option value="30">Toutes les 30 min</option>
+            <option value="60">Toutes les 60 min</option>
+          </select>
         </div>
         <p id="cloud-status" style="font-size:.72rem;color:var(--accent);margin:6px 0 0;" aria-live="polite"></p>
       </div>
@@ -656,7 +691,7 @@
       <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre">🌙 Nuit</button>
       <button id="install-app-btn" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.72rem;font-weight:700;font-family:inherit;box-shadow:0 2px 8px rgba(192,57,43,.3);" title="Installer Plume Épique comme application sur cet ordinateur">📲 Installer sur le bureau</button>
       <button id="shortcuts-hint-btn" class="mode-indicator" style="margin-left:auto;padding:2px 8px;" title="Voir les raccourcis clavier (touche ?)">❔</button>
-      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.11.0</span>
+      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.12.0</span>
     </div>
   </div>
 </main>

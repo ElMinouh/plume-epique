@@ -1,7 +1,7 @@
 'use strict';
 // Changez ce numéro de version à chaque mise à jour majeure des fichiers
 // pour forcer les navigateurs à récupérer la nouvelle version.
-const CACHE = 'plume-epique-v7.11.0';
+const CACHE = 'plume-epique-v7.12.0';
 
 const CORE_ASSETS = [
   './',
@@ -21,7 +21,8 @@ const CDN_ASSETS = [
   'https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js',
   'https://d3js.org/d3.v7.min.js',
   'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
-  'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'
+  'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+  'https://cdn.jsdelivr.net/npm/mammoth@1.11.0/mammoth.browser.min.js'
 ];
 
 self.addEventListener('install', event => {
