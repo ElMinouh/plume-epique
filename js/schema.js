@@ -5,7 +5,7 @@
 // pour pouvoir être testé indépendamment de l'application
 // (voir tests/test-runner.html).
 // ═══════════════════════════════════════════════════════
-const SCHEMA_VERSION = 10;
+const SCHEMA_VERSION = 11;
 
 function genChapterId() {
   return (crypto.randomUUID ? crypto.randomUUID() : 'ch_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
@@ -67,6 +67,11 @@ function migrateDb(data) {
     // Tags libres sur les chapitres (v7.8.0), en plus du statut fixe.
     (data.chapters||[]).forEach(ch => { if (!Array.isArray(ch.tags)) ch.tags = []; });
   }
+  if (v < 11) {
+    // Objectif de mots pour le manuscrit entier, affiché en barre de
+    // progression sur la carte bibliothèque (v7.9.0).
+    if (typeof data.wordGoal !== 'number') data.wordGoal = 0;
+  }
   data._schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -79,5 +84,5 @@ const DEFAULT_DB = () => ({
   weakWords:['juste','très'],
   tabOrder:['tab-map','tab-sprint','tab-univers','tab-ia-memoire','tab-analysegroup','tab-systeme','tab-config'],
   darkMode:false, gistId:'', dailyGoal:500, weeklyGoal:3000, monthlyGoal:12000, sessionStats:{}, sprint:null, trash:[],
-  accentPalette:'rouge-violet', paperMode:false, editorFont:'palatino'
+  accentPalette:'rouge-violet', paperMode:false, editorFont:'palatino', wordGoal:0
 });

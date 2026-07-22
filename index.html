@@ -510,6 +510,13 @@
       <span id="month-goal-label" style="font-size:.72rem;color:var(--text-muted);"></span>
     </div>
     <hr style="border-color:var(--border);margin:10px 0;">
+    <strong>Objectif du manuscrit</strong>
+    <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+      <input type="number" id="manuscript-goal-input" class="field" style="width:90px;" min="0" step="1000" placeholder="0">
+      <span>mots au total</span>
+    </div>
+    <p style="font-size:.68rem;color:var(--text-muted);margin:4px 0 0;">0 = pas d'objectif. Affiché en barre de progression sur la carte de ce manuscrit dans la bibliothèque.</p>
+    <hr style="border-color:var(--border);margin:10px 0;">
     <strong>👤 Profil</strong>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
       <button class="action-btn btn-sm" id="my-profile-btn" title="Modifier votre nom, mot de passe ou question de sécurité">Mon profil</button>
@@ -637,7 +644,7 @@
       <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre">🌙 Nuit</button>
       <button id="install-app-btn" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.72rem;font-weight:700;font-family:inherit;box-shadow:0 2px 8px rgba(192,57,43,.3);" title="Installer Plume Épique comme application sur cet ordinateur">📲 Installer sur le bureau</button>
       <button id="shortcuts-hint-btn" class="mode-indicator" style="margin-left:auto;padding:2px 8px;" title="Voir les raccourcis clavier (touche ?)">❔</button>
-      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.8.1</span>
+      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.9.0</span>
     </div>
   </div>
 </main>
@@ -653,6 +660,22 @@
     <span style="opacity:.3;">|</span><span style="opacity:.4;font-size:.68rem;">Échap pour quitter</span>
     <button id="focus-close-btn" title="Revenir à l'écriture normale">✕ Quitter</button>
   </div>
+</div>
+
+<!-- Sélecteur de couverture de manuscrit (🎨) — élément unique, hors des
+     cartes bibliothèque pour ne pas être rogné par leur overflow (v7.9.0) -->
+<div id="cover-picker-menu" class="toolbar-menu" role="menu">
+  <button class="cover-swatch" data-cover="auto" title="Automatique (couleurs de l'interface)" style="background:linear-gradient(135deg,var(--accent),var(--accent2));">↺</button>
+  <button class="cover-swatch" data-cover="rouge-violet" title="Rouge &amp; Violet" style="background:linear-gradient(135deg,#c0392b,#8e44ad);"></button>
+  <button class="cover-swatch" data-cover="bleu-ocean" title="Bleu Océan" style="background:linear-gradient(135deg,#2980b9,#16a085);"></button>
+  <button class="cover-swatch" data-cover="emeraude" title="Émeraude" style="background:linear-gradient(135deg,#27ae60,#2c3e50);"></button>
+  <button class="cover-swatch" data-cover="rose-poudre" title="Rose Poudré" style="background:linear-gradient(135deg,#c2185b,#d4af37);"></button>
+  <button class="cover-swatch" data-cover="ardoise" title="Ardoise" style="background:linear-gradient(135deg,#34495e,#7f8c8d);"></button>
+  <button class="cover-swatch" data-cover="coucher-soleil" title="Coucher de Soleil" style="background:linear-gradient(135deg,#f39c12,#e74c3c);"></button>
+  <button class="cover-swatch" data-cover="nuit-etoilee" title="Nuit Étoilée" style="background:linear-gradient(135deg,#16213e,#6a3093);"></button>
+  <button class="cover-swatch" data-cover="sepia" title="Sépia" style="background:linear-gradient(135deg,#6d4c41,#3e2723);"></button>
+  <button class="cover-swatch" data-cover="corail" title="Corail" style="background:linear-gradient(135deg,#ee5a6f,#f29263);"></button>
+  <button class="cover-swatch" data-cover="lavande" title="Lavande" style="background:linear-gradient(135deg,#8e7cc3,#5b3a8e);"></button>
 </div>
 
 <!-- Menu contextuel des chapitres (⋮) — élément unique, hors de la sidebar pour

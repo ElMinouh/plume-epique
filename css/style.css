@@ -407,6 +407,22 @@ body.library-mode #library-screen{display:block;}
   cursor:pointer;opacity:0;transition:opacity .15s;font-family:inherit;}
 .library-card:hover .library-delete-btn,.library-delete-btn:focus-visible{opacity:1;}
 .library-delete-btn:hover{filter:brightness(1.15);}
+/* Couverture personnalisable + objectif de mots (nouveau v7.9.0) */
+.library-cover-edit-btn{position:absolute;top:8px;left:8px;z-index:2;background:rgba(0,0,0,.45);
+  color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:2px 7px;font-size:.75rem;
+  cursor:pointer;opacity:0;transition:opacity .15s;}
+.library-card:hover .library-cover-edit-btn,.library-cover-edit-btn:focus-visible{opacity:1;}
+.library-cover-edit-btn:hover{background:rgba(0,0,0,.65);}
+.library-progress{height:5px;background:var(--item-bg);border-radius:3px;overflow:hidden;margin-top:7px;}
+.library-progress-bar{height:100%;background:var(--accent);border-radius:3px;}
+.library-progress-label{font-size:.6rem;color:var(--text-muted);margin:3px 0 0;}
+/* Sélecteur de couverture : même technique que le menu ⋮ des chapitres
+   (position fixed pour échapper au overflow:hidden de .library-card). */
+#cover-picker-menu{position:fixed;z-index:5000;flex-direction:row;flex-wrap:wrap;
+  min-width:0;width:140px;gap:6px;padding:10px;}
+.toolbar-menu button.cover-swatch{width:26px;height:26px;border-radius:6px;border:2px solid transparent;
+  cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem;}
+.toolbar-menu button.cover-swatch:hover{border-color:var(--text);}
 .library-cover{height:70px;background:linear-gradient(135deg,var(--accent),var(--accent2));
   display:flex;align-items:center;justify-content:center;font-size:1.6rem;}
 .library-card-body{padding:12px 14px;}

@@ -113,6 +113,7 @@ function initApp(){
   tensionChart=new Chart(ctx,{type:'line',data:{labels:db.chapters.map((_,i)=>i+1),datasets:[{label:'Tension',data:db.chapters.map(c=>c.tension),borderColor:'#c0392b',backgroundColor:'rgba(192,57,43,.08)',tension:.3,fill:true}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}}}});
 
   const gi=document.getElementById('gist-id');if(gi)gi.value=db.gistId||'';
+  const mgi=document.getElementById('manuscript-goal-input');if(mgi)mgi.value=db.wordGoal||'';
 
   if(db.chapters.some(c=>c.content)) { takeSnapshot(cur, 'Ouverture — '+new Date().toLocaleString('fr')); }
 
@@ -235,6 +236,7 @@ function wireAppEventListenersOnce(){
   document.getElementById('daily-goal-input').addEventListener('input',e=>{db.dailyGoal=parseInt(e.target.value)||500;debouncedSave();updateDailyStats();});
   document.getElementById('weekly-goal-input').addEventListener('input',e=>{db.weeklyGoal=parseInt(e.target.value)||3000;debouncedSave();updateGoalsUI();});
   document.getElementById('monthly-goal-input').addEventListener('input',e=>{db.monthlyGoal=parseInt(e.target.value)||12000;debouncedSave();updateGoalsUI();});
+  document.getElementById('manuscript-goal-input').addEventListener('input',e=>{db.wordGoal=parseInt(e.target.value)||0;debouncedSave();});
   // v7.0.0 — profils
   document.getElementById('my-profile-btn').addEventListener('click',openMyProfile);
   document.getElementById('logout-btn').addEventListener('click',logout);

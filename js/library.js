@@ -21,6 +21,57 @@
 
 let _currentDocumentId = null;
 
+// Couvertures personnalisables par manuscrit (nouveau v7.9.0) — liste dédiée,
+// distincte des palettes d'interface (Config > Apparence) : plus décorative,
+// 10 choix + « Automatique » (couleurs actuelles de l'interface).
+const COVER_PALETTES = {
+  'rouge-violet':   { label:'Rouge & Violet',   a:'#c0392b', b:'#8e44ad' },
+  'bleu-ocean':     { label:'Bleu Océan',        a:'#2980b9', b:'#16a085' },
+  'emeraude':       { label:'Émeraude',          a:'#27ae60', b:'#2c3e50' },
+  'rose-poudre':    { label:'Rose Poudré',       a:'#c2185b', b:'#d4af37' },
+  'ardoise':        { label:'Ardoise',           a:'#34495e', b:'#7f8c8d' },
+  'coucher-soleil': { label:'Coucher de Soleil', a:'#f39c12', b:'#e74c3c' },
+  'nuit-etoilee':   { label:'Nuit Étoilée',      a:'#16213e', b:'#6a3093' },
+  'sepia':          { label:'Sépia',             a:'#6d4c41', b:'#3e2723' },
+  'corail':         { label:'Corail',            a:'#ee5a6f', b:'#f29263' },
+  'lavande':        { label:'Lavande',           a:'#8e7cc3', b:'#5b3a8e' }
+};
+let _coverPickerDocId = null;
+function closeCoverPicker() {
+  const menu = document.getElementById('cover-picker-menu');
+  if (menu) menu.classList.remove('open');
+  _coverPickerDocId = null;
+}
+function openCoverPicker(docId, btn) {
+  const menu = document.getElementById('cover-picker-menu');
+  const alreadyOpenForThis = menu.classList.contains('open') && _coverPickerDocId === docId;
+  closeCoverPicker();
+  if (alreadyOpenForThis) return; // un second clic sur le même 🎨 referme le menu
+  _coverPickerDocId = docId;
+  const rect = btn.getBoundingClientRect();
+  menu.style.visibility = 'hidden';
+  menu.classList.add('open');
+  const w = menu.offsetWidth || 140;
+  let left = rect.left;
+  const maxLeft = window.innerWidth - w - 8;
+  if (left > maxLeft) left = maxLeft;
+  if (left < 8) left = 8;
+  menu.style.left = left + 'px';
+  menu.style.top = (rect.bottom + 4) + 'px';
+  menu.style.visibility = 'visible';
+}
+async function selectCover(key) {
+  const docId = _coverPickerDocId;
+  closeCoverPicker();
+  if (!docId) return;
+  const list = await loadDocList();
+  const entry = list.documents.find(d => d.id === docId);
+  if (!entry) return;
+  entry.cover = key; // 'auto' ou une clé de COVER_PALETTES
+  await saveDocList(list);
+  await renderLibraryScreen();
+}
+
 function docListKey(profileId) { return 'doclist_' + profileId; }
 function docDataKey(profileId, docId) { return 'doc_' + profileId + '_' + docId; }
 
@@ -60,6 +111,12 @@ function wireLibraryStaticUI() {
   document.getElementById('library-manage-profiles-btn').addEventListener('click', openManageProfiles);
   document.getElementById('library-logout-btn').addEventListener('click', logout);
   document.getElementById('library-home-btn').addEventListener('click', goHome);
+  // Sélecteur de couverture (v7.9.0) — élément unique, câblé une seule fois.
+  document.querySelectorAll('#cover-picker-menu .cover-swatch').forEach(btn => {
+    btn.addEventListener('click', () => selectCover(btn.dataset.cover));
+  });
+  document.addEventListener('click', () => closeCoverPicker());
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCoverPicker(); });
 }
 
 // Migration silencieuse : un profil v7.0/v7.1 a son roman unique sous
@@ -91,7 +148,7 @@ async function migrateLegacyDocumentIfNeeded() {
   } catch(e) { /* migration au mieux : on garde les valeurs par défaut ci-dessus */ }
 
   await persistData(docDataKey(_currentProfileId, docId), storedBlob);
-  list.documents.push({ id:docId, title, lastModified:Date.now(), chapterCount, wordCount });
+  list.documents.push({ id:docId, title, lastModified:Date.now(), chapterCount, wordCount, wordGoal:0, cover:'auto' });
   await saveDocList(list);
   await persistData('data_' + _currentProfileId, null);
 }
@@ -107,26 +164,37 @@ async function renderLibraryScreen() {
   const container = document.getElementById('library-grid');
   container.innerHTML = `<div class="library-card library-new" id="library-new-btn" role="button" tabindex="0" aria-label="Nouveau projet" title="Créer un nouveau manuscrit vierge">
       <span class="library-new-icon">+</span><span>Nouveau projet</span>
-    </div>` + sorted.map(d => `
+    </div>` + sorted.map(d => {
+      const cover = d.cover && d.cover !== 'auto' ? COVER_PALETTES[d.cover] : null;
+      const coverStyle = cover ? ` style="background:linear-gradient(135deg,${cover.a},${cover.b});"` : '';
+      const goal = d.wordGoal || 0;
+      const pct = goal > 0 ? Math.min(100, Math.round((d.wordCount||0) / goal * 100)) : 0;
+      return `
     <div class="library-card" data-doc-id="${d.id}" role="button" tabindex="0" title="Ouvrir « ${DOMPurify.sanitize(d.title || 'Sans titre')} »">
       <button class="library-delete-btn" data-delete-doc="${d.id}" title="Supprimer définitivement ce manuscrit">Supprimer</button>
-      <div class="library-cover">📖</div>
+      <button class="library-cover-edit-btn" data-edit-cover="${d.id}" title="Changer la couverture" aria-label="Changer la couverture">🎨</button>
+      <div class="library-cover"${coverStyle}>📖</div>
       <div class="library-card-body">
         <p class="library-card-title">${DOMPurify.sanitize(d.title || 'Sans titre')}</p>
         <p class="library-card-meta">${d.chapterCount||0} chapitre(s) · ${d.wordCount||0} mots</p>
+        ${goal>0 ? `<div class="library-progress" title="${d.wordCount||0} / ${goal} mots"><div class="library-progress-bar" style="width:${pct}%;"></div></div><p class="library-progress-label">${d.wordCount||0} / ${goal} mots · ${pct}%</p>` : ''}
         <p class="library-card-date">${formatRelativeDate(d.lastModified)}</p>
       </div>
-    </div>`).join('');
+    </div>`;
+    }).join('');
 
   const newBtn = document.getElementById('library-new-btn');
   newBtn.addEventListener('click', createNewDocument);
   newBtn.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); createNewDocument(); } });
   container.querySelectorAll('[data-doc-id]').forEach(card => {
-    card.addEventListener('click', (e) => { if (e.target.closest('.library-delete-btn')) return; openDocument(card.dataset.docId); });
-    card.addEventListener('keydown', e => { if ((e.key==='Enter'||e.key===' ')&&!e.target.closest('.library-delete-btn')) { e.preventDefault(); openDocument(card.dataset.docId); } });
+    card.addEventListener('click', (e) => { if (e.target.closest('.library-delete-btn')||e.target.closest('.library-cover-edit-btn')) return; openDocument(card.dataset.docId); });
+    card.addEventListener('keydown', e => { if ((e.key==='Enter'||e.key===' ')&&!e.target.closest('.library-delete-btn')&&!e.target.closest('.library-cover-edit-btn')) { e.preventDefault(); openDocument(card.dataset.docId); } });
   });
   container.querySelectorAll('[data-delete-doc]').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); deleteDocument(btn.dataset.deleteDoc); });
+  });
+  container.querySelectorAll('[data-edit-cover]').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); openCoverPicker(btn.dataset.editCover, btn); });
   });
 }
 
@@ -150,7 +218,7 @@ async function createNewDocument() {
   if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) dbData.darkMode = true;
   const cipher = await Crypto.encrypt(JSON.stringify(dbData), _dataKey);
   await persistData(docDataKey(_currentProfileId, docId), { _enc:true, data:cipher });
-  list.documents.push({ id:docId, title:dbData.title, lastModified:Date.now(), chapterCount:1, wordCount:0 });
+  list.documents.push({ id:docId, title:dbData.title, lastModified:Date.now(), chapterCount:1, wordCount:0, wordGoal:0, cover:'auto' });
   await saveDocList(list);
   db = dbData;
   _currentDocumentId = docId;
@@ -194,6 +262,7 @@ async function touchDocumentMeta() {
   entry.lastModified = Date.now();
   entry.chapterCount = db.chapters.length;
   entry.wordCount = db.chapters.reduce((s,c) => s + getWordCount(c.content), 0);
+  entry.wordGoal = db.wordGoal || 0;
   await saveDocList(list);
 }
 
