@@ -239,6 +239,7 @@ function wireLibraryStaticUI() {
   document.getElementById('export-select-toggle-btn').addEventListener('click', toggleAllExportSelect);
   document.getElementById('export-select-docx-btn').addEventListener('click', () => { exportDocx(getSelectedExportChapters(), _exportSelectTitle); closeExportSelect(); });
   document.getElementById('export-select-odt-btn').addEventListener('click', () => { exportOdt(getSelectedExportChapters(), _exportSelectTitle); closeExportSelect(); });
+  document.getElementById('export-select-pdf-btn').addEventListener('click', () => { exportPdf(getSelectedExportChapters(), _exportSelectTitle); closeExportSelect(); });
   document.getElementById('export-select-epub-btn').addEventListener('click', () => { exportEpub(getSelectedExportChapters(), _exportSelectTitle); closeExportSelect(); });
 
   // ── Historique Gist — fermeture (déclenché depuis le panneau Système) ─

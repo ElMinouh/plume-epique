@@ -67,7 +67,7 @@
     </div>
 
     <div style="background:rgba(0,0,0,.05);padding:12px;border-radius:10px;border:1px dashed var(--border);">
-      <strong style="font-size:.8rem;">☁️ GitHub Gist (privé) — un seul token pour tout le compte</strong><br>
+      <strong style="font-size:.8rem;">☁️ GitHub (compte) — un seul token pour tout le compte</strong><br>
       <div style="display:flex;gap:6px;margin-top:6px;">
         <input type="password" id="lib-gh-token" class="field" placeholder="Token GitHub" style="flex:1;" title="Mémorisé automatiquement (chiffré)">
         <button class="action-btn btn-sm" style="background:#16a085;flex-shrink:0;" id="lib-verify-token-btn" title="Vérifier que ce token est valide auprès de GitHub">✅ Vérifier</button>
@@ -84,20 +84,21 @@
       </div>
       <p style="font-size:.68rem;color:var(--text-muted);margin:6px 0 0;">Se déclenche aussi au changement de manuscrit, au retour à la bibliothèque, et quand l'onglet perd le focus.</p>
       <p id="lib-cloud-status" style="font-size:.72rem;color:var(--accent);margin:6px 0 0;" aria-live="polite"></p>
-      <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
-      <label style="font-size:.75rem;color:var(--text-muted);">Manuscrit :</label>
-      <select id="lib-system-doc-select" class="field" style="width:100%;margin-top:4px;"></select>
-      <div class="export-row" style="justify-content:flex-start;margin-top:8px;">
+    </div>
+
+    <div style="background:rgba(0,0,0,.05);padding:12px;border-radius:10px;border:1px dashed var(--border);">
+      <strong style="font-size:.8rem;">📖 Manuscrit sélectionné</strong><br>
+      <select id="lib-system-doc-select" class="field" style="width:100%;margin-top:6px;"></select>
+
+      <p style="font-size:.68rem;color:var(--text-muted);margin:10px 0 4px;">Gist de ce manuscrit :</p>
+      <div class="export-row" style="justify-content:flex-start;">
         <button class="action-btn btn-sm" style="background:#2980b9;" id="lib-sync-cloud-btn" title="Envoyer une sauvegarde chiffrée de ce manuscrit vers GitHub">🔄 Sauver</button>
         <button class="action-btn btn-sm" style="background:#34495e;" id="lib-load-cloud-btn" title="Récupérer la dernière sauvegarde Gist de ce manuscrit">📥 Charger</button>
         <button class="action-btn btn-sm" style="background:#16a085;" id="lib-gist-history-btn" title="Voir les anciennes versions sauvegardées de ce manuscrit">🕐 Historique</button>
       </div>
       <p id="lib-doc-gist-status" style="font-size:.68rem;color:var(--text-muted);margin:6px 0 0;"></p>
-    </div>
 
-    <div style="background:rgba(0,0,0,.05);padding:12px;border-radius:10px;border:1px dashed var(--border);">
-      <strong style="font-size:.8rem;">📄 Ce manuscrit — export / import de fichiers</strong><br>
-      <p style="font-size:.68rem;color:var(--text-muted);margin:6px 0;">Manuscrit sélectionné ci-dessus (section GitHub).</p>
+      <p style="font-size:.68rem;color:var(--text-muted);margin:10px 0 4px;">Fichiers :</p>
       <div class="export-row" style="justify-content:flex-start;">
         <button class="action-btn btn-sm" style="background:#2980b9;" id="lib-export-btn" title="Exporter ce manuscrit (choix du format ensuite)">📤 Exporter</button>
         <button class="action-btn btn-sm" style="background:#d35400;" id="lib-import-doc-trigger-btn" title="Importer un fichier Word (.docx) ou OpenDocument (.odt)">📥 Importer (DOCX/ODT)</button>
@@ -251,6 +252,7 @@
     <div style="display:flex;gap:6px;flex-wrap:wrap;">
       <button class="action-btn" style="background:#2980b9;flex:1;" id="export-select-docx-btn" title="Télécharger les chapitres sélectionnés au format Word">📄 DOCX</button>
       <button class="action-btn" style="background:#7d5ba6;flex:1;" id="export-select-odt-btn" title="Télécharger les chapitres sélectionnés au format OpenDocument">📃 ODT</button>
+      <button class="action-btn" style="background:#c0392b;flex:1;" id="export-select-pdf-btn" title="Télécharger les chapitres sélectionnés au format PDF">📕 PDF</button>
       <button class="action-btn" style="background:#9b59b6;flex:1;" id="export-select-epub-btn" title="Télécharger les chapitres sélectionnés au format livre numérique">📚 EPUB</button>
     </div>
   </div>
@@ -729,7 +731,7 @@
       <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre">🌙 Nuit</button>
       <button id="install-app-btn" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.72rem;font-weight:700;font-family:inherit;box-shadow:0 2px 8px rgba(192,57,43,.3);" title="Installer Plume Épique comme application sur cet ordinateur">📲 Installer sur le bureau</button>
       <button id="shortcuts-hint-btn" class="mode-indicator" style="margin-left:auto;padding:2px 8px;" title="Voir les raccourcis clavier (touche ?)">❔</button>
-      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.14.0</span>
+      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.15.0</span>
     </div>
   </div>
 </main>

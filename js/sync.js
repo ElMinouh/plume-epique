@@ -114,10 +114,54 @@ async function exportOdt(chapters, title) {
   }
 }
 
+// Export PDF (nouveau v7.15.0) — via jsPDF, déjà chargé dans le projet
+// (utilisé jusqu'ici pour le PDF de code de récupération de profil).
+async function exportPdf(chapters, title) {
+  if (!window.jspdf || !window.jspdf.jsPDF) { toast('Bibliothèque PDF non chargée (vérifiez la connexion).', 'error'); return; }
+  if (!chapters || !chapters.length) { toast('Aucun chapitre sélectionné.', 'error'); return; }
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit:'mm', format:'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    const maxWidth = pageWidth - margin * 2;
+    let y = margin;
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
+    const titleLines = doc.splitTextToSize(title || 'Mon Roman — Plume Épique', maxWidth);
+    doc.text(titleLines, pageWidth / 2, 60, { align:'center' });
+    doc.addPage();
+    y = margin;
+
+    chapters.forEach((ch, i) => {
+      if (y + 12 > pageHeight - margin) { doc.addPage(); y = margin; }
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
+      doc.text(`Chapitre ${i+1} : ${ch.title||''}`, margin, y);
+      y += 10;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+      getPlainText(ch.content).split('\n').forEach(line => {
+        if (!line.trim()) { y += 5; return; }
+        doc.splitTextToSize(line.trim(), maxWidth).forEach(wrappedLine => {
+          if (y + 6 > pageHeight - margin) { doc.addPage(); y = margin; }
+          doc.text(wrappedLine, margin, y);
+          y += 6;
+        });
+      });
+      y += 8;
+    });
+
+    doc.save('roman_plume.pdf');
+    toast('Export PDF réussi !', 'success');
+  } catch(e) {
+    toast('Erreur export PDF : ' + e.message, 'error');
+  }
+}
+
 // ═══════════════════════════════════════════════════════
 // SÉLECTION DES CHAPITRES À EXPORTER (v6.2.0, généralisé v7.13.0)
 // Un seul bouton "📤 Exporter" en bibliothèque ouvre ce panneau ; le choix
-// du FORMAT (DOCX/ODT/EPUB) se fait ensuite, en bas du panneau.
+// du FORMAT (DOCX/ODT/PDF/EPUB) se fait ensuite, en bas du panneau.
 // ═══════════════════════════════════════════════════════
 let _exportSelectChapters = [], _exportSelectTitle = '';
 function openExportSelect(chapters, title) {
