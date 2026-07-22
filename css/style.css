@@ -285,10 +285,10 @@ select.gate-field{height:38px;}
   align-items:center;justify-content:center;}
 #gist-history-overlay.active{display:flex;}
 /* Corbeille, export sélectif, aide-mémoire raccourcis & import DOCX (v7.5.0/v7.12.0) — même gabarit d'overlay */
-#trash-overlay,#export-select-overlay,#shortcuts-overlay,#docx-import-overlay{display:none;position:fixed;inset:0;z-index:8500;
+#trash-overlay,#export-select-overlay,#shortcuts-overlay,#docx-import-overlay,#library-system-overlay{display:none;position:fixed;inset:0;z-index:8500;
   background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
   align-items:center;justify-content:center;}
-#trash-overlay.active,#export-select-overlay.active,#shortcuts-overlay.active,#docx-import-overlay.active{display:flex;}
+#trash-overlay.active,#export-select-overlay.active,#shortcuts-overlay.active,#docx-import-overlay.active,#library-system-overlay.active{display:flex;}
 .shortcut-row{display:flex;justify-content:space-between;align-items:center;gap:10px;
   padding:6px 0;border-bottom:1px solid var(--border);font-size:.82rem;}
 .shortcut-row:last-child{border-bottom:none;}
@@ -417,17 +417,13 @@ body.library-mode #library-screen{display:block;}
 .library-card{background:var(--glass);border:1px solid var(--border);border-radius:var(--radius);
   cursor:pointer;overflow:hidden;transition:.2s;outline:none;position:relative;}
 .library-card:hover,.library-card:focus-visible{border-color:var(--accent);}
-.library-delete-btn{position:absolute;top:8px;right:8px;z-index:2;background:var(--danger);
-  color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:.65rem;font-weight:700;
-  cursor:pointer;opacity:0;transition:opacity .15s;font-family:inherit;}
-.library-card:hover .library-delete-btn,.library-delete-btn:focus-visible{opacity:1;}
-.library-delete-btn:hover{filter:brightness(1.15);}
-/* Couverture personnalisable + objectif de mots (nouveau v7.9.0) */
-.library-cover-edit-btn{position:absolute;top:8px;left:8px;z-index:2;background:rgba(0,0,0,.45);
-  color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:2px 7px;font-size:.75rem;
+/* Menu ⋮ unifié des manuscrits (nouveau v7.13.0, Lot 10) — remplace les
+   anciens boutons séparés 🎨/🗑️ ; regroupe couverture/export/suppression. */
+.library-kebab-btn{position:absolute;top:8px;right:8px;z-index:2;background:rgba(0,0,0,.45);
+  color:#fff;border:none;border-radius:6px;padding:2px 8px;font-size:1rem;line-height:1.3;
   cursor:pointer;opacity:0;transition:opacity .15s;}
-.library-card:hover .library-cover-edit-btn,.library-cover-edit-btn:focus-visible{opacity:1;}
-.library-cover-edit-btn:hover{background:rgba(0,0,0,.65);}
+.library-card:hover .library-kebab-btn,.library-card.menu-open .library-kebab-btn,.library-kebab-btn:focus-visible{opacity:1;}
+.library-kebab-btn:hover{background:rgba(0,0,0,.65);}
 .library-progress{height:5px;background:var(--item-bg);border-radius:3px;overflow:hidden;margin-top:7px;}
 .library-progress-bar{height:100%;background:var(--accent);border-radius:3px;}
 .library-progress-label{font-size:.6rem;color:var(--text-muted);margin:3px 0 0;}
@@ -461,14 +457,11 @@ body.library-mode #library-screen{display:block;}
   color:rgba(255,255,255,.92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-height:100%;
   text-shadow:0 1px 2px rgba(0,0,0,.35);}
 .lib-book-new{background:var(--item-bg);border:1px dashed var(--border);color:var(--accent);font-size:1.2rem;font-weight:700;}
-.lib-book-del,.lib-book-cover{position:absolute;left:50%;transform:translateX(-50%);width:22px;height:22px;border:none;
-  border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:.66rem;cursor:pointer;opacity:0;
+.lib-book-kebab{position:absolute;top:4px;left:50%;transform:translateX(-50%);width:22px;height:22px;border:none;
+  border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:.85rem;cursor:pointer;opacity:0;
   display:flex;align-items:center;justify-content:center;}
-.lib-book-del{top:4px;}
-.lib-book-cover{top:30px;}
-.lib-book:hover .lib-book-del,.lib-book:hover .lib-book-cover,.lib-book-del:focus-visible,.lib-book-cover:focus-visible{opacity:1;}
-.lib-book-del:hover{background:var(--danger);}
-.lib-book-cover:hover{background:rgba(0,0,0,.75);}
+.lib-book:hover .lib-book-kebab,.lib-book.menu-open .lib-book-kebab,.lib-book-kebab:focus-visible{opacity:1;}
+.lib-book-kebab:hover{background:rgba(0,0,0,.75);}
 
 /* ── Menus déroulants de la barre d'outils (v7.4.0) ── */
 .toolbar-dropdown{position:relative;}
@@ -483,6 +476,7 @@ body.library-mode #library-screen{display:block;}
    overflow:hidden/auto de la sidebar (contrairement aux menus de la toolbar,
    celui-ci doit pouvoir s'afficher par-dessus tout le reste). */
 #chapter-ctx-menu{position:fixed;z-index:5000;min-width:170px;}
+#library-ctx-menu{position:fixed;z-index:5000;min-width:180px;}
 
 /* ── Sous-navigation des onglets groupés (Univers, IA & Mémoire, Analyse, Système) ── */
 .subtab-nav{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;

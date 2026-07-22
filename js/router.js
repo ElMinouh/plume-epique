@@ -47,7 +47,7 @@ let _unsavedChanges = false;
 const tabLabels = {
   'tab-map':'🏗️ Structure','tab-sprint':'⏱️ Sprint',
   'tab-univers':'🌍 Univers ▾','tab-ia-memoire':'🤖 IA & Mémoire ▾',
-  'tab-analysegroup':'📊 Analyse ▾','tab-systeme':'💾 Système ▾',
+  'tab-analysegroup':'📊 Analyse ▾','tab-systeme':'🗄️ Système ▾',
   'tab-config':'⚙️ Config'
 };
 // Descriptifs affichés en infobulle sur chaque onglet (neophytes).
@@ -57,7 +57,7 @@ const tabDescriptions = {
   'tab-univers':'Personnages, lieux, quêtes, chronologie et relations',
   'tab-ia-memoire':'Assistance IA et mémoire narrative du roman',
   'tab-analysegroup':'Statistiques, mots-clés et analyse détaillée du texte',
-  'tab-systeme':'Sauvegarde, export, versions et plugins',
+  'tab-systeme':'Versions et plugins',
   'tab-config':'Mots faibles, objectifs d\'écriture, profil'
 };
 
@@ -110,16 +110,11 @@ function initApp(){
   purgeOldTrash();
   updateTrashBadge();
   renderAppearanceUI();
-  // v7.12.0 (Lot 9) : (re)programme la sauvegarde Gist automatique selon
-  // l'intervalle choisi pour CE manuscrit.
-  scheduleAutoGistBackup();
 
   const ctx=document.getElementById('tensionChart').getContext('2d');
   if (tensionChart) { tensionChart.destroy(); tensionChart = null; }
   tensionChart=new Chart(ctx,{type:'line',data:{labels:db.chapters.map((_,i)=>i+1),datasets:[{label:'Tension',data:db.chapters.map(c=>c.tension),borderColor:'#c0392b',backgroundColor:'rgba(192,57,43,.08)',tension:.3,fill:true}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}}}});
 
-  const gi=document.getElementById('gist-id');if(gi)gi.value=db.gistId||'';
-  const agi=document.getElementById('auto-gist-interval-select');if(agi)agi.value=String(db.autoGistInterval??30);
   const mgi=document.getElementById('manuscript-goal-input');if(mgi)mgi.value=db.wordGoal||'';
 
   if(db.chapters.some(c=>c.content)) { takeSnapshot(cur, 'Ouverture — '+new Date().toLocaleString('fr')); }
@@ -182,27 +177,6 @@ function wireAppEventListenersOnce(){
   document.getElementById('add-quest-btn').addEventListener('click',addQuest);
   document.getElementById('add-char-btn').addEventListener('click',()=>addItem('chars'));
   document.getElementById('add-place-btn').addEventListener('click',()=>addItem('places'));
-  document.getElementById('export-btn').addEventListener('click',megaExport);
-  document.getElementById('export-docx-btn').addEventListener('click',openExportSelect);
-  document.getElementById('export-epub-btn').addEventListener('click',openExportSelect);
-  document.getElementById('export-select-close-btn').addEventListener('click',closeExportSelect);
-  document.getElementById('export-select-toggle-btn').addEventListener('click',toggleAllExportSelect);
-  document.getElementById('export-select-docx-btn').addEventListener('click',()=>{exportDocx(getSelectedExportIndices());closeExportSelect();});
-  document.getElementById('export-select-epub-btn').addEventListener('click',()=>{exportEpub(getSelectedExportIndices());closeExportSelect();});
-  document.getElementById('import-trigger-btn').addEventListener('click',()=>document.getElementById('import-file').click());
-  document.getElementById('import-file').addEventListener('change',e=>importProject(e.target));
-  // Import DOCX + sauvegarde Gist auto programmée — nouveau v7.12.0 (Lot 9).
-  document.getElementById('import-docx-trigger-btn').addEventListener('click',()=>document.getElementById('import-docx-file').click());
-  document.getElementById('import-docx-file').addEventListener('change',e=>importDocxFile(e.target));
-  document.getElementById('docx-import-close-btn').addEventListener('click',closeDocxImportModal);
-  document.getElementById('docx-mode-new-btn').addEventListener('click',()=>setDocxImportMode('new'));
-  document.getElementById('docx-mode-existing-btn').addEventListener('click',()=>setDocxImportMode('existing'));
-  document.getElementById('docx-import-confirm-btn').addEventListener('click',confirmDocxImport);
-  document.getElementById('auto-gist-interval-select').addEventListener('change',e=>{db.autoGistInterval=parseInt(e.target.value)||0;debouncedSave();scheduleAutoGistBackup();});
-  document.getElementById('sync-cloud-btn').addEventListener('click',syncCloud);
-  document.getElementById('load-cloud-btn').addEventListener('click',loadCloud);
-  document.getElementById('gist-history-btn').addEventListener('click',openGistHistory);
-  document.getElementById('gist-history-close-btn').addEventListener('click',closeGistHistory);
   document.getElementById('open-trash-btn').addEventListener('click',openTrash);
   document.getElementById('trash-close-btn').addEventListener('click',closeTrash);
   document.getElementById('reading-mode-btn').addEventListener('click',enterReadingMode);
@@ -239,8 +213,6 @@ function wireAppEventListenersOnce(){
   document.getElementById('tts-rate').addEventListener('input',e=>{document.getElementById('tts-rate-val').textContent=parseFloat(e.target.value).toFixed(1)+'×';});
   initTTS(); initDictation();
 
-  document.getElementById('gh-token').addEventListener('input',e=>{_cloudToken=e.target.value;});
-  document.getElementById('gist-id').addEventListener('input',e=>{db.gistId=e.target.value;debouncedSave();});
   document.getElementById('writer').addEventListener('input',liveCounter);
   document.getElementById('chapter-title').addEventListener('blur',e=>updateTitle(e.target.innerText.trim()));
   document.getElementById('tension-slider').addEventListener('input',e=>updateTension(e.target.value));
@@ -360,6 +332,20 @@ function initToolbarDropdowns(){
     closeAllChapterMenus();
   });
 }
+
+// ═══════════════════════════════════════════════════════
+// SAUVEGARDE AUTO À LA PERTE DE FOCUS (nouveau v7.13.0, Lot 10)
+// Alternative fiable à un dialogue "sauvegarder avant de fermer" : les
+// navigateurs n'autorisent plus de texte personnalisé sur ce dialogue, et ne
+// garantissent pas qu'une requête réseau ait le temps de se terminer avant
+// la fermeture réelle de l'onglet. Ici, la page reste vivante assez
+// longtemps après avoir perdu le focus pour que l'envoi se termine.
+// ═══════════════════════════════════════════════════════
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && typeof syncAllLibraryManuscripts === 'function') {
+    syncAllLibraryManuscripts('focus-loss');
+  }
+});
 
 // ═══════════════════════════════════════════════════════
 // BOOTSTRAP — v7.0.0 : passe par le système de profils (voir profiles.js)
