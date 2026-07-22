@@ -194,6 +194,15 @@ function wireLibraryStaticUI() {
   document.getElementById('library-system-btn').addEventListener('click', () => openLibrarySystemPanel());
   document.getElementById('library-system-close-btn').addEventListener('click', closeLibrarySystemPanel);
   document.getElementById('lib-gh-token').addEventListener('change', e => { _cloudToken = e.target.value.trim(); saveLibSettings(); scheduleLibraryAutoBackup(); });
+  document.getElementById('lib-verify-token-btn').addEventListener('click', async () => {
+    _cloudToken = document.getElementById('lib-gh-token').value.trim();
+    const statusEl = document.getElementById('lib-token-status');
+    if (!_cloudToken) { statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Colle un token d\'abord.'; return; }
+    statusEl.style.color = 'var(--text-muted)'; statusEl.textContent = '⏳ Vérification…';
+    const ok = await libVerifyToken();
+    if (ok) { statusEl.style.color = 'var(--success)'; statusEl.textContent = `✅ Token valide (connecté en tant que @${ok}).`; saveLibSettings(); }
+    else { statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Token invalide ou refusé par GitHub.'; }
+  });
   document.getElementById('lib-auto-gist-interval').addEventListener('change', e => { _libSettings.autoGistInterval = parseInt(e.target.value)||0; saveLibSettings(); scheduleLibraryAutoBackup(); });
   document.getElementById('lib-system-doc-select').addEventListener('change', e => refreshLibSystemDocStatus(e.target.value));
   document.getElementById('lib-export-btn').addEventListener('click', libExportCurrent);
@@ -470,6 +479,20 @@ async function saveLibSettings() {
   const payload = { autoGistInterval: _libSettings.autoGistInterval };
   if (_cloudToken) payload.token = { _enc:true, data: await Crypto.encrypt(_cloudToken, _dataKey) };
   await persistData(libSettingsKey(_currentProfileId), payload);
+}
+
+// Vérifie le token GitHub auprès de l'API (endpoint /user, en lecture
+// seule) — nouveau v7.14.0, suite à un retour utilisateur : aucun moyen de
+// confirmer qu'un token collé est valide avant de tenter une vraie
+// sauvegarde. Retourne le login GitHub si valide, sinon null.
+async function libVerifyToken() {
+  if (!_cloudToken) return null;
+  try {
+    const resp = await fetch('https://api.github.com/user', { headers: { 'Authorization': `token ${_cloudToken}` } });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data.login || 'compte GitHub';
+  } catch(e) { return null; }
 }
 
 // ═══════════════════════════════════════════════════════
