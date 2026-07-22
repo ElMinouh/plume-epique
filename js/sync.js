@@ -25,15 +25,35 @@ async function exportDocx(chapters, title) {
 function escapeXml(s) {
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+// Correction v7.16.2 (bug remonté par l'utilisateur sur l'export ODT,
+// "parseXml: unclosed elements: <div>") : l'ancienne version retirait
+// l'enveloppe <div> ajoutée pour l'analyse via un regex fragile
+// (`.replace(/^<div>|<\/div>$/g, '')`) qui suppose que la balise ouvrante
+// sérialisée est EXACTEMENT `<div>`, sans aucun attribut. Or `XMLSerializer`
+// ajoute légitimement un attribut `xmlns="http://www.w3.org/1999/xhtml"`
+// sur l'élément servant de racine à une sérialisation isolée (comportement
+// standard, pas un bug de navigateur) — la balise ouvrante réelle devient
+// donc `<div xmlns="...">`, que le regex ne reconnaît plus. Résultat : la
+// balise ouvrante restait dans la sortie, désormais SANS fermeture (celle-ci
+// avait bien été retirée par la partie `<\/div>$` du même regex) → analyseur
+// XML strict d'odf-kit en échec dès le premier chapitre.
+// Correctif : sérialiser chaque enfant de l'enveloppe individuellement (au
+// lieu de sérialiser l'enveloppe elle-même puis tenter de la retirer par
+// texte) — l'enveloppe n'est alors jamais sérialisée, donc jamais présente
+// dans la sortie, quels que soient les attributs qu'un sérialiseur pourrait
+// lui ajouter. Un `xmlns` peut apparaître sur les éléments de premier niveau
+// du fragment obtenu (inoffensif : odf-kit l'ignore, comme tout attribut
+// qu'il ne reconnaît pas).
 function toXhtmlSafe(html) {
   const clean = DOMPurify.sanitize(html || '<p></p>');
   const doc = new DOMParser().parseFromString(`<div>${clean}</div>`, 'text/html');
-  const div = doc.body.firstChild;
-  return new XMLSerializer().serializeToString(div).replace(/^<div>|<\/div>$/g, '');
+  const wrapper = doc.body.firstChild;
+  const serializer = new XMLSerializer();
+  return Array.from(wrapper.childNodes).map(node => serializer.serializeToString(node)).join('');
 }
 async function exportEpub(chapters, title) {
   if (typeof JSZip === 'undefined') { toast('Bibliothèque EPUB non chargée (vérifiez la connexion).', 'error'); return; }
-  if (!chapters || !chapters.length) { toast('Aucun chapitre sélectionné.','error'); return; }
+  if (!chapters || !chapters.length) { toast('Aucun chapitre sélectionné.', 'error'); return; }
 
   const zip = new JSZip();
   zip.file('mimetype', 'application/epub+zip', { compression:'STORE' });
@@ -95,8 +115,12 @@ async function exportEpub(chapters, title) {
   toast('Export EPUB généré', 'success');
 }
 
-// Export ODT (nouveau v7.13.0, Lot 10) — via odf-kit (chargé en ESM, voir le
-// petit script module dans index.html qui expose window.odfKit).
+// Export ODT (nouveau v7.13.0, Lot 10) — via odf-kit (chargé en ESM, voir
+// js/odf-loader.js). NB : le HTML final envoyé à htmlToOdt() est une suite
+// de <h1>/<h2>/contenu SANS balise racine commune — c'est volontaire et
+// correct : parseHtml() (dans odf-kit) enveloppe systématiquement l'entrée
+// dans SA PROPRE balise avant analyse, donc chaque chapitre est bien
+// conservé (vérifié dans le code source d'odf-kit avant ce correctif).
 async function exportOdt(chapters, title) {
   if (!window.odfKit || !window.odfKit.htmlToOdt) { toast('Bibliothèque ODT non chargée (vérifiez la connexion).', 'error'); return; }
   if (!chapters || !chapters.length) { toast('Aucun chapitre sélectionné.','error'); return; }

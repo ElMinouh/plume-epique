@@ -170,6 +170,22 @@ Chaque mise à jour doit :
 
 Les versions ci-dessous sont classées de la plus récente à la plus ancienne.
 
+### v7.16.2
+
+- **Troisième et dernier correctif sur l'export ODT** (après la v7.16.0 et la v7.16.1),
+  cette fois dans `toXhtmlSafe()` (`sync.js`), fonction partagée par l'export ODT et
+  l'export EPUB. Bug reproduit et confirmé de façon isolée (avec génération réelle d'un
+  fichier `.odt`, relu ensuite par `odf-kit` lui-même pour valider le contenu) : la fonction
+  retirait l'enveloppe technique `<div>` ajoutée pour l'analyse via un simple remplacement de
+  texte (`.replace(/^<div>|<\/div>$/g, '')`), qui suppose que la balise ouvrante sérialisée
+  est exactement `<div>` sans attribut. Or `XMLSerializer` ajoute légitimement un attribut
+  `xmlns="..."` sur l'élément racine d'une sérialisation isolée (comportement standard des
+  navigateurs, pas un bug) : la balise ouvrante réelle devenait `<div xmlns="...">`, que le
+  remplacement de texte ne reconnaissait plus. Elle restait donc dans la sortie sans être
+  refermée, ce qui faisait échouer l'analyseur XML strict d'`odf-kit` dès le premier chapitre
+  (message `parseXml: unclosed elements: <div>`). Corrigé en sérialisant chaque élément de
+  contenu individuellement plutôt que l'enveloppe entière.
+
 ### v7.16.1
 
 - **Second correctif sur l'export/import ODT**, révélé une fois le blocage CSP de la
