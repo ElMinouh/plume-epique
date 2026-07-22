@@ -32,82 +32,82 @@
 <div id="library-screen">
   <div id="library-topbar">
     <span id="library-profile-name"></span>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;">
-      <button class="action-btn btn-sm" style="background:#7f8c8d;" id="library-home-btn" title="Retourner à l'écran de connexion">🏠 Accueil</button>
+    <div class="u-d-flex u-gap-6px u-fw-wrap">
+      <button class="action-btn btn-sm u-bg-h7f8c8d" id="library-home-btn" title="Retourner à l'écran de connexion">🏠 Accueil</button>
       <button class="action-btn btn-sm" id="library-my-profile-btn" title="Modifier votre nom, mot de passe ou question de sécurité">👤 Mon profil</button>
-      <button class="action-btn btn-sm" style="background:#8e44ad;" id="library-manage-profiles-btn" title="Ajouter, renommer ou supprimer des profils (administrateur)">🛡️ Gérer les profils</button>
-      <button class="action-btn btn-sm" style="background:#2980b9;" id="library-system-btn" title="Sauvegardes, export/import et Gist pour toute la bibliothèque">💾 Système</button>
-      <button class="action-btn btn-sm" style="background:#7f8c8d;" id="library-logout-btn" title="Fermer votre session">🚪 Déconnexion</button>
+      <button class="action-btn btn-sm u-bg-h8e44ad" id="library-manage-profiles-btn" title="Ajouter, renommer ou supprimer des profils (administrateur)">🛡️ Gérer les profils</button>
+      <button class="action-btn btn-sm u-bg-h2980b9" id="library-system-btn" title="Sauvegardes, export/import et Gist pour toute la bibliothèque">💾 Système</button>
+      <button class="action-btn btn-sm u-bg-h7f8c8d" id="library-logout-btn" title="Fermer votre session">🚪 Déconnexion</button>
     </div>
   </div>
-  <h2 style="margin:18px 0 2px;">📚 Ma bibliothèque</h2>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 6px;">
-    <p id="library-count" style="font-size:.78rem;color:var(--text-muted);margin:0;"></p>
-    <div class="ch-view-toggle" style="width:170px;" role="group" aria-label="Vue de la bibliothèque">
+  <h2 class="u-m-18px-0-2px">📚 Ma bibliothèque</h2>
+  <div class="u-d-flex u-jc-space-between u-ai-center u-m-0-0-6px">
+    <p class="u-fs-_78rem u-c-v-text-muted u-m-0" id="library-count"></p>
+    <div class="ch-view-toggle u-w-170px" role="group" aria-label="Vue de la bibliothèque">
       <button class="mode-indicator active" id="view-grid-btn" title="Vue grille">🔲 Grille</button>
       <button class="mode-indicator" id="view-shelf-btn" title="Vue en étagère">📚 Étagère</button>
     </div>
   </div>
   <div id="library-grid"></div>
-  <div id="library-shelf" style="display:none;"></div>
+  <div class="u-d-none" id="library-shelf"></div>
 </div>
 
 <!-- PANNEAU SYSTÈME (nouveau v7.13.0, Lot 10) — sauvegardes/export/import
      désormais pour toute la bibliothèque, plus seulement un manuscrit.
      Remplace l'ancien onglet "📦 Backup" de l'éditeur (retiré). -->
 <div id="library-system-overlay" role="dialog" aria-modal="true" aria-label="Système et sauvegardes">
-  <div style="background:var(--glass);border-radius:16px;padding:20px;width:min(480px,92vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:14px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
+  <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-480px-92vw u-maxh-85vh u-ovy-auto u-d-flex u-fd-column u-gap-14px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+    <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>💾 Système & Sauvegardes</strong>
       <button class="action-btn btn-sm" id="library-system-close-btn" title="Fermer cette fenêtre">✕</button>
     </div>
 
-    <div style="background:rgba(0,0,0,.05);padding:12px;border-radius:10px;border:1px dashed var(--border);">
-      <strong style="font-size:.8rem;">☁️ GitHub (compte) — un seul token pour tout le compte</strong><br>
-      <div style="display:flex;gap:6px;margin-top:6px;">
-        <input type="password" id="lib-gh-token" class="field" placeholder="Token GitHub" style="flex:1;" title="Mémorisé automatiquement (chiffré)">
-        <button class="action-btn btn-sm" style="background:#16a085;flex-shrink:0;" id="lib-verify-token-btn" title="Vérifier que ce token est valide auprès de GitHub">✅ Vérifier</button>
+    <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
+      <strong class="u-fs-_8rem">☁️ GitHub (compte) — un seul token pour tout le compte</strong><br>
+      <div class="u-d-flex u-gap-6px u-mt-6px">
+        <input type="password" id="lib-gh-token" class="field u-flex-1" placeholder="Token GitHub" title="Mémorisé automatiquement (chiffré)">
+        <button class="action-btn btn-sm u-bg-h16a085 u-fsh-0" id="lib-verify-token-btn" title="Vérifier que ce token est valide auprès de GitHub">✅ Vérifier</button>
       </div>
-      <p id="lib-token-status" style="font-size:.72rem;margin:6px 0 0;" aria-live="polite"></p>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:.75rem;flex-wrap:wrap;">
+      <p class="u-fs-_72rem u-m-6px-0-0" id="lib-token-status" aria-live="polite"></p>
+      <div class="u-d-flex u-ai-center u-gap-8px u-mt-8px u-fs-_75rem u-fw-wrap">
         Sauvegarde auto (toute la bibliothèque) :
-        <select id="lib-auto-gist-interval" class="field" style="width:auto;" title="Fréquence de la sauvegarde Gist automatique de toute la bibliothèque">
+        <select id="lib-auto-gist-interval" class="field u-w-auto" title="Fréquence de la sauvegarde Gist automatique de toute la bibliothèque">
           <option value="0">Désactivée</option>
           <option value="15">Toutes les 15 min</option>
           <option value="30">Toutes les 30 min</option>
           <option value="60">Toutes les 60 min</option>
         </select>
       </div>
-      <p style="font-size:.68rem;color:var(--text-muted);margin:6px 0 0;">Se déclenche aussi au changement de manuscrit, au retour à la bibliothèque, et quand l'onglet perd le focus.</p>
-      <p id="lib-cloud-status" style="font-size:.72rem;color:var(--accent);margin:6px 0 0;" aria-live="polite"></p>
+      <p class="u-fs-_68rem u-c-v-text-muted u-m-6px-0-0">Se déclenche aussi au changement de manuscrit, au retour à la bibliothèque, et quand l'onglet perd le focus.</p>
+      <p class="u-fs-_72rem u-c-v-accent u-m-6px-0-0" id="lib-cloud-status" aria-live="polite"></p>
     </div>
 
-    <div style="background:rgba(0,0,0,.05);padding:12px;border-radius:10px;border:1px dashed var(--border);">
-      <strong style="font-size:.8rem;">📖 Manuscrit sélectionné</strong><br>
-      <select id="lib-system-doc-select" class="field" style="width:100%;margin-top:6px;"></select>
+    <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
+      <strong class="u-fs-_8rem">📖 Manuscrit sélectionné</strong><br>
+      <select id="lib-system-doc-select" class="field u-w-100pc u-mt-6px"></select>
 
-      <p style="font-size:.68rem;color:var(--text-muted);margin:10px 0 4px;">Gist de ce manuscrit :</p>
-      <div class="export-row" style="justify-content:flex-start;">
-        <button class="action-btn btn-sm" style="background:#2980b9;" id="lib-sync-cloud-btn" title="Envoyer une sauvegarde chiffrée de ce manuscrit vers GitHub">🔄 Sauver</button>
-        <button class="action-btn btn-sm" style="background:#34495e;" id="lib-load-cloud-btn" title="Récupérer la dernière sauvegarde Gist de ce manuscrit">📥 Charger</button>
-        <button class="action-btn btn-sm" style="background:#16a085;" id="lib-gist-history-btn" title="Voir les anciennes versions sauvegardées de ce manuscrit">🕐 Historique</button>
+      <p class="u-fs-_68rem u-c-v-text-muted u-m-10px-0-4px">Gist de ce manuscrit :</p>
+      <div class="export-row u-jc-flex-start">
+        <button class="action-btn btn-sm u-bg-h2980b9" id="lib-sync-cloud-btn" title="Envoyer une sauvegarde chiffrée de ce manuscrit vers GitHub">🔄 Sauver</button>
+        <button class="action-btn btn-sm u-bg-h34495e" id="lib-load-cloud-btn" title="Récupérer la dernière sauvegarde Gist de ce manuscrit">📥 Charger</button>
+        <button class="action-btn btn-sm u-bg-h16a085" id="lib-gist-history-btn" title="Voir les anciennes versions sauvegardées de ce manuscrit">🕐 Historique</button>
       </div>
-      <p id="lib-doc-gist-status" style="font-size:.68rem;color:var(--text-muted);margin:6px 0 0;"></p>
+      <p class="u-fs-_68rem u-c-v-text-muted u-m-6px-0-0" id="lib-doc-gist-status"></p>
 
-      <p style="font-size:.68rem;color:var(--text-muted);margin:10px 0 4px;">Fichiers :</p>
-      <div class="export-row" style="justify-content:flex-start;">
-        <button class="action-btn btn-sm" style="background:#2980b9;" id="lib-export-btn" title="Exporter ce manuscrit (choix du format ensuite)">📤 Exporter</button>
-        <button class="action-btn btn-sm" style="background:#d35400;" id="lib-import-doc-trigger-btn" title="Importer un fichier Word (.docx) ou OpenDocument (.odt)">📥 Importer (DOCX/ODT)</button>
-        <input type="file" id="lib-import-doc-file" style="display:none" accept=".docx,.odt">
+      <p class="u-fs-_68rem u-c-v-text-muted u-m-10px-0-4px">Fichiers :</p>
+      <div class="export-row u-jc-flex-start">
+        <button class="action-btn btn-sm u-bg-h2980b9" id="lib-export-btn" title="Exporter ce manuscrit (choix du format ensuite)">📤 Exporter</button>
+        <button class="action-btn btn-sm u-bg-hd35400" id="lib-import-doc-trigger-btn" title="Importer un fichier Word (.docx) ou OpenDocument (.odt)">📥 Importer (DOCX/ODT)</button>
+        <input class="u-d-none" type="file" id="lib-import-doc-file" accept=".docx,.odt">
       </div>
     </div>
 
-    <div style="background:rgba(0,0,0,.05);padding:12px;border-radius:10px;border:1px dashed var(--border);">
-      <strong style="font-size:.8rem;">📚 Bibliothèque entière</strong><br>
-      <div class="export-row" style="justify-content:flex-start;margin-top:8px;">
-        <button class="action-btn btn-sm" style="background:#27ae60;" id="lib-export-json-btn" title="Télécharger tous les manuscrits dans un seul fichier de sauvegarde">💾 Export JSON (tout)</button>
-        <button class="action-btn btn-sm" style="background:#e67e22;" id="lib-import-json-trigger-btn" title="Charger un fichier de sauvegarde JSON (ajoute les manuscrits sans écraser l'existant)">📥 Import JSON (tout)</button>
-        <input type="file" id="lib-import-json-file" style="display:none" accept=".json">
+    <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
+      <strong class="u-fs-_8rem">📚 Bibliothèque entière</strong><br>
+      <div class="export-row u-jc-flex-start u-mt-8px">
+        <button class="action-btn btn-sm u-bg-h27ae60" id="lib-export-json-btn" title="Télécharger tous les manuscrits dans un seul fichier de sauvegarde">💾 Export JSON (tout)</button>
+        <button class="action-btn btn-sm u-bg-he67e22" id="lib-import-json-trigger-btn" title="Charger un fichier de sauvegarde JSON (ajoute les manuscrits sans écraser l'existant)">📥 Import JSON (tout)</button>
+        <input class="u-d-none" type="file" id="lib-import-json-file" accept=".json">
       </div>
     </div>
   </div>
@@ -115,8 +115,8 @@
 
 <!-- IMPORT MANUSCRIT (DOCX/ODT) OVERLAY (v7.12.0, généralisé v7.13.0, Lot 10) -->
 <div id="docx-import-overlay" role="dialog" aria-modal="true" aria-label="Importer un document">
-  <div style="background:var(--glass);border-radius:16px;padding:20px;width:min(420px,92vw);max-height:80vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
+  <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-420px-92vw u-maxh-80vh u-d-flex u-fd-column u-gap-12px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+    <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>📥 Importer « <span id="docx-import-filename"></span> »</strong>
       <button class="action-btn btn-sm" id="docx-import-close-btn" title="Annuler l'import">✕</button>
     </div>
@@ -125,52 +125,52 @@
       <button class="mode-indicator" id="docx-mode-existing-btn" title="Ajouter comme chapitre à un manuscrit déjà existant">📑 Chapitre existant</button>
     </div>
     <div id="docx-new-fields">
-      <label style="font-size:.75rem;color:var(--text-muted);">Titre du nouveau manuscrit</label>
-      <input type="text" id="docx-new-title" class="field" style="width:100%;margin-top:4px;">
+      <label class="u-fs-_75rem u-c-v-text-muted">Titre du nouveau manuscrit</label>
+      <input type="text" id="docx-new-title" class="field u-w-100pc u-mt-4px">
     </div>
-    <div id="docx-existing-fields" style="display:none;">
-      <label style="font-size:.75rem;color:var(--text-muted);">Manuscrit de destination</label>
-      <select id="docx-existing-select" class="field" style="width:100%;margin-top:4px;"></select>
+    <div class="u-d-none" id="docx-existing-fields">
+      <label class="u-fs-_75rem u-c-v-text-muted">Manuscrit de destination</label>
+      <select id="docx-existing-select" class="field u-w-100pc u-mt-4px"></select>
     </div>
-    <button class="action-btn" style="background:#27ae60;" id="docx-import-confirm-btn">Importer</button>
+    <button class="action-btn u-bg-h27ae60" id="docx-import-confirm-btn">Importer</button>
   </div>
 </div>
 
 <!-- OVERLAY : Mon profil -->
 <div id="my-profile-overlay" role="dialog" aria-modal="true" aria-label="Mon profil">
-  <div style="background:var(--glass);border-radius:16px;padding:22px;width:min(420px,92vw);max-height:82vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
+  <div class="u-bg-v-glass u-br-16px u-p-22px u-w-min-420px-92vw u-maxh-82vh u-ovy-auto u-d-flex u-fd-column u-gap-12px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+    <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>👤 Mon profil</strong>
       <button class="action-btn btn-sm" id="my-profile-close-btn" title="Fermer cette fenêtre">✕</button>
     </div>
-    <label style="font-size:12px;color:var(--text-muted);">Nom du profil</label>
-    <div style="display:flex;gap:6px;">
-      <input id="mp-my-name" class="field" style="flex:1;">
+    <label class="u-fs-12px u-c-v-text-muted">Nom du profil</label>
+    <div class="u-d-flex u-gap-6px">
+      <input id="mp-my-name" class="field u-flex-1">
       <button class="action-btn btn-sm" id="mp-save-name-btn" title="Enregistrer le nouveau nom">Enregistrer</button>
     </div>
-    <hr style="border-color:var(--border);margin:6px 0;">
-    <strong style="font-size:.85rem;">🔑 Changer le mot de passe</strong>
+    <hr class="u-bdc-v-border u-m-6px-0">
+    <strong class="u-fs-_85rem">🔑 Changer le mot de passe</strong>
     <input id="mp-old-pwd" type="password" class="field" placeholder="Mot de passe actuel" autocomplete="current-password">
     <input id="mp-new-pwd" type="password" class="field" placeholder="Nouveau mot de passe" autocomplete="new-password">
     <input id="mp-new-pwd2" type="password" class="field" placeholder="Confirmer le nouveau mot de passe" autocomplete="new-password">
-    <button class="action-btn btn-sm" style="background:#8e44ad;align-self:flex-start;" id="mp-save-pwd-btn" title="Enregistrer le nouveau mot de passe">Modifier le mot de passe</button>
-    <hr style="border-color:var(--border);margin:6px 0;">
-    <strong style="font-size:.85rem;">❔ Question de sécurité</strong>
+    <button class="action-btn btn-sm u-bg-h8e44ad u-as-flex-start" id="mp-save-pwd-btn" title="Enregistrer le nouveau mot de passe">Modifier le mot de passe</button>
+    <hr class="u-bdc-v-border u-m-6px-0">
+    <strong class="u-fs-_85rem">❔ Question de sécurité</strong>
     <select id="mp-my-question" class="field"></select>
     <input id="mp-my-answer" class="field" placeholder="Nouvelle réponse">
-    <button class="action-btn btn-sm" style="align-self:flex-start;" id="mp-save-question-btn" title="Utile pour récupérer votre compte en cas de mot de passe oublié">Mettre à jour la question</button>
+    <button class="action-btn btn-sm u-as-flex-start" id="mp-save-question-btn" title="Utile pour récupérer votre compte en cas de mot de passe oublié">Mettre à jour la question</button>
   </div>
 </div>
 
 <!-- OVERLAY : Gestion des profils (admin) -->
 <div id="manage-profiles-overlay" role="dialog" aria-modal="true" aria-label="Gestion des profils">
-  <div style="background:var(--glass);border-radius:16px;padding:22px;width:min(480px,92vw);max-height:80vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
+  <div class="u-bg-v-glass u-br-16px u-p-22px u-w-min-480px-92vw u-maxh-80vh u-d-flex u-fd-column u-gap-12px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+    <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>🛡️ Gestion des profils</strong>
       <button class="action-btn btn-sm" id="manage-profiles-close-btn" title="Fermer cette fenêtre">✕</button>
     </div>
-    <div id="manage-profiles-list" style="overflow-y:auto;flex-grow:1;display:flex;flex-direction:column;gap:8px;"></div>
-    <button class="action-btn" style="background:#8e44ad;align-self:flex-start;" id="manage-add-profile-btn" title="Créer un nouveau profil pour une autre personne">➕ Ajouter un profil</button>
+    <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-8px" id="manage-profiles-list"></div>
+    <button class="action-btn u-bg-h8e44ad u-as-flex-start" id="manage-add-profile-btn" title="Créer un nouveau profil pour une autre personne">➕ Ajouter un profil</button>
   </div>
 </div>
 
@@ -186,18 +186,18 @@
 <!-- HISTORY OVERLAY -->
 <div id="history-overlay" role="dialog" aria-modal="true" aria-label="Historique des versions">
   <div id="history-box">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
+    <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>🕐 Historique du chapitre : <span id="history-chapter-name"></span></strong>
       <button class="action-btn btn-sm" id="history-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
     </div>
-    <div style="display:flex;gap:10px;flex-grow:1;overflow:hidden;min-height:0;">
-      <div style="width:220px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;">
-        <strong style="font-size:.78rem;">Snapshots</strong>
+    <div class="u-d-flex u-gap-10px u-fg-1 u-ov-hidden u-minh-0">
+      <div class="u-w-220px u-fsh-0 u-d-flex u-fd-column u-gap-6px">
+        <strong class="u-fs-_78rem">Snapshots</strong>
         <div id="history-list"></div>
-        <button class="action-btn btn-sm" style="background:var(--danger);" id="history-restore-btn" disabled title="Remplacer le contenu actuel par cette ancienne version">↩ Restaurer cette version</button>
+        <button class="action-btn btn-sm u-bg-v-danger" id="history-restore-btn" disabled title="Remplacer le contenu actuel par cette ancienne version">↩ Restaurer cette version</button>
       </div>
-      <div style="flex-grow:1;display:flex;flex-direction:column;gap:6px;min-width:0;">
-        <strong style="font-size:.78rem;">Aperçu / Diff</strong>
+      <div class="u-fg-1 u-d-flex u-fd-column u-gap-6px u-minw-0">
+        <strong class="u-fs-_78rem">Aperçu / Diff</strong>
         <div id="history-diff">Sélectionnez un snapshot…</div>
       </div>
     </div>
@@ -206,20 +206,20 @@
 
 <!-- TRASH OVERLAY (nouveau v6.2.0) -->
 <div id="trash-overlay" role="dialog" aria-modal="true" aria-label="Corbeille">
-  <div style="background:var(--glass);border-radius:16px;padding:20px;width:min(500px,92vw);max-height:70vh;display:flex;flex-direction:column;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
+  <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-500px-92vw u-maxh-70vh u-d-flex u-fd-column u-gap-10px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+    <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>🗑️ Corbeille (chapitres supprimés)</strong>
       <button class="action-btn btn-sm" id="trash-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
     </div>
-    <div style="font-size:.7rem;color:var(--text-muted);">Les chapitres supprimés restent ici 30 jours avant suppression définitive automatique.</div>
-    <div id="trash-list" style="overflow-y:auto;flex-grow:1;display:flex;flex-direction:column;gap:6px;"></div>
+    <div class="u-fs-_7rem u-c-v-text-muted">Les chapitres supprimés restent ici 30 jours avant suppression définitive automatique.</div>
+    <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-6px" id="trash-list"></div>
   </div>
 </div>
 
 <!-- AIDE-MÉMOIRE DES RACCOURCIS CLAVIER (nouveau v7.5.0) -->
 <div id="shortcuts-overlay" role="dialog" aria-modal="true" aria-label="Raccourcis clavier">
-  <div style="background:var(--glass);border-radius:16px;padding:20px;width:min(420px,92vw);max-height:75vh;overflow-y:auto;display:flex;flex-direction:column;gap:4px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+  <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-420px-92vw u-maxh-75vh u-ovy-auto u-d-flex u-fd-column u-gap-4px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+    <div class="u-d-flex u-jc-space-between u-ai-center u-mb-6px">
       <strong>⌨️ Raccourcis clavier</strong>
       <button class="action-btn btn-sm" id="shortcuts-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
     </div>
@@ -238,31 +238,31 @@
 
 <!-- EXPORT SELECT OVERLAY (nouveau v6.2.0) -->
 <div id="export-select-overlay" role="dialog" aria-modal="true" aria-label="Sélection des chapitres à exporter">
-  <div style="background:var(--glass);border-radius:16px;padding:20px;width:min(420px,92vw);max-height:75vh;display:flex;flex-direction:column;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
+  <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-420px-92vw u-maxh-75vh u-d-flex u-fd-column u-gap-10px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+    <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>Chapitres à exporter</strong>
       <button class="action-btn btn-sm" id="export-select-close-btn" title="Fermer cette fenêtre">✕</button>
     </div>
-    <button class="action-btn btn-sm" style="background:#7f8c8d;align-self:flex-start;" id="export-select-toggle-btn" title="Cocher ou décocher tous les chapitres d'un coup">Tout (dé)sélectionner</button>
-    <div id="export-select-list" style="overflow-y:auto;flex-grow:1;display:flex;flex-direction:column;gap:4px;"></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;">
-      <button class="action-btn" style="background:#2980b9;flex:1;" id="export-select-docx-btn" title="Télécharger les chapitres sélectionnés au format Word">📄 DOCX</button>
-      <button class="action-btn" style="background:#7d5ba6;flex:1;" id="export-select-odt-btn" title="Télécharger les chapitres sélectionnés au format OpenDocument">📃 ODT</button>
-      <button class="action-btn" style="background:#c0392b;flex:1;" id="export-select-pdf-btn" title="Télécharger les chapitres sélectionnés au format PDF">📕 PDF</button>
-      <button class="action-btn" style="background:#9b59b6;flex:1;" id="export-select-epub-btn" title="Télécharger les chapitres sélectionnés au format livre numérique">📚 EPUB</button>
+    <button class="action-btn btn-sm u-bg-h7f8c8d u-as-flex-start" id="export-select-toggle-btn" title="Cocher ou décocher tous les chapitres d'un coup">Tout (dé)sélectionner</button>
+    <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-4px" id="export-select-list"></div>
+    <div class="u-d-flex u-gap-6px u-fw-wrap">
+      <button class="action-btn u-bg-h2980b9 u-flex-1" id="export-select-docx-btn" title="Télécharger les chapitres sélectionnés au format Word">📄 DOCX</button>
+      <button class="action-btn u-bg-h7d5ba6 u-flex-1" id="export-select-odt-btn" title="Télécharger les chapitres sélectionnés au format OpenDocument">📃 ODT</button>
+      <button class="action-btn u-bg-hc0392b u-flex-1" id="export-select-pdf-btn" title="Télécharger les chapitres sélectionnés au format PDF">📕 PDF</button>
+      <button class="action-btn u-bg-h9b59b6 u-flex-1" id="export-select-epub-btn" title="Télécharger les chapitres sélectionnés au format livre numérique">📚 EPUB</button>
     </div>
   </div>
 </div>
 
 <!-- GIST HISTORY OVERLAY (nouveau v6.1.0) -->
 <div id="gist-history-overlay" role="dialog" aria-modal="true" aria-label="Historique Gist">
-  <div style="background:var(--glass);border-radius:16px;padding:20px;width:min(500px,92vw);max-height:70vh;display:flex;flex-direction:column;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
+  <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-500px-92vw u-maxh-70vh u-d-flex u-fd-column u-gap-10px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+    <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>🕐 Historique du Gist</strong>
       <button class="action-btn btn-sm" id="gist-history-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
     </div>
-    <div style="font-size:.7rem;color:var(--text-muted);">Cliquez sur une révision pour la charger (remplace le projet actuel).</div>
-    <div id="gist-history-list" style="overflow-y:auto;flex-grow:1;display:flex;flex-direction:column;gap:6px;"></div>
+    <div class="u-fs-_7rem u-c-v-text-muted">Cliquez sur une révision pour la charger (remplace le projet actuel).</div>
+    <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-6px" id="gist-history-list"></div>
   </div>
 </div>
 
@@ -271,45 +271,45 @@
 
 <!-- TTS/DICTÉE PANEL -->
 <div id="tts-panel" role="dialog" aria-label="Dictée et lecture vocale">
-  <div style="display:flex;justify-content:space-between;align-items:center;">
-    <strong style="font-size:.82rem;">🎙️ Voix</strong>
-    <button id="tts-close-btn" style="background:none;border:none;cursor:pointer;color:inherit;font-size:1.1rem;" title="Fermer">×</button>
+  <div class="u-d-flex u-jc-space-between u-ai-center">
+    <strong class="u-fs-_82rem">🎙️ Voix</strong>
+    <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="tts-close-btn" title="Fermer">×</button>
   </div>
-  <div style="font-size:.75rem;color:var(--text-muted);">Lecture à voix haute</div>
+  <div class="u-fs-_75rem u-c-v-text-muted">Lecture à voix haute</div>
   <div class="tts-row">
-    <button class="voice-btn" id="tts-play-btn" style="background:var(--success);color:#fff;" aria-label="Lire" title="Lire le chapitre à voix haute">▶</button>
-    <button class="voice-btn" id="tts-pause-btn" style="background:var(--warn);color:#fff;" aria-label="Pause" title="Mettre la lecture en pause">⏸</button>
-    <button class="voice-btn" id="tts-stop-btn" style="background:var(--danger);color:#fff;" aria-label="Arrêter" title="Arrêter la lecture">⏹</button>
-    <div style="flex-grow:1;">
-      <select id="tts-voice-sel" class="field" style="font-size:.7rem;padding:4px;" aria-label="Voix"></select>
+    <button class="voice-btn u-bg-v-success u-c-hfff" id="tts-play-btn" aria-label="Lire" title="Lire le chapitre à voix haute">▶</button>
+    <button class="voice-btn u-bg-v-warn u-c-hfff" id="tts-pause-btn" aria-label="Pause" title="Mettre la lecture en pause">⏸</button>
+    <button class="voice-btn u-bg-v-danger u-c-hfff" id="tts-stop-btn" aria-label="Arrêter" title="Arrêter la lecture">⏹</button>
+    <div class="u-fg-1">
+      <select id="tts-voice-sel" class="field u-fs-_7rem u-p-4px" aria-label="Voix"></select>
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:6px;font-size:.72rem;">
-    Vitesse : <input type="range" id="tts-rate" min="0.5" max="2" step="0.1" value="1" style="flex-grow:1;" aria-label="Vitesse de lecture">
+  <div class="u-d-flex u-ai-center u-gap-6px u-fs-_72rem">
+    Vitesse : <input class="u-fg-1" type="range" id="tts-rate" min="0.5" max="2" step="0.1" value="1" aria-label="Vitesse de lecture">
     <span id="tts-rate-val">1×</span>
   </div>
   <div id="tts-progress"><div id="tts-progress-bar"></div></div>
-  <hr style="border-color:var(--border);margin:4px 0;">
-  <div style="font-size:.75rem;color:var(--text-muted);">Dictée vocale</div>
+  <hr class="u-bdc-v-border u-m-4px-0">
+  <div class="u-fs-_75rem u-c-v-text-muted">Dictée vocale</div>
   <div class="tts-row">
-    <button class="voice-btn" id="dictate-btn" style="background:var(--accent);color:#fff;" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro">🎤</button>
-    <span id="dictate-status" style="font-size:.72rem;color:var(--text-muted);">Prêt</span>
+    <button class="voice-btn u-bg-v-accent u-c-hfff" id="dictate-btn" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro">🎤</button>
+    <span class="u-fs-_72rem u-c-v-text-muted" id="dictate-status">Prêt</span>
   </div>
-  <div id="dictate-preview" style="font-size:.75rem;color:var(--text-muted);min-height:24px;font-style:italic;"></div>
+  <div class="u-fs-_75rem u-c-v-text-muted u-minh-24px u-fst-italic" id="dictate-preview"></div>
 </div>
 
 <!-- PWA BANNER -->
 <div id="pwa-banner">
   <span>📱 Installer Plume Épique comme application ?</span>
   <button class="action-btn btn-sm" id="pwa-install-btn" title="Installer l'application sur cet appareil">Installer</button>
-  <button class="btn-sm" id="pwa-dismiss-btn" style="background:none;border:none;cursor:pointer;color:var(--text-muted);" title="Ne plus afficher ce message">Plus tard</button>
+  <button class="btn-sm u-bg-none u-bd-none u-cur-pointer u-c-v-text-muted" id="pwa-dismiss-btn" title="Ne plus afficher ce message">Plus tard</button>
 </div>
 
 <!-- SW UPDATE BANNER (nouveau v6.0.0) -->
 <div id="sw-update-banner">
   <span>🔄 Nouvelle version disponible.</span>
   <button class="action-btn btn-sm" id="sw-update-btn" title="Charger la nouvelle version de l'application">Mettre à jour</button>
-  <button id="sw-update-dismiss-btn" style="background:none;border:none;cursor:pointer;color:var(--text-muted);" title="Continuer avec la version actuelle">Plus tard</button>
+  <button class="u-bg-none u-bd-none u-cur-pointer u-c-v-text-muted" id="sw-update-dismiss-btn" title="Continuer avec la version actuelle">Plus tard</button>
 </div>
 
 <header role="banner">
@@ -318,17 +318,17 @@
 
   <div id="tab-map" class="tab-content" role="tabpanel">
     <div class="db-grid">
-      <div><strong>Tension narrative</strong><br><small style="opacity:.6;">Curseur dans la sidebar</small></div>
-      <div style="height:280px;"><canvas id="tensionChart"></canvas></div>
+      <div><strong>Tension narrative</strong><br><small class="u-op-_6">Curseur dans la sidebar</small></div>
+      <div class="u-h-280px"><canvas id="tensionChart"></canvas></div>
     </div>
   </div>
 
   <div id="tab-sprint" class="tab-content" role="tabpanel">
-    <div style="text-align:center;padding:20px;">
-      <div style="font-size:3rem;font-weight:700;letter-spacing:2px;" id="sprint-timer" aria-live="polite">25:00</div>
-      <div style="display:flex;gap:8px;justify-content:center;margin:12px 0;">
+    <div class="u-ta-center u-p-20px">
+      <div class="u-fs-3rem u-fwt-700 u-ls-2px" id="sprint-timer" aria-live="polite">25:00</div>
+      <div class="u-d-flex u-gap-8px u-jc-center u-m-12px-0">
         <button class="action-btn" id="sprint-start-btn" title="Démarrer un sprint d'écriture chronométré">▶ Démarrer</button>
-        <button class="action-btn" style="background:#7f8c8d" id="sprint-reset-btn" title="Remettre le chronomètre à zéro">↺ Reset</button>
+        <button class="action-btn u-bg-h7f8c8d" id="sprint-reset-btn" title="Remettre le chronomètre à zéro">↺ Reset</button>
       </div>
       Progression : <strong><span id="sprint-progress" aria-live="polite">0</span></strong> mots
     </div>
@@ -347,9 +347,9 @@
     <div id="tab-chars" class="subtab-content active" role="tabpanel">
       <div class="db-grid">
         <div>
-          <input id="char-filter" class="field" style="margin-bottom:6px;" placeholder="🔍 Filtrer les personnages..." aria-label="Filtrer les personnages" title="Filtrer la liste par nom">
-          <div class="list-box" id="char-list-db" style="height:260px;" role="list"></div>
-          <button class="action-btn" id="add-char-btn" style="width:100%;margin-top:8px;" title="Ajouter un nouveau personnage">+ Personnage</button>
+          <input id="char-filter" class="field u-mb-6px" placeholder="🔍 Filtrer les personnages..." aria-label="Filtrer les personnages" title="Filtrer la liste par nom">
+          <div class="list-box u-h-260px" id="char-list-db" role="list"></div>
+          <button class="action-btn u-w-100pc u-mt-8px" id="add-char-btn" title="Ajouter un nouveau personnage">+ Personnage</button>
         </div>
         <div class="edit-box" id="char-edit">...</div>
       </div>
@@ -358,9 +358,9 @@
     <div id="tab-places" class="subtab-content" role="tabpanel">
       <div class="db-grid">
         <div>
-          <input id="place-filter" class="field" style="margin-bottom:6px;" placeholder="🔍 Filtrer les lieux..." aria-label="Filtrer les lieux" title="Filtrer la liste par nom">
-          <div class="list-box" id="place-list-db" style="height:260px;" role="list"></div>
-          <button class="action-btn" id="add-place-btn" style="width:100%;margin-top:8px;" title="Ajouter un nouveau lieu">+ Lieu</button>
+          <input id="place-filter" class="field u-mb-6px" placeholder="🔍 Filtrer les lieux..." aria-label="Filtrer les lieux" title="Filtrer la liste par nom">
+          <div class="list-box u-h-260px" id="place-list-db" role="list"></div>
+          <button class="action-btn u-w-100pc u-mt-8px" id="add-place-btn" title="Ajouter un nouveau lieu">+ Lieu</button>
         </div>
         <div class="edit-box" id="place-edit">...</div>
       </div>
@@ -369,10 +369,10 @@
     <div id="tab-quests" class="subtab-content" role="tabpanel">
       <div class="db-grid">
         <div>
-          <input id="quest-filter" class="field" style="margin-bottom:6px;" placeholder="🔍 Filtrer les quêtes..." aria-label="Filtrer les quêtes" title="Filtrer la liste par texte">
-          <div id="quest-list" class="list-box" style="height:260px;" role="list"></div>
-          <div style="display:flex;gap:6px;margin-top:8px;">
-            <input id="q-in" class="field" style="flex:1;" placeholder="Nouvelle quête...">
+          <input id="quest-filter" class="field u-mb-6px" placeholder="🔍 Filtrer les quêtes..." aria-label="Filtrer les quêtes" title="Filtrer la liste par texte">
+          <div id="quest-list" class="list-box u-h-260px" role="list"></div>
+          <div class="u-d-flex u-gap-6px u-mt-8px">
+            <input id="q-in" class="field u-flex-1" placeholder="Nouvelle quête...">
             <button class="action-btn" id="add-quest-btn" title="Ajouter une nouvelle quête">+</button>
           </div>
         </div>
@@ -382,9 +382,9 @@
 
     <div id="tab-timeline" class="subtab-content" role="tabpanel">
       <div id="tl-add-form">
-        <input id="tl-event-text" class="field" placeholder="Événement..." style="flex:1;min-width:130px;">
-        <input id="tl-event-date" class="field" placeholder="Date / Moment" style="width:105px;">
-        <select id="tl-chapter-sel" class="field" style="max-width:135px;"></select>
+        <input id="tl-event-text" class="field u-flex-1 u-minw-130px" placeholder="Événement...">
+        <input id="tl-event-date" class="field u-w-105px" placeholder="Date / Moment">
+        <select id="tl-chapter-sel" class="field u-maxw-135px"></select>
         <button class="action-btn btn-sm" id="tl-add-btn" title="Ajouter cet événement à la chronologie">+ Ajouter</button>
       </div>
       <div id="timeline-container">
@@ -399,10 +399,10 @@
       <div id="graph-controls">
         <button class="action-btn btn-sm" id="graph-rebuild-btn" title="Reconstruire le graphe des relations entre personnages, lieux et quêtes">🔄 Reconstruire</button>
         <div class="graph-legend">
-          <span><span class="legend-dot" style="background:#c0392b;"></span>Perso</span>
-          <span><span class="legend-dot" style="background:#2980b9;"></span>Lieu</span>
-          <span><span class="legend-dot" style="background:#27ae60;"></span>Quête</span>
-          <span><span class="legend-dot" style="background:#f39c12;"></span>Chapitre</span>
+          <span><span class="legend-dot u-bg-hc0392b"></span>Perso</span>
+          <span><span class="legend-dot u-bg-h2980b9"></span>Lieu</span>
+          <span><span class="legend-dot u-bg-h27ae60"></span>Quête</span>
+          <span><span class="legend-dot u-bg-hf39c12"></span>Chapitre</span>
         </div>
       </div>
       <div id="graph-container"><svg id="graph-svg"></svg></div>
@@ -417,48 +417,48 @@
     </div>
 
     <div id="tab-ai" class="subtab-content active" role="tabpanel">
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <div style="flex:1;min-width:180px;background:var(--item-bg);border-radius:10px;padding:14px;border:1px solid var(--border);">
+      <div class="u-d-flex u-gap-10px u-fw-wrap">
+        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-14px u-bd-1px-solid-v-border">
           <strong>💡 Continuation</strong>
-          <p style="font-size:.75rem;opacity:.7;margin:5px 0;">3 façons de poursuivre.</p>
+          <p class="u-fs-_75rem u-op-_7 u-m-5px-0">3 façons de poursuivre.</p>
           <button class="action-btn btn-sm" id="ai-continue-btn" title="Demander à l'IA 3 idées pour poursuivre le chapitre">Générer</button>
-          <div id="ai-continue-result" style="margin-top:8px;font-size:.78rem;line-height:1.6;"></div>
+          <div class="u-mt-8px u-fs-_78rem u-lh-1_6" id="ai-continue-result"></div>
         </div>
-        <div style="flex:1;min-width:180px;background:var(--item-bg);border-radius:10px;padding:14px;border:1px solid var(--border);">
+        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-14px u-bd-1px-solid-v-border">
           <strong>🔍 Incohérences</strong>
-          <p style="font-size:.75rem;opacity:.7;margin:5px 0;">Croise Personnages & texte.</p>
+          <p class="u-fs-_75rem u-op-_7 u-m-5px-0">Croise Personnages & texte.</p>
           <button class="action-btn btn-sm" id="ai-check-btn" title="Demander à l'IA de repérer des incohérences avec vos personnages">Analyser</button>
-          <div id="ai-check-result" style="margin-top:8px;font-size:.78rem;line-height:1.6;"></div>
+          <div class="u-mt-8px u-fs-_78rem u-lh-1_6" id="ai-check-result"></div>
         </div>
-        <div style="flex:1;min-width:180px;background:var(--item-bg);border-radius:10px;padding:14px;border:1px solid var(--border);">
+        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-14px u-bd-1px-solid-v-border">
           <strong>✨ Générateur de noms</strong>
-          <div style="display:flex;gap:6px;margin:6px 0;flex-wrap:wrap;">
-            <select id="name-genre-sel" class="field" style="width:auto;">
+          <div class="u-d-flex u-gap-6px u-m-6px-0 u-fw-wrap">
+            <select id="name-genre-sel" class="field u-w-auto">
               <option value="fantasy">Fantasy</option><option value="sci-fi">Sci-Fi</option>
               <option value="historique">Historique</option><option value="contemporain">Contemporain</option>
             </select>
-            <select id="name-sex-sel" class="field" style="width:auto;">
+            <select id="name-sex-sel" class="field u-w-auto">
               <option value="mixte">Mixte</option><option value="féminin">Féminin</option><option value="masculin">Masculin</option>
             </select>
           </div>
           <button class="action-btn btn-sm" id="ai-names-btn" title="Demander à l'IA de proposer des noms de personnages">Générer</button>
-          <div id="ai-names-result" style="margin-top:8px;font-size:.78rem;line-height:1.8;"></div>
+          <div class="u-mt-8px u-fs-_78rem u-lh-1_8" id="ai-names-result"></div>
         </div>
       </div>
     </div>
 
     <div id="tab-memory" class="subtab-content" role="tabpanel">
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+      <div class="u-d-flex u-gap-8px u-ai-center u-fw-wrap u-mb-6px">
         <strong>&#129504; Memoire Narrative</strong>
-        <button class="action-btn btn-sm" id="memory-index-btn" style="background:#16a085;" title="Analyser tout le roman pour permettre les recherches ci-dessous">&#128260; Indexer le roman</button>
-        <span id="memory-index-status" style="font-size:.72rem;color:var(--text-muted);"></span>
+        <button class="action-btn btn-sm u-bg-h16a085" id="memory-index-btn" title="Analyser tout le roman pour permettre les recherches ci-dessous">&#128260; Indexer le roman</button>
+        <span class="u-fs-_72rem u-c-v-text-muted" id="memory-index-status"></span>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:10px;">
-        <input id="memory-query-input" class="field" style="flex:1;" placeholder="Que portait Lea au ch.3 ? Ou est mentionne le chateau ?">
+      <div class="u-d-flex u-gap-8px u-mb-10px">
+        <input id="memory-query-input" class="field u-flex-1" placeholder="Que portait Lea au ch.3 ? Ou est mentionne le chateau ?">
         <button class="action-btn" id="memory-query-btn" title="Poser une question sur le contenu du roman">&#128269; Interroger</button>
       </div>
-      <div id="memory-results" style="flex-grow:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;">
-        <div style="opacity:.5;font-size:.82rem;text-align:center;padding:20px;">
+      <div class="u-fg-1 u-ovy-auto u-d-flex u-fd-column u-gap-8px" id="memory-results">
+        <div class="u-op-_5 u-fs-_82rem u-ta-center u-p-20px">
           Indexez d'abord votre roman, puis posez n'importe quelle question sur votre texte.
         </div>
       </div>
@@ -475,13 +475,13 @@
 
     <div id="tab-stats" class="subtab-content active" role="tabpanel">
       <div class="stats-grid" id="stats-grid"></div>
-      <div style="flex-grow:1;min-height:120px;"><canvas id="sessionChart"></canvas></div>
+      <div class="u-fg-1 u-minh-120px"><canvas id="sessionChart"></canvas></div>
     </div>
 
     <div id="tab-wordcloud" class="subtab-content" role="tabpanel">
       <div id="wordcloud-controls">
         <button class="action-btn btn-sm" id="wc-gen-btn" title="Créer le nuage à partir des mots les plus fréquents">🔄 Générer</button>
-        <label style="font-size:.78rem;display:flex;align-items:center;gap:4px;cursor:pointer;">
+        <label class="u-fs-_78rem u-d-flex u-ai-center u-gap-4px u-cur-pointer">
           <input type="checkbox" id="wc-all-chapters"> Tout le projet
         </label>
       </div>
@@ -491,17 +491,17 @@
 
     <div id="tab-analytics" class="subtab-content" role="tabpanel">
       <div id="analytics-global" class="analytics-grid"></div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;flex-grow:1;overflow:hidden;">
-        <div style="flex:1;min-width:200px;overflow-y:auto;">
-          <strong style="font-size:.82rem;">Longueur par chapitre</strong>
-          <div id="analytics-bars" style="margin-top:8px;"></div>
+      <div class="u-d-flex u-gap-12px u-fw-wrap u-fg-1 u-ov-hidden">
+        <div class="u-flex-1 u-minw-200px u-ovy-auto">
+          <strong class="u-fs-_82rem">Longueur par chapitre</strong>
+          <div class="u-mt-8px" id="analytics-bars"></div>
         </div>
-        <div style="flex:1;min-width:200px;">
-          <strong style="font-size:.82rem;">Lisibilité Flesch-Kincaid</strong>
-          <div id="analytics-flesch" class="flesch-gauge" style="margin-top:10px;"></div>
-          <hr style="border-color:var(--border);margin:10px 0;">
-          <strong style="font-size:.82rem;">Densité dialogue vs narration</strong>
-          <div style="height:140px;margin-top:8px;"><canvas id="dialogChart"></canvas></div>
+        <div class="u-flex-1 u-minw-200px">
+          <strong class="u-fs-_82rem">Lisibilité Flesch-Kincaid</strong>
+          <div id="analytics-flesch" class="flesch-gauge u-mt-10px"></div>
+          <hr class="u-bdc-v-border u-m-10px-0">
+          <strong class="u-fs-_82rem">Densité dialogue vs narration</strong>
+          <div class="u-h-140px u-mt-8px"><canvas id="dialogChart"></canvas></div>
         </div>
       </div>
     </div>
@@ -515,91 +515,91 @@
     </div>
 
     <div id="tab-history" class="subtab-content active" role="tabpanel">
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <div class="u-d-flex u-gap-8px u-ai-center u-fw-wrap">
         <strong>Snapshots auto : chapitre courant</strong>
         <button class="action-btn btn-sm" id="snapshot-btn" title="Enregistrer une copie du chapitre actuel dans l'historique">📸 Snapshot manuel</button>
-        <button class="action-btn btn-sm" style="background:#2980b9;" id="open-diff-btn" title="Comparer deux versions du chapitre">↔ Comparer versions</button>
+        <button class="action-btn btn-sm u-bg-h2980b9" id="open-diff-btn" title="Comparer deux versions du chapitre">↔ Comparer versions</button>
       </div>
-      <div id="snapshot-list" style="overflow-y:auto;flex-grow:1;display:flex;flex-direction:column;gap:5px;"></div>
+      <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-5px" id="snapshot-list"></div>
     </div>
 
     <div id="tab-plugins" class="subtab-content" role="tabpanel">
-      <strong style="font-size:.85rem;">🔌 Plugins actifs</strong>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:10px;" id="plugins-grid"></div>
+      <strong class="u-fs-_85rem">🔌 Plugins actifs</strong>
+      <div class="u-d-grid u-gtc-repeat-auto-fill-minmax-200px-1fr u-gap-10px u-mt-10px" id="plugins-grid"></div>
     </div>
   </div>
 
   <div id="tab-config" class="tab-content" role="tabpanel">
     <strong>🎨 Apparence</strong>
-    <div style="font-size:.78rem;color:var(--text-muted);margin:10px 0 8px;">Palette de couleurs</div>
-    <div id="palette-picker" style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px;">
-      <button class="palette-swatch" data-palette="rouge-violet" title="Rouge &amp; Violet" aria-label="Rouge &amp; Violet"><span style="background:#c0392b;"></span><span style="background:#8e44ad;"></span></button>
-      <button class="palette-swatch" data-palette="bleu-ocean" title="Bleu Océan" aria-label="Bleu Océan"><span style="background:#2980b9;"></span><span style="background:#16a085;"></span></button>
-      <button class="palette-swatch" data-palette="emeraude" title="Émeraude" aria-label="Émeraude"><span style="background:#27ae60;"></span><span style="background:#2c3e50;"></span></button>
-      <button class="palette-swatch" data-palette="rose-poudre" title="Rose Poudré" aria-label="Rose Poudré"><span style="background:#c2185b;"></span><span style="background:#d4af37;"></span></button>
-      <button class="palette-swatch" data-palette="ardoise" title="Ardoise" aria-label="Ardoise"><span style="background:#34495e;"></span><span style="background:#7f8c8d;"></span></button>
+    <div class="u-fs-_78rem u-c-v-text-muted u-m-10px-0-8px">Palette de couleurs</div>
+    <div class="u-d-flex u-gap-9px u-fw-wrap u-mb-14px" id="palette-picker">
+      <button class="palette-swatch" data-palette="rouge-violet" title="Rouge &amp; Violet" aria-label="Rouge &amp; Violet"><span class="u-bg-hc0392b"></span><span class="u-bg-h8e44ad"></span></button>
+      <button class="palette-swatch" data-palette="bleu-ocean" title="Bleu Océan" aria-label="Bleu Océan"><span class="u-bg-h2980b9"></span><span class="u-bg-h16a085"></span></button>
+      <button class="palette-swatch" data-palette="emeraude" title="Émeraude" aria-label="Émeraude"><span class="u-bg-h27ae60"></span><span class="u-bg-h2c3e50"></span></button>
+      <button class="palette-swatch" data-palette="rose-poudre" title="Rose Poudré" aria-label="Rose Poudré"><span class="u-bg-hc2185b"></span><span class="u-bg-hd4af37"></span></button>
+      <button class="palette-swatch" data-palette="ardoise" title="Ardoise" aria-label="Ardoise"><span class="u-bg-h34495e"></span><span class="u-bg-h7f8c8d"></span></button>
     </div>
-    <div style="font-size:.78rem;color:var(--text-muted);margin:0 0 8px;">Thème</div>
-    <div id="theme-picker" style="display:flex;gap:8px;margin-bottom:14px;">
+    <div class="u-fs-_78rem u-c-v-text-muted u-m-0-0-8px">Thème</div>
+    <div class="u-d-flex u-gap-8px u-mb-14px" id="theme-picker">
       <button class="mode-indicator" data-theme="light" title="Thème clair">☀️ Clair</button>
       <button class="mode-indicator" data-theme="dark" title="Thème sombre">🌙 Sombre</button>
       <button class="mode-indicator" data-theme="paper" title="Thème papier/sépia">📜 Papier</button>
     </div>
-    <div style="font-size:.78rem;color:var(--text-muted);margin:0 0 8px;">Police d'écriture</div>
-    <div id="font-picker" style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px;">
-      <div class="font-option" data-font="palatino" tabindex="0" role="radio" title="Police par défaut"><span class="font-dot"></span><span style="font-family:'Palatino Linotype',Georgia,serif;">Palatino / Georgia (défaut)</span></div>
-      <div class="font-option" data-font="times" tabindex="0" role="radio" title="Times New Roman"><span class="font-dot"></span><span style="font-family:'Times New Roman',Times,serif;">Times New Roman</span></div>
-      <div class="font-option" data-font="verdana" tabindex="0" role="radio" title="Verdana, sans-serif"><span class="font-dot"></span><span style="font-family:Verdana,Arial,sans-serif;">Verdana (sans-serif)</span></div>
-      <div class="font-option" data-font="courier" tabindex="0" role="radio" title="Courier New, façon machine à écrire"><span class="font-dot"></span><span style="font-family:'Courier New',Courier,monospace;">Courier New (machine à écrire)</span></div>
+    <div class="u-fs-_78rem u-c-v-text-muted u-m-0-0-8px">Police d'écriture</div>
+    <div class="u-d-flex u-fd-column u-gap-6px u-mb-6px" id="font-picker">
+      <div class="font-option" data-font="palatino" tabindex="0" role="radio" title="Police par défaut"><span class="font-dot"></span><span class="u-ff-palatino-linotype-georgia-serif">Palatino / Georgia (défaut)</span></div>
+      <div class="font-option" data-font="times" tabindex="0" role="radio" title="Times New Roman"><span class="font-dot"></span><span class="u-ff-times-new-roman-times-serif">Times New Roman</span></div>
+      <div class="font-option" data-font="verdana" tabindex="0" role="radio" title="Verdana, sans-serif"><span class="font-dot"></span><span class="u-ff-verdana-arial-sans-serif">Verdana (sans-serif)</span></div>
+      <div class="font-option" data-font="courier" tabindex="0" role="radio" title="Courier New, façon machine à écrire"><span class="font-dot"></span><span class="u-ff-courier-new-courier-monospace">Courier New (machine à écrire)</span></div>
     </div>
-    <hr style="border-color:var(--border);margin:10px 0;">
+    <hr class="u-bdc-v-border u-m-10px-0">
     <strong>Mots faibles</strong>
-    <div id="weak-words-list" style="margin:8px 0;"></div>
-    <div style="display:flex;gap:6px;">
-      <input id="new-weak-word" class="field" placeholder="Ex: soudain" style="flex:1;">
+    <div class="u-m-8px-0" id="weak-words-list"></div>
+    <div class="u-d-flex u-gap-6px">
+      <input id="new-weak-word" class="field u-flex-1" placeholder="Ex: soudain">
       <button class="action-btn" id="add-weak-word-btn" title="Ajouter ce mot à la liste des mots à surveiller">Ajouter</button>
     </div>
-    <hr style="border-color:var(--border);margin:10px 0;">
+    <hr class="u-bdc-v-border u-m-10px-0">
     <strong>Objectif quotidien</strong>
-    <div id="goal-section" style="margin-top:8px;">
-      <input type="number" id="daily-goal-input" class="field" style="width:90px;" min="100" max="10000" step="100">
+    <div class="u-mt-8px" id="goal-section">
+      <input type="number" id="daily-goal-input" class="field u-w-90px" min="100" max="10000" step="100">
       <span>mots/jour</span>
       <div id="goal-bar-wrap"><div id="goal-bar"></div></div>
-      <span id="goal-label" style="min-width:60px;">0 %</span>
+      <span class="u-minw-60px" id="goal-label">0 %</span>
     </div>
-    <div style="margin-top:10px;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <input type="number" id="weekly-goal-input" class="field" style="width:90px;" min="100" step="100">
+    <div class="u-mt-10px">
+      <div class="u-d-flex u-ai-center u-gap-8px">
+        <input type="number" id="weekly-goal-input" class="field u-w-90px" min="100" step="100">
         <span>mots/semaine</span>
       </div>
-      <div style="background:var(--item-bg);border-radius:8px;height:8px;overflow:hidden;margin-top:4px;">
-        <div id="week-goal-bar" style="height:100%;background:linear-gradient(90deg,#2980b9,#3498db);border-radius:8px;transition:width .5s;width:0;"></div>
+      <div class="u-bg-v-item-bg u-br-8px u-h-8px u-ov-hidden u-mt-4px">
+        <div class="u-h-100pc u-bg-linear-gradient-90deg-h2980b-edz37 u-br-8px u-tr-width-_5s u-w-0" id="week-goal-bar"></div>
       </div>
-      <span id="week-goal-label" style="font-size:.72rem;color:var(--text-muted);"></span>
+      <span class="u-fs-_72rem u-c-v-text-muted" id="week-goal-label"></span>
     </div>
-    <div style="margin-top:10px;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <input type="number" id="monthly-goal-input" class="field" style="width:90px;" min="100" step="100">
+    <div class="u-mt-10px">
+      <div class="u-d-flex u-ai-center u-gap-8px">
+        <input type="number" id="monthly-goal-input" class="field u-w-90px" min="100" step="100">
         <span>mots/mois</span>
       </div>
-      <div style="background:var(--item-bg);border-radius:8px;height:8px;overflow:hidden;margin-top:4px;">
-        <div id="month-goal-bar" style="height:100%;background:linear-gradient(90deg,#8e44ad,#9b59b6);border-radius:8px;transition:width .5s;width:0;"></div>
+      <div class="u-bg-v-item-bg u-br-8px u-h-8px u-ov-hidden u-mt-4px">
+        <div class="u-h-100pc u-bg-linear-gradient-90deg-h8e44a-10w4i u-br-8px u-tr-width-_5s u-w-0" id="month-goal-bar"></div>
       </div>
-      <span id="month-goal-label" style="font-size:.72rem;color:var(--text-muted);"></span>
+      <span class="u-fs-_72rem u-c-v-text-muted" id="month-goal-label"></span>
     </div>
-    <hr style="border-color:var(--border);margin:10px 0;">
+    <hr class="u-bdc-v-border u-m-10px-0">
     <strong>Objectif du manuscrit</strong>
-    <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
-      <input type="number" id="manuscript-goal-input" class="field" style="width:90px;" min="0" step="1000" placeholder="0">
+    <div class="u-mt-8px u-d-flex u-ai-center u-gap-8px">
+      <input type="number" id="manuscript-goal-input" class="field u-w-90px" min="0" step="1000" placeholder="0">
       <span>mots au total</span>
     </div>
-    <p style="font-size:.68rem;color:var(--text-muted);margin:4px 0 0;">0 = pas d'objectif. Affiché en barre de progression sur la carte de ce manuscrit dans la bibliothèque.</p>
-    <hr style="border-color:var(--border);margin:10px 0;">
+    <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-0">0 = pas d'objectif. Affiché en barre de progression sur la carte de ce manuscrit dans la bibliothèque.</p>
+    <hr class="u-bdc-v-border u-m-10px-0">
     <strong>👤 Profil</strong>
-    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+    <div class="u-d-flex u-gap-8px u-mt-8px u-fw-wrap">
       <button class="action-btn btn-sm" id="my-profile-btn" title="Modifier votre nom, mot de passe ou question de sécurité">Mon profil</button>
-      <button class="action-btn btn-sm" style="background:#8e44ad;" id="manage-profiles-btn" title="Ajouter, renommer ou supprimer des profils (administrateur)">Gérer les profils</button>
-      <button class="action-btn btn-sm" style="background:#7f8c8d;" id="logout-btn" title="Fermer votre session">Se déconnecter</button>
+      <button class="action-btn btn-sm u-bg-h8e44ad" id="manage-profiles-btn" title="Ajouter, renommer ou supprimer des profils (administrateur)">Gérer les profils</button>
+      <button class="action-btn btn-sm u-bg-h7f8c8d" id="logout-btn" title="Fermer votre session">Se déconnecter</button>
     </div>
   </div>
 
@@ -609,13 +609,13 @@
 <main role="main">
   <aside id="chapter-sidebar" aria-label="Chapitres">
     <div id="document-title" contenteditable="true" role="textbox" aria-label="Titre du manuscrit" title="Cliquez pour renommer votre manuscrit"></div>
-    <div style="display:flex;gap:6px;margin-bottom:6px;">
-      <button class="action-btn btn-sm" id="back-to-library-btn" style="background:#7f8c8d;flex:1;" title="Retourner à la liste de tous vos manuscrits">📚 Ma bibliothèque</button>
-      <button class="action-btn btn-sm" id="editor-home-btn" style="background:#7f8c8d;flex:1;" title="Retourner à l'écran de connexion">🏠 Accueil</button>
+    <div class="u-d-flex u-gap-6px u-mb-6px">
+      <button class="action-btn btn-sm u-bg-h7f8c8d u-flex-1" id="back-to-library-btn" title="Retourner à la liste de tous vos manuscrits">📚 Ma bibliothèque</button>
+      <button class="action-btn btn-sm u-bg-h7f8c8d u-flex-1" id="editor-home-btn" title="Retourner à l'écran de connexion">🏠 Accueil</button>
     </div>
-    <div style="display:flex;gap:6px;">
-      <button class="action-btn" id="add-chapter-btn" style="flex-grow:1;" title="Ajouter un nouveau chapitre à ce manuscrit">+ Chapitre</button>
-      <button class="action-btn" id="open-trash-btn" style="background:#7f8c8d;" title="Voir les chapitres supprimés (récupérables 30 jours)">🗑️<span class="trash-badge" id="trash-badge" aria-hidden="true"></span></button>
+    <div class="u-d-flex u-gap-6px">
+      <button class="action-btn u-fg-1" id="add-chapter-btn" title="Ajouter un nouveau chapitre à ce manuscrit">+ Chapitre</button>
+      <button class="action-btn u-bg-h7f8c8d" id="open-trash-btn" title="Voir les chapitres supprimés (récupérables 30 jours)">🗑️<span class="trash-badge" id="trash-badge" aria-hidden="true"></span></button>
     </div>
     <div class="ch-view-toggle" role="group" aria-label="Vue des chapitres">
       <button class="mode-indicator active" id="view-list-btn" title="Liste des chapitres">☰ Liste</button>
@@ -631,17 +631,17 @@
   <div id="editor-wrapper">
     <div class="toolbar" role="toolbar">
       <!-- Mise en forme riche (nouveau V56) -->
-      <button class="action-btn btn-sm" style="background:#34495e;" id="fmt-bold-btn" title="Gras (Ctrl+B)"><b>G</b></button>
-      <button class="action-btn btn-sm" style="background:#34495e;" id="fmt-italic-btn" title="Italique (Ctrl+I)"><i>I</i></button>
-      <button class="action-btn btn-sm" style="background:#34495e;" id="fmt-underline-btn" title="Souligné (Ctrl+U)"><u>S</u></button>
-      <button class="action-btn btn-sm" style="background:#34495e;" id="undo-btn" title="Annuler (Ctrl+Z)" disabled>↶</button>
-      <button class="action-btn btn-sm" style="background:#34495e;" id="redo-btn" title="Rétablir (Ctrl+Y)" disabled>↷</button>
-      <span style="width:1px;height:20px;background:var(--border);margin:0 4px;"></span>
+      <button class="action-btn btn-sm u-bg-h34495e" id="fmt-bold-btn" title="Gras (Ctrl+B)"><b>G</b></button>
+      <button class="action-btn btn-sm u-bg-h34495e" id="fmt-italic-btn" title="Italique (Ctrl+I)"><i>I</i></button>
+      <button class="action-btn btn-sm u-bg-h34495e" id="fmt-underline-btn" title="Souligné (Ctrl+U)"><u>S</u></button>
+      <button class="action-btn btn-sm u-bg-h34495e" id="undo-btn" title="Annuler (Ctrl+Z)" disabled>↶</button>
+      <button class="action-btn btn-sm u-bg-h34495e" id="redo-btn" title="Rétablir (Ctrl+Y)" disabled>↷</button>
+      <span class="u-w-1px u-h-20px u-bg-v-border u-m-0-4px"></span>
 
       <!-- Barre d'outils regroupée en menus déroulants (v7.4.0) : moins de
            boutons visibles en permanence, mêmes fonctionnalités qu'avant. -->
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn" style="background:#34495e;" title="Mettre en forme le paragraphe">¶ Paragraphe ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h34495e" title="Mettre en forme le paragraphe">¶ Paragraphe ▾</button>
         <div class="toolbar-menu">
           <button id="fmt-title-btn" title="Transformer la ligne en sous-titre">Titre</button>
           <button id="fmt-para-btn" title="Revenir à un paragraphe normal">Paragraphe normal</button>
@@ -649,7 +649,7 @@
       </div>
 
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn" style="background:#c0392b;" title="Outils d'écriture">🛠️ Outils ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-hc0392b" title="Outils d'écriture">🛠️ Outils ▾</button>
         <div class="toolbar-menu">
           <button id="analyze-btn" title="Surligner les mots faibles/répétitifs dans le texte">🔍 Analyser le style</button>
           <button id="clear-btn" title="Retirer les surlignages de style (le texte n'est pas modifié)">🧹 Nettoyer les surlignages</button>
@@ -660,25 +660,24 @@
       </div>
 
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn" style="background:#1a1a2e;" title="Rechercher du texte">🔎 Rechercher ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h1a1a2e" title="Rechercher du texte">🔎 Rechercher ▾</button>
         <div class="toolbar-menu">
           <button id="global-search-btn" title="Rechercher un mot dans tout le projet">Dans tout le projet</button>
           <button id="find-replace-btn" title="Rechercher et remplacer du texte dans ce chapitre">Ici, avec remplacement</button>
         </div>
       </div>
 
-      <button class="action-btn btn-sm" style="background:#8e44ad;" id="ai-summary-btn" title="Demander à l'IA un résumé du chapitre">✨ Résumé IA</button>
-      <div style="flex-grow:1;"></div>
-      <select id="search-mode" class="field" style="width:auto;" aria-label="Mode dictionnaire" title="Choisir entre synonymes et antonymes">
+      <button class="action-btn btn-sm u-bg-h8e44ad" id="ai-summary-btn" title="Demander à l'IA un résumé du chapitre">✨ Résumé IA</button>
+      <div class="u-fg-1"></div>
+      <select id="search-mode" class="field u-w-auto" aria-label="Mode dictionnaire" title="Choisir entre synonymes et antonymes">
         <option value="syn">✨ Synonymes</option><option value="ant">🌑 Antonymes</option>
       </select>
-      <input id="lex-in" class="field" style="width:85px;" placeholder="mot…" aria-label="Mot à chercher" title="Tapez un mot puis cliquez sur GO">
+      <input id="lex-in" class="field u-w-85px" placeholder="mot…" aria-label="Mot à chercher" title="Tapez un mot puis cliquez sur GO">
       <button class="action-btn" id="search-btn" aria-label="Rechercher" title="Chercher les synonymes ou antonymes de ce mot">GO</button>
     </div>
-    <div id="chapter-title-row" style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-      <div id="chapter-title" contenteditable="true" role="textbox" aria-label="Titre" title="Cliquez pour renommer ce chapitre"
-        style="font-size:1.45rem;font-weight:700;color:var(--accent);outline:none;min-height:28px;flex-grow:1;"></div>
-      <select id="chapter-status-sel" class="field" style="width:auto;flex-shrink:0;" aria-label="Statut du chapitre" title="Statut d'avancement de ce chapitre">
+    <div class="u-d-flex u-ai-center u-gap-10px u-mb-6px" id="chapter-title-row">
+      <div class="u-fs-1_45rem u-fwt-700 u-c-v-accent u-outline-none u-minh-28px u-fg-1" id="chapter-title" contenteditable="true" role="textbox" aria-label="Titre" title="Cliquez pour renommer ce chapitre"></div>
+      <select id="chapter-status-sel" class="field u-w-auto u-fsh-0" aria-label="Statut du chapitre" title="Statut d'avancement de ce chapitre">
         <option value="draft">📝 Brouillon</option>
         <option value="review">🔎 À revoir</option>
         <option value="final">✅ Final</option>
@@ -686,48 +685,48 @@
     </div>
     <div id="writer" contenteditable="true" role="textbox" aria-multiline="true"
       aria-label="Zone d'écriture" spellcheck="false"></div>
-    <div id="corkboard-view" class="corkboard" role="list" aria-label="Tableau de fiches des chapitres" style="display:none;"></div>
+    <div id="corkboard-view" class="corkboard u-d-none" role="list" aria-label="Tableau de fiches des chapitres"></div>
     <div id="ai-summary-panel" role="dialog" aria-label="Résumé IA">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <strong style="font-size:.82rem;">✨ Résumé IA</strong>
-        <button id="ai-panel-close" style="background:none;border:none;cursor:pointer;color:inherit;font-size:1.1rem;" title="Fermer">×</button>
+      <div class="u-d-flex u-jc-space-between u-ai-center">
+        <strong class="u-fs-_82rem">✨ Résumé IA</strong>
+        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="ai-panel-close" title="Fermer">×</button>
       </div>
       <div id="ai-summary-text" aria-live="polite"></div>
-      <button class="action-btn btn-sm" style="background:#8e44ad;" id="ai-summary-copy" title="Copier ce résumé dans le presse-papier">📋 Copier résumé</button>
+      <button class="action-btn btn-sm u-bg-h8e44ad" id="ai-summary-copy" title="Copier ce résumé dans le presse-papier">📋 Copier résumé</button>
     </div>
 
     <div id="lex-panel" role="dialog" aria-label="Synonymes et antonymes">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="u-d-flex u-jc-space-between u-ai-center">
         <span id="lex-panel-title">✨ Synonymes</span>
-        <button id="lex-panel-close" style="background:none;border:none;cursor:pointer;color:inherit;font-size:1.1rem;" aria-label="Fermer" title="Fermer">×</button>
+        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="lex-panel-close" aria-label="Fermer" title="Fermer">×</button>
       </div>
-      <div style="font-size:.7rem;color:var(--text-muted);" id="lex-panel-word"></div>
+      <div class="u-fs-_7rem u-c-v-text-muted" id="lex-panel-word"></div>
       <div id="lex-words"></div>
-      <div style="font-size:.68rem;color:var(--text-muted);">Cliquer sur un mot pour l'insérer à la position du curseur</div>
+      <div class="u-fs-_68rem u-c-v-text-muted">Cliquer sur un mot pour l'insérer à la position du curseur</div>
     </div>
 
     <div id="fr-panel" role="dialog" aria-label="Rechercher et remplacer">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <strong style="font-size:.82rem;">🔁 Rechercher / Remplacer</strong>
-        <button id="fr-panel-close" style="background:none;border:none;cursor:pointer;color:inherit;font-size:1.1rem;" aria-label="Fermer" title="Fermer">×</button>
+      <div class="u-d-flex u-jc-space-between u-ai-center">
+        <strong class="u-fs-_82rem">🔁 Rechercher / Remplacer</strong>
+        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="fr-panel-close" aria-label="Fermer" title="Fermer">×</button>
       </div>
       <input id="fr-find-input" class="field" placeholder="Rechercher...">
       <input id="fr-replace-input" class="field" placeholder="Remplacer par...">
-      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+      <div class="u-d-flex u-gap-6px u-fw-wrap u-ai-center">
         <button class="action-btn btn-sm" id="fr-next-btn" title="Aller à l'occurrence suivante">Suivant</button>
-        <button class="action-btn btn-sm" style="background:#8e44ad;" id="fr-replace-btn" title="Remplacer uniquement cette occurrence">Remplacer</button>
-        <button class="action-btn btn-sm" style="background:var(--danger);" id="fr-replace-all-btn" title="Remplacer toutes les occurrences du chapitre">Tout remplacer</button>
+        <button class="action-btn btn-sm u-bg-h8e44ad" id="fr-replace-btn" title="Remplacer uniquement cette occurrence">Remplacer</button>
+        <button class="action-btn btn-sm u-bg-v-danger" id="fr-replace-all-btn" title="Remplacer toutes les occurrences du chapitre">Tout remplacer</button>
       </div>
-      <span id="fr-status" style="font-size:.7rem;color:var(--text-muted);">Aucun résultat</span>
-      <div style="font-size:.66rem;color:var(--text-muted);">Ne remplace pas les occurrences qui chevauchent une mise en forme (gras/italique).</div>
+      <span class="u-fs-_7rem u-c-v-text-muted" id="fr-status">Aucun résultat</span>
+      <div class="u-fs-_66rem u-c-v-text-muted">Ne remplace pas les occurrences qui chevauchent une mise en forme (gras/italique).</div>
     </div>
     <div id="mode-bar">
       <div id="save-indicator" aria-hidden="true"></div>
-      <span id="autosave-label" style="font-size:.7rem;color:var(--text-muted);"></span>
+      <span class="u-fs-_7rem u-c-v-text-muted" id="autosave-label"></span>
       <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre">🌙 Nuit</button>
-      <button id="install-app-btn" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.72rem;font-weight:700;font-family:inherit;box-shadow:0 2px 8px rgba(192,57,43,.3);" title="Installer Plume Épique comme application sur cet ordinateur">📲 Installer sur le bureau</button>
-      <button id="shortcuts-hint-btn" class="mode-indicator" style="margin-left:auto;padding:2px 8px;" title="Voir les raccourcis clavier (touche ?)">❔</button>
-      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.16.2</span>
+      <button class="u-d-none u-bg-linear-gradient-135deg-v-acc-1qh64 u-c-hfff u-bd-none u-p-5px-14px u-br-20px u-cur-pointer u-fs-_72rem u-fwt-700 u-ff-inherit u-shadow-0-2px-8px-rgb19257433" id="install-app-btn" title="Installer Plume Épique comme application sur cet ordinateur">📲 Installer sur le bureau</button>
+      <button id="shortcuts-hint-btn" class="mode-indicator u-ml-auto u-p-2px-8px" title="Voir les raccourcis clavier (touche ?)">❔</button>
+      <span class="u-fs-_65rem u-op-_35">Plume Épique · v7.17.0</span>
     </div>
   </div>
 </main>
@@ -739,8 +738,8 @@
   <div id="focus-writer" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Écriture en mode focus" data-placeholder="Écrivez librement... (Échap pour quitter)"></div>
   <div id="focus-bar">
     <span id="focus-wordcount">0</span> mots
-    <span style="opacity:.3;">|</span><span id="focus-chapter-label" style="opacity:.55;"></span>
-    <span style="opacity:.3;">|</span><span style="opacity:.4;font-size:.68rem;">Échap pour quitter</span>
+    <span class="u-op-_3">|</span><span class="u-op-_55" id="focus-chapter-label"></span>
+    <span class="u-op-_3">|</span><span class="u-op-_4 u-fs-_68rem">Échap pour quitter</span>
     <button id="focus-close-btn" title="Revenir à l'écriture normale">✕ Quitter</button>
   </div>
 </div>
@@ -748,17 +747,17 @@
 <!-- Sélecteur de couverture de manuscrit (🎨) — élément unique, hors des
      cartes bibliothèque pour ne pas être rogné par leur overflow (v7.9.0) -->
 <div id="cover-picker-menu" class="toolbar-menu" role="menu">
-  <button class="cover-swatch" data-cover="auto" title="Automatique (couleurs de l'interface)" style="background:linear-gradient(135deg,var(--accent),var(--accent2));">↺</button>
-  <button class="cover-swatch" data-cover="rouge-violet" title="Rouge &amp; Violet" style="background:linear-gradient(135deg,#c0392b,#8e44ad);"></button>
-  <button class="cover-swatch" data-cover="bleu-ocean" title="Bleu Océan" style="background:linear-gradient(135deg,#2980b9,#16a085);"></button>
-  <button class="cover-swatch" data-cover="emeraude" title="Émeraude" style="background:linear-gradient(135deg,#27ae60,#2c3e50);"></button>
-  <button class="cover-swatch" data-cover="rose-poudre" title="Rose Poudré" style="background:linear-gradient(135deg,#c2185b,#d4af37);"></button>
-  <button class="cover-swatch" data-cover="ardoise" title="Ardoise" style="background:linear-gradient(135deg,#34495e,#7f8c8d);"></button>
-  <button class="cover-swatch" data-cover="coucher-soleil" title="Coucher de Soleil" style="background:linear-gradient(135deg,#f39c12,#e74c3c);"></button>
-  <button class="cover-swatch" data-cover="nuit-etoilee" title="Nuit Étoilée" style="background:linear-gradient(135deg,#16213e,#6a3093);"></button>
-  <button class="cover-swatch" data-cover="sepia" title="Sépia" style="background:linear-gradient(135deg,#6d4c41,#3e2723);"></button>
-  <button class="cover-swatch" data-cover="corail" title="Corail" style="background:linear-gradient(135deg,#ee5a6f,#f29263);"></button>
-  <button class="cover-swatch" data-cover="lavande" title="Lavande" style="background:linear-gradient(135deg,#8e7cc3,#5b3a8e);"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-v-acc-1qh64" data-cover="auto" title="Automatique (couleurs de l'interface)">↺</button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-hc039-cnzbn" data-cover="rouge-violet" title="Rouge &amp; Violet"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-h2980-oxi60" data-cover="bleu-ocean" title="Bleu Océan"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-h27ae-1dgf3" data-cover="emeraude" title="Émeraude"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-hc218-14gzs" data-cover="rose-poudre" title="Rose Poudré"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-h3449-e6s27" data-cover="ardoise" title="Ardoise"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-hf39c-nzaub" data-cover="coucher-soleil" title="Coucher de Soleil"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-h1621-1hjru" data-cover="nuit-etoilee" title="Nuit Étoilée"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-h6d4c-1msqp" data-cover="sepia" title="Sépia"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-hee5a-17vu9" data-cover="corail" title="Corail"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-h8e7c-1o1k5" data-cover="lavande" title="Lavande"></button>
 </div>
 
 <!-- Menu contextuel des chapitres (⋮) — élément unique, hors de la sidebar pour
@@ -767,7 +766,7 @@
   <button id="cctx-rename" role="menuitem">✏️ Renommer</button>
   <button id="cctx-tags" role="menuitem">🏷️ Tags</button>
   <button id="cctx-dup" role="menuitem">⧉ Dupliquer</button>
-  <hr style="border:none;border-top:1px solid var(--border);margin:4px 2px;">
+  <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
   <button id="cctx-del" role="menuitem" class="ch-menu-danger">✕ Supprimer</button>
 </div>
 
@@ -776,7 +775,7 @@
 <div id="library-ctx-menu" class="toolbar-menu" role="menu">
   <button id="lctx-cover" role="menuitem">🎨 Changer la couverture</button>
   <button id="lctx-export" role="menuitem">📤 Exporter</button>
-  <hr style="border:none;border-top:1px solid var(--border);margin:4px 2px;">
+  <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
   <button id="lctx-del" role="menuitem" class="ch-menu-danger">🗑️ Supprimer</button>
 </div>
 

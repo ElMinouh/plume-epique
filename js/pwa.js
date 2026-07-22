@@ -55,15 +55,19 @@ window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault(); _pwaPrompt = e;
   // L'app est installable : on révèle le bouton du bandeau bas et la bannière.
   document.getElementById('pwa-banner').classList.add('show');
+  // v7.17.0 : le bouton est masqué par la classe utilitaire `u-d-none`
+  // (et non plus par un attribut style="display:none", retiré avec
+  // 'unsafe-inline' de la CSP). On retire donc la classe au lieu de
+  // réinitialiser le style inline.
   const btn = document.getElementById('install-app-btn');
-  if (btn) btn.style.display = '';
+  if (btn) btn.classList.remove('u-d-none');
 });
 
 // L'app vient d'être installée (ou l'est déjà) : on masque le bouton permanent
 // et la bannière — il n'y a plus rien à installer.
 window.addEventListener('appinstalled', () => {
   const btn = document.getElementById('install-app-btn');
-  if (btn) btn.style.display = 'none';
+  if (btn) btn.classList.add('u-d-none');
   const banner = document.getElementById('pwa-banner');
   if (banner) banner.classList.remove('show');
   _pwaPrompt = null;
@@ -75,7 +79,7 @@ window.addEventListener('load', () => {
   const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
   if (standalone) {
     const btn = document.getElementById('install-app-btn');
-    if (btn) btn.style.display = 'none';
+    if (btn) btn.classList.add('u-d-none');
   }
 });
 

@@ -503,3 +503,287 @@ body.library-mode #library-screen{display:block;}
   .tab-btn{padding:3px 6px;font-size:.64rem;}
   .stats-grid,.analytics-grid{grid-template-columns:1fr;}
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CLASSES UTILITAIRES — générées lors du retrait de 'unsafe-inline'
+   de la directive style-src de la Content Security Policy (v7.17.0).
+
+   Chaque classe reproduit EXACTEMENT une déclaration CSS qui était
+   auparavant écrite en attribut de style dans index.html. Aucun
+   changement visuel n'est attendu.
+
+   Nommage : u-<propriété abrégée>-<valeur>. Ce bloc doit rester en
+   FIN de fichier : à spécificité égale, c'est la dernière règle qui
+   l'emporte, ce qui reproduit la priorité qu'avait l'attribut style.
+
+   Les classes de fond (u-bg-*) sont écrites avec leur sélecteur
+   répété trois fois. C'est volontaire : sans cela, la règle
+   `.toolbar-menu button:hover` (plus spécifique) reprendrait la main
+   sur les boutons colorés de la barre d'outils, qui changeraient de
+   couleur au survol — ce qui n'était pas le cas avant.
+
+   Ces classes ne battent volontairement JAMAIS un style appliqué par
+   JavaScript (element.style.xxx = ...) : ces affectations restent
+   prioritaires, comme avant. Ne jamais ajouter !important ici.
+   ═══════════════════════════════════════════════════════════════════ */
+
+
+/* --- align-items --- */
+.u-ai-center{align-items:center}
+
+/* --- align-self --- */
+.u-as-flex-start{align-self:flex-start}
+
+/* --- background --- */
+.u-bg-h16a085.u-bg-h16a085.u-bg-h16a085{background:#16a085}
+.u-bg-h1a1a2e.u-bg-h1a1a2e.u-bg-h1a1a2e{background:#1a1a2e}
+.u-bg-h27ae60.u-bg-h27ae60.u-bg-h27ae60{background:#27ae60}
+.u-bg-h2980b9.u-bg-h2980b9.u-bg-h2980b9{background:#2980b9}
+.u-bg-h2c3e50.u-bg-h2c3e50.u-bg-h2c3e50{background:#2c3e50}
+.u-bg-h34495e.u-bg-h34495e.u-bg-h34495e{background:#34495e}
+.u-bg-h7d5ba6.u-bg-h7d5ba6.u-bg-h7d5ba6{background:#7d5ba6}
+.u-bg-h7f8c8d.u-bg-h7f8c8d.u-bg-h7f8c8d{background:#7f8c8d}
+.u-bg-h8e44ad.u-bg-h8e44ad.u-bg-h8e44ad{background:#8e44ad}
+.u-bg-h9b59b6.u-bg-h9b59b6.u-bg-h9b59b6{background:#9b59b6}
+.u-bg-hc0392b.u-bg-hc0392b.u-bg-hc0392b{background:#c0392b}
+.u-bg-hc2185b.u-bg-hc2185b.u-bg-hc2185b{background:#c2185b}
+.u-bg-hd35400.u-bg-hd35400.u-bg-hd35400{background:#d35400}
+.u-bg-hd4af37.u-bg-hd4af37.u-bg-hd4af37{background:#d4af37}
+.u-bg-he67e22.u-bg-he67e22.u-bg-he67e22{background:#e67e22}
+.u-bg-hf39c12.u-bg-hf39c12.u-bg-hf39c12{background:#f39c12}
+.u-bg-linear-gradient-135deg-h1621-1hjru.u-bg-linear-gradient-135deg-h1621-1hjru.u-bg-linear-gradient-135deg-h1621-1hjru{background:linear-gradient(135deg,#16213e,#6a3093)}
+.u-bg-linear-gradient-135deg-h27ae-1dgf3.u-bg-linear-gradient-135deg-h27ae-1dgf3.u-bg-linear-gradient-135deg-h27ae-1dgf3{background:linear-gradient(135deg,#27ae60,#2c3e50)}
+.u-bg-linear-gradient-135deg-h2980-oxi60.u-bg-linear-gradient-135deg-h2980-oxi60.u-bg-linear-gradient-135deg-h2980-oxi60{background:linear-gradient(135deg,#2980b9,#16a085)}
+.u-bg-linear-gradient-135deg-h3449-e6s27.u-bg-linear-gradient-135deg-h3449-e6s27.u-bg-linear-gradient-135deg-h3449-e6s27{background:linear-gradient(135deg,#34495e,#7f8c8d)}
+.u-bg-linear-gradient-135deg-h6d4c-1msqp.u-bg-linear-gradient-135deg-h6d4c-1msqp.u-bg-linear-gradient-135deg-h6d4c-1msqp{background:linear-gradient(135deg,#6d4c41,#3e2723)}
+.u-bg-linear-gradient-135deg-h8e7c-1o1k5.u-bg-linear-gradient-135deg-h8e7c-1o1k5.u-bg-linear-gradient-135deg-h8e7c-1o1k5{background:linear-gradient(135deg,#8e7cc3,#5b3a8e)}
+.u-bg-linear-gradient-135deg-hc039-cnzbn.u-bg-linear-gradient-135deg-hc039-cnzbn.u-bg-linear-gradient-135deg-hc039-cnzbn{background:linear-gradient(135deg,#c0392b,#8e44ad)}
+.u-bg-linear-gradient-135deg-hc218-14gzs.u-bg-linear-gradient-135deg-hc218-14gzs.u-bg-linear-gradient-135deg-hc218-14gzs{background:linear-gradient(135deg,#c2185b,#d4af37)}
+.u-bg-linear-gradient-135deg-hee5a-17vu9.u-bg-linear-gradient-135deg-hee5a-17vu9.u-bg-linear-gradient-135deg-hee5a-17vu9{background:linear-gradient(135deg,#ee5a6f,#f29263)}
+.u-bg-linear-gradient-135deg-hf39c-nzaub.u-bg-linear-gradient-135deg-hf39c-nzaub.u-bg-linear-gradient-135deg-hf39c-nzaub{background:linear-gradient(135deg,#f39c12,#e74c3c)}
+.u-bg-linear-gradient-135deg-v-acc-1qh64.u-bg-linear-gradient-135deg-v-acc-1qh64.u-bg-linear-gradient-135deg-v-acc-1qh64{background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.u-bg-linear-gradient-90deg-h2980b-edz37.u-bg-linear-gradient-90deg-h2980b-edz37.u-bg-linear-gradient-90deg-h2980b-edz37{background:linear-gradient(90deg,#2980b9,#3498db)}
+.u-bg-linear-gradient-90deg-h8e44a-10w4i.u-bg-linear-gradient-90deg-h8e44a-10w4i.u-bg-linear-gradient-90deg-h8e44a-10w4i{background:linear-gradient(90deg,#8e44ad,#9b59b6)}
+.u-bg-none.u-bg-none.u-bg-none{background:none}
+.u-bg-rgb00005.u-bg-rgb00005.u-bg-rgb00005{background:rgba(0,0,0,.05)}
+.u-bg-v-accent.u-bg-v-accent.u-bg-v-accent{background:var(--accent)}
+.u-bg-v-border.u-bg-v-border.u-bg-v-border{background:var(--border)}
+.u-bg-v-danger.u-bg-v-danger.u-bg-v-danger{background:var(--danger)}
+.u-bg-v-glass.u-bg-v-glass.u-bg-v-glass{background:var(--glass)}
+.u-bg-v-item-bg.u-bg-v-item-bg.u-bg-v-item-bg{background:var(--item-bg)}
+.u-bg-v-success.u-bg-v-success.u-bg-v-success{background:var(--success)}
+.u-bg-v-warn.u-bg-v-warn.u-bg-v-warn{background:var(--warn)}
+
+/* --- border --- */
+.u-bd-1px-dashed-v-border{border:1px dashed var(--border)}
+.u-bd-1px-solid-v-border{border:1px solid var(--border)}
+.u-bd-none{border:none}
+
+/* --- border-color --- */
+.u-bdc-v-border{border-color:var(--border)}
+
+/* --- border-radius --- */
+.u-br-10px{border-radius:10px}
+.u-br-16px{border-radius:16px}
+.u-br-20px{border-radius:20px}
+.u-br-8px{border-radius:8px}
+
+/* --- border-top --- */
+.u-bdt-1px-solid-v-border{border-top:1px solid var(--border)}
+
+/* --- box-shadow --- */
+.u-shadow-0-20px-60px-rgb0004{box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.u-shadow-0-2px-8px-rgb19257433{box-shadow:0 2px 8px rgba(192,57,43,.3)}
+
+/* --- color --- */
+.u-c-hfff{color:#fff}
+.u-c-inherit{color:inherit}
+.u-c-v-accent{color:var(--accent)}
+.u-c-v-text-muted{color:var(--text-muted)}
+
+/* --- cursor --- */
+.u-cur-pointer{cursor:pointer}
+
+/* --- display --- */
+.u-d-flex{display:flex}
+.u-d-grid{display:grid}
+.u-d-none{display:none}
+
+/* --- flex --- */
+.u-flex-1{flex:1}
+
+/* --- flex-direction --- */
+.u-fd-column{flex-direction:column}
+
+/* --- flex-grow --- */
+.u-fg-1{flex-grow:1}
+
+/* --- flex-shrink --- */
+.u-fsh-0{flex-shrink:0}
+
+/* --- flex-wrap --- */
+.u-fw-wrap{flex-wrap:wrap}
+
+/* --- font-family --- */
+.u-ff-courier-new-courier-monospace{font-family:'Courier New',Courier,monospace}
+.u-ff-palatino-linotype-georgia-serif{font-family:'Palatino Linotype',Georgia,serif}
+.u-ff-times-new-roman-times-serif{font-family:'Times New Roman',Times,serif}
+.u-ff-inherit{font-family:inherit}
+.u-ff-verdana-arial-sans-serif{font-family:Verdana,Arial,sans-serif}
+
+/* --- font-size --- */
+.u-fs-_65rem{font-size:.65rem}
+.u-fs-_66rem{font-size:.66rem}
+.u-fs-_68rem{font-size:.68rem}
+.u-fs-_72rem{font-size:.72rem}
+.u-fs-_75rem{font-size:.75rem}
+.u-fs-_78rem{font-size:.78rem}
+.u-fs-_7rem{font-size:.7rem}
+.u-fs-_82rem{font-size:.82rem}
+.u-fs-_85rem{font-size:.85rem}
+.u-fs-_8rem{font-size:.8rem}
+.u-fs-1_1rem{font-size:1.1rem}
+.u-fs-1_45rem{font-size:1.45rem}
+.u-fs-12px{font-size:12px}
+.u-fs-3rem{font-size:3rem}
+
+/* --- font-style --- */
+.u-fst-italic{font-style:italic}
+
+/* --- font-weight --- */
+.u-fwt-700{font-weight:700}
+
+/* --- gap --- */
+.u-gap-10px{gap:10px}
+.u-gap-12px{gap:12px}
+.u-gap-14px{gap:14px}
+.u-gap-4px{gap:4px}
+.u-gap-5px{gap:5px}
+.u-gap-6px{gap:6px}
+.u-gap-8px{gap:8px}
+.u-gap-9px{gap:9px}
+
+/* --- grid-template-columns --- */
+.u-gtc-repeat-auto-fill-minmax-200px-1fr{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+
+/* --- height --- */
+.u-h-100pc{height:100%}
+.u-h-140px{height:140px}
+.u-h-20px{height:20px}
+.u-h-260px{height:260px}
+.u-h-280px{height:280px}
+.u-h-8px{height:8px}
+
+/* --- justify-content --- */
+.u-jc-center{justify-content:center}
+.u-jc-flex-start{justify-content:flex-start}
+.u-jc-space-between{justify-content:space-between}
+
+/* --- letter-spacing --- */
+.u-ls-2px{letter-spacing:2px}
+
+/* --- line-height --- */
+.u-lh-1_6{line-height:1.6}
+.u-lh-1_8{line-height:1.8}
+
+/* --- margin --- */
+.u-m-0{margin:0}
+.u-m-0-0-6px{margin:0 0 6px}
+.u-m-0-0-8px{margin:0 0 8px}
+.u-m-0-4px{margin:0 4px}
+.u-m-10px-0{margin:10px 0}
+.u-m-10px-0-4px{margin:10px 0 4px}
+.u-m-10px-0-8px{margin:10px 0 8px}
+.u-m-12px-0{margin:12px 0}
+.u-m-18px-0-2px{margin:18px 0 2px}
+.u-m-4px-0{margin:4px 0}
+.u-m-4px-0-0{margin:4px 0 0}
+.u-m-4px-2px{margin:4px 2px}
+.u-m-5px-0{margin:5px 0}
+.u-m-6px-0{margin:6px 0}
+.u-m-6px-0-0{margin:6px 0 0}
+.u-m-8px-0{margin:8px 0}
+
+/* --- margin-bottom --- */
+.u-mb-10px{margin-bottom:10px}
+.u-mb-14px{margin-bottom:14px}
+.u-mb-6px{margin-bottom:6px}
+
+/* --- margin-left --- */
+.u-ml-auto{margin-left:auto}
+
+/* --- margin-top --- */
+.u-mt-10px{margin-top:10px}
+.u-mt-4px{margin-top:4px}
+.u-mt-6px{margin-top:6px}
+.u-mt-8px{margin-top:8px}
+
+/* --- max-height --- */
+.u-maxh-70vh{max-height:70vh}
+.u-maxh-75vh{max-height:75vh}
+.u-maxh-80vh{max-height:80vh}
+.u-maxh-82vh{max-height:82vh}
+.u-maxh-85vh{max-height:85vh}
+
+/* --- max-width --- */
+.u-maxw-135px{max-width:135px}
+
+/* --- min-height --- */
+.u-minh-0{min-height:0}
+.u-minh-120px{min-height:120px}
+.u-minh-24px{min-height:24px}
+.u-minh-28px{min-height:28px}
+
+/* --- min-width --- */
+.u-minw-0{min-width:0}
+.u-minw-130px{min-width:130px}
+.u-minw-180px{min-width:180px}
+.u-minw-200px{min-width:200px}
+.u-minw-60px{min-width:60px}
+
+/* --- opacity --- */
+.u-op-_3{opacity:.3}
+.u-op-_35{opacity:.35}
+.u-op-_4{opacity:.4}
+.u-op-_5{opacity:.5}
+.u-op-_55{opacity:.55}
+.u-op-_6{opacity:.6}
+.u-op-_7{opacity:.7}
+
+/* --- outline --- */
+.u-outline-none{outline:none}
+
+/* --- overflow --- */
+.u-ov-hidden{overflow:hidden}
+
+/* --- overflow-y --- */
+.u-ovy-auto{overflow-y:auto}
+
+/* --- padding --- */
+.u-p-12px{padding:12px}
+.u-p-14px{padding:14px}
+.u-p-20px{padding:20px}
+.u-p-22px{padding:22px}
+.u-p-2px-8px{padding:2px 8px}
+.u-p-4px{padding:4px}
+.u-p-5px-14px{padding:5px 14px}
+
+/* --- text-align --- */
+.u-ta-center{text-align:center}
+
+/* --- transition --- */
+.u-tr-width-_5s{transition:width .5s}
+
+/* --- width --- */
+.u-w-0{width:0}
+.u-w-100pc{width:100%}
+.u-w-105px{width:105px}
+.u-w-170px{width:170px}
+.u-w-1px{width:1px}
+.u-w-220px{width:220px}
+.u-w-85px{width:85px}
+.u-w-90px{width:90px}
+.u-w-auto{width:auto}
+.u-w-min-420px-92vw{width:min(420px,92vw)}
+.u-w-min-480px-92vw{width:min(480px,92vw)}
+.u-w-min-500px-92vw{width:min(500px,92vw)}
