@@ -24,6 +24,20 @@ const save = async () => {
 let _lastToast = null;
 function toast(msg, type) { _lastToast = { msg, type }; }
 
+// ── Stubs ajoutés pour l'extension de couverture (memory.js, findreplace.js,
+// editor.js, wordcloud.js). Ces fonctions vivent dans des fichiers non chargés
+// par ce harnais (router.js, stats.js, readability.js) et ne sont pas l'objet
+// des tests ci-dessous ; seul leur appel doit ne pas planter.
+// Déclarés de façon défensive (comme le stub DOMPurify plus haut) : si l'un
+// de ces noms existe déjà dans un fichier réellement chargé, c'est la vraie
+// implémentation qui est conservée, pas le stub.
+let _switching = false;
+if (typeof updateDailyStats === 'undefined') { window.updateDailyStats = function () {}; }
+if (typeof debouncedSave === 'undefined') { window.debouncedSave = function () {}; }
+if (typeof getPlainText === 'undefined') {
+  window.getPlainText = html => (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 let _pass = 0, _fail = 0;
 function assert(cond, label) {
   const el = document.createElement('div'); el.className = 'line';
@@ -193,6 +207,238 @@ function group(title) {
   assert(!idx.profiles.some(pr => pr.id === marie.id), 'le profil "Marie" est supprimé après confirmation correcte');
   const marieData = await loadData('data_' + marie.id);
   assert(marieData === null, 'les données du profil supprimé sont bien effacées');
+
+  // ════════════════════════════════════════════════════════════════
+  // EXTENSION DE COUVERTURE — memory.js, findreplace.js, editor.js
+  // (annuler/rétablir), wordcloud.js, library.js (fonctions pures)
+  // ════════════════════════════════════════════════════════════════
+
+  // Bac à sable DOM : les fonctions testées ci-dessous lisent le vrai DOM.
+  // On reconstruit ici les seuls éléments dont elles ont besoin.
+  const sandbox = document.createElement('div');
+  sandbox.className = 'hidden';
+  sandbox.innerHTML =
+    '<div id="writer" contenteditable="true"></div>' +
+    '<button id="undo-btn"></button><button id="redo-btn"></button>' +
+    '<input id="fr-find-input"><input id="fr-replace-input">' +
+    '<div id="fr-status"></div>';
+  document.body.appendChild(sandbox);
+  const writerEl = document.getElementById('writer');
+  const findInput = document.getElementById('fr-find-input');
+  const replInput = document.getElementById('fr-replace-input');
+  const _savedDb = db, _savedCur = cur;
+
+  group('memory.js — splitPassages()');
+  const mots300 = Array.from({length:300}, (_,i) => 'mot'+i).join(' ');
+  const p300 = splitPassages(mots300);
+  assert(p300.length === 2, `300 mots en fenêtres de 200 → 2 passages (obtenu ${p300.length})`);
+  assert(p300[0].split(' ').length === 200, 'le premier passage contient exactement 200 mots');
+  assert(p300[1].startsWith('mot170 '), 'le second passage démarre 30 mots en arrière (chevauchement)');
+  assert(splitPassages('mot').length === 0, 'un fragment de moins de 20 caractères est ignoré');
+  assert(splitPassages('').length === 0, 'un texte vide ne produit aucun passage');
+  const pEsp = splitPassages('   plusieurs   espaces   consécutifs   ici   vraiment   ');
+  assert(pEsp.length === 1 && !/ {2}/.test(pEsp[0]), 'les espaces multiples sont normalisés');
+  const p50 = splitPassages(Array.from({length:50},(_,i)=>'mot'+i).join(' '), 20, 5);
+  assert(p50.length === 4, `fenêtre et chevauchement personnalisés respectés (attendu 4, obtenu ${p50.length})`);
+
+  group('memory.js — extractKeywords()');
+  const kw = extractKeywords('Le dragon dort. Le dragon rêve du dragon et de la forêt.');
+  assert(kw[0] === 'dragon', 'le mot le plus fréquent arrive en tête');
+  assert(!kw.includes('les') && !kw.includes('dans') && !kw.includes('pour'), 'les mots outils (stop-words) sont écartés');
+  assert(kw.includes('forêt'), 'les mots accentués sont conservés');
+  assert(extractKeywords('avec dans pour mais donc').length === 0, 'un texte composé uniquement de mots outils ne donne aucun mot-clé');
+  assert(extractKeywords('Il y a un an').length === 0, 'les mots de moins de 3 lettres sont écartés');
+  const mots30 = Array.from({length:30},(_,i) =>
+    'term' + String.fromCharCode(97 + Math.floor(i/26)) + String.fromCharCode(97 + i%26)).join(' ');
+  assert(extractKeywords(mots30).length === 20, `la liste est plafonnée à 20 mots-clés (obtenu ${extractKeywords(mots30).length})`);
+  assert(extractKeywords('DRAGON dragon Dragon')[0] === 'dragon', 'la casse est ignorée');
+
+  group('memory.js — scoreRelevance()');
+  assert(scoreRelevance(['chat'], [], 'le chat dort') === 2, 'une occurrence exacte vaut 2 points');
+  assert(scoreRelevance(['chat'], ['chat'], 'le chat dort') === 5, 'occurrence exacte + présence dans les mots-clés = 5 points');
+  assert(scoreRelevance(['chat'], [], 'chat chat chat') === 6, 'le score cumule les occurrences multiples');
+  assert(scoreRelevance(['chat'], [], 'aucun rapport ici') === 0, 'aucune correspondance donne 0');
+  assert(scoreRelevance(['chevalier'], [], 'les chevaliers arrivent') === 1,
+    'un mot de plus de 5 lettres est reconnu par sa racine (+1) même sans correspondance exacte');
+  assert(scoreRelevance(['dragon'], [], 'le dragon vole') === 3, 'occurrence exacte (2) + bonus de racine (1) pour un mot long');
+  assert(scoreRelevance([], ['chat'], 'le chat dort') === 0, 'une requête sans mot-clé donne 0');
+
+  group('memory.js — buildNarrativeIndex() / searchNarrativeIndex()');
+  assert(searchNarrativeIndex('dragon').length === 0, 'aucune recherche possible avant indexation');
+  db = {
+    chapters: [
+      { id:'ch-A', title:'La forge', content:'<p>'+('Le forgeron martèle le fer rouge dans la forge ardente. ').repeat(4)+'</p>' },
+      { id:'ch-B', title:'Le dragon', content:'<p>'+('Le dragon écarlate survole la vallée et rugit vers les montagnes. ').repeat(4)+'</p>' },
+      { id:'ch-C', title:'Trop court', content:'<p>Bref.</p>' }
+    ],
+    chars:  [{ name:'Aldric', role:'chevalier', age:'30', phys:'grand', info:'chasseur de dragon' }],
+    places: [{ name:'Val Sombre', type:'vallée', mood:'inquiétant', info:'repaire du dragon' }]
+  };
+  cur = 0;
+  // buildNarrativeIndex() commence par flushCurrentChapter() : on aligne
+  // l'éditeur sur le chapitre courant pour ne pas l'écraser au passage.
+  writerEl.innerHTML = db.chapters[0].content;
+  const nbPassages = buildNarrativeIndex();
+  assert(nbPassages === 2, `seuls les chapitres d'au moins 30 caractères sont indexés (attendu 2, obtenu ${nbPassages})`);
+  const resDragon = searchNarrativeIndex('dragon', 5);
+  assert(resDragon.length > 0, 'une recherche pertinente renvoie des résultats');
+  assert(resDragon.every((r,i,a) => i === 0 || a[i-1].score >= r.score), 'les résultats sont triés par score décroissant');
+  assert(resDragon.every(r => r.score > 0), 'les passages de score nul sont écartés');
+  assert(resDragon.some(r => r.chId === 'ch-B'), "l'index référence le chapitre par son ID stable");
+  assert(resDragon.some(r => r.chTitle === '📚 Personnages'), 'les personnages sont indexés');
+  assert(resDragon.some(r => r.chTitle === '🏰 Lieux'), 'les lieux sont indexés');
+  assert(searchNarrativeIndex('dragon', 1).length === 1, 'le paramètre topK limite le nombre de résultats');
+  assert(searchNarrativeIndex('zzzzinexistant').length === 0, 'une recherche sans correspondance renvoie une liste vide');
+  // Non-régression v6.0.0 : réorganiser les chapitres après indexation ne doit
+  // pas casser le lien entre un résultat et son chapitre d'origine.
+  db.chapters.reverse();
+  const cible = searchNarrativeIndex('dragon', 5).find(r => r.chId === 'ch-B');
+  assert(!!cible && db.chapters.findIndex(c => c.id === cible.chId) === 1,
+    'après réorganisation des chapitres, un résultat pointe toujours vers le bon chapitre');
+  db.chapters.reverse();
+
+  group('findreplace.js — findAllMatches()');
+  writerEl.innerHTML = 'Le chat dort. Le chat rêve.';
+  assert(findAllMatches(writerEl, 'chat').length === 2, 'deux occurrences trouvées dans un texte simple');
+  assert(findAllMatches(writerEl, 'CHAT').length === 2, 'la recherche est insensible à la casse');
+  assert(findAllMatches(writerEl, 'licorne').length === 0, 'une requête absente ne renvoie rien');
+  // Non-régression v7.1.0 : une occurrence à cheval sur une limite de mise en
+  // forme (mot moitié en gras) doit être retrouvée.
+  writerEl.innerHTML = 'Le <b>cha</b>t noir';
+  const chevauche = findAllMatches(writerEl, 'chat');
+  assert(chevauche.length === 1, 'une occurrence répartie sur deux nœuds texte est retrouvée (correctif v7.1.0)');
+  assert(!!chevauche[0] && chevauche[0].startNode !== chevauche[0].endNode,
+    "l'occurrence à cheval référence bien deux nœuds distincts");
+  writerEl.innerHTML = 'aaaa';
+  assert(findAllMatches(writerEl, 'aa').length === 2, 'les occurrences trouvées ne se chevauchent pas entre elles');
+  const flatIdx = buildFlatIndex(writerEl);
+  assert(flatIdx.flat === 'aaaa' && flatIdx.map.length === 4, 'buildFlatIndex() produit un texte à plat et une carte de même longueur');
+
+  group('findreplace.js — frReplaceAll()');
+  db = { chapters: [{ id:'fr-1', title:'Test', content:'' }] };
+  cur = 0;
+  findInput.value = 'chat'; replInput.value = 'chien';
+  writerEl.innerHTML = 'Le chat et le chat.';
+  frReplaceAll();
+  assert(writerEl.textContent === 'Le chien et le chien.', 'toutes les occurrences sont remplacées');
+  // Piège classique : un remplacement qui contient la requête ne doit pas se
+  // ré-appliquer à lui-même.
+  findInput.value = 'chat'; replInput.value = 'chaton';
+  writerEl.innerHTML = 'chat chat';
+  frReplaceAll();
+  assert(writerEl.textContent === 'chaton chaton', 'un remplacement contenant la requête ne boucle pas sur lui-même');
+  findInput.value = 'XX'; replInput.value = '';
+  writerEl.innerHTML = 'aXXbXXc';
+  frReplaceAll();
+  assert(writerEl.textContent === 'abc', 'un remplacement vide supprime les occurrences');
+  findInput.value = 'chat'; replInput.value = 'chien';
+  writerEl.innerHTML = 'Le <b>cha</b>t noir';
+  frReplaceAll();
+  assert(writerEl.textContent === 'Le chien noir', 'un remplacement à cheval sur du gras aboutit au bon texte');
+  assert(document.getElementById('fr-status').textContent === 'Aucun résultat',
+    'le compteur d’occurrences est réinitialisé après un remplacement global');
+
+  group('editor.js — piles annuler / rétablir');
+  // frReplaceAll() appelle liveCounter(), qui arme une étape d'annulation
+  // différée : on repart d'un état propre avant de tester les piles.
+  clearTimeout(_undoPushTimer); _pendingUndoFlush = false;
+  db = { chapters: [{ id:'ch-1', title:'Un', content:'A' }, { id:'ch-2', title:'Deux', content:'B' }] };
+  cur = 0;
+  Object.keys(_undoStacks).forEach(k => delete _undoStacks[k]);
+
+  const st1 = getUndoStack('ch-1');
+  assert(st1.stack.length === 1 && st1.stack[0] === '' && st1.index === 0, 'une pile neuve démarre vide, à l’index 0');
+  ensureUndoStack(db.chapters[1]);
+  assert(_undoStacks['ch-2'].stack[0] === 'B', 'ensureUndoStack() initialise la pile avec le contenu du chapitre');
+  ensureUndoStack({ id:'ch-2', content:'ÉCRASÉ' });
+  assert(_undoStacks['ch-2'].stack[0] === 'B', 'ensureUndoStack() n’écrase pas une pile déjà existante');
+
+  writerEl.innerHTML = 'v1'; checkpointNow();
+  assert(_undoStacks['ch-1'].stack.length === 2, 'une première modification est enregistrée');
+  checkpointNow();
+  assert(_undoStacks['ch-1'].stack.length === 2, 'un enregistrement identique au précédent n’ajoute pas d’étape');
+  writerEl.innerHTML = 'v2'; checkpointNow();
+  writerEl.innerHTML = 'v3'; checkpointNow();
+  assert(_undoStacks['ch-1'].stack.length === 4, 'trois modifications successives donnent 4 états');
+
+  undoEdit();
+  assert(writerEl.innerHTML === 'v2', 'annuler revient à l’état précédent');
+  assert(db.chapters[0].content === 'v2', 'annuler met aussi à jour le contenu du chapitre en mémoire');
+  undoEdit();
+  assert(writerEl.innerHTML === 'v1', 'annuler deux fois recule de deux états');
+  redoEdit();
+  assert(writerEl.innerHTML === 'v2', 'rétablir avance d’un état');
+  redoEdit(); redoEdit();
+  assert(writerEl.innerHTML === 'v3', 'on ne peut pas rétablir au-delà du dernier état');
+  undoEdit(); undoEdit(); undoEdit(); undoEdit();
+  assert(writerEl.innerHTML === '', 'on ne peut pas annuler au-delà du premier état');
+
+  // Après une annulation, une nouvelle modification efface la branche
+  // « rétablir » — comportement attendu d'un traitement de texte.
+  _undoStacks['ch-1'] = { stack:['a','b','c'], index:1 };
+  writerEl.innerHTML = 'z'; checkpointNow();
+  assert(_undoStacks['ch-1'].stack.join('') === 'abz', 'une nouvelle modification après annulation efface la branche « rétablir »');
+
+  // Plafond de la pile. La valeur attendue est écrite en dur volontairement :
+  // sinon le test se comparerait à lui-même et ne détecterait aucune dérive.
+  assert(UNDO_LIMIT === 100, 'le plafond de la pile d’annulation vaut bien 100 états');
+  Object.keys(_undoStacks).forEach(k => delete _undoStacks[k]);
+  for (let i = 0; i < UNDO_LIMIT + 5; i++) { writerEl.innerHTML = 'e' + i; checkpointNow(); }
+  assert(_undoStacks['ch-1'].stack.length === UNDO_LIMIT,
+    `la pile est plafonnée à ${UNDO_LIMIT} états (obtenu ${_undoStacks['ch-1'].stack.length})`);
+  assert(_undoStacks['ch-1'].index === _undoStacks['ch-1'].stack.length - 1, 'l’index reste cohérent après élagage de la pile');
+  assert(_undoStacks['ch-1'].stack[_undoStacks['ch-1'].stack.length-1] === 'e' + (UNDO_LIMIT+4),
+    'c’est bien le plus ancien état qui est supprimé, pas le plus récent');
+
+  // Non-régression ADR-4 : les piles sont indexées par ID de chapitre, donc
+  // réorganiser les chapitres ne mélange pas les historiques.
+  Object.keys(_undoStacks).forEach(k => delete _undoStacks[k]);
+  cur = 0; writerEl.innerHTML = 'texte du chapitre un'; checkpointNow();
+  cur = 1; writerEl.innerHTML = 'texte du chapitre deux'; checkpointNow();
+  db.chapters.reverse();
+  cur = db.chapters.findIndex(c => c.id === 'ch-1');
+  undoEdit();
+  assert(writerEl.innerHTML === '', 'après réorganisation, annuler agit sur la pile du bon chapitre');
+  assert(_undoStacks['ch-2'].stack.includes('texte du chapitre deux'), 'la pile de l’autre chapitre est restée intacte');
+
+  group('editor.js — isTypingTarget()');
+  assert(isTypingTarget(null) === false, 'aucun élément → faux');
+  assert(isTypingTarget(writerEl) === false, "l'éditeur principal n'est pas traité comme un champ de saisie tiers");
+  assert(isTypingTarget(findInput) === true, 'un champ de recherche est bien un champ de saisie');
+  assert(isTypingTarget(document.createElement('div')) === false, 'un simple bloc n’est pas un champ de saisie');
+
+  group('wordcloud.js — buildWordFreq()');
+  db = { chapters: [
+    { id:'w1', content:'<p>Le <b>dragon</b> vole dans les cieux. Le dragon rugit.</p>' },
+    { id:'w2', content:'<p>La forêt murmure et la forêt respire, forêt profonde.</p>' }
+  ]};
+  cur = 0;
+  const freqCur = buildWordFreq(false);
+  assert(freqCur[0][0] === 'dragon' && freqCur[0][1] === 2, 'chapitre courant seul : « dragon » compté 2 fois');
+  assert(!freqCur.some(([w]) => w === 'dans' || w === 'les'), 'les mots outils sont écartés');
+  assert(freqCur.every(([w]) => /^[a-zA-ZÀ-ÿ]+$/.test(w)), 'les balises HTML ne polluent pas le comptage');
+  const freqAll = buildWordFreq(true);
+  assert(freqAll[0][0] === 'forêt' && freqAll[0][1] === 3, 'tous chapitres : « forêt » en tête avec 3 occurrences');
+  assert(freqAll.every((e,i,a) => i === 0 || a[i-1][1] >= e[1]), 'la liste est triée par fréquence décroissante');
+  db = { chapters: [{ id:'w3', content:'' }] }; cur = 0;
+  assert(buildWordFreq(false).length === 0, 'un chapitre vide ne produit aucun mot');
+
+  group('library.js — fonctions pures');
+  assert(docListKey('p1') === 'doclist_p1', 'la clé de liste de manuscrits est stable');
+  assert(docDataKey('p1', 'd9') === 'doc_p1_d9', 'la clé de données de manuscrit est stable');
+  assert(formatRelativeDate(0) === '', 'un horodatage absent renvoie une chaîne vide');
+  const JOUR = 86400000;
+  assert(formatRelativeDate(Date.now()) === "Modifié aujourd'hui", 'à l’instant → aujourd’hui');
+  assert(formatRelativeDate(Date.now() - JOUR - 1000) === 'Modifié hier', 'un jour et des poussières → hier');
+  assert(formatRelativeDate(Date.now() - 3*JOUR - 1000) === 'Modifié il y a 3 jours', 'trois jours → « il y a 3 jours »');
+  assert(formatRelativeDate(Date.now() - 10*JOUR) === 'Modifié il y a 1 semaine(s)', 'dix jours → semaines');
+  assert(formatRelativeDate(Date.now() - 65*JOUR) === 'Modifié il y a 2 mois', 'soixante-cinq jours → mois');
+  assert(formatRelativeDate(Date.now() + 5*JOUR) === "Modifié aujourd'hui", 'une date future ne casse pas l’affichage');
+
+  // Remise en état pour ne pas perturber d'éventuels tests ultérieurs.
+  clearTimeout(_undoPushTimer); _pendingUndoFlush = false;
+  db = _savedDb; cur = _savedCur;
+  sandbox.remove();
 
   const total = _pass + _fail;
   const summary = document.getElementById('summary');
