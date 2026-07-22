@@ -125,6 +125,16 @@ au projet, il faudra penser à l'ajouter à `_headers`, sans quoi le navigateur
 le bloquera silencieusement (vérifier la console en cas de bouton qui ne
 répond plus après une modification).
 
+**Cas vécu (v7.13.0 → v7.16.0)** : le chargeur d'`odf-kit` avait été ajouté en
+`<script type="module">` **inline** directement dans `index.html`. `script-src`
+n'autorisant pas l'inline (volontairement, voir plus haut), ce script était
+bloqué silencieusement depuis son introduction — l'export/import ODT ne
+fonctionnait donc pas, sans qu'aucune erreur ne soit visible ailleurs que dans
+la console du navigateur. Corrigé en déplaçant le script dans un fichier
+externe `js/odf-loader.js` (couvert par `'self'`), sans toucher à `_headers`.
+**Leçon** : tout nouveau `<script>` doit être un fichier externe, jamais du
+code écrit directement dans `index.html` — même quelques lignes.
+
 ## Versioning
 
 Le projet suit un versioning sémantique (v6.0.0, v6.0.1, v6.1.0...).
@@ -158,24 +168,108 @@ Chaque mise à jour doit :
 - **Accessibilité clavier** pour le drag & drop des onglets (Alt+←/→ une fois un onglet
   sélectionné au clavier).
 
-### v6.1.0
+Les versions ci-dessous sont classées de la plus récente à la plus ancienne.
 
-- **Tests automatisés minimaux** (`tests/test-runner.html`) sur les fonctions les plus
-  sensibles du projet : migration de schéma, chiffrement AES-GCM/PBKDF2, diff LCS.
-  La logique de schéma a été extraite dans `schema.js` (sans dépendance au DOM) pour
-  la rendre testable indépendamment de l'application.
-- **Export JSON chiffré** si le projet est chiffré (même mot de passe) — auparavant,
-  l'export contenait toujours le roman en clair, même chiffrement local activé.
-- **Sauvegarde GitHub Gist chiffrée** dans les mêmes conditions (même correction que
-  ci-dessus, appliquée à la sauvegarde cloud).
-- **Historique des révisions du Gist** consultable et restaurable (GitHub conserve déjà
-  automatiquement chaque révision d'un gist — fonctionnalité exposée dans l'app).
-- **Compteur de mots par chapitre** visible directement dans la sidebar.
-- **Rechercher/remplacer** dans l'éditeur.
-- **Dupliquer un chapitre**.
-- **Export EPUB** (en plus de DOCX/JSON).
-- **Statut par chapitre** (Brouillon / À revoir / Final), visible dans la sidebar et
-  modifiable depuis l'éditeur.
+### v7.16.0
+
+- **Correction d'un bug de fuseau horaire** dans la statistique « Série en cours »
+  (`computeWritingStreak()`) : pour tout fuseau horaire en avance sur UTC (Europe, Asie...),
+  la série de jours consécutifs d'écriture pouvait être sous-comptée d'exactement un jour.
+  Bug détecté par les tests automatisés ci-dessous, jamais visible en développement (fuseau
+  UTC). `getWordsInLastNDays()` avait le même défaut, également corrigé.
+- **Correction de l'export/import ODT** : le petit script de chargement d'`odf-kit` était
+  un script inline dans `index.html`, bloqué silencieusement par la Content Security Policy
+  (`script-src` n'autorise pas l'inline, volontairement). Déplacé dans un fichier externe
+  `js/odf-loader.js`, chargé depuis `'self'` — aucun assouplissement de la CSP n'a été
+  nécessaire.
+- **Tests automatisés étendus** (`tests/test-runner.html`) : fonctions pures de `stats.js`
+  (`computeWritingStreak`, `computeBestWritingHour`, `getWordsInLastNDays`), `formatRelativeDate()`
+  de `library.js`, et la logique de navigation par onglets (`toggleTab`, `activateSubtab`,
+  `openTabOrSubtab`, association sous-onglet → catégorie).
+- **Nettoyage** du champ `db.autoGistInterval` (par manuscrit), devenu un vestige inutilisé
+  depuis la v7.14.0 (remplacé par `libsettings.autoGistInterval`, par profil, qui seul est
+  encore lu par l'application).
+
+### v7.15.0
+
+- **Réorganisation finale du panneau Système & Sauvegardes** (compte GitHub, sauvegarde
+  auto de toute la bibliothèque, manuscrit sélectionné, bibliothèque entière).
+- **Export PDF** du manuscrit (via jsPDF), en plus de DOCX/ODT/EPUB/JSON.
+- Correction CSS : l'overlay du panneau Système avait été omis de la règle commune à tous
+  les overlays modaux.
+
+### v7.14.0
+
+- **Vérification du token GitHub** avant toute tentative de sauvegarde (bouton "Vérifier"),
+  suite à un retour utilisateur : aucun moyen auparavant de confirmer qu'un token collé
+  était valide avant d'en avoir réellement besoin.
+
+### v7.13.0 (Lot 10)
+
+- **Panneau "Système & Sauvegardes"** généralisé à toute la bibliothèque (et non plus à un
+  seul manuscrit) : sauvegarde Gist automatique programmable par profil, export/import JSON
+  de toute la bibliothèque en une fois.
+- **Export ODT**, et généralisation de l'import DOCX/ODT vers un nouveau manuscrit ou un
+  chapitre d'un manuscrit existant.
+
+### v7.12.0 (Lot 9)
+
+- **Import DOCX** (via mammoth.js) vers un nouveau manuscrit ou un chapitre d'un manuscrit
+  existant.
+- **Sauvegarde Gist automatique programmée** (intervalle configurable).
+- **Statistiques avancées** : série de jours consécutifs d'écriture, meilleur moment de la
+  journée pour écrire.
+
+### v7.11.0 (Lot 7)
+
+- **Bibliothèque en vue Étagère** (dos de livres colorés, hauteur proportionnelle au nombre
+  de mots), en alternative à la vue Grille existante.
+
+### v7.10.0 (Lot 6)
+
+- **Vue "Fiches"** pour les chapitres (façon tableau de liège), en alternative à la liste
+  latérale classique — toujours réinitialisée sur "Liste" à l'ouverture d'un manuscrit.
+
+### v7.9.0
+
+- **Couverture personnalisable par manuscrit** (10 palettes dédiées + option Automatique).
+- **Objectif de mots** pour le manuscrit entier, avec barre de progression sur la carte
+  bibliothèque.
+
+### v7.8.1
+
+- Menu contextuel des chapitres (⋮) repositionné en élément unique `position:fixed`, pour
+  ne plus être rogné par l'`overflow` de la sidebar.
+
+### v7.8.0
+
+- **Tags libres** sur les chapitres, en complément du statut fixe (Brouillon / À revoir / Final).
+
+### v7.7.0
+
+- **Apparence personnalisable** : palette de couleurs, thème papier, police d'écriture.
+
+### v7.5.0
+
+- **Aide-mémoire des raccourcis clavier** (touche `?`).
+- **Confirmation avant de fermer/recharger l'onglet** s'il reste des modifications non
+  encore sauvegardées.
+
+### v7.4.0
+
+- **Regroupement des anciens onglets en 7 catégories** (Univers, IA & Mémoire, Analyse,
+  Système...), avec sous-navigation dédiée par catégorie.
+- **Barre d'outils regroupée en menus déroulants** (¶ Paragraphe / 🛠️ Outils / 🔎 Rechercher).
+
+### v7.2.0
+
+- **Bibliothèque multi-manuscrits** : chaque profil peut désormais contenir plusieurs
+  romans, avec migration automatique de l'ancien roman unique vers le premier manuscrit.
+
+### v7.1.0
+
+- Correction de navigation : un clic programmatique (lien personnage/lieu/quête, recherche
+  globale) rouvre désormais toujours l'onglet ciblé, même s'il était déjà actif.
 
 ### v7.0.0
 
@@ -200,6 +294,25 @@ Chaque mise à jour doit :
 - **Objectifs hebdomadaire et mensuel**, en plus de l'objectif quotidien déjà existant.
 - **Mode sombre par défaut selon les préférences système** à la toute première création
   d'un projet (un choix manuel ultérieur reste toujours prioritaire).
+
+### v6.1.0
+
+- **Tests automatisés minimaux** (`tests/test-runner.html`) sur les fonctions les plus
+  sensibles du projet : migration de schéma, chiffrement AES-GCM/PBKDF2, diff LCS.
+  La logique de schéma a été extraite dans `schema.js` (sans dépendance au DOM) pour
+  la rendre testable indépendamment de l'application.
+- **Export JSON chiffré** si le projet est chiffré (même mot de passe) — auparavant,
+  l'export contenait toujours le roman en clair, même chiffrement local activé.
+- **Sauvegarde GitHub Gist chiffrée** dans les mêmes conditions (même correction que
+  ci-dessus, appliquée à la sauvegarde cloud).
+- **Historique des révisions du Gist** consultable et restaurable (GitHub conserve déjà
+  automatiquement chaque révision d'un gist — fonctionnalité exposée dans l'app).
+- **Compteur de mots par chapitre** visible directement dans la sidebar.
+- **Rechercher/remplacer** dans l'éditeur.
+- **Dupliquer un chapitre**.
+- **Export EPUB** (en plus de DOCX/JSON).
+- **Statut par chapitre** (Brouillon / À revoir / Final), visible dans la sidebar et
+  modifiable depuis l'éditeur.
 
 ## Limites connues
 

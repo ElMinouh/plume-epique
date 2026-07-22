@@ -16,16 +16,12 @@
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.11.0/mammoth.browser.min.js"></script>
-<script type="module">
-  // v7.13.0 (Lot 10) — odf-kit est distribué en ESM uniquement (pas de build
-  // UMD classique). Exception ciblée et volontaire à l'ADR-1 (scripts
-  // classiques partout ailleurs) : ce petit script module ne fait QUE
-  // charger la lib et l'exposer en global (window.odfKit), tout le reste de
-  // l'app reste en scripts classiques inchangés.
-  import { htmlToOdt } from "https://cdn.jsdelivr.net/npm/odf-kit@0.9.2/+esm";
-  import { odtToHtml } from "https://cdn.jsdelivr.net/npm/odf-kit@0.9.2/odt-reader/+esm";
-  window.odfKit = { htmlToOdt, odtToHtml };
-</script>
+<!-- v7.16.0 : ce chargeur odf-kit était auparavant un script module écrit
+     directement ici — bloqué par la CSP (script-src n'autorise pas
+     l'exécution de script inline, volontairement, voir _headers). Déplacé
+     dans js/odf-loader.js, servi depuis 'self' : aucune modification de la
+     CSP n'était nécessaire. -->
+<script type="module" src="js/odf-loader.js"></script>
 </head>
 <body>
 
@@ -731,7 +727,7 @@
       <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre">🌙 Nuit</button>
       <button id="install-app-btn" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.72rem;font-weight:700;font-family:inherit;box-shadow:0 2px 8px rgba(192,57,43,.3);" title="Installer Plume Épique comme application sur cet ordinateur">📲 Installer sur le bureau</button>
       <button id="shortcuts-hint-btn" class="mode-indicator" style="margin-left:auto;padding:2px 8px;" title="Voir les raccourcis clavier (touche ?)">❔</button>
-      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.15.0</span>
+      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.16.0</span>
     </div>
   </div>
 </main>

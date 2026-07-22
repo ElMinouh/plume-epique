@@ -74,10 +74,14 @@ function migrateDb(data) {
   }
   if (v < 12) {
     // Statistiques avancées (v7.12.0, Lot 9) : activité par heure de la
-    // journée (pour "meilleur moment d'écriture") + intervalle de
-    // sauvegarde Gist automatique programmée (0 = désactivée).
+    // journée (pour "meilleur moment d'écriture").
+    // Note v7.16.0 : ce palier ajoutait aussi un `data.autoGistInterval`
+    // (intervalle de sauvegarde Gist par MANUSCRIT) — devenu un vestige dès
+    // la v7.14.0, remplacé par `libsettings.autoGistInterval` (par PROFIL,
+    // voir library.js). Le champ n'est plus jamais lu ; on ne l'écrit plus
+    // non plus ici. Un `data.autoGistInterval` déjà présent dans un document
+    // existant reste tel quel (inoffensif, simplement ignoré).
     if (!Array.isArray(data.hourlyActivity) || data.hourlyActivity.length !== 24) data.hourlyActivity = new Array(24).fill(0);
-    if (typeof data.autoGistInterval !== 'number') data.autoGistInterval = 30;
   }
   data._schemaVersion = SCHEMA_VERSION;
   return data;
@@ -92,5 +96,5 @@ const DEFAULT_DB = () => ({
   tabOrder:['tab-map','tab-sprint','tab-univers','tab-ia-memoire','tab-analysegroup','tab-systeme','tab-config'],
   darkMode:false, gistId:'', dailyGoal:500, weeklyGoal:3000, monthlyGoal:12000, sessionStats:{}, sprint:null, trash:[],
   accentPalette:'rouge-violet', paperMode:false, editorFont:'palatino', wordGoal:0,
-  hourlyActivity: new Array(24).fill(0), autoGistInterval:30
+  hourlyActivity: new Array(24).fill(0)
 });

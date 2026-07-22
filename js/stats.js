@@ -28,7 +28,13 @@ function updateDailyStats() {
 // enregistré juste avant le début de la période.
 // ═══════════════════════════════════════════════════════
 function getWordsInLastNDays(n, totalW) {
-  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-n); cutoff.setHours(0,0,0,0);
+  // Correction v7.16.0 : le `cutoff.setHours(0,0,0,0)` (minuit LOCAL) suivi
+  // d'un `.toISOString()` (qui convertit en UTC) décalait la clé d'un jour
+  // pour tout fuseau horaire en avance sur UTC (Europe, Asie...), puisque
+  // minuit local devient 22h/23h la veille en UTC. `getTodayKey()` et
+  // `db.sessionStats` n'ont eux jamais zéro l'heure — cutoffKey doit rester
+  // sur la même convention (voir aussi computeWritingStreak() ci-dessous).
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-n);
   const cutoffKey = cutoff.toISOString().slice(0,10);
   const before = Object.entries(db.sessionStats||{}).filter(([k]) => k < cutoffKey).sort((a,b)=>b[0].localeCompare(a[0]));
   const baseline = before.length ? before[0][1] : 0;
@@ -77,7 +83,13 @@ function trackHourlyActivity(totalW) {
 function computeWritingStreak() {
   const stats = db.sessionStats || {};
   const todayKey = getTodayKey();
-  let d = new Date(); d.setHours(0,0,0,0);
+  // Correction v7.16.0 (bug remonté par les tests automatisés) : le
+  // `d.setHours(0,0,0,0)` (minuit LOCAL) suivi d'un `.toISOString()` (UTC)
+  // décalait systématiquement `d` d'un jour en arrière pour tout fuseau en
+  // avance sur UTC (ex. Europe en été), désynchronisé de `getTodayKey()` qui
+  // ne zéro jamais l'heure. Résultat : la toute première journée de la
+  // série n'était jamais comptée (série sous-évaluée d'exactement 1 jour).
+  let d = new Date();
   if (!(todayKey in stats)) d.setDate(d.getDate()-1);
   let streak = 0;
   for (let i = 0; i < 3650; i++) {
