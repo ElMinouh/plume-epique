@@ -23,11 +23,11 @@ setInterval(() => {
 function renderHistoryTab() {
   const key = db.chapters[cur]?.id, snaps = (key && db.history[key]) || [];
   const list = document.getElementById('snapshot-list');
-  list.innerHTML = snaps.length ? '' : '<div style="opacity:.5;font-size:.8rem;padding:10px;">Aucun snapshot pour ce chapitre.</div>';
+  list.innerHTML = snaps.length ? '' : '<div class="u-op-_5 u-fs-_8rem u-p-10px">Aucun snapshot pour ce chapitre.</div>';
   snaps.forEach((snap, i) => {
     const el = document.createElement('div');
     el.className = 'history-item';
-    el.innerHTML = `<span>${DOMPurify.sanitize(snap.label)}</span><span style="opacity:.5;font-size:.7rem;">${getWordCount(snap.content)} mots</span>`;
+    el.innerHTML = `<span>${DOMPurify.sanitize(snap.label)}</span><span class="u-op-_5 u-fs-_7rem">${getWordCount(snap.content)} mots</span>`;
     el.addEventListener('click', () => showHistoryPreview(key, i, el));
     list.appendChild(el);
   });
@@ -50,11 +50,11 @@ function openDiffViewer() {
   const key = db.chapters[cur]?.id, snaps = (key && db.history[key]) || [];
   document.getElementById('history-chapter-name').textContent = db.chapters[cur].title;
   const list = document.getElementById('history-list');
-  list.innerHTML = snaps.length ? '' : '<div style="opacity:.5;font-size:.8rem;">Aucun snapshot.</div>';
+  list.innerHTML = snaps.length ? '' : '<div class="u-op-_5 u-fs-_8rem">Aucun snapshot.</div>';
   snaps.forEach((snap, i) => {
     const el = document.createElement('div');
     el.className = 'history-item';
-    el.innerHTML = `<span>${DOMPurify.sanitize(snap.label)}</span><span style="opacity:.5;font-size:.7rem;">${getWordCount(snap.content)} mots</span>`;
+    el.innerHTML = `<span>${DOMPurify.sanitize(snap.label)}</span><span class="u-op-_5 u-fs-_7rem">${getWordCount(snap.content)} mots</span>`;
     el.addEventListener('click', () => {
       document.querySelectorAll('#history-list .history-item').forEach(e=>e.classList.remove('selected'));
       el.classList.add('selected');

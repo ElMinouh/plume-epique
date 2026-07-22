@@ -35,9 +35,9 @@ function computeDiff(oldText, newText) {
   while (i < n) { ops.push({ type:'del', word:oldW[i] }); i++; }
   while (j < m) { ops.push({ type:'add', word:newW[j] }); j++; }
 
-  let html = `<div style="margin-bottom:8px;font-size:.75rem;opacity:.7;">
+  let html = `<div class="u-mb-8px u-fs-_75rem u-op-_7">
     <span class="diff-add">+${added} mots ajoutés</span> &nbsp; <span class="diff-del">-${removed} mots supprimés</span>
-    ${truncated ? '<br><span style="opacity:.6;">(aperçu détaillé limité aux '+MAX_WORDS+' premiers mots de chaque version)</span>' : ''}
+    ${truncated ? '<br><span class="u-op-_6">(aperçu détaillé limité aux '+MAX_WORDS+' premiers mots de chaque version)</span>' : ''}
   </div>`;
 
   html += ops.map(o => {

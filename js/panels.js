@@ -155,6 +155,6 @@ async function handleSearch() {
       wordsEl.appendChild(chip);
     });
   } catch(e) {
-    wordsEl.innerHTML = `<span class="lex-empty" style="color:var(--danger);">❌ ${e.message}</span>`;
+    wordsEl.innerHTML = `<span class="lex-empty u-c-v-danger">❌ ${e.message}</span>`;
   }
 }

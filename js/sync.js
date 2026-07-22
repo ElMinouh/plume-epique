@@ -193,7 +193,7 @@ function openExportSelect(chapters, title) {
   _exportSelectTitle = title || '';
   const listEl = document.getElementById('export-select-list');
   listEl.innerHTML = _exportSelectChapters.map((ch,i) =>
-    `<label style="display:flex;align-items:center;gap:8px;font-size:.82rem;padding:4px 0;cursor:pointer;">
+    `<label class="u-d-flex u-ai-center u-gap-8px u-fs-_82rem u-p-4px-0 u-cur-pointer">
       <input type="checkbox" class="export-select-cb" data-idx="${i}" checked>
       ${DOMPurify.sanitize(ch.title||('Chapitre '+(i+1)))}
     </label>`

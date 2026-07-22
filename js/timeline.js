@@ -1,7 +1,7 @@
 'use strict';
 function renderTimeline() {
   const el=document.getElementById('timeline-events'); el.innerHTML='';
-  if(!db.timeline.length){ el.innerHTML='<p style="opacity:.45;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">Aucun événement.</p>'; return; }
+  if(!db.timeline.length){ el.innerHTML='<p class="u-op-_45 u-pos-absolute u-top-50pc u-left-50pc u-transform-center-abs">Aucun événement.</p>'; return; }
   const w=Math.max(700,db.timeline.length*180);
   document.getElementById('timeline-track').style.width=w+'px';
   db.timeline.forEach((evt,i)=>{
@@ -14,7 +14,7 @@ function renderTimeline() {
     if(chT){const s=document.createElement('strong');s.textContent=chT;card.appendChild(s);}
     if(evt.date){const d=document.createElement('div');d.className='tl-date';d.textContent=evt.date;card.appendChild(d);}
     const txt=document.createElement('div');txt.textContent=evt.text;card.appendChild(txt);
-    const del=document.createElement('button');del.textContent='×';del.style.cssText='background:none;border:none;color:var(--accent);cursor:pointer;float:right;font-size:1rem;';
+    const del=document.createElement('button');del.textContent='×';del.className='tl-del-btn';
     del.addEventListener('click',e=>{e.stopPropagation();db.timeline.splice(i,1);save();renderTimeline();});
     card.appendChild(del);
     if(isA){ev.appendChild(card);ev.appendChild(conn);}else{ev.appendChild(conn);ev.appendChild(card);}

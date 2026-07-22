@@ -865,3 +865,6 @@ body.library-mode #library-screen{display:block;}
    style-src sans 'unsafe-inline'). */
 .tl-empty-msg{opacity:.45;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);}
 .tl-del-btn{background:none;border:none;color:var(--accent);cursor:pointer;float:right;font-size:1rem;}
+
+/* --- v7.20.0 : classe manquante pour l'étape 2/3 refaite proprement --- */
+.u-ovf-hidden{overflow:hidden}
