@@ -124,6 +124,10 @@ const CH_STATUS_META = {
 // Glisser-déposer des chapitres (remplace les flèches ↑/↓, nouveau v7.8.0) —
 // Alt+↑/↓ au clavier reste disponible via moveChapter() pour l'accessibilité.
 let _dragChapterIdx = null;
+// Vue Chapitres : liste (par défaut) ou tableau de fiches façon corkboard —
+// nouveau v7.10.0 (Lot 6). Jamais mémorisé : revient à 'list' à chaque
+// ouverture de manuscrit (voir initApp(), router.js).
+let _chapterViewMode = 'list';
 // Menu ⋮ du chapitre — nouveau v7.8.1 : UN SEUL élément partagé (#chapter-ctx-menu,
 // défini hors de la sidebar dans index.html), positionné en fixed et déplacé au
 // bon endroit à l'ouverture. Corrige le rognage par le overflow:hidden de la
@@ -133,7 +137,7 @@ function closeAllChapterMenus() {
   const menu = document.getElementById('chapter-ctx-menu');
   menu.classList.remove('open');
   _ctxMenuChapterIdx = null;
-  document.querySelectorAll('#chapter-list .chapter-item.menu-open').forEach(ci => ci.classList.remove('menu-open'));
+  document.querySelectorAll('#chapter-list .chapter-item.menu-open, #corkboard-view .card.menu-open').forEach(ci => ci.classList.remove('menu-open'));
 }
 function openChapterCtxMenu(i, btn) {
   const menu = document.getElementById('chapter-ctx-menu');
@@ -152,7 +156,7 @@ function openChapterCtxMenu(i, btn) {
   menu.style.left = left + 'px';
   menu.style.top = (rect.bottom + 4) + 'px';
   menu.style.visibility = 'visible';
-  const item = btn.closest('.chapter-item');
+  const item = btn.closest('.chapter-item, .card');
   if (item) item.classList.add('menu-open');
 }
 function reorderChapter(from, to) {
@@ -226,6 +230,74 @@ function renderChapterList() {
     });
   });
   list.querySelectorAll('.ch-kebab-btn').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); openChapterCtxMenu(parseInt(btn.dataset.idx), btn); });
+  });
+  // v7.10.0 : si la vue Fiches est active, la garder synchronisée avec la
+  // liste à chaque mutation (ajout/suppression/réordonnancement/tags/statut...)
+  // sans avoir à toucher chacun de ces points d'appel individuellement.
+  if (_chapterViewMode === 'cork') renderCorkboard();
+}
+// ═══════════════════════════════════════════════════════
+// VUE CORKBOARD — tableau de fiches (nouveau v7.10.0, Lot 6)
+// Bascule Liste/Fiches câblée dans wireAppEventListenersOnce() (router.js) ;
+// jamais mémorisée, remise à 'list' à chaque ouverture de manuscrit.
+// Réutilise reorderChapter() (Lot 4) pour le glisser-déposer et le menu ⋮
+// partagé existant (ADR-17) pour les actions — voir closeAllChapterMenus()/
+// openChapterCtxMenu() ci-dessus, étendus pour reconnaître aussi .card.
+// ═══════════════════════════════════════════════════════
+function setChapterViewMode(mode) {
+  _chapterViewMode = mode;
+  const isCork = mode === 'cork';
+  document.getElementById('view-list-btn').classList.toggle('active', !isCork);
+  document.getElementById('view-cork-btn').classList.toggle('active', isCork);
+  document.querySelector('#editor-wrapper .toolbar').style.display = isCork ? 'none' : 'flex';
+  document.getElementById('chapter-title-row').style.display = isCork ? 'none' : 'flex';
+  document.getElementById('writer').style.display = isCork ? 'none' : '';
+  document.getElementById('corkboard-view').style.display = isCork ? 'grid' : 'none';
+  if (isCork) renderCorkboard();
+}
+function renderCorkboard() {
+  const cont = document.getElementById('corkboard-view');
+  if (!cont) return;
+  cont.innerHTML = db.chapters.map((ch,i) => {
+    const sm = CH_STATUS_META[ch.status] || CH_STATUS_META.draft;
+    const tags = ch.tags || [];
+    const excerpt = ch.summary || getPlainText(ch.content).slice(0,90) || '(chapitre vide)';
+    return `<div class="card ${i===cur?'active':''}" data-idx="${i}" draggable="true" role="listitem" tabindex="0" style="border-top-color:${sm.color};" title="${sm.label}">
+      <div class="card-num">${i+1}</div>
+      <div class="card-title">${DOMPurify.sanitize(ch.title||'')}</div>
+      <div class="card-excerpt">${DOMPurify.sanitize(excerpt)}</div>
+      ${tags.length ? `<div class="ch-tags">${tags.map(t=>`<span class="ch-tag">#${DOMPurify.sanitize(t)}</span>`).join('')}</div>` : ''}
+      <div class="card-foot"><span>${getWordCount(ch.content)} mots</span><button class="ch-kebab-btn" data-idx="${i}" title="Actions du chapitre" aria-label="Actions du chapitre">⋮</button></div>
+    </div>`;
+  }).join('');
+  cont.querySelectorAll('.card').forEach(el => {
+    el.addEventListener('click', e => { if (e.target.closest('.ch-kebab-btn')) return; setChapterViewMode('list'); changeCh(parseInt(el.dataset.idx)); });
+    el.addEventListener('keydown', e => {
+      if (e.target.closest('.ch-kebab-btn')) return;
+      if (e.key==='Enter'||e.key===' ') { e.preventDefault(); setChapterViewMode('list'); changeCh(parseInt(el.dataset.idx)); }
+    });
+    el.addEventListener('dragstart', e => {
+      _dragChapterIdx = parseInt(el.dataset.idx);
+      el.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', ''); } catch(err) {}
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging');
+      cont.querySelectorAll('.card').forEach(x => x.classList.remove('drag-over'));
+      _dragChapterIdx = null;
+    });
+    el.addEventListener('dragover', e => { e.preventDefault(); if (_dragChapterIdx===null) return; el.classList.add('drag-over'); });
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+    el.addEventListener('drop', e => {
+      e.preventDefault(); el.classList.remove('drag-over');
+      const targetIdx = parseInt(el.dataset.idx);
+      if (_dragChapterIdx===null || _dragChapterIdx===targetIdx) return;
+      reorderChapter(_dragChapterIdx, targetIdx);
+    });
+  });
+  cont.querySelectorAll('.ch-kebab-btn').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); openChapterCtxMenu(parseInt(btn.dataset.idx), btn); });
   });
 }

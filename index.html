@@ -539,6 +539,10 @@
       <button class="action-btn" id="add-chapter-btn" style="flex-grow:1;" title="Ajouter un nouveau chapitre à ce manuscrit">+ Chapitre</button>
       <button class="action-btn" id="open-trash-btn" style="background:#7f8c8d;" title="Voir les chapitres supprimés (récupérables 30 jours)">🗑️<span class="trash-badge" id="trash-badge" aria-hidden="true"></span></button>
     </div>
+    <div class="ch-view-toggle" role="group" aria-label="Vue des chapitres">
+      <button class="mode-indicator active" id="view-list-btn" title="Liste des chapitres">☰ Liste</button>
+      <button class="mode-indicator" id="view-cork-btn" title="Vue en tableau de fiches">🗂️ Fiches</button>
+    </div>
     <div class="chapter-list-container" id="chapter-list" role="list"></div>
     <div class="sidebar-stats">
       📝 <strong id="total-words">0</strong> mots &nbsp;|&nbsp; 📅 <strong id="today-words">0</strong> aujourd'hui
@@ -593,7 +597,7 @@
       <input id="lex-in" class="field" style="width:85px;" placeholder="mot…" aria-label="Mot à chercher" title="Tapez un mot puis cliquez sur GO">
       <button class="action-btn" id="search-btn" aria-label="Rechercher" title="Chercher les synonymes ou antonymes de ce mot">GO</button>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+    <div id="chapter-title-row" style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
       <div id="chapter-title" contenteditable="true" role="textbox" aria-label="Titre" title="Cliquez pour renommer ce chapitre"
         style="font-size:1.45rem;font-weight:700;color:var(--accent);outline:none;min-height:28px;flex-grow:1;"></div>
       <select id="chapter-status-sel" class="field" style="width:auto;flex-shrink:0;" aria-label="Statut du chapitre" title="Statut d'avancement de ce chapitre">
@@ -604,6 +608,7 @@
     </div>
     <div id="writer" contenteditable="true" role="textbox" aria-multiline="true"
       aria-label="Zone d'écriture" spellcheck="false"></div>
+    <div id="corkboard-view" class="corkboard" role="list" aria-label="Tableau de fiches des chapitres" style="display:none;"></div>
     <div id="ai-summary-panel" role="dialog" aria-label="Résumé IA">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <strong style="font-size:.82rem;">✨ Résumé IA</strong>
@@ -644,7 +649,7 @@
       <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre">🌙 Nuit</button>
       <button id="install-app-btn" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.72rem;font-weight:700;font-family:inherit;box-shadow:0 2px 8px rgba(192,57,43,.3);" title="Installer Plume Épique comme application sur cet ordinateur">📲 Installer sur le bureau</button>
       <button id="shortcuts-hint-btn" class="mode-indicator" style="margin-left:auto;padding:2px 8px;" title="Voir les raccourcis clavier (touche ?)">❔</button>
-      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.9.0</span>
+      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.10.0</span>
     </div>
   </div>
 </main>

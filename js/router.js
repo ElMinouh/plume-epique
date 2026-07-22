@@ -101,6 +101,9 @@ function initApp(){
   // v7.6.0 : piles Annuler/Rétablir remises à zéro à chaque manuscrit ouvert
   // (elles sont propres à un document, pas à partager entre deux romans).
   _undoStacks = {}; _pendingUndoFlush = false; clearTimeout(_undoPushTimer);
+  // v7.10.0 : la vue Chapitres (Liste/Fiches) revient toujours sur Liste à
+  // l'ouverture d'un manuscrit — ce n'est pas une préférence mémorisée.
+  setChapterViewMode('list');
   renderTabs();renderChapterList();loadChapter(0);updateDailyStats();
   renderLibrary('chars');renderLibrary('places');renderQuests();renderWeakWords();initGoalUI();
   resumeSprintIfNeeded();
@@ -164,6 +167,9 @@ function wireAppEventListenersOnce(){
   document.getElementById('cctx-del').addEventListener('click',()=>{const i=_ctxMenuChapterIdx;closeAllChapterMenus();if(i!==null)deleteChapter(i);});
   document.getElementById('chapter-list').addEventListener('scroll',closeAllChapterMenus);
   window.addEventListener('resize',closeAllChapterMenus);
+  // Bascule Liste / Fiches (corkboard) — nouveau v7.10.0 (Lot 6).
+  document.getElementById('view-list-btn').addEventListener('click',()=>setChapterViewMode('list'));
+  document.getElementById('view-cork-btn').addEventListener('click',()=>setChapterViewMode('cork'));
   document.querySelectorAll('#font-picker .font-option').forEach(el=>{
     el.addEventListener('click',()=>selectFont(el.dataset.font));
     el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectFont(el.dataset.font);}});

@@ -50,6 +50,9 @@ main{flex-grow:1;width:98%;max-width:1500px;margin:0 auto 6px;
   margin-bottom:8px;line-height:1.3;cursor:text;min-height:1.3em;}
 #document-title:empty:before{content:'Titre du manuscrit…';opacity:.4;font-weight:400;}
 .chapter-list-container{flex-grow:1;overflow-y:auto;margin:8px 0;}
+/* Bascule Liste/Fiches (corkboard), nouveau v7.10.0 */
+.ch-view-toggle{display:flex;gap:6px;margin-top:8px;}
+.ch-view-toggle .mode-indicator{flex:1;text-align:center;}
 .chapter-item{padding:7px 10px;background:var(--item-bg);border-radius:8px;cursor:pointer;
   font-size:.78rem;display:flex;align-items:center;gap:6px;margin-bottom:4px;
   border:1px solid transparent;transition:.15s;outline:none;}
@@ -72,7 +75,7 @@ main{flex-grow:1;width:98%;max-width:1500px;margin:0 auto 6px;
 .ch-tag{background:var(--accent2);color:#fff;font-size:.62rem;padding:1px 7px;border-radius:10px;line-height:1.5;}
 .ch-kebab-btn{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;
   padding:1px 6px;border-radius:4px;line-height:1.4;opacity:0;flex-shrink:0;}
-.chapter-item:hover .ch-kebab-btn,.chapter-item.menu-open .ch-kebab-btn,.ch-kebab-btn:focus-visible{opacity:1;}
+.chapter-item:hover .ch-kebab-btn,.chapter-item.menu-open .ch-kebab-btn,.card:hover .ch-kebab-btn,.card.menu-open .ch-kebab-btn,.ch-kebab-btn:focus-visible{opacity:1;}
 .ch-kebab-btn:hover{background:rgba(0,0,0,.08);color:var(--text);}
 .toolbar-menu button.ch-menu-danger{color:#ff8a80;}
 .toolbar-menu button.ch-menu-danger:hover{background:rgba(231,76,60,.15);}
@@ -112,9 +115,21 @@ mark{background-color:rgba(192,57,43,.22);color:var(--text);border-radius:3px;}
   border-radius:6px;padding:7px 10px;outline:none;font-family:inherit;
   font-size:.82rem;width:100%;transition:border-color .2s;}
 .field:focus{border-color:var(--accent);}
-.corkboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;padding:6px;}
-.card{background:#fffceb;color:#2d3436;padding:14px;border-radius:5px;
-  box-shadow:2px 4px 8px rgba(0,0,0,.12);border-top:9px solid var(--accent);min-height:140px;}
+.corkboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;padding:6px;
+  flex-grow:1;overflow-y:auto;align-content:start;}
+.card{background:#fffceb;color:#2d3436;padding:14px;border-radius:5px;cursor:grab;position:relative;
+  box-shadow:2px 4px 8px rgba(0,0,0,.12);border-top:9px solid var(--accent);min-height:140px;transition:.15s;}
+.card:hover{box-shadow:2px 6px 14px rgba(0,0,0,.22);}
+.card.active{outline:2px solid var(--accent);outline-offset:2px;}
+.card.dragging{opacity:.4;}
+.card.drag-over{outline:2px dashed var(--accent);outline-offset:2px;}
+.card-num{font-size:.62rem;color:#8a8a7c;font-weight:700;}
+.card-title{font-weight:700;font-size:.86rem;margin:2px 0 6px;color:#2d3436;}
+.card-excerpt{font-size:.72rem;color:#5c5c52;line-height:1.4;margin-bottom:8px;}
+.card .ch-tags{margin-bottom:6px;}
+.card-foot{display:flex;justify-content:space-between;align-items:center;font-size:.68rem;color:#8a8a7c;margin-top:4px;}
+.card .ch-kebab-btn{color:#8a8a7c;}
+.card .ch-kebab-btn:hover{background:rgba(0,0,0,.08);color:#2d3436;}
 .db-grid{display:grid;grid-template-columns:210px 1fr;gap:14px;height:100%;overflow:hidden;}
 .list-box{background:var(--item-bg);border-radius:10px;padding:10px;overflow-y:auto;}
 .edit-box{background:rgba(255,255,255,.04);border-radius:10px;padding:14px;
