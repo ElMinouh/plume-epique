@@ -170,6 +170,15 @@ Chaque mise à jour doit :
 
 Les versions ci-dessous sont classées de la plus récente à la plus ancienne.
 
+### v7.16.1
+
+- **Second correctif sur l'export/import ODT**, révélé une fois le blocage CSP de la
+  v7.16.0 levé : la version d'`odf-kit` pinée (0.9.2) n'avait pas encore le sous-chemin
+  `odt-reader` (ajouté seulement en 0.9.8) — l'import échouait en réalité depuis la toute
+  première mise en place de cette fonctionnalité (v7.13.0), simplement masqué jusqu'ici par
+  le blocage CSP. Version bumpée vers 0.13.10 (signatures `htmlToOdt`/`odtToHtml` inchangées,
+  vérifiées directement dans le paquet npm avant ce correctif).
+
 ### v7.16.0
 
 - **Correction d'un bug de fuseau horaire** dans la statistique « Série en cours »

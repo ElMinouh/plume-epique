@@ -15,6 +15,15 @@
 // <script type="module" src="..."> depuis le même domaine, lui, est couvert
 // par 'self' dans script-src : aucune modification de _headers n'est
 // nécessaire, et aucune ouverture de sécurité n'est introduite.
-import { htmlToOdt } from "https://cdn.jsdelivr.net/npm/odf-kit@0.9.2/+esm";
-import { odtToHtml } from "https://cdn.jsdelivr.net/npm/odf-kit@0.9.2/odt-reader/+esm";
+// v7.16.1 — Correction d'un second bug, révélé une fois le blocage CSP
+// levé : le sous-chemin "odt-reader" n'existait pas encore dans odf-kit
+// @0.9.2 (ajouté seulement en 0.9.8 ; en 0.9.2 seul "./reader" existait,
+// voir package.json de cette version sur le registre npm). L'import
+// renvoyait donc un 404 depuis le tout début (v7.13.0), masqué jusqu'ici par
+// le blocage CSP qui empêchait le script de s'exécuter. Version bumpée vers
+// la dernière disponible (0.13.10 au moment de ce correctif) : signatures
+// htmlToOdt(html, {pageFormat}) et odtToHtml(bytes, {fragment}) inchangées,
+// vérifiées directement dans le paquet npm avant ce correctif.
+import { htmlToOdt } from "https://cdn.jsdelivr.net/npm/odf-kit@0.13.10/+esm";
+import { odtToHtml } from "https://cdn.jsdelivr.net/npm/odf-kit@0.13.10/odt-reader/+esm";
 window.odfKit = { htmlToOdt, odtToHtml };
