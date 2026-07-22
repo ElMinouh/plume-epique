@@ -1,0 +1,16 @@
+/* Styles de la page de tests — extraits du <style> inline de test-runner.html
+   lors du passage de la CSP à style-src 'self' (v7.19.0, étape 3/3).
+   Volontairement autonome : cette page ne charge pas css/style.css, pour rester
+   un harnais de test indépendant de la feuille de style de l'application. */
+body{font-family:'Consolas',monospace;background:#0d0d1a;color:#e8e0d0;padding:24px;line-height:1.6;}
+h2{margin-top:0;}
+.pass{color:#27ae60;}
+.fail{color:#e74c3c;font-weight:700;}
+.line{padding:2px 0;font-size:.88rem;}
+.group{margin-top:16px;font-weight:700;color:#c0392b;font-size:.95rem;}
+#summary{font-size:1.15rem;margin-top:20px;padding:12px 16px;border-radius:8px;display:inline-block;}
+.ok{background:rgba(39,174,96,.15);}
+.ko{background:rgba(231,76,60,.15);}
+p.hint{opacity:.6;font-size:.82rem;}
+/* Remplace les style="display:none" des deux conteneurs requis par profiles.js */
+.hidden{display:none;}
