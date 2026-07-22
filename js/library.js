@@ -20,6 +20,10 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 let _currentDocumentId = null;
+// Vue bibliothèque : grille (par défaut) ou étagère façon dos de livres —
+// nouveau v7.11.0 (Lot 7). Jamais mémorisée : remise à 'grid' à chaque
+// entrée dans la bibliothèque (voir enterLibrary()).
+let _libraryViewMode = 'grid';
 
 // Couvertures personnalisables par manuscrit (nouveau v7.9.0) — liste dédiée,
 // distincte des palettes d'interface (Config > Apparence) : plus décorative,
@@ -99,6 +103,7 @@ function formatRelativeDate(ts) {
 async function enterLibrary() {
   await migrateLegacyDocumentIfNeeded();
   wireLibraryStaticUI();
+  setLibraryViewMode('grid');
   await renderLibraryScreen();
   showLibraryScreen();
 }
@@ -117,6 +122,9 @@ function wireLibraryStaticUI() {
   });
   document.addEventListener('click', () => closeCoverPicker());
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCoverPicker(); });
+  // Bascule Grille / Étagère — nouveau v7.11.0 (Lot 7).
+  document.getElementById('view-grid-btn').addEventListener('click', () => setLibraryViewMode('grid'));
+  document.getElementById('view-shelf-btn').addEventListener('click', () => setLibraryViewMode('shelf'));
 }
 
 // Migration silencieuse : un profil v7.0/v7.1 a son roman unique sous
@@ -196,6 +204,67 @@ async function renderLibraryScreen() {
   container.querySelectorAll('[data-edit-cover]').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); openCoverPicker(btn.dataset.editCover, btn); });
   });
+  // v7.11.0 : garder l'étagère synchronisée si c'est la vue active (même
+  // principe que la corkboard des chapitres — Lot 6, editor.js).
+  if (_libraryViewMode === 'shelf') renderLibraryShelf(sorted);
+}
+
+// ═══════════════════════════════════════════════════════
+// VUE ÉTAGÈRE — dos de livres colorés (nouveau v7.11.0, Lot 7)
+// Réutilise la couleur de couverture (Lot 5) et le sélecteur de couverture
+// existant (openCoverPicker). Hauteur du dos proportionnelle au nombre de
+// mots. Jamais mémorisée : remise à 'grid' à chaque entrée en bibliothèque.
+// ═══════════════════════════════════════════════════════
+function setLibraryViewMode(mode) {
+  _libraryViewMode = mode;
+  const isShelf = mode === 'shelf';
+  document.getElementById('view-grid-btn').classList.toggle('active', !isShelf);
+  document.getElementById('view-shelf-btn').classList.toggle('active', isShelf);
+  document.getElementById('library-grid').style.display = isShelf ? 'none' : 'grid';
+  document.getElementById('library-shelf').style.display = isShelf ? 'block' : 'none';
+  if (isShelf) renderLibraryShelf();
+}
+async function renderLibraryShelf(sorted) {
+  const cont = document.getElementById('library-shelf');
+  if (!cont) return;
+  if (!sorted) {
+    const list = await loadDocList();
+    sorted = list.documents.slice().sort((a,b) => b.lastModified - a.lastModified);
+  }
+  const PER_ROW = 7;
+  const items = sorted.map(d => ({ d })).concat([{ isNew:true }]);
+  let html = '';
+  for (let i = 0; i < items.length; i += PER_ROW) {
+    html += `<div class="lib-shelf-row"><div class="lib-shelf-plank"></div>` + items.slice(i, i + PER_ROW).map(it => {
+      if (it.isNew) return `<div class="lib-book lib-book-new" id="library-new-btn-shelf" role="button" tabindex="0" aria-label="Nouveau projet" title="Créer un nouveau manuscrit vierge" style="height:80px;">+</div>`;
+      const d = it.d;
+      const cover = d.cover && d.cover !== 'auto' ? COVER_PALETTES[d.cover] : null;
+      const bg = cover ? `linear-gradient(160deg,${cover.a},${cover.b})` : 'linear-gradient(160deg,var(--accent),var(--accent2))';
+      const h = Math.max(80, Math.min(170, 80 + Math.round((d.wordCount||0) / 800)));
+      return `<div class="lib-book" data-doc-id="${d.id}" role="button" tabindex="0" style="height:${h}px;background:${bg};" title="Ouvrir « ${DOMPurify.sanitize(d.title || 'Sans titre')} »">
+        <button class="lib-book-del" data-delete-doc="${d.id}" title="Supprimer définitivement ce manuscrit" aria-label="Supprimer">🗑️</button>
+        <button class="lib-book-cover" data-edit-cover="${d.id}" title="Changer la couverture" aria-label="Changer la couverture">🎨</button>
+        <span class="lib-book-title">${DOMPurify.sanitize(d.title || 'Sans titre')}</span>
+      </div>`;
+    }).join('') + `</div>`;
+  }
+  cont.innerHTML = html;
+
+  cont.querySelectorAll('[data-doc-id]').forEach(book => {
+    book.addEventListener('click', e => { if (e.target.closest('.lib-book-del')||e.target.closest('.lib-book-cover')) return; openDocument(book.dataset.docId); });
+    book.addEventListener('keydown', e => { if ((e.key==='Enter'||e.key===' ')&&!e.target.closest('.lib-book-del')&&!e.target.closest('.lib-book-cover')) { e.preventDefault(); openDocument(book.dataset.docId); } });
+  });
+  cont.querySelectorAll('[data-delete-doc]').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); deleteDocument(btn.dataset.deleteDoc); });
+  });
+  cont.querySelectorAll('[data-edit-cover]').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); openCoverPicker(btn.dataset.editCover, btn); });
+  });
+  const newBtn = document.getElementById('library-new-btn-shelf');
+  if (newBtn) {
+    newBtn.addEventListener('click', createNewDocument);
+    newBtn.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); createNewDocument(); } });
+  }
 }
 
 async function openDocument(docId) {

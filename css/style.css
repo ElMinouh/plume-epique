@@ -448,6 +448,27 @@ body.library-mode #library-screen{display:block;}
 .library-new{border-style:dashed;display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:6px;min-height:126px;color:var(--text);}
 .library-new-icon{font-size:1.4rem;color:var(--accent);}
+/* Bibliothèque en étagère (nouveau v7.11.0, Lot 7) */
+#library-shelf{margin-top:4px;}
+.lib-shelf-row{position:relative;display:flex;align-items:flex-end;gap:10px;padding:0 4px 18px;margin-bottom:10px;flex-wrap:wrap;}
+.lib-shelf-plank{position:absolute;left:0;right:0;bottom:10px;height:14px;background:linear-gradient(#5c4630,#3e3020);
+  border-radius:2px;box-shadow:0 6px 10px rgba(0,0,0,.35);}
+.lib-book{position:relative;width:56px;border-radius:3px 3px 0 0;cursor:pointer;transition:transform .12s;
+  box-shadow:inset 3px 0 4px rgba(255,255,255,.15),2px 3px 6px rgba(0,0,0,.35);
+  display:flex;align-items:center;justify-content:center;padding:8px 3px;}
+.lib-book:hover,.lib-book:focus-visible{transform:translateY(-6px);}
+.lib-book-title{writing-mode:vertical-rl;transform:rotate(180deg);font-size:.66rem;font-weight:700;
+  color:rgba(255,255,255,.92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-height:100%;
+  text-shadow:0 1px 2px rgba(0,0,0,.35);}
+.lib-book-new{background:var(--item-bg);border:1px dashed var(--border);color:var(--accent);font-size:1.2rem;font-weight:700;}
+.lib-book-del,.lib-book-cover{position:absolute;left:50%;transform:translateX(-50%);width:22px;height:22px;border:none;
+  border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:.66rem;cursor:pointer;opacity:0;
+  display:flex;align-items:center;justify-content:center;}
+.lib-book-del{top:4px;}
+.lib-book-cover{top:30px;}
+.lib-book:hover .lib-book-del,.lib-book:hover .lib-book-cover,.lib-book-del:focus-visible,.lib-book-cover:focus-visible{opacity:1;}
+.lib-book-del:hover{background:var(--danger);}
+.lib-book-cover:hover{background:rgba(0,0,0,.75);}
 
 /* ── Menus déroulants de la barre d'outils (v7.4.0) ── */
 .toolbar-dropdown{position:relative;}

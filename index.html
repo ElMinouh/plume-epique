@@ -33,8 +33,15 @@
     </div>
   </div>
   <h2 style="margin:18px 0 2px;">📚 Ma bibliothèque</h2>
-  <p id="library-count" style="font-size:.78rem;color:var(--text-muted);margin:0 0 6px;"></p>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 6px;">
+    <p id="library-count" style="font-size:.78rem;color:var(--text-muted);margin:0;"></p>
+    <div class="ch-view-toggle" style="width:170px;" role="group" aria-label="Vue de la bibliothèque">
+      <button class="mode-indicator active" id="view-grid-btn" title="Vue grille">🔲 Grille</button>
+      <button class="mode-indicator" id="view-shelf-btn" title="Vue en étagère">📚 Étagère</button>
+    </div>
+  </div>
   <div id="library-grid"></div>
+  <div id="library-shelf" style="display:none;"></div>
 </div>
 
 <!-- OVERLAY : Mon profil -->
@@ -649,7 +656,7 @@
       <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre">🌙 Nuit</button>
       <button id="install-app-btn" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.72rem;font-weight:700;font-family:inherit;box-shadow:0 2px 8px rgba(192,57,43,.3);" title="Installer Plume Épique comme application sur cet ordinateur">📲 Installer sur le bureau</button>
       <button id="shortcuts-hint-btn" class="mode-indicator" style="margin-left:auto;padding:2px 8px;" title="Voir les raccourcis clavier (touche ?)">❔</button>
-      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.10.0</span>
+      <span style="font-size:.65rem;opacity:.35;">Plume Épique · v7.11.0</span>
     </div>
   </div>
 </main>
