@@ -787,3 +787,81 @@ body.library-mode #library-screen{display:block;}
 .u-w-min-420px-92vw{width:min(420px,92vw)}
 .u-w-min-480px-92vw{width:min(480px,92vw)}
 .u-w-min-500px-92vw{width:min(500px,92vw)}
+
+/* --- v7.18.0 : classes utilitaires supplémentaires (étape 2/3 CSP style-src, retrait des styles inline des fichiers JS) --- */
+.u-mb-8px{margin-bottom:8px}
+.u-mb-4px{margin-bottom:4px}
+.u-fs-_74rem{font-size:.74rem}
+.u-fs-_76rem{font-size:.76rem}
+.u-fs-1rem{font-size:1rem}
+.u-c-v-danger{color:var(--danger)}
+.u-c-v-accent2{color:var(--accent2)}
+.u-minw-70px{min-width:70px}
+.u-minw-45px{min-width:45px}
+.u-br-4px{border-radius:4px}
+.u-ta-right{text-align:right}
+.u-tovf-ellipsis{text-overflow:ellipsis}
+.u-ws-nowrap{white-space:nowrap}
+.u-p-4px-0{padding:4px 0}
+.u-p-3px-0{padding:3px 0}
+.u-p-10px{padding:10px}
+.u-p-16px{padding:16px}
+.u-p-0-2px{padding:0 2px}
+.u-op-_45{opacity:.45}
+.u-op-_8{opacity:.8}
+.u-pos-absolute{position:absolute}
+.u-top-50pc{top:50%}
+.u-left-50pc{left:50%}
+.u-transform-center-abs{transform:translate(-50%,-50%)}
+.u-float-right{float:right}
+.u-bdb-1px-solid-v-border{border-bottom:1px solid var(--border)}
+.u-ff-monospace{font-family:monospace}
+.u-mt-12px{margin-top:12px}
+.u-pt-10px{padding-top:10px}
+.u-ml-3px{margin-left:3px}
+.u-lh-1_55{line-height:1.55}
+.u-cur-default{cursor:default}
+.u-h-80px{height:80px}
+/* Carte "réponse" de la mémoire narrative (valeurs propres, non réutilisées ailleurs) */
+.memory-answer-card{background:rgba(142,68,173,.1);border:1px solid rgba(142,68,173,.3);border-radius:10px;padding:14px;font-size:.83rem;line-height:1.65;}
+/* Couleurs par statut de chapitre (brouillon/à revoir/final) — remplace les
+   style="background:${sm.color}" et style="border-top-color:${sm.color}"
+   qui étaient injectés dynamiquement en JS (bloqué par la CSP style-src sans
+   'unsafe-inline'). CH_STATUS_META (editor.js) n'a que ces 3 valeurs fixes. */
+.ch-status-draft{background:#7f8c8d}
+.ch-status-review{background:#f39c12}
+.ch-status-final{background:#27ae60}
+.card.ch-status-draft{border-top-color:#7f8c8d}
+.card.ch-status-review{border-top-color:#f39c12}
+.card.ch-status-final{border-top-color:#27ae60}
+
+/* Couvertures de manuscrit (COVER_PALETTES, library.js) — remplacent les
+   style="background:linear-gradient(...)" injectés dynamiquement (bloqué
+   par la CSP style-src sans 'unsafe-inline'). 10 clés fixes + "auto" (valeur
+   par défaut déjà gérée par les règles de base .library-cover / .lib-book). */
+.lib-book{background:linear-gradient(160deg,var(--accent),var(--accent2));}
+.library-cover.cover-rouge-violet{background:linear-gradient(135deg,#c0392b,#8e44ad)}
+.library-cover.cover-bleu-ocean{background:linear-gradient(135deg,#2980b9,#16a085)}
+.library-cover.cover-emeraude{background:linear-gradient(135deg,#27ae60,#2c3e50)}
+.library-cover.cover-rose-poudre{background:linear-gradient(135deg,#c2185b,#d4af37)}
+.library-cover.cover-ardoise{background:linear-gradient(135deg,#34495e,#7f8c8d)}
+.library-cover.cover-coucher-soleil{background:linear-gradient(135deg,#f39c12,#e74c3c)}
+.library-cover.cover-nuit-etoilee{background:linear-gradient(135deg,#16213e,#6a3093)}
+.library-cover.cover-sepia{background:linear-gradient(135deg,#6d4c41,#3e2723)}
+.library-cover.cover-corail{background:linear-gradient(135deg,#ee5a6f,#f29263)}
+.library-cover.cover-lavande{background:linear-gradient(135deg,#8e7cc3,#5b3a8e)}
+.lib-book.shelf-cover-rouge-violet{background:linear-gradient(160deg,#c0392b,#8e44ad)}
+.lib-book.shelf-cover-bleu-ocean{background:linear-gradient(160deg,#2980b9,#16a085)}
+.lib-book.shelf-cover-emeraude{background:linear-gradient(160deg,#27ae60,#2c3e50)}
+.lib-book.shelf-cover-rose-poudre{background:linear-gradient(160deg,#c2185b,#d4af37)}
+.lib-book.shelf-cover-ardoise{background:linear-gradient(160deg,#34495e,#7f8c8d)}
+.lib-book.shelf-cover-coucher-soleil{background:linear-gradient(160deg,#f39c12,#e74c3c)}
+.lib-book.shelf-cover-nuit-etoilee{background:linear-gradient(160deg,#16213e,#6a3093)}
+.lib-book.shelf-cover-sepia{background:linear-gradient(160deg,#6d4c41,#3e2723)}
+.lib-book.shelf-cover-corail{background:linear-gradient(160deg,#ee5a6f,#f29263)}
+.lib-book.shelf-cover-lavande{background:linear-gradient(160deg,#8e7cc3,#5b3a8e)}
+/* Message vide de la chronologie + bouton × d'un événement (timeline.js) —
+   remplacent un style="..." et un .style.cssText='...' (bloqués par la CSP
+   style-src sans 'unsafe-inline'). */
+.tl-empty-msg{opacity:.45;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);}
+.tl-del-btn{background:none;border:none;color:var(--accent);cursor:pointer;float:right;font-size:1rem;}

@@ -293,17 +293,17 @@ async function renderLibraryScreen() {
       <span class="library-new-icon">+</span><span>Nouveau projet</span>
     </div>` + sorted.map(d => {
       const cover = d.cover && d.cover !== 'auto' ? COVER_PALETTES[d.cover] : null;
-      const coverStyle = cover ? ` style="background:linear-gradient(135deg,${cover.a},${cover.b});"` : '';
+      const coverClass = cover ? ` cover-${d.cover}` : '';
       const goal = d.wordGoal || 0;
       const pct = goal > 0 ? Math.min(100, Math.round((d.wordCount||0) / goal * 100)) : 0;
       return `
     <div class="library-card" data-doc-id="${d.id}" role="button" tabindex="0" title="Ouvrir « ${DOMPurify.sanitize(d.title || 'Sans titre')} »">
       <button class="library-kebab-btn" data-kebab-doc="${d.id}" title="Actions du manuscrit" aria-label="Actions du manuscrit">⋮</button>
-      <div class="library-cover"${coverStyle}>📖</div>
+      <div class="library-cover${coverClass}">📖</div>
       <div class="library-card-body">
         <p class="library-card-title">${DOMPurify.sanitize(d.title || 'Sans titre')}</p>
         <p class="library-card-meta">${d.chapterCount||0} chapitre(s) · ${d.wordCount||0} mots</p>
-        ${goal>0 ? `<div class="library-progress" title="${d.wordCount||0} / ${goal} mots"><div class="library-progress-bar" style="width:${pct}%;"></div></div><p class="library-progress-label">${d.wordCount||0} / ${goal} mots · ${pct}%</p>` : ''}
+        ${goal>0 ? `<div class="library-progress" title="${d.wordCount||0} / ${goal} mots"><div class="library-progress-bar" data-pct="${pct}"></div></div><p class="library-progress-label">${d.wordCount||0} / ${goal} mots · ${pct}%</p>` : ''}
         <p class="library-card-date">${formatRelativeDate(d.lastModified)}${d.lastGistSync ? ' · ☁️ '+formatRelativeDate(d.lastGistSync).replace('Modifié ','') : ''}</p>
       </div>
     </div>`;
@@ -318,6 +318,12 @@ async function renderLibraryScreen() {
   });
   container.querySelectorAll('[data-kebab-doc]').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); openLibraryCtxMenu(btn.dataset.kebabDoc, btn); });
+  });
+  // v7.18.0 : largeur de la barre de progression posée via la propriété CSSOM
+  // (autorisée par la CSP style-src même sans 'unsafe-inline'), plutôt qu'un
+  // style="width:...' textuel dans le HTML généré ci-dessus (bloqué, lui).
+  container.querySelectorAll('.library-progress-bar[data-pct]').forEach(el => {
+    el.style.width = el.dataset.pct + '%';
   });
   // v7.11.0 : garder l'étagère synchronisée si c'est la vue active (même
   // principe que la corkboard des chapitres — Lot 6, editor.js).
@@ -351,18 +357,24 @@ async function renderLibraryShelf(sorted) {
   let html = '';
   for (let i = 0; i < items.length; i += PER_ROW) {
     html += `<div class="lib-shelf-row"><div class="lib-shelf-plank"></div>` + items.slice(i, i + PER_ROW).map(it => {
-      if (it.isNew) return `<div class="lib-book lib-book-new" id="library-new-btn-shelf" role="button" tabindex="0" aria-label="Nouveau projet" title="Créer un nouveau manuscrit vierge" style="height:80px;">+</div>`;
+      if (it.isNew) return `<div class="lib-book lib-book-new u-h-80px" id="library-new-btn-shelf" role="button" tabindex="0" aria-label="Nouveau projet" title="Créer un nouveau manuscrit vierge">+</div>`;
       const d = it.d;
       const cover = d.cover && d.cover !== 'auto' ? COVER_PALETTES[d.cover] : null;
-      const bg = cover ? `linear-gradient(160deg,${cover.a},${cover.b})` : 'linear-gradient(160deg,var(--accent),var(--accent2))';
+      const shelfCoverClass = cover ? ` shelf-cover-${d.cover}` : '';
       const h = Math.max(80, Math.min(170, 80 + Math.round((d.wordCount||0) / 800)));
-      return `<div class="lib-book" data-doc-id="${d.id}" role="button" tabindex="0" style="height:${h}px;background:${bg};" title="Ouvrir « ${DOMPurify.sanitize(d.title || 'Sans titre')} »">
+      return `<div class="lib-book${shelfCoverClass}" data-doc-id="${d.id}" data-h="${h}" role="button" tabindex="0" title="Ouvrir « ${DOMPurify.sanitize(d.title || 'Sans titre')} »">
         <button class="lib-book-kebab" data-kebab-doc="${d.id}" title="Actions du manuscrit" aria-label="Actions du manuscrit">⋮</button>
         <span class="lib-book-title">${DOMPurify.sanitize(d.title || 'Sans titre')}</span>
       </div>`;
     }).join('') + `</div>`;
   }
   cont.innerHTML = html;
+  // v7.18.0 : hauteur du dos de livre posée via la propriété CSSOM (autorisée
+  // par la CSP même sans 'unsafe-inline'), plutôt qu'un style="height:..."
+  // textuel dans le HTML généré ci-dessus (bloqué, lui).
+  cont.querySelectorAll('.lib-book[data-h]').forEach(el => {
+    el.style.height = el.dataset.h + 'px';
+  });
 
   cont.querySelectorAll('[data-doc-id]').forEach(book => {
     book.addEventListener('click', e => { if (e.target.closest('.lib-book-kebab')) return; openDocument(book.dataset.docId); });
@@ -577,13 +589,13 @@ async function libOpenGistHistory(docId) {
   try { mData = await loadManuscriptData(docId); } catch(e) { toast(e.message, 'error'); return; }
   if (!mData.gistId) { toast("Ce manuscrit n'a pas encore de Gist.", 'error'); return; }
   const listEl = document.getElementById('gist-history-list');
-  listEl.innerHTML = '<div style="padding:10px;opacity:.6;">Chargement…</div>';
+  listEl.innerHTML = '<div class="u-p-10px u-op-_6">Chargement…</div>';
   document.getElementById('gist-history-overlay').classList.add('active');
   try {
     const resp = await fetch(`https://api.github.com/gists/${mData.gistId}/commits`, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const commits = await resp.json();
-    if (!commits.length) { listEl.innerHTML = '<div style="padding:10px;opacity:.6;">Aucun historique.</div>'; return; }
+    if (!commits.length) { listEl.innerHTML = '<div class="u-p-10px u-op-_6">Aucun historique.</div>'; return; }
     listEl.innerHTML = '';
     commits.slice().reverse().forEach((c, i) => {
       const date = new Date(c.committed_at).toLocaleString('fr');
@@ -593,7 +605,7 @@ async function libOpenGistHistory(docId) {
       el.addEventListener('click', () => libLoadGistRevision(docId, mData.gistId, c.version));
       listEl.appendChild(el);
     });
-  } catch(e) { listEl.innerHTML = `<div style="padding:10px;color:var(--danger);">❌ ${e.message}</div>`; }
+  } catch(e) { listEl.innerHTML = `<div class="u-p-10px u-c-v-danger">❌ ${e.message}</div>`; }
 }
 async function libLoadGistRevision(docId, gistId, sha) {
   if (!confirm('Charger cette révision remplacera ce manuscrit. Continuer ?')) return;

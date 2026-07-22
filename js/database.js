@@ -16,12 +16,12 @@ function renderLibrary(k){
     .map((item,i)=>({item,i}))
     .filter(({item})=>!filter||(item.name||'').toLowerCase().includes(filter))
     .map(({item,i})=>`<div class="chapter-item" data-type="${k}" data-idx="${i}" role="listitem" tabindex="0">${DOMPurify.sanitize(item.name)}</div>`).join('')
-    || `<div style="opacity:.5;font-size:.78rem;padding:10px;text-align:center;">${filter?'Aucun résultat.':'Aucun élément pour le moment.'}</div>`;
+    || `<div class="u-op-_5 u-fs-_78rem u-p-10px u-ta-center">${filter?'Aucun résultat.':'Aucun élément pour le moment.'}</div>`;
   c.querySelectorAll('.chapter-item').forEach(el=>{el.addEventListener('click',()=>showEdit(el.dataset.type,parseInt(el.dataset.idx)));el.addEventListener('keydown',e=>{if(e.key==='Enter')showEdit(el.dataset.type,parseInt(el.dataset.idx));});});
 }
 function showEdit(k,i){
   const item=db[k][i];const container=document.getElementById(k==='chars'?'char-edit':'place-edit');container.innerHTML='';
-  const hdr=document.createElement('div');hdr.style.cssText='display:flex;justify-content:space-between;gap:6px;';
+  const hdr=document.createElement('div');hdr.className='u-d-flex u-jc-space-between u-gap-6px';
   const nameInput=document.createElement('input');nameInput.className='field';nameInput.style.fontWeight='700';nameInput.value=item.name;
   nameInput.addEventListener('input',()=>{db[k][i].name=nameInput.value;debouncedSave();renderLibrary(k);});
   const delBtn=document.createElement('button');delBtn.className='action-btn btn-sm';delBtn.style.background='#e74c3c';delBtn.textContent='✕';
@@ -59,9 +59,9 @@ function addLink(type,fromIdx,toType,toIdx){if(!db[type][fromIdx].links)db[type]
 function removeLink(type,fromIdx,linkIdx){db[type][fromIdx].links=db[type][fromIdx].links.filter((_,i)=>i!==linkIdx);save();showEdit(type,fromIdx);}
 function navigateToLink(targetType,targetIdx){const tabId=targetType==='chars'?'tab-chars':targetType==='places'?'tab-places':'tab-quests';openTabOrSubtab(tabId);if(targetType==='quests')showQuestEdit(targetIdx);else showEdit(targetType,targetIdx);}
 function renderLinkPanel(type,idx){
-  const item=db[type][idx];let html=`<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;"><strong style="font-size:.8rem;">🔗 Liens</strong><div id="link-list" style="margin:6px 0;">`;
-  (item.links||[]).forEach((l,i)=>{const target=db[l.type]?.[l.idx];if(target)html+=`<span class="link-badge" data-nav-type="${l.type}" data-nav-idx="${l.idx}">${DOMPurify.sanitize(target.name||target.text)}<button data-remove-type="${type}" data-remove-from="${idx}" data-remove-link="${i}" style="background:none;border:none;color:white;cursor:pointer;margin-left:3px;">×</button></span>`;});
-  html+=`</div><div class="form-row" style="margin-top:6px;"><select id="link-type-sel" class="field"><option value="chars">Perso</option><option value="places">Lieu</option><option value="quests">Quête</option></select><select id="link-item-sel" class="field"></select><button class="action-btn btn-sm" data-link-from-type="${type}" data-link-from-idx="${idx}">+</button></div></div>`;
+  const item=db[type][idx];let html=`<div class="u-mt-12px u-bdt-1px-solid-v-border u-pt-10px"><strong class="u-fs-_8rem">🔗 Liens</strong><div id="link-list" class="u-m-6px-0">`;
+  (item.links||[]).forEach((l,i)=>{const target=db[l.type]?.[l.idx];if(target)html+=`<span class="link-badge" data-nav-type="${l.type}" data-nav-idx="${l.idx}">${DOMPurify.sanitize(target.name||target.text)}<button data-remove-type="${type}" data-remove-from="${idx}" data-remove-link="${i}" class="u-bg-none u-bd-none u-c-hfff u-cur-pointer u-ml-3px">×</button></span>`;});
+  html+=`</div><div class="form-row u-mt-6px"><select id="link-type-sel" class="field"><option value="chars">Perso</option><option value="places">Lieu</option><option value="quests">Quête</option></select><select id="link-item-sel" class="field"></select><button class="action-btn btn-sm" data-link-from-type="${type}" data-link-from-idx="${idx}">+</button></div></div>`;
   return html;
 }
 document.addEventListener('click',e=>{
@@ -83,7 +83,7 @@ function renderQuests(){
     .map((q,i)=>({q,i}))
     .filter(({q})=>!filter||(q.text||'').toLowerCase().includes(filter))
     .map(({q,i})=>`<div class="chapter-item" data-quest-idx="${i}" role="listitem" tabindex="0"><input type="checkbox" ${q.done?'checked':''} data-quest-check="${i}"> ${DOMPurify.sanitize(q.text)}</div>`).join('')
-    || `<div style="opacity:.5;font-size:.78rem;padding:10px;text-align:center;">${filter?'Aucun résultat.':'Aucune quête pour le moment.'}</div>`;
+    || `<div class="u-op-_5 u-fs-_78rem u-p-10px u-ta-center">${filter?'Aucun résultat.':'Aucune quête pour le moment.'}</div>`;
   c.querySelectorAll('[data-quest-check]').forEach(cb=>cb.addEventListener('click',e=>{e.stopPropagation();db.quests[parseInt(cb.dataset.questCheck)].done=cb.checked;save();}));
   c.querySelectorAll('[data-quest-idx]').forEach(el=>el.addEventListener('click',()=>showQuestEdit(parseInt(el.dataset.questIdx))));
 }
@@ -167,7 +167,7 @@ function addItem(k){const n=prompt('Nom :');if(n){db[k].push({name:n,info:''});s
 // ═══════════════════════════════════════════════════════
 function renderWeakWords() {
   const c=document.getElementById('weak-words-list');
-  c.innerHTML=db.weakWords.map((w,i)=>`<span class="link-badge">${DOMPurify.sanitize(w)} <button class="remove-weak" data-idx="${i}" style="background:none;border:none;color:white;cursor:pointer;font-weight:bold;padding:0 2px;">×</button></span>`).join('');
+  c.innerHTML=db.weakWords.map((w,i)=>`<span class="link-badge">${DOMPurify.sanitize(w)} <button class="remove-weak" data-idx="${i}" class="u-bg-none u-bd-none u-c-hfff u-cur-pointer u-fwt-700 u-p-0-2px">×</button></span>`).join('');
   c.querySelectorAll('.remove-weak').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();db.weakWords.splice(parseInt(btn.dataset.idx),1);save();renderWeakWords();}));
 }
 function addWeakWord(){const i=document.getElementById('new-weak-word');const w=i.value.trim().toLowerCase();if(w&&!db.weakWords.includes(w)){db.weakWords.push(w);i.value='';save();renderWeakWords();}}

@@ -193,9 +193,9 @@ function renderChapterList() {
     return `<div class="chapter-item ${i===cur?'active':''}" data-idx="${i}" role="listitem" tabindex="0" aria-current="${i===cur}" draggable="true">
       <div class="ch-row">
         <span class="ch-drag-handle" aria-hidden="true" title="Glisser pour réordonner (ou Alt+↑/↓)">⠿</span>
-        <span class="ch-status-dot" style="background:${sm.color};" title="${sm.label}"></span>
+        <span class="ch-status-dot ch-status-${ch.status||'draft'}" title="${sm.label}"></span>
         <span class="ch-num">${i+1}.</span>
-        <span class="ch-title-text" style="flex-grow:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${DOMPurify.sanitize(ch.title||'')}</span>
+        <span class="ch-title-text u-fg-1 u-ov-hidden u-tovf-ellipsis u-ws-nowrap">${DOMPurify.sanitize(ch.title||'')}</span>
         <span class="ch-wordcount" title="Nombre de mots">${getWordCount(ch.content)}</span>
         <button class="ch-kebab-btn" data-idx="${i}" title="Actions du chapitre" aria-label="Actions du chapitre">⋮</button>
       </div>
@@ -263,7 +263,7 @@ function renderCorkboard() {
     const sm = CH_STATUS_META[ch.status] || CH_STATUS_META.draft;
     const tags = ch.tags || [];
     const excerpt = ch.summary || getPlainText(ch.content).slice(0,90) || '(chapitre vide)';
-    return `<div class="card ${i===cur?'active':''}" data-idx="${i}" draggable="true" role="listitem" tabindex="0" style="border-top-color:${sm.color};" title="${sm.label}">
+    return `<div class="card ch-status-${ch.status||'draft'} ${i===cur?'active':''}" data-idx="${i}" draggable="true" role="listitem" tabindex="0" title="${sm.label}">
       <div class="card-num">${i+1}</div>
       <div class="card-title">${DOMPurify.sanitize(ch.title||'')}</div>
       <div class="card-excerpt">${DOMPurify.sanitize(excerpt)}</div>
@@ -354,16 +354,16 @@ function closeTrash() { document.getElementById('trash-overlay').classList.remov
 function renderTrashList() {
   const listEl = document.getElementById('trash-list');
   if (!db.trash || !db.trash.length) {
-    listEl.innerHTML = '<div style="opacity:.5;padding:16px;text-align:center;font-size:.82rem;">La corbeille est vide.</div>';
+    listEl.innerHTML = '<div class="u-op-_5 u-p-16px u-ta-center u-fs-_82rem">La corbeille est vide.</div>';
     return;
   }
   listEl.innerHTML = db.trash.map((t,i) => {
     const daysLeft = Math.max(0, 30 - Math.floor((Date.now()-t.deletedAt)/86400000));
-    return `<div class="history-item" style="cursor:default;">
-      <span>${DOMPurify.sanitize(t.chapter.title||'Sans titre')}<br><span style="opacity:.5;font-size:.68rem;">Supprimé le ${new Date(t.deletedAt).toLocaleDateString('fr')} — purge auto dans ${daysLeft}j</span></span>
-      <span style="display:flex;gap:4px;flex-shrink:0;">
+    return `<div class="history-item u-cur-default">
+      <span>${DOMPurify.sanitize(t.chapter.title||'Sans titre')}<br><span class="u-op-_5 u-fs-_68rem">Supprimé le ${new Date(t.deletedAt).toLocaleDateString('fr')} — purge auto dans ${daysLeft}j</span></span>
+      <span class="u-d-flex u-gap-4px u-fsh-0">
         <button class="action-btn btn-sm" data-restore="${i}">↩ Restaurer</button>
-        <button class="action-btn btn-sm" style="background:var(--danger);" data-purge="${i}">✕ Définitif</button>
+        <button class="action-btn btn-sm u-bg-v-danger" data-purge="${i}">✕ Définitif</button>
       </span>
     </div>`;
   }).join('');

@@ -13,7 +13,7 @@ function renderWordCloud() {
   canvas.width = canvas.parentElement.clientWidth||700; canvas.height = 250;
   ctx.clearRect(0,0,canvas.width,canvas.height);
   document.getElementById('wc-top-list').innerHTML = freq.slice(0,15).map(([w,c])=>
-    `<span class="wc-chip"><span style="font-weight:700;color:var(--accent);">${DOMPurify.sanitize(w)}</span>&nbsp;<span style="opacity:.6;">${c}</span></span>`).join('');
+    `<span class="wc-chip"><span class="u-fwt-700 u-c-v-accent">${DOMPurify.sanitize(w)}</span>&nbsp;<span class="u-op-_6">${c}</span></span>`).join('');
   if (!freq.length) { ctx.fillStyle='rgba(150,150,150,.5)'; ctx.font='14px Georgia'; ctx.textAlign='center'; ctx.fillText('Aucun texte.',canvas.width/2,canvas.height/2); return; }
   const top40=freq.slice(0,40), max=top40[0][1];
   const colors=['#c0392b','#8e44ad','#27ae60','#d4ac0d','#2980b9','#e67e22'];

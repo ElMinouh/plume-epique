@@ -224,7 +224,7 @@ function renderRecovery(profileId) {
       <div class="gate-or">— ou —</div>
       <div class="gate-box">
         <div class="gate-box-title">🔑 Code de récupération</div>
-        <input id="rec-code" type="text" class="gate-field" placeholder="XXXX-XXXX-XXXX-…" style="font-family:monospace;">
+        <input id="rec-code" type="text" class="gate-field u-ff-monospace" placeholder="XXXX-XXXX-XXXX-…">
       </div>
       <div class="gate-section">
         <label class="gate-label">Nouveau mot de passe</label>
@@ -305,11 +305,11 @@ async function renderManageProfiles() {
     const isAdmin = p.role === 'admin';
     const isMe = p.id === _currentProfileId;
     return `<div class="mp-row">
-      <div class="mp-avatar" style="background:${isAdmin ? 'rgba(192,57,43,.25)' : 'rgba(142,68,173,.25)'};color:${isAdmin ? '#e8a09a' : '#c9a0e0'};">${DOMPurify.sanitize(initial)}</div>
+      <div class="mp-avatar ${isAdmin ? 'mp-avatar-admin' : 'mp-avatar-user'}">${DOMPurify.sanitize(initial)}</div>
       <div class="mp-name">${DOMPurify.sanitize(p.name)}${isAdmin ? ' <span class="mp-badge">admin</span>' : ''}${isMe ? ' <span class="mp-you">vous</span>' : ''}</div>
       <div class="mp-actions">
         <button class="action-btn btn-sm" data-rename="${p.id}">✏️ Renommer</button>
-        ${(!isMe) ? `<button class="action-btn btn-sm" style="background:var(--danger);" data-del="${p.id}">🗑️</button>` : ''}
+        ${(!isMe) ? `<button class="action-btn btn-sm u-bg-v-danger" data-del="${p.id}">🗑️</button>` : ''}
       </div>
     </div>`;
   }).join('');
