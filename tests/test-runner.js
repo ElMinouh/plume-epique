@@ -24,20 +24,6 @@ const save = async () => {
 let _lastToast = null;
 function toast(msg, type) { _lastToast = { msg, type }; }
 
-// ── Stubs ajoutés pour l'extension de couverture (memory.js, findreplace.js,
-// editor.js, wordcloud.js). Ces fonctions vivent dans des fichiers non chargés
-// par ce harnais (router.js, stats.js, readability.js) et ne sont pas l'objet
-// des tests ci-dessous ; seul leur appel doit ne pas planter.
-// Déclarés de façon défensive (comme le stub DOMPurify plus haut) : si l'un
-// de ces noms existe déjà dans un fichier réellement chargé, c'est la vraie
-// implémentation qui est conservée, pas le stub.
-let _switching = false;
-if (typeof updateDailyStats === 'undefined') { window.updateDailyStats = function () {}; }
-if (typeof debouncedSave === 'undefined') { window.debouncedSave = function () {}; }
-if (typeof getPlainText === 'undefined') {
-  window.getPlainText = html => (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
 let _pass = 0, _fail = 0;
 function assert(cond, label) {
   const el = document.createElement('div'); el.className = 'line';
@@ -208,237 +194,302 @@ function group(title) {
   const marieData = await loadData('data_' + marie.id);
   assert(marieData === null, 'les données du profil supprimé sont bien effacées');
 
-  // ════════════════════════════════════════════════════════════════
-  // EXTENSION DE COUVERTURE — memory.js, findreplace.js, editor.js
-  // (annuler/rétablir), wordcloud.js, library.js (fonctions pures)
-  // ════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════
+  // COUVERTURE ÉTENDUE (v7.21.0) — modules qui n'avaient encore aucun test.
+  // On repart d'un contexte neutre (profil déconnecté) : save() redevient un
+  // no-op silencieux ici, comme au tout début de la suite — la persistance
+  // réelle reste couverte par le groupe "library.js" ci-dessus, on ne la
+  // re-teste pas à chaque groupe suivant.
+  // ═══════════════════════════════════════════════════════
+  _currentProfileId = null; _dataKey = null; _currentDocumentId = null;
 
-  // Bac à sable DOM : les fonctions testées ci-dessous lisent le vrai DOM.
-  // On reconstruit ici les seuls éléments dont elles ont besoin.
-  const sandbox = document.createElement('div');
-  sandbox.className = 'hidden';
-  sandbox.innerHTML =
-    '<div id="writer" contenteditable="true"></div>' +
-    '<button id="undo-btn"></button><button id="redo-btn"></button>' +
-    '<input id="fr-find-input"><input id="fr-replace-input">' +
-    '<div id="fr-status"></div>';
-  document.body.appendChild(sandbox);
-  const writerEl = document.getElementById('writer');
-  const findInput = document.getElementById('fr-find-input');
-  const replInput = document.getElementById('fr-replace-input');
-  const _savedDb = db, _savedCur = cur;
+  group('readability.js — fleschKincaid() / fleschLabel() / countDialogLines()');
+  const easyText = 'Le chat va. Le chien va. Le chat vu.';
+  const hardText = 'Épistémologiquement, cette considération transcendantale problématise irrémédiablement toute conceptualisation antérieure.';
+  assert(fleschKincaid(easyText) > fleschKincaid(hardText), 'un texte simple obtient un meilleur score qu\'un texte complexe');
+  assert(fleschLabel(95)[0] === 'Très facile', 'label "Très facile" pour un score ≥ 90');
+  assert(fleschLabel(75)[0] === 'Facile', 'label "Facile" pour un score ≥ 70');
+  assert(fleschLabel(55)[0] === 'Standard', 'label "Standard" pour un score ≥ 50');
+  assert(fleschLabel(35)[0] === 'Difficile', 'label "Difficile" pour un score ≥ 30');
+  assert(fleschLabel(10)[0] === 'Très difficile', 'label "Très difficile" en dessous de 30');
+  const dl = countDialogLines('— Bonjour !\nIl faisait beau.\n« Ça va ? »\nElle sourit.');
+  assert(dl.dialog === 2 && dl.narration === 2, 'compte correctement les lignes de dialogue (—, «) et de narration');
 
-  group('memory.js — splitPassages()');
-  const mots300 = Array.from({length:300}, (_,i) => 'mot'+i).join(' ');
-  const p300 = splitPassages(mots300);
-  assert(p300.length === 2, `300 mots en fenêtres de 200 → 2 passages (obtenu ${p300.length})`);
-  assert(p300[0].split(' ').length === 200, 'le premier passage contient exactement 200 mots');
-  assert(p300[1].startsWith('mot170 '), 'le second passage démarre 30 mots en arrière (chevauchement)');
-  assert(splitPassages('mot').length === 0, 'un fragment de moins de 20 caractères est ignoré');
-  assert(splitPassages('').length === 0, 'un texte vide ne produit aucun passage');
-  const pEsp = splitPassages('   plusieurs   espaces   consécutifs   ici   vraiment   ');
-  assert(pEsp.length === 1 && !/ {2}/.test(pEsp[0]), 'les espaces multiples sont normalisés');
-  const p50 = splitPassages(Array.from({length:50},(_,i)=>'mot'+i).join(' '), 20, 5);
-  assert(p50.length === 4, `fenêtre et chevauchement personnalisés respectés (attendu 4, obtenu ${p50.length})`);
+  group('relations.js — buildGraphData()');
+  db = { chars:[{ name:'Marie', links:[{ type:'places', idx:0 }] }], places:[{ name:'Paris' }], quests:[], chapters:[{ title:'Chapitre Un' }] };
+  const graph = buildGraphData();
+  assert(graph.nodes.length === 3, 'un nœud par personnage/lieu/chapitre existant (ici 3)');
+  assert(graph.links.length === 1 && graph.links[0].source === 'chars-0' && graph.links[0].target === 'places-0', 'le lien personnage → lieu est bien construit');
 
-  group('memory.js — extractKeywords()');
-  const kw = extractKeywords('Le dragon dort. Le dragon rêve du dragon et de la forêt.');
-  assert(kw[0] === 'dragon', 'le mot le plus fréquent arrive en tête');
-  assert(!kw.includes('les') && !kw.includes('dans') && !kw.includes('pour'), 'les mots outils (stop-words) sont écartés');
-  assert(kw.includes('forêt'), 'les mots accentués sont conservés');
-  assert(extractKeywords('avec dans pour mais donc').length === 0, 'un texte composé uniquement de mots outils ne donne aucun mot-clé');
-  assert(extractKeywords('Il y a un an').length === 0, 'les mots de moins de 3 lettres sont écartés');
-  const mots30 = Array.from({length:30},(_,i) =>
-    'term' + String.fromCharCode(97 + Math.floor(i/26)) + String.fromCharCode(97 + i%26)).join(' ');
-  assert(extractKeywords(mots30).length === 20, `la liste est plafonnée à 20 mots-clés (obtenu ${extractKeywords(mots30).length})`);
-  assert(extractKeywords('DRAGON dragon Dragon')[0] === 'dragon', 'la casse est ignorée');
+  group('snapshots.js — takeSnapshot()');
+  db = { chapters:[{ id:'sx1', content:'Version A', title:'Ch1' }], history:{} };
+  takeSnapshot(0, 'Premier snapshot');
+  assert(db.history['sx1'].length === 1 && db.history['sx1'][0].label === 'Premier snapshot', 'un premier snapshot est enregistré');
+  takeSnapshot(0, 'Doublon');
+  assert(db.history['sx1'].length === 1, 'un contenu identique au précédent snapshot n\'est pas re-enregistré');
+  db.chapters[0].content = 'Version B';
+  takeSnapshot(0, 'Deuxième snapshot');
+  assert(db.history['sx1'].length === 2 && db.history['sx1'][0].content === 'Version B', 'un contenu modifié crée un nouveau snapshot (le plus récent en tête)');
+  for (let i = 0; i < 35; i++) { db.chapters[0].content = 'Version ' + i; takeSnapshot(0, 'Snap ' + i); }
+  assert(db.history['sx1'].length === MAX_SNAPSHOTS, `l'historique est plafonné à MAX_SNAPSHOTS (${MAX_SNAPSHOTS}), obtenu ${db.history['sx1'].length}`);
 
-  group('memory.js — scoreRelevance()');
-  assert(scoreRelevance(['chat'], [], 'le chat dort') === 2, 'une occurrence exacte vaut 2 points');
-  assert(scoreRelevance(['chat'], ['chat'], 'le chat dort') === 5, 'occurrence exacte + présence dans les mots-clés = 5 points');
-  assert(scoreRelevance(['chat'], [], 'chat chat chat') === 6, 'le score cumule les occurrences multiples');
-  assert(scoreRelevance(['chat'], [], 'aucun rapport ici') === 0, 'aucune correspondance donne 0');
-  assert(scoreRelevance(['chevalier'], [], 'les chevaliers arrivent') === 1,
-    'un mot de plus de 5 lettres est reconnu par sa racine (+1) même sans correspondance exacte');
-  assert(scoreRelevance(['dragon'], [], 'le dragon vole') === 3, 'occurrence exacte (2) + bonus de racine (1) pour un mot long');
-  assert(scoreRelevance([], ['chat'], 'le chat dort') === 0, 'une requête sans mot-clé donne 0');
+  group('sync.js — escapeXml() / toXhtmlSafe()');
+  assert(escapeXml('<a> & "b"') === '&lt;a&gt; &amp; &quot;b&quot;', 'échappe correctement <, >, & et "');
+  const xhtml = toXhtmlSafe('<p>Bonjour <strong>monde</strong></p>');
+  assert(xhtml.includes('<p') && xhtml.includes('<strong') && xhtml.includes('monde'), 'convertit un fragment HTML en XHTML bien formé');
+  assert(!xhtml.startsWith('<div'), 'l\'enveloppe technique <div> ajoutée pour le parsing n\'apparaît jamais dans la sortie');
 
-  group('memory.js — buildNarrativeIndex() / searchNarrativeIndex()');
-  assert(searchNarrativeIndex('dragon').length === 0, 'aucune recherche possible avant indexation');
-  db = {
-    chapters: [
-      { id:'ch-A', title:'La forge', content:'<p>'+('Le forgeron martèle le fer rouge dans la forge ardente. ').repeat(4)+'</p>' },
-      { id:'ch-B', title:'Le dragon', content:'<p>'+('Le dragon écarlate survole la vallée et rugit vers les montagnes. ').repeat(4)+'</p>' },
-      { id:'ch-C', title:'Trop court', content:'<p>Bref.</p>' }
-    ],
-    chars:  [{ name:'Aldric', role:'chevalier', age:'30', phys:'grand', info:'chasseur de dragon' }],
-    places: [{ name:'Val Sombre', type:'vallée', mood:'inquiétant', info:'repaire du dragon' }]
-  };
-  cur = 0;
-  // buildNarrativeIndex() commence par flushCurrentChapter() : on aligne
-  // l'éditeur sur le chapitre courant pour ne pas l'écraser au passage.
-  writerEl.innerHTML = db.chapters[0].content;
-  const nbPassages = buildNarrativeIndex();
-  assert(nbPassages === 2, `seuls les chapitres d'au moins 30 caractères sont indexés (attendu 2, obtenu ${nbPassages})`);
-  const resDragon = searchNarrativeIndex('dragon', 5);
-  assert(resDragon.length > 0, 'une recherche pertinente renvoie des résultats');
-  assert(resDragon.every((r,i,a) => i === 0 || a[i-1].score >= r.score), 'les résultats sont triés par score décroissant');
-  assert(resDragon.every(r => r.score > 0), 'les passages de score nul sont écartés');
-  assert(resDragon.some(r => r.chId === 'ch-B'), "l'index référence le chapitre par son ID stable");
-  assert(resDragon.some(r => r.chTitle === '📚 Personnages'), 'les personnages sont indexés');
-  assert(resDragon.some(r => r.chTitle === '🏰 Lieux'), 'les lieux sont indexés');
-  assert(searchNarrativeIndex('dragon', 1).length === 1, 'le paramètre topK limite le nombre de résultats');
-  assert(searchNarrativeIndex('zzzzinexistant').length === 0, 'une recherche sans correspondance renvoie une liste vide');
-  // Non-régression v6.0.0 : réorganiser les chapitres après indexation ne doit
-  // pas casser le lien entre un résultat et son chapitre d'origine.
-  db.chapters.reverse();
-  const cible = searchNarrativeIndex('dragon', 5).find(r => r.chId === 'ch-B');
-  assert(!!cible && db.chapters.findIndex(c => c.id === cible.chId) === 1,
-    'après réorganisation des chapitres, un résultat pointe toujours vers le bon chapitre');
-  db.chapters.reverse();
-
-  group('findreplace.js — findAllMatches()');
-  writerEl.innerHTML = 'Le chat dort. Le chat rêve.';
-  assert(findAllMatches(writerEl, 'chat').length === 2, 'deux occurrences trouvées dans un texte simple');
-  assert(findAllMatches(writerEl, 'CHAT').length === 2, 'la recherche est insensible à la casse');
-  assert(findAllMatches(writerEl, 'licorne').length === 0, 'une requête absente ne renvoie rien');
-  // Non-régression v7.1.0 : une occurrence à cheval sur une limite de mise en
-  // forme (mot moitié en gras) doit être retrouvée.
-  writerEl.innerHTML = 'Le <b>cha</b>t noir';
-  const chevauche = findAllMatches(writerEl, 'chat');
-  assert(chevauche.length === 1, 'une occurrence répartie sur deux nœuds texte est retrouvée (correctif v7.1.0)');
-  assert(!!chevauche[0] && chevauche[0].startNode !== chevauche[0].endNode,
-    "l'occurrence à cheval référence bien deux nœuds distincts");
-  writerEl.innerHTML = 'aaaa';
-  assert(findAllMatches(writerEl, 'aa').length === 2, 'les occurrences trouvées ne se chevauchent pas entre elles');
-  const flatIdx = buildFlatIndex(writerEl);
-  assert(flatIdx.flat === 'aaaa' && flatIdx.map.length === 4, 'buildFlatIndex() produit un texte à plat et une carte de même longueur');
-
-  group('findreplace.js — frReplaceAll()');
-  db = { chapters: [{ id:'fr-1', title:'Test', content:'' }] };
-  cur = 0;
-  findInput.value = 'chat'; replInput.value = 'chien';
-  writerEl.innerHTML = 'Le chat et le chat.';
-  frReplaceAll();
-  assert(writerEl.textContent === 'Le chien et le chien.', 'toutes les occurrences sont remplacées');
-  // Piège classique : un remplacement qui contient la requête ne doit pas se
-  // ré-appliquer à lui-même.
-  findInput.value = 'chat'; replInput.value = 'chaton';
-  writerEl.innerHTML = 'chat chat';
-  frReplaceAll();
-  assert(writerEl.textContent === 'chaton chaton', 'un remplacement contenant la requête ne boucle pas sur lui-même');
-  findInput.value = 'XX'; replInput.value = '';
-  writerEl.innerHTML = 'aXXbXXc';
-  frReplaceAll();
-  assert(writerEl.textContent === 'abc', 'un remplacement vide supprime les occurrences');
-  findInput.value = 'chat'; replInput.value = 'chien';
-  writerEl.innerHTML = 'Le <b>cha</b>t noir';
-  frReplaceAll();
-  assert(writerEl.textContent === 'Le chien noir', 'un remplacement à cheval sur du gras aboutit au bon texte');
-  assert(document.getElementById('fr-status').textContent === 'Aucun résultat',
-    'le compteur d’occurrences est réinitialisé après un remplacement global');
-
-  group('editor.js — piles annuler / rétablir');
-  // frReplaceAll() appelle liveCounter(), qui arme une étape d'annulation
-  // différée : on repart d'un état propre avant de tester les piles.
-  clearTimeout(_undoPushTimer); _pendingUndoFlush = false;
-  db = { chapters: [{ id:'ch-1', title:'Un', content:'A' }, { id:'ch-2', title:'Deux', content:'B' }] };
-  cur = 0;
-  Object.keys(_undoStacks).forEach(k => delete _undoStacks[k]);
-
-  const st1 = getUndoStack('ch-1');
-  assert(st1.stack.length === 1 && st1.stack[0] === '' && st1.index === 0, 'une pile neuve démarre vide, à l’index 0');
-  ensureUndoStack(db.chapters[1]);
-  assert(_undoStacks['ch-2'].stack[0] === 'B', 'ensureUndoStack() initialise la pile avec le contenu du chapitre');
-  ensureUndoStack({ id:'ch-2', content:'ÉCRASÉ' });
-  assert(_undoStacks['ch-2'].stack[0] === 'B', 'ensureUndoStack() n’écrase pas une pile déjà existante');
-
-  writerEl.innerHTML = 'v1'; checkpointNow();
-  assert(_undoStacks['ch-1'].stack.length === 2, 'une première modification est enregistrée');
-  checkpointNow();
-  assert(_undoStacks['ch-1'].stack.length === 2, 'un enregistrement identique au précédent n’ajoute pas d’étape');
-  writerEl.innerHTML = 'v2'; checkpointNow();
-  writerEl.innerHTML = 'v3'; checkpointNow();
-  assert(_undoStacks['ch-1'].stack.length === 4, 'trois modifications successives donnent 4 états');
-
-  undoEdit();
-  assert(writerEl.innerHTML === 'v2', 'annuler revient à l’état précédent');
-  assert(db.chapters[0].content === 'v2', 'annuler met aussi à jour le contenu du chapitre en mémoire');
-  undoEdit();
-  assert(writerEl.innerHTML === 'v1', 'annuler deux fois recule de deux états');
-  redoEdit();
-  assert(writerEl.innerHTML === 'v2', 'rétablir avance d’un état');
-  redoEdit(); redoEdit();
-  assert(writerEl.innerHTML === 'v3', 'on ne peut pas rétablir au-delà du dernier état');
-  undoEdit(); undoEdit(); undoEdit(); undoEdit();
-  assert(writerEl.innerHTML === '', 'on ne peut pas annuler au-delà du premier état');
-
-  // Après une annulation, une nouvelle modification efface la branche
-  // « rétablir » — comportement attendu d'un traitement de texte.
-  _undoStacks['ch-1'] = { stack:['a','b','c'], index:1 };
-  writerEl.innerHTML = 'z'; checkpointNow();
-  assert(_undoStacks['ch-1'].stack.join('') === 'abz', 'une nouvelle modification après annulation efface la branche « rétablir »');
-
-  // Plafond de la pile. La valeur attendue est écrite en dur volontairement :
-  // sinon le test se comparerait à lui-même et ne détecterait aucune dérive.
-  assert(UNDO_LIMIT === 100, 'le plafond de la pile d’annulation vaut bien 100 états');
-  Object.keys(_undoStacks).forEach(k => delete _undoStacks[k]);
-  for (let i = 0; i < UNDO_LIMIT + 5; i++) { writerEl.innerHTML = 'e' + i; checkpointNow(); }
-  assert(_undoStacks['ch-1'].stack.length === UNDO_LIMIT,
-    `la pile est plafonnée à ${UNDO_LIMIT} états (obtenu ${_undoStacks['ch-1'].stack.length})`);
-  assert(_undoStacks['ch-1'].index === _undoStacks['ch-1'].stack.length - 1, 'l’index reste cohérent après élagage de la pile');
-  assert(_undoStacks['ch-1'].stack[_undoStacks['ch-1'].stack.length-1] === 'e' + (UNDO_LIMIT+4),
-    'c’est bien le plus ancien état qui est supprimé, pas le plus récent');
-
-  // Non-régression ADR-4 : les piles sont indexées par ID de chapitre, donc
-  // réorganiser les chapitres ne mélange pas les historiques.
-  Object.keys(_undoStacks).forEach(k => delete _undoStacks[k]);
-  cur = 0; writerEl.innerHTML = 'texte du chapitre un'; checkpointNow();
-  cur = 1; writerEl.innerHTML = 'texte du chapitre deux'; checkpointNow();
-  db.chapters.reverse();
-  cur = db.chapters.findIndex(c => c.id === 'ch-1');
-  undoEdit();
-  assert(writerEl.innerHTML === '', 'après réorganisation, annuler agit sur la pile du bon chapitre');
-  assert(_undoStacks['ch-2'].stack.includes('texte du chapitre deux'), 'la pile de l’autre chapitre est restée intacte');
-
-  group('editor.js — isTypingTarget()');
-  assert(isTypingTarget(null) === false, 'aucun élément → faux');
-  assert(isTypingTarget(writerEl) === false, "l'éditeur principal n'est pas traité comme un champ de saisie tiers");
-  assert(isTypingTarget(findInput) === true, 'un champ de recherche est bien un champ de saisie');
-  assert(isTypingTarget(document.createElement('div')) === false, 'un simple bloc n’est pas un champ de saisie');
+  group('timeline.js — addTimelineEvent()');
+  db = { chapters:[{ title:'Ch1' }], timeline: [] };
+  document.body.insertAdjacentHTML('beforeend', '<input id="tl-event-text"><input id="tl-event-date"><select id="tl-chapter-sel"><option value="">--</option><option value="0">Ch1</option></select><div id="timeline-events"></div><div id="timeline-track"></div>');
+  document.getElementById('tl-event-text').value = 'Rencontre avec le mentor';
+  document.getElementById('tl-event-date').value = 'An 1';
+  document.getElementById('tl-chapter-sel').value = '0';
+  addTimelineEvent();
+  assert(db.timeline.length === 1 && db.timeline[0].text === 'Rencontre avec le mentor' && db.timeline[0].chapterIdx === 0, 'un événement est ajouté avec son texte, sa date et son chapitre associé');
+  document.getElementById('tl-event-text').value = '';
+  addTimelineEvent();
+  assert(db.timeline.length === 1, 'un événement sans texte n\'est pas ajouté');
 
   group('wordcloud.js — buildWordFreq()');
-  db = { chapters: [
-    { id:'w1', content:'<p>Le <b>dragon</b> vole dans les cieux. Le dragon rugit.</p>' },
-    { id:'w2', content:'<p>La forêt murmure et la forêt respire, forêt profonde.</p>' }
-  ]};
+  db = { chapters:[{ content:'<p>Le chat noir dort. Le chat noir ronronne.</p>' }] };
   cur = 0;
-  const freqCur = buildWordFreq(false);
-  assert(freqCur[0][0] === 'dragon' && freqCur[0][1] === 2, 'chapitre courant seul : « dragon » compté 2 fois');
-  assert(!freqCur.some(([w]) => w === 'dans' || w === 'les'), 'les mots outils sont écartés');
-  assert(freqCur.every(([w]) => /^[a-zA-ZÀ-ÿ]+$/.test(w)), 'les balises HTML ne polluent pas le comptage');
-  const freqAll = buildWordFreq(true);
-  assert(freqAll[0][0] === 'forêt' && freqAll[0][1] === 3, 'tous chapitres : « forêt » en tête avec 3 occurrences');
-  assert(freqAll.every((e,i,a) => i === 0 || a[i-1][1] >= e[1]), 'la liste est triée par fréquence décroissante');
-  db = { chapters: [{ id:'w3', content:'' }] }; cur = 0;
-  assert(buildWordFreq(false).length === 0, 'un chapitre vide ne produit aucun mot');
+  const freq = buildWordFreq(false);
+  const chatEntry = freq.find(([w]) => w === 'chat');
+  assert(chatEntry && chatEntry[1] === 2, 'compte correctement les occurrences d\'un mot (hors mots vides)');
+  assert(!freq.some(([w]) => w === 'le'), 'les mots vides (STOP_WORDS) comme "le" sont exclus');
 
-  group('library.js — fonctions pures');
-  assert(docListKey('p1') === 'doclist_p1', 'la clé de liste de manuscrits est stable');
-  assert(docDataKey('p1', 'd9') === 'doc_p1_d9', 'la clé de données de manuscrit est stable');
-  assert(formatRelativeDate(0) === '', 'un horodatage absent renvoie une chaîne vide');
-  const JOUR = 86400000;
-  assert(formatRelativeDate(Date.now()) === "Modifié aujourd'hui", 'à l’instant → aujourd’hui');
-  assert(formatRelativeDate(Date.now() - JOUR - 1000) === 'Modifié hier', 'un jour et des poussières → hier');
-  assert(formatRelativeDate(Date.now() - 3*JOUR - 1000) === 'Modifié il y a 3 jours', 'trois jours → « il y a 3 jours »');
-  assert(formatRelativeDate(Date.now() - 10*JOUR) === 'Modifié il y a 1 semaine(s)', 'dix jours → semaines');
-  assert(formatRelativeDate(Date.now() - 65*JOUR) === 'Modifié il y a 2 mois', 'soixante-cinq jours → mois');
-  assert(formatRelativeDate(Date.now() + 5*JOUR) === "Modifié aujourd'hui", 'une date future ne casse pas l’affichage');
+  group('panels.js — doGlobalSearch()');
+  db = {
+    chapters: [{ title:'Chapitre Un', content:'<p>Marie court dans la forêt.</p>' }],
+    chars: [{ name:'Marie', role:'Héroïne' }],
+    places: [{ name:'Forêt Sombre' }],
+    quests: [{ text:'Trouver Marie' }]
+  };
+  document.body.insertAdjacentHTML('beforeend', '<div id="search-results"></div><div id="search-count"></div>');
+  doGlobalSearch('marie');
+  assert(document.getElementById('search-count').textContent === '3 occurrence(s)', 'trouve les occurrences dans les chapitres, personnages et quêtes');
+  assert(document.getElementById('search-results').querySelectorAll('.search-result-item').length === 3, 'un résultat par occurrence trouvée');
+  doGlobalSearch('x');
+  assert(document.getElementById('search-count').textContent === '', 'une requête de moins de 2 caractères ne lance pas de recherche');
 
-  // Remise en état pour ne pas perturber d'éventuels tests ultérieurs.
-  clearTimeout(_undoPushTimer); _pendingUndoFlush = false;
-  db = _savedDb; cur = _savedCur;
-  sandbox.remove();
+  group('notifications.js — updateTrashBadge() / flashSave()');
+  document.body.insertAdjacentHTML('beforeend', '<div id="trash-badge"></div><div id="save-indicator"></div><span id="autosave-label"></span>');
+  db = { trash: [] };
+  updateTrashBadge();
+  assert(document.getElementById('trash-badge').style.display === 'none', 'le badge est masqué quand la corbeille est vide');
+  db.trash = [1,2,3];
+  updateTrashBadge();
+  assert(document.getElementById('trash-badge').textContent === '3' && document.getElementById('trash-badge').style.display === 'flex', 'le badge affiche le nombre de chapitres en corbeille');
+  db.trash = new Array(150).fill(1);
+  updateTrashBadge();
+  assert(document.getElementById('trash-badge').textContent === '99+', 'le badge plafonne l\'affichage à "99+"');
+  flashSave();
+  assert(document.getElementById('autosave-label').textContent.startsWith('Enregistré à '), 'flashSave() horodate l\'indicateur de sauvegarde');
+
+  group('pluginSystem.js — plugin "Temps de lecture"');
+  db = { chapters: [{ content: '<p>' + 'mot '.repeat(300) + '</p>' }] };
+  const totalWPlugin = db.chapters.reduce((s,c) => s + getWordCount(c.content), 0);
+  const readingPlugin = PLUGINS_REGISTRY.find(p => p.id === 'readingtime');
+  assert(!!readingPlugin, 'le plugin "Temps de lecture" est bien enregistré');
+  const pluginResult = await readingPlugin.run();
+  assert(pluginResult.includes(`${totalWPlugin} mots`), 'calcule le bon nombre total de mots');
+  assert(pluginResult.includes('Lecture lente') && pluginResult.includes('Lecture rapide'), 'donne une estimation de lecture lente et rapide');
+
+  group('findreplace.js — collectTextNodes() / buildFlatIndex() / findAllMatches()');
+  const frRoot = document.createElement('div');
+  frRoot.innerHTML = '<p>Le chat noir dort.</p><p>Le CHAT est content.</p>';
+  assert(collectTextNodes(frRoot).length === 2, 'un nœud texte par paragraphe');
+  const flatIdx = buildFlatIndex(frRoot);
+  assert(flatIdx.flat === 'Le chat noir dort.Le CHAT est content.', 'reconstitue le texte à plat dans l\'ordre des nœuds');
+  assert(findAllMatches(frRoot, 'chat').length === 2, 'trouve les 2 occurrences, insensible à la casse');
+
+  group('memory.js — splitPassages() / extractKeywords() / scoreRelevance()');
+  const longText = Array(250).fill('mot').join(' ');
+  const passages = splitPassages(longText, 100, 20);
+  assert(passages.length > 1, 'découpe un long texte en plusieurs passages avec chevauchement');
+  assert(passages.every(p => p.split(' ').length <= 100), 'chaque passage respecte la taille de fenêtre demandée');
+  const kw = extractKeywords('Le chat noir dort. Le chat noir ronronne doucement.');
+  assert(kw.includes('chat') && !kw.includes('le'), 'extrait les mots-clés significatifs et exclut les mots vides');
+  const relevanceScore = scoreRelevance(['chat'], ['chat','noir'], 'le chat noir dort');
+  assert(relevanceScore === 5, `combine occurrences (×2) et présence en mot-clé (+3) — attendu 5, obtenu ${relevanceScore}`);
+
+  group('memory.js — buildNarrativeIndex() / searchNarrativeIndex()');
+  db = {
+    chapters: [{ id:'m1', title:'Chapitre Un', content:'<p>' + 'Marie traverse la forêt sombre à la recherche du mentor perdu depuis longtemps. '.repeat(6) + '</p>' }],
+    chars: [], places: []
+  };
+  const totalPassages = buildNarrativeIndex();
+  assert(_indexBuilt === true && totalPassages > 0, 'construit un index narratif à partir des chapitres');
+  const memResults = searchNarrativeIndex('mentor', 3);
+  assert(memResults.length > 0 && memResults[0].chId === 'm1', 'retrouve un passage pertinent pour une requête donnée');
+
+  group('database.js — apparence (palette / police / thème)');
+  db = { accentPalette:'rouge-violet', editorFont:'palatino', darkMode:false, paperMode:false };
+  selectPalette('bleu-ocean');
+  assert(db.accentPalette === 'bleu-ocean', 'selectPalette() met à jour db.accentPalette');
+  assert(document.documentElement.style.getPropertyValue('--accent') === '#2980b9', 'applyAccentPalette() pose la bonne couleur CSS');
+  selectFont('times');
+  assert(db.editorFont === 'times' && document.body.classList.contains('font-times'), 'selectFont() met à jour db et la classe CSS du corps');
+  selectTheme('dark');
+  assert(db.darkMode === true && db.paperMode === false && document.body.classList.contains('dark-mode'), 'selectTheme("dark") active le mode sombre et désactive le mode papier');
+
+  group('database.js — liens entre personnages/lieux (addLink / removeLink)');
+  db.chars = [{ name:'Marie', links:[] }];
+  db.places = [{ name:'Paris', links:[] }];
+  document.body.insertAdjacentHTML('beforeend', '<div id="char-edit"></div><div id="place-edit"></div>');
+  addLink('chars', 0, 'places', 0);
+  assert(db.chars[0].links.length === 1 && db.chars[0].links[0].type === 'places' && db.chars[0].links[0].idx === 0, 'addLink() ajoute un lien personnage → lieu');
+  addLink('chars', 0, 'places', 0);
+  assert(db.chars[0].links.length === 1, 'un lien déjà existant n\'est pas dupliqué');
+  removeLink('chars', 0, 0);
+  assert(db.chars[0].links.length === 0, 'removeLink() retire bien le lien');
+
+  group('database.js — quêtes et mots faibles');
+  db.quests = []; db.weakWords = [];
+  document.body.insertAdjacentHTML('beforeend', '<input id="q-in"><div id="quest-list"></div><input id="new-weak-word"><div id="weak-words-list"></div>');
+  document.getElementById('q-in').value = 'Trouver le trésor';
+  addQuest();
+  assert(db.quests.length === 1 && db.quests[0].text === 'Trouver le trésor' && db.quests[0].done === false, 'addQuest() ajoute une quête non terminée');
+  document.getElementById('new-weak-word').value = 'TRÈS';
+  addWeakWord();
+  assert(db.weakWords.includes('très'), 'addWeakWord() ajoute le mot en minuscules');
+
+  group('editor.js — cycle de vie des chapitres (ajout, déplacement, duplication, suppression, restauration)');
+  db = {
+    chapters: [
+      { id:'e1', title:'Chapitre 1', content:'<p>Texte un.</p>', tension:20, status:'draft', tags:[] },
+      { id:'e2', title:'Chapitre 2', content:'<p>Texte deux.</p>', tension:30, status:'draft', tags:[] }
+    ],
+    history: {}, trash: [], weakWords: []
+  };
+  cur = 0;
+  document.body.insertAdjacentHTML('beforeend',
+    '<div id="writer" contenteditable="true"></div>' +
+    '<div id="chapter-title" contenteditable="true"></div>' +
+    '<select id="chapter-status-sel"><option value="draft">Brouillon</option></select>' +
+    '<input id="tension-slider" type="range">' +
+    '<button id="undo-btn"></button><button id="redo-btn"></button>' +
+    '<div id="chapter-list"></div><div id="chapter-ctx-menu"></div><div id="trash-list"></div>'
+  );
+  loadChapter(0);
+  assert(document.getElementById('writer').innerHTML === db.chapters[0].content, 'loadChapter() charge le contenu du chapitre dans l\'éditeur');
+
+  addChapter();
+  assert(db.chapters.length === 3 && cur === 2, 'addChapter() ajoute un chapitre et le rend actif');
+  const newChapterId = db.chapters[2].id;
+  assert(!!newChapterId, 'le nouveau chapitre reçoit un ID');
+
+  moveChapter(2, 'up');
+  assert(db.chapters[1].id === newChapterId && cur === 1, 'moveChapter("up") déplace le chapitre et garde le focus sur lui');
+  moveChapter(1, 'down');
+  assert(db.chapters[2].id === newChapterId && cur === 2, 'moveChapter("down") inverse correctement le déplacement');
+
+  duplicateChapter(0);
+  assert(db.chapters.length === 4 && db.chapters[1].title === 'Chapitre 1 (copie)', 'duplicateChapter() insère une copie juste après l\'original');
+  assert(db.chapters[1].id !== db.chapters[0].id, 'la copie reçoit un ID distinct');
+
+  const realConfirm = window.confirm;
+  window.confirm = () => true;
+  deleteChapter(db.chapters.findIndex(c => c.id === newChapterId));
+  assert(db.trash.length === 1 && db.trash[0].chapter.id === newChapterId, 'deleteChapter() déplace le chapitre vers la corbeille');
+  assert(!db.chapters.some(c => c.id === newChapterId), 'le chapitre supprimé n\'est plus dans la liste active');
+  restoreFromTrash(0);
+  assert(db.chapters.some(c => c.id === newChapterId), 'restoreFromTrash() restaure le chapitre dans la liste active');
+  assert(db.trash.length === 0, 'le chapitre restauré quitte la corbeille');
+  deleteChapter(db.chapters.findIndex(c => c.id === newChapterId));
+  permanentlyPurge(0);
+  assert(db.trash.length === 0, 'permanentlyPurge() supprime définitivement un chapitre de la corbeille');
+  window.confirm = realConfirm;
+
+  group('editor.js — Annuler / Rétablir');
+  db = { chapters:[{ id:'u1', title:'Chapitre Undo', content:'Contenu initial', tension:20, status:'draft', tags:[] }], history:{}, trash:[], weakWords:[] };
+  cur = 0;
+  loadChapter(0);
+  document.getElementById('writer').innerHTML = 'Version A';
+  checkpointNow();
+  document.getElementById('writer').innerHTML = 'Version B';
+  checkpointNow();
+  undoEdit();
+  assert(db.chapters[0].content === 'Version A', 'undoEdit() restaure l\'étape précédente');
+  undoEdit();
+  assert(db.chapters[0].content === 'Contenu initial', 'un second undo revient au contenu d\'origine');
+  redoEdit();
+  assert(db.chapters[0].content === 'Version A', 'redoEdit() rétablit l\'étape suivante');
+  assert(isTypingTarget(document.getElementById('writer')) === false, '#writer n\'est jamais considéré comme un champ de saisie');
+  assert(isTypingTarget(document.createElement('input')) === true, 'un <input> est bien un champ de saisie');
+  const ceDiv = document.createElement('div'); ceDiv.contentEditable = 'true'; document.body.appendChild(ceDiv);
+  assert(isTypingTarget(ceDiv) === true, 'un élément contentEditable (hors #writer) est bien un champ de saisie');
+  updateTension('45');
+  assert(db.chapters[cur].tension === 45, 'updateTension() met à jour la tension du chapitre courant');
+
+  group('editor.js — surlignage des mots faibles (analyzeStyle / clearStyle)');
+  db.weakWords = ['triste'];
+  document.getElementById('writer').innerHTML = '<p>Il était triste ce jour-là.</p>';
+  analyzeStyle();
+  assert(/<mark>triste<\/mark>/i.test(document.getElementById('writer').innerHTML), 'analyzeStyle() surligne les mots faibles configurés');
+  window.confirm = () => true;
+  clearStyle();
+  window.confirm = realConfirm;
+  assert(!document.getElementById('writer').innerHTML.includes('<mark>'), 'clearStyle() retire les surlignages sans altérer le texte');
+  assert(document.getElementById('writer').innerHTML.includes('triste'), 'le texte original reste intact après clearStyle()');
+
+  group('stats.js — statistiques d\'écriture (série, meilleure heure, objectifs)');
+  db = { chapters:[{ content:'<p>' + 'mot '.repeat(120) + '</p>' }], sessionStats:{}, dailyGoal:500, weeklyGoal:3000, monthlyGoal:12000 };
+  updateDailyStats();
+  const todayKey = getTodayKey();
+  assert(db.sessionStats[todayKey] === 120, 'updateDailyStats() enregistre le total de mots du jour');
+
+  const streakDay0 = new Date(), streakDay1 = new Date(streakDay0), streakDay2 = new Date(streakDay0);
+  streakDay1.setDate(streakDay1.getDate()-1); streakDay2.setDate(streakDay2.getDate()-2);
+  const k0 = streakDay0.toISOString().slice(0,10), k1 = streakDay1.toISOString().slice(0,10), k2 = streakDay2.toISOString().slice(0,10);
+  db.sessionStats = { [k2]: 100, [k1]: 250, [k0]: 400 };
+  assert(computeWritingStreak() === 3, `3 jours consécutifs de progression donnent une série de 3 (obtenu ${computeWritingStreak()})`);
+
+  db.hourlyActivity = new Array(24).fill(0);
+  db.hourlyActivity[14] = 50; db.hourlyActivity[9] = 200;
+  assert(computeBestWritingHour() === 9, 'identifie l\'heure ayant cumulé le plus de mots');
+
+  db.sessionStats = {};
+  assert(getWordsInLastNDays(7, 800) === 800, 'sans aucun historique antérieur, tout le total est attribué à la période demandée');
+  const cutoffTest = new Date(); cutoffTest.setDate(cutoffTest.getDate()-10);
+  db.sessionStats[cutoffTest.toISOString().slice(0,10)] = 500;
+  assert(getWordsInLastNDays(7, 800) === 300, 'soustrait la référence trouvée avant la fenêtre demandée (800 - 500 = 300)');
+
+  group('pwa.js — bannière de mise à jour (showUpdateBanner / applyUpdate)');
+  document.body.insertAdjacentHTML('beforeend', '<div id="sw-update-banner"></div>');
+  showUpdateBanner();
+  assert(document.getElementById('sw-update-banner').classList.contains('show'), 'showUpdateBanner() affiche la bannière');
+  let postedMessage = null;
+  _swRegistration = { waiting: { postMessage: (m) => { postedMessage = m; } } };
+  applyUpdate();
+  assert(postedMessage && postedMessage.type === 'SKIP_WAITING', 'applyUpdate() envoie le message SKIP_WAITING au Service Worker en attente');
+  assert(!document.getElementById('sw-update-banner').classList.contains('show'), 'applyUpdate() masque la bannière après la mise à jour');
+
+  group('sw.js — cacheableResponse()');
+  const okResponse = new Response('contenu', { status:200 });
+  assert((await cacheableResponse(okResponse)) !== null, 'une réponse normale est mise en cache');
+  const badResponse = new Response('erreur', { status:500 });
+  assert((await cacheableResponse(badResponse)) === null, 'une réponse en erreur (5xx) n\'est jamais mise en cache');
+
+  // ═══════════════════════════════════════════════════════
+  // NON COUVERTS ICI, DÉLIBÉRÉMENT — voir README pour le détail :
+  //  - router.js       : bootstrap complet de l'app (redéclare db/cur en
+  //                      conflit avec cette suite, démarre les profils tout
+  //                      seul au chargement). Ses utilitaires purs
+  //                      (debounce, getTodayKey, getPlainText) sont testés
+  //                      ici via leur copie dans test-runner-env.js.
+  //  - tabs.js          : uniquement du rendu/navigation DOM (onglets,
+  //                      glisser-déposer, sous-onglets), sans logique
+  //                      isolable du reste de l'app.
+  //  - tts.js           : dépend entièrement des API navigateur de synthèse
+  //                      vocale et de reconnaissance vocale.
+  //  - ai.js            : chaque fonction appelle une vraie API externe
+  //                      (Claude) — pas testable sans y envoyer de vraies
+  //                      requêtes réseau.
+  //  - odf-loader.js    : ne fait que charger un module ESM depuis un CDN,
+  //                      aucune logique propre à tester.
+  // ═══════════════════════════════════════════════════════
 
   const total = _pass + _fail;
   const summary = document.getElementById('summary');

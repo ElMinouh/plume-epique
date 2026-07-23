@@ -1,8 +1,18 @@
 'use strict';
+// v7.21.0 — correctif : cette fonction appelait directement l'API Anthropic
+// (reliquat d'un prototype antérieur au Worker), ce qui ne pouvait pas
+// fonctionner : la CSP du projet (_headers) n'autorise que le Worker Cloudflare
+// en connexion sortante, et aucune clé API n'est (ni ne doit être) présente
+// côté client. Voir README, section "Intelligence artificielle" : le Worker
+// (plume-epique-ai.air7841.workers.dev) relaie vers Mistral AI et renvoie une
+// réponse déjà normalisée au format {content:[{type:'text', text}]} — c'est ce
+// format que le reste de cette fonction attendait déjà, donc seule l'URL
+// changeait. Le paramètre "model" est retiré : le Worker choisit toujours le
+// modèle Mistral côté serveur, il n'est plus pertinent côté client.
 async function callClaude(prompt, maxTokens=1000) {
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+  const resp = await fetch('https://plume-epique-ai.air7841.workers.dev', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:maxTokens, messages:[{role:'user',content:prompt}] })
+    body:JSON.stringify({ max_tokens:maxTokens, messages:[{role:'user',content:prompt}] })
   });
   if (!resp.ok) { const err=await resp.json(); throw new Error(err.error?.message||`HTTP ${resp.status}`); }
   const data = await resp.json();

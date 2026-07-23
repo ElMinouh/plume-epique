@@ -8,7 +8,7 @@
 <body>
 <h2>🧪 Tests automatisés — Plume Épique</h2>
 <p class="hint">Ouvrez ce fichier directement dans un navigateur (double-clic). Aucune installation, aucun serveur requis.
-Couvre les fonctions les plus sensibles du projet : migration de schéma, chiffrement, diff de versions, le système multi-profils (enveloppement de clé, connexion, récupération, protections de suppression), la mémoire narrative, le rechercher/remplacer, les piles annuler/rétablir et le nuage de mots.</p>
+Couvre les fonctions les plus sensibles du projet : migration de schéma, chiffrement, diff de versions, et le système multi-profils (enveloppement de clé, connexion, récupération, protections de suppression).</p>
 <div id="results"></div>
 <div id="summary"></div>
 <!-- Conteneur requis par profiles.js (gateShell()/gateEl()) : les écrans y sont
@@ -21,10 +21,26 @@ Couvre les fonctions les plus sensibles du projet : migration de schéma, chiffr
 <script src="../js/diff.js"></script>
 <script src="../js/profiles.js"></script>
 <script src="../js/library.js"></script>
-<script src="../js/editor.js"></script>
-<script src="../js/findreplace.js"></script>
+<!-- Environnement minimal simulé (utilitaires + variables de router.js,
+     non chargé ici — voir test-runner-env.js). Doit précéder panels.js,
+     qui appelle debounce() dès son chargement. -->
+<script src="test-runner-env.js"></script>
+<script src="../js/readability.js"></script>
+<script src="../js/relations.js"></script>
+<script src="../js/snapshots.js"></script>
+<script src="../js/sync.js"></script>
+<script src="../js/timeline.js"></script>
 <script src="../js/wordcloud.js"></script>
+<script src="../js/panels.js"></script>
+<script src="../js/notifications.js"></script>
+<script src="../js/pluginSystem.js"></script>
+<script src="../js/findreplace.js"></script>
 <script src="../js/memory.js"></script>
+<script src="../js/database.js"></script>
+<script src="../js/editor.js"></script>
+<script src="../js/stats.js"></script>
+<script src="../js/pwa.js"></script>
+<script src="../sw.js"></script>
 <script src="test-runner.js"></script>
 </body>
 </html>

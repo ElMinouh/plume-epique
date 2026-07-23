@@ -348,8 +348,6 @@ Les versions ci-dessous sont classées de la plus récente à la plus ancienne.
 - `style-src` de la CSP inclut `'unsafe-inline'` (nécessaire vu l'usage d'attributs
   `style=""` en ligne dans tout le projet) — protection réduite contre les attaques par
   injection de style pur, sans rapport avec l'exécution de script.
-- Nom interne de la base IndexedDB toujours `plume_v55` (résidu historique du tout
-  premier fichier, aucun impact utilisateur).
 - Section bande dessinée / ouvrages illustrés : pas commencée. Nécessitera une structure
   de données séparée (ex. `db.comicPages`) plutôt qu'une réutilisation du modèle de
   chapitres texte, et une nouvelle version de schéma (`SCHEMA_VERSION` → 7).

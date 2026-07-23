@@ -6,8 +6,40 @@
 // INDEXEDDB
 // ═══════════════════════════════════════════════════════
 let idbStore = null;
+// v7.21.0 — la base s'appelait techniquement "plume_v55" depuis le tout premier
+// fichier du projet (résidu historique sans rapport avec la version actuelle,
+// jamais renommé — voir README, section "Limites connues"). Renommée ici en
+// "plume_epique". Pour ne perdre aucune donnée existante, migrateLegacyIdbIfNeeded()
+// copie une seule fois, silencieusement, le contenu de l'ancienne base vers la
+// nouvelle la toute première fois qu'un navigateur charge cette version — après
+// quoi la nouvelle base n'est plus vide, et la migration ne se relance jamais.
+// L'ancienne base n'est jamais supprimée automatiquement (aucune suppression de
+// données utilisateur sans action explicite de sa part, cohérent avec la
+// corbeille à 30 jours ailleurs dans l'app) ; elle devient simplement inutilisée.
+const IDB_NAME = 'plume_epique';
+const IDB_LEGACY_NAME = 'plume_v55';
+async function migrateLegacyIdbIfNeeded() {
+  if (!idbStore) return;
+  if (await idbStore.count('data') > 0) return; // déjà des données sous le nouveau nom : rien à faire
+  if (!indexedDB.databases) return; // navigateur trop ancien pour lister les bases : pas de migration à l'aveugle
+  const existing = await indexedDB.databases();
+  if (!existing.some(d => d.name === IDB_LEGACY_NAME)) return; // pas d'ancienne base : nouvel utilisateur
+  let legacyDb;
+  try {
+    legacyDb = await idb.openDB(IDB_LEGACY_NAME, 1);
+    const keys = await legacyDb.getAllKeys('data');
+    for (const key of keys) {
+      const value = await legacyDb.get('data', key);
+      await idbStore.put('data', value, key);
+    }
+  } catch(e) { console.warn('Migration depuis l\'ancienne base IndexedDB impossible', e); }
+  finally { if (legacyDb) legacyDb.close(); }
+}
 async function initIDB() {
-  try { idbStore = await idb.openDB('plume_v55', 1, { upgrade(db) { db.createObjectStore('data'); } }); }
+  try {
+    idbStore = await idb.openDB(IDB_NAME, 1, { upgrade(db) { db.createObjectStore('data'); } });
+    await migrateLegacyIdbIfNeeded();
+  }
   catch(e) { console.warn('IDB unavailable'); }
 }
 // v7.0.0 : persistData/loadData prennent désormais une clé de stockage
