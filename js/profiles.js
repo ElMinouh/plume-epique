@@ -39,7 +39,7 @@ function renderSyncKeyGate() {
     <label class="gate-label">Clé de synchronisation</label>
     <div class="u-d-flex u-gap-6px">
       <input id="sync-key-input" type="password" class="gate-field u-flex-1" placeholder="Collez ou saisissez la clé" autocomplete="off">
-      <button id="sync-key-verify-btn" class="gate-btn gate-btn-ghost btn-sm" style="width:auto;white-space:nowrap;">✅ Vérifier</button>
+      <button id="sync-key-verify-btn" class="gate-btn gate-btn-ghost btn-sm u-w-auto u-ws-nowrap">✅ Vérifier</button>
     </div>
     <div id="sync-key-status" class="gate-err"></div>
     <button id="sync-key-submit-btn" class="gate-btn gate-btn-primary">Valider</button>
