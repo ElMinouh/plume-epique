@@ -27,6 +27,37 @@ const SECURITY_QUESTIONS = [
   'Le nom de votre école primaire ?'
 ];
 
+// ═══════════════════════════════════════════════════════════════════════
+// "RESTER CONNECTÉ" (nouveau) — par profil, réglable dans Mon profil.
+// Compromis sécurité assumé sur demande explicite (même principe que le
+// token GitHub, voir library.js) : le mot de passe et la DEK du profil sont
+// alors gardés en clair dans localStorage sur CET appareil, pendant la durée
+// choisie, pour éviter de ressaisir le mot de passe à chaque fermeture du
+// site. "Se déconnecter" et "Accueil" effacent toujours cette session
+// immédiatement, quelle que soit la durée choisie. Par défaut (profil sans
+// réglage explicite) : 24h.
+// Valeurs de profil.sessionMinutes : 0 = désactivé, -1 = toujours, sinon
+// nombre de minutes.
+// ═══════════════════════════════════════════════════════════════════════
+const SESSION_STORAGE_KEY = 'plume_auto_session';
+const DEFAULT_SESSION_MINUTES = 1440; // 24h
+function persistLocalSession(profil, dek, pwd) {
+  const minutes = (profil.sessionMinutes === undefined || profil.sessionMinutes === null) ? DEFAULT_SESSION_MINUTES : profil.sessionMinutes;
+  if (minutes === 0) { localStorage.removeItem(SESSION_STORAGE_KEY); return; }
+  const expiresAt = minutes === -1 ? null : Date.now() + minutes * 60000;
+  localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ profileId: profil.id, dek, pwd, expiresAt }));
+}
+function clearLocalSession() { localStorage.removeItem(SESSION_STORAGE_KEY); }
+function readLocalSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (s.expiresAt !== null && s.expiresAt < Date.now()) { localStorage.removeItem(SESSION_STORAGE_KEY); return null; }
+    return s;
+  } catch(e) { return null; }
+}
+
 // ── ÉCRAN 0 : Clé de synchronisation de cet appareil (v7.22.0) ──────────
 // N'apparaît qu'une seule fois par appareil (voir needsSyncKeySetup() dans
 // router.js) — jamais par profil : cette clé déverrouille l'accès au Worker
@@ -84,6 +115,15 @@ async function bootProfiles() {
     // — on la purge silencieusement si elle traîne encore.
     const legacy = await loadData('main');
     if (legacy) await persistData('main', null);
+    // "Rester connecté" (nouveau) : si une session valide est enregistrée
+    // sur cet appareil pour un profil existant, on saute directement
+    // l'écran de connexion.
+    const session = readLocalSession();
+    if (session) {
+      const profil = idx.profiles.find(p => p.id === session.profileId);
+      if (profil) { await openProfile(profil, session.dek, session.pwd); return; }
+      clearLocalSession();
+    }
     renderLoginScreen(idx);
     return;
   }
@@ -313,6 +353,7 @@ async function openProfile(profil, dek, pwd) {
   _currentProfile = profil;
   _dataKey = dek;
   _encPassword = pwd;
+  persistLocalSession(profil, dek, pwd);
   hideGate();
   syncPushEntireLibrary(); // arrière-plan, non bloquant — voir library.js
   await enterLibrary();
@@ -320,6 +361,7 @@ async function openProfile(profil, dek, pwd) {
 
 function logout() {
   if (!confirm('Se déconnecter ? Les modifications non enregistrées seront perdues.')) return;
+  clearLocalSession();
   location.reload();
 }
 
@@ -328,6 +370,7 @@ function logout() {
 // mémoire), mais formulé pour un usage de navigation plutôt que de sécurité.
 function goHome() {
   if (!confirm('Retourner à l\'écran de connexion ? Les modifications non enregistrées seront perdues.')) return;
+  clearLocalSession();
   location.reload();
 }
 
@@ -412,9 +455,31 @@ function openMyProfile() {
   document.getElementById('mp-old-pwd').value = '';
   document.getElementById('mp-new-pwd').value = '';
   document.getElementById('mp-new-pwd2').value = '';
+  const sessSel = document.getElementById('mp-session-duration');
+  if (sessSel) {
+    const minutes = (_currentProfile.sessionMinutes === undefined || _currentProfile.sessionMinutes === null) ? DEFAULT_SESSION_MINUTES : _currentProfile.sessionMinutes;
+    sessSel.value = String(minutes);
+    // Assignation directe (pas addEventListener) : évite d'empiler un
+    // nouveau listener à chaque ouverture du panneau, sans dépendre du
+    // câblage global (router.js) pour ce nouvel élément.
+    sessSel.onchange = saveMySessionDuration;
+  }
   document.getElementById('my-profile-overlay').classList.add('active');
 }
 function closeMyProfile() { document.getElementById('my-profile-overlay').classList.remove('active'); }
+
+async function saveMySessionDuration() {
+  const minutes = parseInt(document.getElementById('mp-session-duration').value, 10);
+  const idx = await loadProfilesIndex();
+  const profil = idx.profiles.find(p => p.id === _currentProfileId);
+  profil.sessionMinutes = minutes;
+  _currentProfile.sessionMinutes = minutes;
+  await saveProfilesIndex(idx);
+  // Répercute tout de suite sur la session déjà active de cet appareil,
+  // sans attendre une prochaine connexion.
+  persistLocalSession(profil, _dataKey, _encPassword);
+  toast('Durée de session mise à jour', 'success');
+}
 
 async function saveMyName() {
   const idx = await loadProfilesIndex();

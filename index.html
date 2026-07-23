@@ -173,6 +173,19 @@
     <select id="mp-my-question" class="field"></select>
     <input id="mp-my-answer" class="field" placeholder="Nouvelle réponse">
     <button class="action-btn btn-sm u-as-flex-start" id="mp-save-question-btn" title="Utile pour récupérer votre compte en cas de mot de passe oublié">Mettre à jour la question</button>
+    <hr class="u-bdc-v-border u-m-6px-0">
+    <strong class="u-fs-_85rem">⏱️ Rester connecté sur cet appareil</strong>
+    <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-6px">Évite de retaper le mot de passe pendant cette durée. Se déconnecter ou cliquer sur Accueil l'annule immédiatement.</p>
+    <select id="mp-session-duration" class="field">
+      <option value="0">Ne pas rester connecté</option>
+      <option value="60">1 heure</option>
+      <option value="360">6 heures</option>
+      <option value="720">12 heures</option>
+      <option value="1440">24 heures (par défaut)</option>
+      <option value="10080">7 jours</option>
+      <option value="43200">1 mois</option>
+      <option value="-1">Toujours</option>
+    </select>
   </div>
 </div>
 

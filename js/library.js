@@ -185,7 +185,11 @@ function wireLibraryStaticUI() {
   document.getElementById('view-shelf-btn').addEventListener('click', () => setLibraryViewMode('shelf'));
 
   // ── Menu ⋮ des manuscrits (v7.13.0, Lot 10) ──────────────────────────
-  document.getElementById('lctx-cover').addEventListener('click', () => {
+  document.getElementById('lctx-cover').addEventListener('click', e => {
+    // stopPropagation indispensable : sans elle, ce même clic remonte
+    // jusqu'au listener document (plus bas) qui referme le sélecteur de
+    // couverture juste après l'avoir ouvert (fermeture instantanée).
+    e.stopPropagation();
     const docId = _libraryCtxMenuDocId, btn = _libraryCtxMenuBtn;
     closeLibraryCtxMenu();
     if (docId && btn) openCoverPicker(docId, btn);
