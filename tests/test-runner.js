@@ -456,12 +456,27 @@ function group(title) {
   db.sessionStats[cutoffTest.toISOString().slice(0,10)] = 500;
   assert(getWordsInLastNDays(7, 800) === 300, 'soustrait la référence trouvée avant la fenêtre demandée (800 - 500 = 300)');
 
-  group('pwa.js — bannière de mise à jour (showUpdateBanner / applyUpdate)');
+  group('pwa.js — mise à jour (application automatique / bannière / applyUpdate)');
   document.body.insertAdjacentHTML('beforeend', '<div id="sw-update-banner"></div>');
-  showUpdateBanner();
-  assert(document.getElementById('sw-update-banner').classList.contains('show'), 'showUpdateBanner() affiche la bannière');
   let postedMessage = null;
   _swRegistration = { waiting: { postMessage: (m) => { postedMessage = m; } } };
+  // v7.22.3 — une mise à jour repérée juste après le chargement doit
+  // s'appliquer TOUTE SEULE, sans attendre un clic sur la bannière : c'est
+  // ce qui évite de rester bloqué pour toujours sur une version cassée qui
+  // fait planter la page avant qu'on puisse cliquer où que ce soit.
+  assert(Date.now() - _pageLoadedAt < AUTO_UPDATE_WINDOW_MS, 'les tests tournent bien dans la fenêtre de mise à jour automatique');
+  showUpdateBanner();
+  assert(postedMessage && postedMessage.type === 'SKIP_WAITING', 'une mise à jour détectée juste après le chargement est appliquée automatiquement');
+  assert(!document.getElementById('sw-update-banner').classList.contains('show'), 'dans ce cas la bannière n\'est pas affichée (rechargement immédiat)');
+  // Passé ce délai, on retrouve le comportement d'origine : c'est
+  // l'utilisateur qui décide du moment du rechargement.
+  postedMessage = null;
+  const realDateNow = Date.now;
+  Date.now = () => realDateNow() + AUTO_UPDATE_WINDOW_MS + 1000;
+  showUpdateBanner();
+  Date.now = realDateNow;
+  assert(document.getElementById('sw-update-banner').classList.contains('show'), 'plus tard dans la session, la bannière est affichée au lieu de recharger sans prévenir');
+  assert(postedMessage === null, 'et rien n\'est appliqué tant que l\'utilisateur n\'a pas cliqué');
   applyUpdate();
   assert(postedMessage && postedMessage.type === 'SKIP_WAITING', 'applyUpdate() envoie le message SKIP_WAITING au Service Worker en attente');
   assert(!document.getElementById('sw-update-banner').classList.contains('show'), 'applyUpdate() masque la bannière après la mise à jour');

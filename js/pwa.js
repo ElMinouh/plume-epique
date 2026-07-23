@@ -3,6 +3,22 @@
 // nouvelle version (voir sw.js). On détecte ici quand une mise à jour est
 // prête et on affiche une bannière pour laisser l'utilisateur décider du
 // moment du rechargement.
+//
+// Correction v7.22.3 — piège découvert à l'usage : si la version DÉJÀ en
+// cache est cassée au point de faire planter la page, l'utilisateur n'a
+// jamais le temps de cliquer sur « Mettre à jour » — la correction déployée
+// ne s'installe donc jamais, et l'appareil reste bloqué indéfiniment sur la
+// version défectueuse (constaté en v7.22.x : plantage Chrome dès la saisie
+// de la clé de synchronisation, impossible à corriger sans passer par les
+// outils de développement du navigateur).
+// Garde-fou : une mise à jour détectée dans les premières secondes suivant
+// le chargement est appliquée AUTOMATIQUEMENT, sans attendre de clic. Ce
+// délai vise précisément ce cas (une page qui plante le fait tout de suite),
+// tout en préservant l'intention d'origine : passé ce délai, l'utilisateur
+// est probablement en train d'écrire, et c'est de nouveau lui qui décide du
+// moment du rechargement via la bannière.
+const AUTO_UPDATE_WINDOW_MS = 8000;
+const _pageLoadedAt = Date.now();
 let _swRegistration = null;
 
 if ('serviceWorker' in navigator) {
@@ -31,6 +47,10 @@ if ('serviceWorker' in navigator) {
 }
 
 function showUpdateBanner() {
+  // Mise à jour repérée juste après le chargement : on l'applique sans
+  // attendre (voir la note en haut de ce fichier) — la page se recharge
+  // alors immédiatement sur la nouvelle version.
+  if (Date.now() - _pageLoadedAt < AUTO_UPDATE_WINDOW_MS) { applyUpdate(); return; }
   const el = document.getElementById('sw-update-banner');
   if (el) el.classList.add('show');
 }
