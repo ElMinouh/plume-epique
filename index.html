@@ -63,6 +63,27 @@
     </div>
 
     <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
+      <strong class="u-fs-_8rem">📖 Manuscrit sélectionné</strong><br>
+      <select id="lib-system-doc-select" class="field u-w-100pc u-mt-6px"></select>
+
+      <p class="u-fs-_68rem u-c-v-text-muted u-m-10px-0-4px">Fichiers :</p>
+      <div class="export-row u-jc-flex-start">
+        <button class="action-btn btn-sm u-bg-h2980b9" id="lib-export-btn" title="Exporter ce manuscrit (choix du format ensuite)">📤 Exporter</button>
+        <button class="action-btn btn-sm u-bg-hd35400" id="lib-import-doc-trigger-btn" title="Importer un fichier Word (.docx) ou OpenDocument (.odt)">📥 Importer (DOCX/ODT)</button>
+        <input class="u-d-none" type="file" id="lib-import-doc-file" accept=".docx,.odt">
+      </div>
+    </div>
+
+    <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
+      <strong class="u-fs-_8rem">📚 Bibliothèque entière</strong><br>
+      <div class="export-row u-jc-flex-start u-mt-8px">
+        <button class="action-btn btn-sm u-bg-h27ae60" id="lib-export-json-btn" title="Télécharger tous les manuscrits dans un seul fichier de sauvegarde">💾 Export JSON (tout)</button>
+        <button class="action-btn btn-sm u-bg-he67e22" id="lib-import-json-trigger-btn" title="Charger un fichier de sauvegarde JSON (ajoute les manuscrits sans écraser l'existant)">📥 Import JSON (tout)</button>
+        <input class="u-d-none" type="file" id="lib-import-json-file" accept=".json">
+      </div>
+    </div>
+
+    <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
       <strong class="u-fs-_8rem">☁️ GitHub (compte) — un seul token pour tout le compte</strong><br>
       <div class="u-d-flex u-gap-6px u-mt-6px">
         <input type="password" id="lib-gh-token" class="field u-flex-1" placeholder="Token GitHub" title="Mémorisé automatiquement (chiffré)">
@@ -80,35 +101,28 @@
       </div>
       <p class="u-fs-_68rem u-c-v-text-muted u-m-6px-0-0">Se déclenche aussi au changement de manuscrit, au retour à la bibliothèque, et quand l'onglet perd le focus.</p>
       <p class="u-fs-_72rem u-c-v-accent u-m-6px-0-0" id="lib-cloud-status" aria-live="polite"></p>
-    </div>
 
-    <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
-      <strong class="u-fs-_8rem">📖 Manuscrit sélectionné</strong><br>
-      <select id="lib-system-doc-select" class="field u-w-100pc u-mt-6px"></select>
-
-      <p class="u-fs-_68rem u-c-v-text-muted u-m-10px-0-4px">Gist de ce manuscrit :</p>
-      <div class="export-row u-jc-flex-start">
+      <hr class="u-bdc-v-border u-m-10px-0">
+      <p class="u-fs-_68rem u-c-v-text-muted u-m-0-0-4px">Gist d'un manuscrit :</p>
+      <select id="lib-gist-doc-select" class="field u-w-100pc"></select>
+      <div class="export-row u-jc-flex-start u-mt-8px">
         <button class="action-btn btn-sm u-bg-h2980b9" id="lib-sync-cloud-btn" title="Envoyer une sauvegarde chiffrée de ce manuscrit vers GitHub">🔄 Sauver</button>
         <button class="action-btn btn-sm u-bg-h34495e" id="lib-load-cloud-btn" title="Récupérer la dernière sauvegarde Gist de ce manuscrit">📥 Charger</button>
         <button class="action-btn btn-sm u-bg-h16a085" id="lib-gist-history-btn" title="Voir les anciennes versions sauvegardées de ce manuscrit">🕐 Historique</button>
       </div>
       <p class="u-fs-_68rem u-c-v-text-muted u-m-6px-0-0" id="lib-doc-gist-status"></p>
-
-      <p class="u-fs-_68rem u-c-v-text-muted u-m-10px-0-4px">Fichiers :</p>
-      <div class="export-row u-jc-flex-start">
-        <button class="action-btn btn-sm u-bg-h2980b9" id="lib-export-btn" title="Exporter ce manuscrit (choix du format ensuite)">📤 Exporter</button>
-        <button class="action-btn btn-sm u-bg-hd35400" id="lib-import-doc-trigger-btn" title="Importer un fichier Word (.docx) ou OpenDocument (.odt)">📥 Importer (DOCX/ODT)</button>
-        <input class="u-d-none" type="file" id="lib-import-doc-file" accept=".docx,.odt">
-      </div>
     </div>
 
     <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
-      <strong class="u-fs-_8rem">📚 Bibliothèque entière</strong><br>
-      <div class="export-row u-jc-flex-start u-mt-8px">
-        <button class="action-btn btn-sm u-bg-h27ae60" id="lib-export-json-btn" title="Télécharger tous les manuscrits dans un seul fichier de sauvegarde">💾 Export JSON (tout)</button>
-        <button class="action-btn btn-sm u-bg-he67e22" id="lib-import-json-trigger-btn" title="Charger un fichier de sauvegarde JSON (ajoute les manuscrits sans écraser l'existant)">📥 Import JSON (tout)</button>
-        <input class="u-d-none" type="file" id="lib-import-json-file" accept=".json">
+      <strong class="u-fs-_8rem">🔑 Clé de synchronisation</strong><br>
+      <p class="u-fs-_68rem u-c-v-text-muted u-m-6px-0-8px">Commune à cet appareil, valable pour tous les profils.</p>
+      <div class="u-d-flex u-gap-6px">
+        <input type="password" id="lib-sync-key-input" class="field u-flex-1" readonly>
+        <button class="action-btn btn-sm u-fsh-0" id="lib-sync-key-reveal-btn" title="Afficher/masquer la clé">👁️</button>
+        <button class="action-btn btn-sm u-bg-h16a085 u-fsh-0" id="lib-sync-key-verify-btn" title="Vérifier que cette clé est acceptée par le Worker">✅ Vérifier</button>
       </div>
+      <p class="u-fs-_72rem u-m-6px-0-0" id="lib-sync-key-status" aria-live="polite"></p>
+      <button class="action-btn btn-sm u-as-flex-start u-mt-6px" id="lib-sync-key-change-btn">✏️ Changer la clé</button>
     </div>
   </div>
 </div>

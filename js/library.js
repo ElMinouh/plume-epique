@@ -228,8 +228,9 @@ function wireLibraryStaticUI() {
   document.getElementById('lib-export-btn').addEventListener('click', libExportCurrent);
   document.getElementById('lib-import-doc-trigger-btn').addEventListener('click', () => document.getElementById('lib-import-doc-file').click());
   document.getElementById('lib-import-doc-file').addEventListener('change', e => importManuscriptFile(e.target));
+  document.getElementById('lib-gist-doc-select').addEventListener('change', e => refreshLibSystemDocStatus(e.target.value));
   document.getElementById('lib-sync-cloud-btn').addEventListener('click', async () => {
-    const docId = document.getElementById('lib-system-doc-select').value;
+    const docId = document.getElementById('lib-gist-doc-select').value;
     if (!docId) return;
     document.getElementById('lib-cloud-status').textContent = '⏳ Sauvegarde en cours…';
     const ok = await libSyncManuscript(docId);
@@ -237,16 +238,57 @@ function wireLibraryStaticUI() {
     refreshLibSystemDocStatus(docId);
   });
   document.getElementById('lib-load-cloud-btn').addEventListener('click', () => {
-    const docId = document.getElementById('lib-system-doc-select').value;
+    const docId = document.getElementById('lib-gist-doc-select').value;
     if (docId) libLoadManuscript(docId);
   });
   document.getElementById('lib-gist-history-btn').addEventListener('click', () => {
-    const docId = document.getElementById('lib-system-doc-select').value;
+    const docId = document.getElementById('lib-gist-doc-select').value;
     if (docId) libOpenGistHistory(docId);
   });
   document.getElementById('lib-export-json-btn').addEventListener('click', megaExportLibrary);
   document.getElementById('lib-import-json-trigger-btn').addEventListener('click', () => document.getElementById('lib-import-json-file').click());
   document.getElementById('lib-import-json-file').addEventListener('change', e => importProjectLibrary(e.target));
+
+  // ── Bloc "Clé de synchronisation" du panneau Système (nouveau) ───────
+  // Réutilise getSyncKey()/setSyncKey()/verifySyncKey() de router.js — la
+  // même clé que celle demandée une fois par appareil à l'écran de démarrage.
+  document.getElementById('lib-sync-key-reveal-btn').addEventListener('click', () => {
+    const input = document.getElementById('lib-sync-key-input');
+    input.type = input.type === 'password' ? 'text' : 'password';
+  });
+  document.getElementById('lib-sync-key-verify-btn').addEventListener('click', async () => {
+    const key = document.getElementById('lib-sync-key-input').value;
+    const statusEl = document.getElementById('lib-sync-key-status');
+    if (!key) { statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Aucune clé enregistrée sur cet appareil.'; return; }
+    statusEl.style.color = 'var(--text-muted)'; statusEl.textContent = '⏳ Vérification…';
+    const ok = await verifySyncKey(key);
+    statusEl.style.color = ok ? 'var(--success)' : 'var(--danger)';
+    statusEl.textContent = ok ? '✅ Clé valide.' : '❌ Clé invalide, ou Worker injoignable.';
+  });
+  document.getElementById('lib-sync-key-change-btn').addEventListener('click', () => {
+    const input = document.getElementById('lib-sync-key-input');
+    const btn = document.getElementById('lib-sync-key-change-btn');
+    const statusEl = document.getElementById('lib-sync-key-status');
+    if (input.readOnly) {
+      // Passe en mode édition
+      input.readOnly = false;
+      input.type = 'text';
+      input.value = '';
+      input.placeholder = 'Nouvelle clé de synchronisation';
+      input.focus();
+      btn.textContent = '💾 Enregistrer';
+      statusEl.textContent = '';
+    } else {
+      // Enregistre la nouvelle clé
+      const newKey = input.value.trim();
+      if (!newKey) { statusEl.style.color = 'var(--danger)'; statusEl.textContent = 'Entrez une clé, ou laissez le champ tel quel pour annuler.'; return; }
+      setSyncKey(newKey);
+      input.readOnly = true;
+      input.type = 'password';
+      btn.textContent = '✏️ Changer la clé';
+      statusEl.style.color = 'var(--success)'; statusEl.textContent = '✅ Nouvelle clé enregistrée sur cet appareil.';
+    }
+  });
 
   // ── Import DOCX/ODT — modale (v7.12.0, généralisée v7.13.0) ──────────
   document.getElementById('docx-import-close-btn').addEventListener('click', closeDocxImportModal);
@@ -689,11 +731,25 @@ async function openLibrarySystemPanel(preselectDocId) {
   document.getElementById('lib-auto-gist-interval').value = String(_libSettings.autoGistInterval ?? 15);
   document.getElementById('lib-cloud-status').textContent = '';
   const list = await loadDocList();
-  const sel = document.getElementById('lib-system-doc-select');
   const sorted = list.documents.slice().sort((a,b)=>b.lastModified-a.lastModified);
-  sel.innerHTML = sorted.map(d => `<option value="${d.id}">${DOMPurify.sanitize(d.title || 'Sans titre')}</option>`).join('');
+  const optionsHtml = sorted.map(d => `<option value="${d.id}">${DOMPurify.sanitize(d.title || 'Sans titre')}</option>`).join('');
+  const sel = document.getElementById('lib-system-doc-select');
+  sel.innerHTML = optionsHtml;
   if (preselectDocId) sel.value = preselectDocId;
-  await refreshLibSystemDocStatus(sel.value);
+  const gistSel = document.getElementById('lib-gist-doc-select');
+  gistSel.innerHTML = optionsHtml;
+  if (preselectDocId) gistSel.value = preselectDocId;
+  await refreshLibSystemDocStatus(gistSel.value);
+
+  // Bloc "Clé de synchronisation" : toujours réaffiché en lecture seule
+  const syncKeyInput = document.getElementById('lib-sync-key-input');
+  syncKeyInput.readOnly = true;
+  syncKeyInput.type = 'password';
+  syncKeyInput.value = getSyncKey() || '';
+  syncKeyInput.placeholder = getSyncKey() ? '' : 'Aucune clé enregistrée sur cet appareil';
+  document.getElementById('lib-sync-key-change-btn').textContent = '✏️ Changer la clé';
+  document.getElementById('lib-sync-key-status').textContent = '';
+
   document.getElementById('library-system-overlay').classList.add('active');
 }
 function closeLibrarySystemPanel() {
