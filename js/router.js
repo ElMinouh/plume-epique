@@ -98,14 +98,25 @@ async function syncPush(key, payload) {
   const syncKey = getSyncKey();
   if (!syncKey) return;
   try {
-    // keepalive : la requête a une chance de se terminer même si l'utilisateur
-    // change de page/onglet juste après une sauvegarde.
-    await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), {
+    const body = JSON.stringify(payload);
+    // `keepalive` permet à une sauvegarde de se terminer même si l'utilisateur
+    // ferme l'onglet juste après — mais Chrome impose une limite stricte
+    // d'environ 64 Ko sur le corps de ce type de requête, et DÉPASSER cette
+    // limite ne renvoie pas une simple erreur : le navigateur tue purement et
+    // simplement la page (RESULT_CODE_KILLED_BAD_MESSAGE). Bug rencontré en
+    // v7.22.0 : les manuscrits chiffrés dépassent largement 64 Ko, donc la
+    // page plantait dès l'activation de la synchronisation (sur Chrome
+    // uniquement — Firefox n'applique pas cette limite de la même façon).
+    // On ne demande donc `keepalive` que pour les petits envois ; au-delà,
+    // requête normale (si l'onglet se ferme pile pendant l'envoi, la copie
+    // locale reste intacte et sera repoussée à la prochaine écriture).
+    const opts = {
       method: 'PUT',
       headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + syncKey },
-      body: JSON.stringify(payload),
-      keepalive: true
-    });
+      body
+    };
+    if (body.length < 60000) opts.keepalive = true;
+    await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), opts);
   } catch(e) { /* hors-ligne ou Worker injoignable : la copie locale suffit, on retentera à la prochaine écriture */ }
 }
 async function syncPull(key) {
