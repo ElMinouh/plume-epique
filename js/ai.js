@@ -7,12 +7,13 @@
 // (plume-epique-ai.air7841.workers.dev) relaie vers Mistral AI et renvoie une
 // réponse déjà normalisée au format {content:[{type:'text', text}]} — c'est ce
 // format que le reste de cette fonction attendait déjà, donc seule l'URL
-// changeait. Le paramètre "model" est retiré : le Worker choisit toujours le
-// modèle Mistral côté serveur, il n'est plus pertinent côté client.
+// changeait. Le corps de la requête a été ajusté suite à un test réel : le
+// Worker attend un champ "prompt" direct (il a répondu "prompt manquant" avec
+// le format Anthropic {messages:[...]}), pas un tableau de messages.
 async function callClaude(prompt, maxTokens=1000) {
   const resp = await fetch('https://plume-epique-ai.air7841.workers.dev', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({ max_tokens:maxTokens, messages:[{role:'user',content:prompt}] })
+    body:JSON.stringify({ prompt, maxTokens })
   });
   if (!resp.ok) { const err=await resp.json(); throw new Error(err.error?.message||`HTTP ${resp.status}`); }
   const data = await resp.json();
