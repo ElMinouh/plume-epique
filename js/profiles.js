@@ -378,6 +378,7 @@ function goHome() {
 async function openManageProfiles() {
   if (!_currentProfile || _currentProfile.role !== 'admin') { toast('Réservé à l\'administrateur.', 'error'); return; }
   await renderManageProfiles();
+  document.getElementById('manage-profiles-close-btn').onclick = closeManageProfiles;
   document.getElementById('manage-profiles-overlay').classList.add('active');
 }
 function closeManageProfiles() { document.getElementById('manage-profiles-overlay').classList.remove('active'); }
@@ -464,6 +465,10 @@ function openMyProfile() {
     // câblage global (router.js) pour ce nouvel élément.
     sessSel.onchange = saveMySessionDuration;
   }
+  // Câblage du bouton ✕ en assignation directe (idempotent, sans dépendre
+  // du câblage global de router.js) — corrige un cas où ce bouton restait
+  // inopérant tant qu'aucun manuscrit n'avait encore été ouvert.
+  document.getElementById('my-profile-close-btn').onclick = closeMyProfile;
   document.getElementById('my-profile-overlay').classList.add('active');
 }
 function closeMyProfile() { document.getElementById('my-profile-overlay').classList.remove('active'); }
