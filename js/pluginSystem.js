@@ -4,6 +4,7 @@ const PLUGINS_REGISTRY = [
     id: 'languagetool',
     name: '🔤 LanguageTool',
     description: 'Correction grammaticale et orthographique (API gratuite).',
+    remote: true,
     run: async (text) => {
       if (!text || text.length < 10) return 'Pas de texte à analyser.';
       try {
@@ -54,6 +55,7 @@ const PLUGINS_REGISTRY = [
     id: 'synopsis',
     name: '📝 Générateur de synopsis',
     description: 'Génère un synopsis complet via l\'IA.',
+    remote: true,
     run: async () => {
       flushCurrentChapter();
       const summaries = db.chapters.map((c,i)=>`Ch.${i+1} ${c.title}: ${c.summary||getPlainText(c.content).substring(0,200)}`).join('\n');
@@ -80,6 +82,7 @@ function renderPlugins() {
     const resultDiv = document.createElement('div'); resultDiv.className='plugin-result';
     runBtn.addEventListener('click', async () => {
       if (!enabled) { toast('Plugin désactivé','error'); return; }
+      if (plugin.remote) await notifyThirdPartyDataUseOnce();
       resultDiv.innerHTML = '<div class="ai-loader"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div>';
       resultDiv.classList.add('active');
       try {

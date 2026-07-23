@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '7.22.4';
+const APP_VERSION = '7.25.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -102,6 +102,18 @@ function setSyncSkipped() { localStorage.setItem('plume_sync_skipped', '1'); }
 // faut-il montrer l'écran de saisie de la clé avant même l'écran de connexion ?
 function needsSyncKeySetup() { return !getSyncKey() && !isSyncSkipped(); }
 
+// v7.25.0 — Visibilité de la synchronisation : jusqu'ici, un échec de
+// syncPush()/syncPull() (Worker injoignable, hors-ligne...) était avalé en
+// silence (aucune perte de données pour autant : la copie locale reste la
+// source de vérité, réessayée à la prochaine écriture) mais l'utilisateur
+// n'avait aucun moyen de le savoir. On mémorise ici la dernière tentative
+// (succès ou échec + horodatage), consultable via getLastSyncStatus() —
+// affiché dans le panneau "💾 Système" (voir library.js).
+// `ok: null` = aucune tentative depuis l'ouverture de cette page (device
+// hors-ligne, ou clé de sync non configurée).
+let _lastSyncStatus = { ok: null, ts: null };
+function getLastSyncStatus() { return _lastSyncStatus; }
+
 // Vérifie une clé auprès du Worker sans rien lire ni écrire de réel (clé
 // technique réservée "__ping__", voir worker/sync-worker.js) — utilisé par
 // le bouton "Vérifier" de l'écran de configuration.
@@ -133,17 +145,22 @@ async function syncPush(key, payload) {
       body
     };
     if (body.length < 60000) opts.keepalive = true;
-    await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), opts);
-  } catch(e) { /* hors-ligne ou Worker injoignable : la copie locale suffit, on retentera à la prochaine écriture */ }
+    const resp = await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), opts);
+    _lastSyncStatus = { ok: resp.ok, ts: Date.now() };
+  } catch(e) {
+    _lastSyncStatus = { ok: false, ts: Date.now() };
+    /* hors-ligne ou Worker injoignable : la copie locale suffit, on retentera à la prochaine écriture */
+  }
 }
 async function syncPull(key) {
   const syncKey = getSyncKey();
   if (!syncKey) return undefined;
   try {
     const resp = await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), { headers: { 'Authorization': 'Bearer ' + syncKey } });
-    if (!resp.ok) return undefined;
+    if (!resp.ok) { _lastSyncStatus = { ok: false, ts: Date.now() }; return undefined; }
+    _lastSyncStatus = { ok: true, ts: Date.now() };
     return await resp.json(); // peut être `null` (clé jamais synchronisée) : géré par l'appelant
-  } catch(e) { return undefined; }
+  } catch(e) { _lastSyncStatus = { ok: false, ts: Date.now() }; return undefined; }
 }
 
 async function persistData(key, payload) {
@@ -507,6 +524,8 @@ document.addEventListener('visibilitychange', () => {
 window.onload = async () => {
   const verEl = document.getElementById('app-version-label');
   if (verEl) verEl.textContent = 'Plume Épique · v' + APP_VERSION;
+  const libVerEl = document.getElementById('library-version-label');
+  if (libVerEl) libVerEl.textContent = 'Plume Épique · v' + APP_VERSION;
   await initIDB();
   if (needsSyncKeySetup()) renderSyncKeyGate();
   else await bootProfiles();

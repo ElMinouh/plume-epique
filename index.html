@@ -31,7 +31,10 @@
 <!-- BIBLIOTHÈQUE (nouveau v7.2.0) — écran affiché après connexion, avant l'éditeur -->
 <div id="library-screen">
   <div id="library-topbar">
-    <span id="library-profile-name"></span>
+    <div class="u-d-flex u-fd-column u-gap-2px">
+      <span id="library-profile-name"></span>
+      <span class="u-fs-_65rem u-op-_35" id="library-version-label"></span>
+    </div>
     <div class="u-d-flex u-gap-6px u-fw-wrap">
       <button class="action-btn btn-sm u-bg-h7f8c8d" id="library-home-btn" title="Retourner à l'écran de connexion">🏠 Accueil</button>
       <button class="action-btn btn-sm" id="library-my-profile-btn" title="Modifier votre nom, mot de passe ou question de sécurité">👤 Mon profil</button>
@@ -122,6 +125,7 @@
         <button class="action-btn btn-sm u-bg-h16a085 u-fsh-0" id="lib-sync-key-verify-btn" title="Vérifier que cette clé est acceptée par le Worker">✅ Vérifier</button>
       </div>
       <p class="u-fs-_72rem u-m-6px-0-0" id="lib-sync-key-status" aria-live="polite"></p>
+      <p class="u-fs-_68rem u-m-4px-0-0" id="lib-last-sync-status" aria-live="polite"></p>
       <button class="action-btn btn-sm u-as-flex-start u-mt-6px" id="lib-sync-key-change-btn">✏️ Changer la clé</button>
     </div>
   </div>

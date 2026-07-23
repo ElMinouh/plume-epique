@@ -753,8 +753,25 @@ async function openLibrarySystemPanel(preselectDocId) {
   syncKeyInput.placeholder = getSyncKey() ? '' : 'Aucune clé enregistrée sur cet appareil';
   document.getElementById('lib-sync-key-change-btn').textContent = '✏️ Changer la clé';
   document.getElementById('lib-sync-key-status').textContent = '';
+  renderLastSyncStatus();
 
   document.getElementById('library-system-overlay').classList.add('active');
+}
+
+// v7.25.0 — Rend visible le résultat de la dernière tentative de
+// synchronisation multi-appareils (voir _lastSyncStatus dans router.js) :
+// un échec silencieux (Worker injoignable, hors-ligne...) était auparavant
+// invisible pour l'utilisateur, alors que "ça n'a pas l'air de synchroniser"
+// est justement le genre de souci qu'on veut pouvoir diagnostiquer soi-même.
+function renderLastSyncStatus() {
+  const el = document.getElementById('lib-last-sync-status');
+  if (!el) return;
+  if (!getSyncKey()) { el.textContent = ''; return; }
+  const status = getLastSyncStatus();
+  if (status.ok === null) { el.textContent = 'Aucune synchronisation tentée depuis l\'ouverture de la page.'; el.style.color = 'var(--text-muted)'; return; }
+  const when = formatRelativeDate(status.ts).replace('Modifié ', '');
+  if (status.ok) { el.textContent = '✅ Dernière synchro réussie : ' + when; el.style.color = 'var(--success)'; }
+  else { el.textContent = '⚠️ Dernière tentative de synchro échouée (' + when + ') — l\'app continue de fonctionner en local, réessai automatique à la prochaine sauvegarde.'; el.style.color = 'var(--danger)'; }
 }
 function closeLibrarySystemPanel() {
   document.getElementById('library-system-overlay').classList.remove('active');

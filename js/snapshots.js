@@ -72,9 +72,17 @@ function openDiffViewer() {
 function restoreSnapshot(key, idx) {
   if (!confirm('Restaurer cette version ? Le contenu actuel sera remplacé.')) return;
   const snap = db.history[key][idx];
+  // v7.24.0 — checkpointNow() avant ET après (même schéma que formatText()) :
+  // l'état d'avant-restauration ET la version restaurée deviennent chacun un
+  // point d'annulation distinct, pour pouvoir faire Ctrl+Z si la restauration
+  // ne convenait pas finalement — auparavant, seule une réouverture manuelle
+  // de l'historique permettait de revenir en arrière.
+  checkpointNow();
   db.chapters[cur].content = snap.content;
   db.chapters[cur].title = snap.title;
-  loadChapter(cur); save();
+  loadChapter(cur);
+  checkpointNow();
+  save();
   document.getElementById('history-overlay').classList.remove('active');
   toast('Version restaurée', 'success');
 }
