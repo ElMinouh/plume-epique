@@ -15,11 +15,20 @@ async function callClaude(prompt, maxTokens=1000) {
     method:'POST', headers:{'Content-Type':'application/json'},
     body:JSON.stringify({ prompt, maxTokens })
   });
-  if (!resp.ok) { const err=await resp.json(); throw new Error(err.error?.message||`HTTP ${resp.status}`); }
+  if (!resp.ok) {
+    // v7.24.0 — correctif : resp.json() plantait si le Worker (ou Cloudflare
+    // devant lui, en cas de panne) renvoyait une erreur en texte brut plutôt
+    // qu'en JSON. On retombe alors sur le code HTTP plutôt que de laisser
+    // planter la fonction.
+    let msg = `HTTP ${resp.status}`;
+    try { const err = await resp.json(); if (err.error?.message) msg = err.error.message; } catch(e) {}
+    throw new Error(msg);
+  }
   const data = await resp.json();
   return data.content?.map(b=>b.text||'').join('') || '';
 }
 async function generateAISummary() {
+  await notifyThirdPartyDataUseOnce();
   flushCurrentChapter();
   const panel = document.getElementById('ai-summary-panel'), textEl = document.getElementById('ai-summary-text');
   const txt = getPlainText(db.chapters[cur].content);
@@ -35,6 +44,7 @@ function copyAISummaryToChapter() {
   if (s) { db.chapters[cur].summary=s; save(); toast('Résumé copié','success'); }
 }
 async function aiContinueSuggestions() {
+  await notifyThirdPartyDataUseOnce();
   flushCurrentChapter();
   const text = getPlainText(db.chapters[cur].content);
   if (text.length < 100) { toast('Écrivez davantage.','error'); return; }
@@ -45,6 +55,7 @@ async function aiContinueSuggestions() {
   } catch(e) { el.innerHTML = `<span class="u-c-v-danger">❌ ${e.message}</span>`; }
 }
 async function aiCheckInconsistencies() {
+  await notifyThirdPartyDataUseOnce();
   flushCurrentChapter();
   const fullText = db.chapters.map(c=>getPlainText(c.content)).join('\n---\n');
   if (fullText.trim().length < 100) { toast('Pas assez de texte.','error'); return; }
@@ -56,6 +67,7 @@ async function aiCheckInconsistencies() {
   } catch(e) { el.innerHTML = `<span class="u-c-v-danger">❌ ${e.message}</span>`; }
 }
 async function aiGenerateNames() {
+  await notifyThirdPartyDataUseOnce();
   const genre = document.getElementById('name-genre-sel').value;
   const sex = document.getElementById('name-sex-sel').value;
   const el = document.getElementById('ai-names-result');

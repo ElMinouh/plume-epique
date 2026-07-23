@@ -47,7 +47,7 @@ plume-epique/
 │   ├── tts.js                       → lecture vocale + dictée
 │   ├── wordcloud.js                  → nuage de mots-clés
 │   ├── pluginSystem.js               → plugins (grammaire, répétitions, synopsis...)
-│   ├── sync.js                        → export DOCX/JSON (chiffré si projet chiffré)/EPUB,
+│   ├── export-format-utils.js          → export DOCX/JSON (chiffré si projet chiffré)/EPUB,
 │   │                                     sauvegarde GitHub Gist privé + historique des révisions
 │   ├── database.js                    → personnages, lieux, quêtes, liens
 │   └── memory.js                      → mémoire narrative (recherche + questions IA,
@@ -208,7 +208,9 @@ Les versions ci-dessous sont classées de la plus récente à la plus ancienne.
 ### v7.16.2
 
 - **Troisième et dernier correctif sur l'export ODT** (après la v7.16.0 et la v7.16.1),
-  cette fois dans `toXhtmlSafe()` (`sync.js`), fonction partagée par l'export ODT et
+  cette fois dans `toXhtmlSafe()` (`export-format-utils.js`, anciennement `sync.js` —
+  renommé en v7.24.0, ce fichier n'a jamais géré la synchronisation cloud, qui vit dans
+  router.js), fonction partagée par l'export ODT et
   l'export EPUB. Bug reproduit et confirmé de façon isolée (avec génération réelle d'un
   fichier `.odt`, relu ensuite par `odf-kit` lui-même pour valider le contenu) : la fonction
   retirait l'enveloppe technique `<div>` ajoutée pour l'analyse via un simple remplacement de

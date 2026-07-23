@@ -58,6 +58,24 @@ function readLocalSession() {
   } catch(e) { return null; }
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// AVERTISSEMENT "SERVICES TIERS" (nouveau) — affiché une seule fois à vie
+// par profil (le drapeau vit dans l'index des profils, donc suit le profil
+// même d'un appareil à l'autre via la synchronisation). Prévient que les
+// fonctions IA (résumé, continuation, incohérences, noms, synonymes/
+// antonymes, mémoire narrative) et le plugin LanguageTool envoient le texte
+// concerné en clair à des services externes pour être traités — à appeler
+// avant le tout premier usage de l'une de ces fonctions.
+// ═══════════════════════════════════════════════════════════════════════
+async function notifyThirdPartyDataUseOnce() {
+  if (!_currentProfile || _currentProfile.seenThirdPartyNotice) return;
+  alert('ℹ️ À savoir : les fonctions IA (résumé, continuation, incohérences, noms, synonymes/antonymes, mémoire narrative) et le plugin LanguageTool envoient le texte concerné à des services externes (Mistral AI, LanguageTool.org) pour être traités. Ce texte n\'est jamais stocké en clair par Plume Épique, mais transite en clair chez ces services le temps du traitement.\n\nCe message ne s\'affichera plus.');
+  _currentProfile.seenThirdPartyNotice = true;
+  const idx = await loadProfilesIndex();
+  const profil = idx.profiles.find(p => p.id === _currentProfileId);
+  if (profil) { profil.seenThirdPartyNotice = true; await saveProfilesIndex(idx); }
+}
+
 // ── ÉCRAN 0 : Clé de synchronisation de cet appareil (v7.22.0) ──────────
 // N'apparaît qu'une seule fois par appareil (voir needsSyncKeySetup() dans
 // router.js) — jamais par profil : cette clé déverrouille l'accès au Worker
@@ -228,7 +246,7 @@ async function submitCreateProfile(opts) {
 
   if (!name) { errEl.textContent = 'Entrez un nom de profil.'; return; }
   if (nameExists(idx, name)) { errEl.textContent = 'Ce nom de profil existe déjà.'; return; }
-  if (pwd.length < 4) { errEl.textContent = 'Mot de passe trop court (4 caractères minimum).'; return; }
+  if (pwd.length < 8) { errEl.textContent = 'Mot de passe trop court (8 caractères minimum).'; return; }
   if (pwd !== pwd2) { errEl.textContent = 'Les deux mots de passe ne correspondent pas.'; return; }
   if (!answer.trim()) { errEl.textContent = 'Entrez une réponse à la question de sécurité.'; return; }
 
@@ -332,7 +350,7 @@ async function submitRecovery(profileId) {
   const errEl = document.getElementById('rec-err');
   errEl.textContent = '';
 
-  if (pwd.length < 4) { errEl.textContent = 'Nouveau mot de passe trop court (4 caractères minimum).'; return; }
+  if (pwd.length < 8) { errEl.textContent = 'Nouveau mot de passe trop court (8 caractères minimum).'; return; }
   if (pwd !== pwd2) { errEl.textContent = 'Les deux mots de passe ne correspondent pas.'; return; }
 
   let dek = null;
@@ -502,7 +520,7 @@ async function saveMyPassword() {
   const newPwd = document.getElementById('mp-new-pwd').value;
   const newPwd2 = document.getElementById('mp-new-pwd2').value;
   if (oldPwd !== _encPassword) { toast('Mot de passe actuel incorrect.', 'error'); return; }
-  if (newPwd.length < 4) { toast('Nouveau mot de passe trop court (4 min).', 'error'); return; }
+  if (newPwd.length < 8) { toast('Nouveau mot de passe trop court (8 min).', 'error'); return; }
   if (newPwd !== newPwd2) { toast('Les deux mots de passe ne correspondent pas.', 'error'); return; }
   const idx = await loadProfilesIndex();
   const profil = idx.profiles.find(p => p.id === _currentProfileId);
@@ -573,7 +591,7 @@ async function submitMigration(legacy, encrypted) {
   } else {
     pwd = document.getElementById('mig-newpwd').value;
     const pwd2 = document.getElementById('mig-newpwd2').value;
-    if (pwd.length < 4) { errEl.textContent = 'Mot de passe trop court (4 min).'; return; }
+    if (pwd.length < 8) { errEl.textContent = 'Mot de passe trop court (8 min).'; return; }
     if (pwd !== pwd2) { errEl.textContent = 'Les deux mots de passe ne correspondent pas.'; return; }
     dbData = migrateDb(legacy);
   }

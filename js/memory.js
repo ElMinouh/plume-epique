@@ -93,6 +93,7 @@ async function queryNarrativeMemory() {
   const query = document.getElementById('memory-query-input').value.trim();
   if (!query) { toast('Entrez une question.', 'error'); return; }
   if (!_indexBuilt) { toast('Indexez d\'abord le roman.', 'error'); return; }
+  await notifyThirdPartyDataUseOnce();
 
   const resultsEl = document.getElementById('memory-results');
   resultsEl.innerHTML = '<div class="ai-loader"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div>';

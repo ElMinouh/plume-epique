@@ -104,7 +104,10 @@ function loadChapter(i) {
   const w = document.getElementById('writer'), t = document.getElementById('chapter-title'), s = document.getElementById('tension-slider'), st = document.getElementById('chapter-status-sel');
   const ch = db.chapters[i];
   if (!ch || !w) return;
-  w.innerHTML = ch.content || '';
+  // Sanitisation défensive : ch.content peut provenir d'un import JSON, d'une
+  // restauration Gist ou d'un autre appareil synchronisé — jamais une source
+  // 100% de confiance, même si le contenu vient normalement de #writer lui-même.
+  w.innerHTML = DOMPurify.sanitize(ch.content || '');
   if (t) t.innerText = ch.title || '';
   if (s) s.value = ch.tension ?? 20;
   if (st) st.value = ch.status || 'draft';
@@ -503,7 +506,7 @@ function enterFocus() {
   commitUndoSnapshot();
   const fw = document.getElementById('focus-writer');
   document.getElementById('focus-title').value = db.chapters[cur].title || '';
-  fw.innerHTML = db.chapters[cur].content || '';
+  fw.innerHTML = DOMPurify.sanitize(db.chapters[cur].content || '');
   document.getElementById('focus-chapter-label').innerText = `Chapitre ${cur+1}`;
   document.getElementById('focus-overlay').classList.add('active');
   fw.focus(); updateFocusCount();

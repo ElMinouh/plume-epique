@@ -44,6 +44,24 @@ function ttsStop() {
   document.getElementById('tts-progress-bar').style.width='0';
 }
 
+let _dictationRange = null;
+// Capture la position du curseur au moment où la dictée démarre, pour y
+// insérer le texte au fil de la dictée — au lieu de toujours l'ajouter en
+// fin de texte, quel que soit l'endroit où on avait cliqué avant de dicter.
+function captureDictationRange() {
+  const writer = document.getElementById('writer');
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount > 0) {
+    const range = sel.getRangeAt(0);
+    if (writer.contains(range.commonAncestorContainer)) { _dictationRange = range.cloneRange(); return; }
+  }
+  // Pas de sélection valide dans l'éditeur (curseur ailleurs, ou perdu) :
+  // on se rabat sur la fin du texte, comme avant ce correctif.
+  const r = document.createRange();
+  r.selectNodeContents(writer);
+  r.collapse(false);
+  _dictationRange = r;
+}
 function initDictation() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) { document.getElementById('dictate-status').textContent='Non supporté'; return; }
@@ -57,8 +75,24 @@ function initDictation() {
     }
     document.getElementById('dictate-preview').textContent = interim;
     if (final) {
-      const writer = document.getElementById('writer');
-      writer.innerHTML += DOMPurify.sanitize(' ' + final);
+      if (_dictationRange) {
+        try {
+          _dictationRange.deleteContents();
+          const node = document.createTextNode(' ' + final);
+          _dictationRange.insertNode(node);
+          // Le curseur logique avance après le texte inséré, pour que la
+          // phrase suivante s'enchaîne juste après (et non avant).
+          _dictationRange.setStartAfter(node);
+          _dictationRange.setEndAfter(node);
+        } catch(e) {
+          // Le DOM a changé entre-temps (édition manuelle pendant la
+          // dictée) : on se replie sur l'ajout en fin de texte pour ce
+          // fragment, sans interrompre la dictée en cours.
+          document.getElementById('writer').innerHTML += DOMPurify.sanitize(' ' + final);
+        }
+      } else {
+        document.getElementById('writer').innerHTML += DOMPurify.sanitize(' ' + final);
+      }
       liveCounter();
       document.getElementById('dictate-preview').textContent = '';
     }
@@ -72,6 +106,7 @@ function toggleDictation() {
   if (_dictating) stopDictation(); else startDictation();
 }
 function startDictation() {
+  captureDictationRange();
   _dictating = true; _recognition.start();
   const btn = document.getElementById('dictate-btn');
   btn.style.background = '#e74c3c'; btn.classList.add('record-pulse');
@@ -79,6 +114,7 @@ function startDictation() {
 }
 function stopDictation() {
   _dictating = false; _recognition.stop();
+  _dictationRange = null;
   const btn = document.getElementById('dictate-btn');
   btn.style.background = 'var(--accent)'; btn.classList.remove('record-pulse');
   document.getElementById('dictate-status').textContent = 'Prêt';
