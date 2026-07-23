@@ -1,7 +1,7 @@
 'use strict';
 // Changez ce numéro de version à chaque mise à jour majeure des fichiers
 // pour forcer les navigateurs à récupérer la nouvelle version.
-const CACHE = 'plume-epique-v7.22.3';
+const CACHE = 'plume-epique-v7.22.4';
 
 const CORE_ASSETS = [
   './',
@@ -65,10 +65,32 @@ async function cacheableResponse(res) {
   return res.clone();
 }
 
+// Le cache hors-ligne ne doit contenir QUE les fichiers de l'application
+// (les nôtres + les librairies CDN listées plus haut). Correction v7.22.4,
+// bug rencontré à l'introduction de la synchronisation multi-appareils :
+// sans ce filtre, le Service Worker interceptait aussi les appels d'API
+// (Worker de synchronisation, Worker IA, GitHub, LanguageTool...) avec deux
+// conséquences graves —
+//   1. Chrome tuait la page (RESULT_CODE_KILLED_BAD_MESSAGE) dès que la
+//      synchronisation s'activait : l'app devenait inaccessible, et comme le
+//      plantage survenait avant tout affichage, impossible d'installer la
+//      correction sans passer par les outils de développement.
+//   2. Même sans plantage, la première réponse de l'API était mise en cache
+//      puis resservie indéfiniment : la synchronisation aurait renvoyé de
+//      vieilles données au lieu de l'état réel du serveur.
+// Une réponse d'API est vivante par nature : elle ne se met jamais en cache.
+function isAppAsset(url) {
+  if (url.origin === self.location.origin) return true;
+  return CDN_ASSETS.some(cdnUrl => url.href === cdnUrl);
+}
+
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   // Ignore les requêtes non-http (ex : chrome-extension://) — non cachables et hors sujet.
   if (!event.request.url.startsWith('http')) return;
+  // Tout ce qui n'est pas un fichier de l'app part directement sur le réseau,
+  // sans interception ni mise en cache (voir la note ci-dessus).
+  if (!isAppAsset(new URL(event.request.url))) return;
 
   event.respondWith((async () => {
     const cached = await caches.match(event.request);
