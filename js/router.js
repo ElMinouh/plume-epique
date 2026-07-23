@@ -3,6 +3,23 @@
 // indépendamment de l'app — tests/test-runner.html)
 
 // ═══════════════════════════════════════════════════════
+// VERSION AFFICHÉE (v7.22.3)
+// Le numéro affiché en bas de l'écran était auparavant écrit en dur dans
+// index.html — il n'a donc jamais été mis à jour au fil des versions et
+// affichait encore "v7.20.0" plusieurs versions plus tard, faisant croire
+// à tort que les déploiements n'arrivaient pas. Il est désormais alimenté
+// depuis cette constante unique, remplie au chargement (voir window.onload).
+//
+// ⚠️ À CHAQUE NOUVELLE VERSION, deux endroits sont à mettre à jour :
+//    1. APP_VERSION ci-dessous (numéro affiché à l'utilisateur)
+//    2. la constante CACHE en haut de sw.js (force le rafraîchissement du
+//       cache hors-ligne — sans ça, les navigateurs gardent l'ancien code)
+// Les deux vivent dans des contextes séparés (page vs Service Worker), ils
+// ne peuvent pas se partager une même variable.
+// ═══════════════════════════════════════════════════════
+const APP_VERSION = '7.22.3';
+
+// ═══════════════════════════════════════════════════════
 // INDEXEDDB
 // ═══════════════════════════════════════════════════════
 let idbStore = null;
@@ -488,6 +505,8 @@ document.addEventListener('visibilitychange', () => {
 // renderSyncKeyGate() dans profiles.js — avant même l'écran de connexion.
 // ═══════════════════════════════════════════════════════
 window.onload = async () => {
+  const verEl = document.getElementById('app-version-label');
+  if (verEl) verEl.textContent = 'Plume Épique · v' + APP_VERSION;
   await initIDB();
   if (needsSyncKeySetup()) renderSyncKeyGate();
   else await bootProfiles();
