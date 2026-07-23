@@ -45,20 +45,111 @@ async function initIDB() {
 // v7.0.0 : persistData/loadData prennent désormais une clé de stockage
 // explicite ('profiles' pour l'index, 'data_<id>' pour chaque profil,
 // 'main' pour les anciennes données mono-profil à migrer).
+//
+// ═══════════════════════════════════════════════════════
+// SYNCHRONISATION MULTI-APPAREILS (v7.22.0)
+// Un Worker Cloudflare (voir worker/sync-worker.js, à déployer séparément —
+// même principe que le Worker IA) sert de second point de stockage, à côté
+// d'IndexedDB. Le contenu qui y transite reste chiffré côté client
+// exactement comme avant : le Worker ne stocke que des blobs opaques, il ne
+// voit jamais rien en clair.
+//
+// Fonctionnement :
+//   - persistData() écrit en local ET pousse vers le Worker en arrière-plan
+//     (jamais bloquant — hors-ligne, la copie locale suffit).
+//   - loadData() renvoie la copie locale immédiatement si elle existe (donc
+//     toujours rapide, y compris hors-ligne), tout en rafraîchissant le
+//     cache local en arrière-plan pour la prochaine fois. Si RIEN n'existe
+//     encore en local (tout premier accès à cette clé depuis cet appareil —
+//     le cas d'un nouvel appareil), on attend la réponse du Worker avant de
+//     renvoyer, sinon un nouvel appareil verrait "aucune donnée" au lieu de
+//     son vrai contenu.
+//
+// Protégé par une "clé de synchronisation" propre à CET APPAREIL (pas au
+// profil, ni au mot de passe d'un profil en particulier) — demandée une
+// seule fois, voir renderSyncKeyGate() dans profiles.js. Sans cette clé
+// (ou en mode hors-ligne explicite), l'app se comporte exactement comme
+// avant cette version : 100% locale.
+// ═══════════════════════════════════════════════════════
+// ⚠️ Remplacez cette URL par celle de VOTRE Worker de synchronisation une
+// fois déployé (voir worker/sync-worker.js) — sinon la synchronisation reste
+// silencieusement inactive (échec réseau ignoré), l'app continue de
+// fonctionner en local uniquement.
+const SYNC_WORKER_URL = 'https://plume-epique-sync.air7841.workers.dev';
+
+function getSyncKey() { return localStorage.getItem('plume_sync_key') || ''; }
+function setSyncKey(key) { localStorage.setItem('plume_sync_key', key); localStorage.removeItem('plume_sync_skipped'); }
+function isSyncSkipped() { return localStorage.getItem('plume_sync_skipped') === '1'; }
+function setSyncSkipped() { localStorage.setItem('plume_sync_skipped', '1'); }
+// Utilisé au tout premier chargement de l'app (voir window.onload plus bas) :
+// faut-il montrer l'écran de saisie de la clé avant même l'écran de connexion ?
+function needsSyncKeySetup() { return !getSyncKey() && !isSyncSkipped(); }
+
+// Vérifie une clé auprès du Worker sans rien lire ni écrire de réel (clé
+// technique réservée "__ping__", voir worker/sync-worker.js) — utilisé par
+// le bouton "Vérifier" de l'écran de configuration.
+async function verifySyncKey(key) {
+  try {
+    const resp = await fetch(SYNC_WORKER_URL + '?key=__ping__', { headers: { 'Authorization': 'Bearer ' + key } });
+    return resp.ok;
+  } catch(e) { return false; }
+}
+async function syncPush(key, payload) {
+  const syncKey = getSyncKey();
+  if (!syncKey) return;
+  try {
+    // keepalive : la requête a une chance de se terminer même si l'utilisateur
+    // change de page/onglet juste après une sauvegarde.
+    await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), {
+      method: 'PUT',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + syncKey },
+      body: JSON.stringify(payload),
+      keepalive: true
+    });
+  } catch(e) { /* hors-ligne ou Worker injoignable : la copie locale suffit, on retentera à la prochaine écriture */ }
+}
+async function syncPull(key) {
+  const syncKey = getSyncKey();
+  if (!syncKey) return undefined;
+  try {
+    const resp = await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), { headers: { 'Authorization': 'Bearer ' + syncKey } });
+    if (!resp.ok) return undefined;
+    return await resp.json(); // peut être `null` (clé jamais synchronisée) : géré par l'appelant
+  } catch(e) { return undefined; }
+}
+
 async function persistData(key, payload) {
   if (idbStore) await idbStore.put('data', payload, key);
   else {
     if (payload === null) localStorage.removeItem('plume_' + key);
     else localStorage.setItem('plume_' + key, JSON.stringify(payload));
   }
+  syncPush(key, payload);
 }
 async function loadData(key) {
-  if (idbStore) return idbStore.get('data', key);
-  let r = localStorage.getItem('plume_' + key);
-  // Compat : en mode localStorage, l'ancien format mono-profil était stocké
-  // sous 'plume_v55'. On le retrouve quand on cherche les données 'main'.
-  if (!r && key === 'main') r = localStorage.getItem('plume_v55');
-  return r ? JSON.parse(r) : null;
+  let local;
+  if (idbStore) local = await idbStore.get('data', key);
+  else {
+    let r = localStorage.getItem('plume_' + key);
+    // Compat : en mode localStorage, l'ancien format mono-profil était stocké
+    // sous 'plume_v55'. On le retrouve quand on cherche les données 'main'.
+    if (!r && key === 'main') r = localStorage.getItem('plume_v55');
+    local = r ? JSON.parse(r) : undefined;
+  }
+  if (local !== undefined && local !== null) {
+    // Trouvé en local : on renvoie tout de suite (rapide, marche hors-ligne),
+    // et on rafraîchit le cache local en arrière-plan pour la prochaine fois.
+    syncPull(key).then(remote => { if (remote !== undefined && remote !== null && idbStore) idbStore.put('data', remote, key); });
+    return local;
+  }
+  // Rien en local : premier accès à cette clé depuis cet appareil (ex.
+  // nouvel appareil découvrant un profil existant) — on attend le Worker.
+  const remote = await syncPull(key);
+  if (remote !== undefined && remote !== null) {
+    if (idbStore) await idbStore.put('data', remote, key);
+    return remote;
+  }
+  return local ?? null;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -381,8 +472,12 @@ document.addEventListener('visibilitychange', () => {
 
 // ═══════════════════════════════════════════════════════
 // BOOTSTRAP — v7.0.0 : passe par le système de profils (voir profiles.js)
+// v7.22.0 : si cet appareil ne connaît pas encore la clé de synchronisation
+// (et n'a jamais choisi de s'en passer), on demande d'abord cette clé — voir
+// renderSyncKeyGate() dans profiles.js — avant même l'écran de connexion.
 // ═══════════════════════════════════════════════════════
 window.onload = async () => {
   await initIDB();
-  await bootProfiles();
+  if (needsSyncKeySetup()) renderSyncKeyGate();
+  else await bootProfiles();
 };

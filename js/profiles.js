@@ -27,6 +27,47 @@ const SECURITY_QUESTIONS = [
   'Le nom de votre école primaire ?'
 ];
 
+// ── ÉCRAN 0 : Clé de synchronisation de cet appareil (v7.22.0) ──────────
+// N'apparaît qu'une seule fois par appareil (voir needsSyncKeySetup() dans
+// router.js) — jamais par profil : cette clé déverrouille l'accès au Worker
+// de synchronisation pour CET APPAREIL, quel que soit le profil ensuite
+// utilisé dessus.
+function renderSyncKeyGate() {
+  gateShell(`
+    <div class="gate-title"><i>🔑</i> Clé de synchronisation</div>
+    <div class="gate-sub">Cet appareil ne connaît pas encore la clé de synchronisation. Demandez-la à votre administrateur pour retrouver vos profils et manuscrits ici aussi.</div>
+    <label class="gate-label">Clé de synchronisation</label>
+    <div class="u-d-flex u-gap-6px">
+      <input id="sync-key-input" type="password" class="gate-field u-flex-1" placeholder="Collez ou saisissez la clé" autocomplete="off">
+      <button id="sync-key-verify-btn" class="gate-btn gate-btn-ghost btn-sm" style="width:auto;white-space:nowrap;">✅ Vérifier</button>
+    </div>
+    <div id="sync-key-status" class="gate-err"></div>
+    <button id="sync-key-submit-btn" class="gate-btn gate-btn-primary">Valider</button>
+    <button id="sync-key-skip-btn" class="gate-link">Continuer sans synchronisation (hors-ligne uniquement)</button>
+  `);
+  const statusEl = document.getElementById('sync-key-status');
+  document.getElementById('sync-key-verify-btn').addEventListener('click', async () => {
+    const key = document.getElementById('sync-key-input').value.trim();
+    if (!key) { statusEl.style.color = ''; statusEl.textContent = 'Entrez une clé à vérifier.'; return; }
+    statusEl.style.color = '#9a95a8'; statusEl.textContent = '⏳ Vérification…';
+    const ok = await verifySyncKey(key);
+    statusEl.style.color = ok ? '#7fd8a0' : '#e8a09a';
+    statusEl.textContent = ok ? '✅ Clé valide.' : '❌ Clé invalide, ou Worker injoignable.';
+  });
+  document.getElementById('sync-key-submit-btn').addEventListener('click', async () => {
+    const key = document.getElementById('sync-key-input').value.trim();
+    if (!key) { statusEl.style.color = ''; statusEl.textContent = 'Entrez une clé, ou utilisez "Continuer sans synchronisation".'; return; }
+    setSyncKey(key);
+    hideGate();
+    await bootProfiles();
+  });
+  document.getElementById('sync-key-skip-btn').addEventListener('click', () => {
+    setSyncSkipped();
+    hideGate();
+    bootProfiles();
+  });
+}
+
 async function loadProfilesIndex() { return loadData('profiles'); }
 async function saveProfilesIndex(idx) { await persistData('profiles', idx); }
 
@@ -273,6 +314,7 @@ async function openProfile(profil, dek, pwd) {
   _dataKey = dek;
   _encPassword = pwd;
   hideGate();
+  syncPushEntireLibrary(); // arrière-plan, non bloquant — voir library.js
   await enterLibrary();
 }
 

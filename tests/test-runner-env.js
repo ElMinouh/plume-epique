@@ -22,3 +22,8 @@ let sprintInterval = null, sprintWordsStart = 0;
 // risque, car cette fonction n'est appelée qu'après le chargement complet de
 // la page (save() sera alors bien initialisé).
 const debouncedSave = () => { save(); };
+// v7.22.0 — stub minimal : la vraie fonction vit dans router.js (non chargé
+// ici). Renvoyer '' fait que syncPushEntireLibrary() (appelée depuis
+// openProfile() dans profiles.js) ne fait rien ici, comme un appareil sans
+// synchronisation configurée — cohérent avec le reste de cette suite.
+function getSyncKey() { return ''; }

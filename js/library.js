@@ -115,6 +115,26 @@ function openLibraryCtxMenu(docId, btn) {
 function docListKey(profileId) { return 'doclist_' + profileId; }
 function docDataKey(profileId, docId) { return 'doc_' + profileId + '_' + docId; }
 
+// v7.22.0 — Après une connexion réussie, si une clé de synchronisation est
+// configurée sur cet appareil (voir router.js), on pousse tout de suite
+// l'ensemble de la bibliothèque de ce profil vers le Worker (arrière-plan,
+// non bloquant) : ça garantit qu'un AUTRE appareil configuré avec la même
+// clé retrouvera la totalité des manuscrits dès sa première connexion,
+// sans attendre que chacun soit rouvert/modifié individuellement d'abord.
+async function syncPushEntireLibrary() {
+  if (!getSyncKey()) return;
+  try {
+    const idx = await loadProfilesIndex();
+    if (idx) await persistData('profiles', idx);
+    const list = await loadDocList();
+    await persistData(docListKey(_currentProfileId), list);
+    for (const entry of list.documents) {
+      const raw = await loadData(docDataKey(_currentProfileId, entry.id));
+      if (raw) await persistData(docDataKey(_currentProfileId, entry.id), raw);
+    }
+  } catch(e) { /* meilleure tentative uniquement, aucune erreur affichée ici */ }
+}
+
 async function loadDocList() {
   const list = await loadData(docListKey(_currentProfileId));
   return (list && Array.isArray(list.documents)) ? list : { version:1, documents:[] };

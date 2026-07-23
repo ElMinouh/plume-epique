@@ -15,8 +15,10 @@ plume-epique/
 ├── sw.js                 → Service Worker (cache hors-ligne + notification de mise à jour)
 ├── _headers               → en-têtes HTTP Cloudflare Pages (CSP, nosniff, referrer-policy)
 ├── worker/
-│   └── worker.js          → Worker Cloudflare relais IA (Mistral) — édité manuellement
-│                             dans le dashboard Cloudflare, ce fichier sert de référence
+│   ├── worker.js          → Worker Cloudflare relais IA (Mistral) — édité manuellement
+│   │                         dans le dashboard Cloudflare, ce fichier sert de référence
+│   └── sync-worker.js      → Worker Cloudflare de synchronisation multi-appareils (KV) —
+│                              même principe, voir section dédiée plus bas
 ├── css/
 │   └── style.css         → tous les styles
 ├── js/
@@ -108,6 +110,39 @@ automatiquement au profil administrateur « Cyril » : l'utilisateur saisit son
 mot de passe actuel (ou en définit un si les données n'étaient pas chiffrées),
 choisit une question de sécurité, et reçoit son code de récupération. Aucune
 donnée n'est perdue. L'ancienne clé `main` est conservée intacte par sécurité.
+
+## Synchronisation multi-appareils (v7.22.0)
+
+Se connecter avec le même profil (nom + mot de passe) sur n'importe quel
+appareil retrouve désormais la totalité des manuscrits, sans rien exporter/
+importer à la main. Un Worker Cloudflare (`worker/sync-worker.js`, à déployer
+séparément — même principe que le Worker IA) sert de second point de
+stockage à côté d'IndexedDB : chaque écriture est poussée vers ce Worker en
+plus du stockage local, chaque lecture essaie d'abord le Worker avant de
+retomber sur la copie locale hors-ligne. Le contenu qui y transite reste
+chiffré côté client exactement comme pour IndexedDB — le Worker ne stocke
+que des blobs opaques, il ne voit jamais rien en clair.
+
+### Clé de synchronisation
+
+Le code du site étant public, un Worker sans protection serait accessible à
+n'importe qui capable d'en deviner l'adresse. Une **clé de synchronisation**
+protège donc l'accès : une phrase choisie une fois par l'administrateur (côté
+Worker, en secret), à taper une seule fois sur chaque appareil (pas par
+profil — un seul par appareil, valable pour tous les profils qui l'utilisent
+ensuite). Un bouton « Vérifier » confirme immédiatement qu'une clé saisie est
+correcte, avant de valider. Un appareil peut aussi choisir de s'en passer
+(« Continuer sans synchronisation ») et rester 100% local, comme avant cette
+version.
+
+### Déploiement du Worker de synchronisation
+
+1. Créez un nouveau Worker Cloudflare et collez-y le contenu de
+   `worker/sync-worker.js`.
+2. Créez un namespace KV et liez-le à ce Worker sous le nom exact `PLUME_SYNC`.
+3. Ajoutez un secret `SYNC_KEY` (la clé de synchronisation, choisie par vous).
+4. Reportez l'URL du Worker déployé dans `js/router.js` (constante
+   `SYNC_WORKER_URL`) et dans `_headers` (`connect-src`).
 
 ## Sécurité — Content Security Policy
 
