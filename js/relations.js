@@ -3,15 +3,15 @@ function buildGraphData() {
   const nodes = [], links = [];
   const colorMap = { chars:'#c0392b', places:'#2980b9', quests:'#27ae60', chapters:'#f39c12' };
   ['chars','places','quests'].forEach(type => {
-    db[type].forEach((item, i) => {
-      nodes.push({ id:`${type}-${i}`, label: item.name||item.text||'?', type, color: colorMap[type] });
+    db[type].forEach((item) => {
+      nodes.push({ id:`${type}-${item.id}`, label: item.name||item.text||'?', type, color: colorMap[type] });
       (item.links||[]).forEach(link => {
-        links.push({ source:`${type}-${i}`, target:`${link.type}-${link.idx}` });
+        links.push({ source:`${type}-${item.id}`, target:`${link.type}-${link.id}` });
       });
     });
   });
   db.chapters.forEach((ch, i) => {
-    nodes.push({ id:`chapters-${i}`, label:`Ch.${i+1} ${ch.title}`.substring(0,20), type:'chapters', color:colorMap.chapters });
+    nodes.push({ id:`chapters-${ch.id}`, label:`Ch.${i+1} ${ch.title}`.substring(0,20), type:'chapters', color:colorMap.chapters });
   });
   return { nodes, links };
 }

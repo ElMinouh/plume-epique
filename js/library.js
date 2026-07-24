@@ -552,6 +552,23 @@ async function createNewDocument() {
 
 // Suppression définitive d'un manuscrit depuis la bibliothèque — confirmation
 // forte (retaper le titre exact), même principe que la suppression de profil.
+// Correction (audit) : les sauvegardes de conflit (conflict_doc_<profil>_
+// <docId>_<ts>, voir router.js/library.js) et l'historique du chat IA
+// (aichat_<profil>_<docId>, voir ai.js) sont des données annexes à un
+// manuscrit, stockées sous des clés séparées — jusqu'ici jamais nettoyées
+// à la suppression de ce manuscrit (ou de tout le profil), laissant des
+// blobs chiffrés orphelins s'accumuler indéfiniment. Nettoyage explicite ici.
+async function cleanupDocumentSideData(profileId, docId) {
+  try { await persistData(aiChatDataKey(profileId, docId), null); } catch(e) { /* best effort */ }
+  try {
+    const prefix = 'conflict_doc_' + profileId + '_' + docId + '_';
+    let keys = [];
+    if (idbStore) keys = (await idbStore.getAllKeys('data')).filter(k => typeof k === 'string' && k.startsWith(prefix));
+    else keys = Object.keys(localStorage).filter(k => k.startsWith('plume_' + prefix)).map(k => k.slice('plume_'.length));
+    for (const k of keys) await persistData(k, null);
+  } catch(e) { /* best effort */ }
+}
+
 async function deleteDocument(docId) {
   const list = await loadDocList();
   const entry = list.documents.find(d => d.id === docId);
@@ -561,6 +578,7 @@ async function deleteDocument(docId) {
   if (confirmTitle === null) return;
   if (confirmTitle.trim().toLowerCase() !== title.toLowerCase()) { toast('Titre incorrect, suppression annulée.', 'error'); return; }
   await persistData(docDataKey(_currentProfileId, docId), null);
+  await cleanupDocumentSideData(_currentProfileId, docId);
   list.documents = list.documents.filter(d => d.id !== docId);
   await saveDocList(list);
   await renderLibraryScreen();
@@ -676,6 +694,21 @@ async function touchDocListEntry(docId, mData) {
 // (jamais de `db` en mémoire), donc sûres à appeler même si le manuscrit
 // visé n'est pas celui ouvert dans l'éditeur.
 // ═══════════════════════════════════════════════════════
+// Correction (audit v7.35.0) : lit un contenu de fichier Gist, qu'il soit au
+// nouveau format chiffré ({_enc:true,data:<cipher>}) ou à l'ancien format en
+// clair (Gists créés avant ce correctif) — compatibilité ascendante requise
+// pour ne pas rendre illisibles les sauvegardes déjà existantes.
+async function decryptGistContent(raw) {
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch(e) { throw new Error('Contenu du Gist illisible.'); }
+  if (parsed && parsed._enc && parsed.data) {
+    const dec = await Crypto.decrypt(parsed.data, _dataKey);
+    if (!dec) throw new Error('Déchiffrement impossible (profil différent de celui qui a créé cette sauvegarde ?).');
+    return JSON.parse(dec);
+  }
+  return parsed; // ancien format en clair
+}
+
 async function libSyncManuscript(docId, opts) {
   opts = opts || {};
   if (!_cloudToken) { if (!opts.silent) toast('Token GitHub requis.', 'error'); return false; }
@@ -683,7 +716,14 @@ async function libSyncManuscript(docId, opts) {
     const mData = await loadManuscriptData(docId);
     const method = mData.gistId ? 'PATCH' : 'POST';
     const url = mData.gistId ? `https://api.github.com/gists/${mData.gistId}` : 'https://api.github.com/gists';
-    const resp = await fetch(url, { method, headers:{'Authorization':`token ${_cloudToken}`,'Content-Type':'application/json'}, body: JSON.stringify({ public:false, files:{ "plume.json": { content: JSON.stringify(mData) } } }) });
+    // Correction (audit v7.35.0) : le contenu était jusqu'ici envoyé à GitHub
+    // EN CLAIR — contredisant le chiffrement "zero-knowledge" annoncé par
+    // ailleurs dans le projet. Chiffré ici avec la même DEK que le stockage
+    // local (exactement comme persistManuscriptData()) ; GitHub ne reçoit
+    // désormais plus qu'un blob illisible sans le mot de passe du profil.
+    const cipher = await Crypto.encrypt(JSON.stringify(mData), _dataKey);
+    const gistContent = JSON.stringify({ _enc:true, data:cipher });
+    const resp = await fetch(url, { method, headers:{'Authorization':`token ${_cloudToken}`,'Content-Type':'application/json'}, body: JSON.stringify({ public:false, files:{ "plume.json": { content: gistContent } } }) });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     if (data.id && data.id !== mData.gistId) { mData.gistId = data.id; await persistManuscriptData(docId, mData); }
@@ -705,7 +745,7 @@ async function libLoadManuscript(docId) {
     const data = await resp.json();
     const raw = data.files && data.files["plume.json"] && data.files["plume.json"].content;
     if (!raw) throw new Error('Fichier introuvable dans ce Gist.');
-    const restored = migrateDb(JSON.parse(raw));
+    const restored = migrateDb(await decryptGistContent(raw));
     restored.gistId = mData.gistId;
     await persistManuscriptData(docId, restored);
     await touchDocListEntry(docId, restored);
@@ -746,7 +786,7 @@ async function libLoadGistRevision(docId, gistId, sha) {
     const data = await resp.json();
     const raw = data.files && data.files["plume.json"] && data.files["plume.json"].content;
     if (!raw) throw new Error('Fichier introuvable dans cette révision');
-    const restored = migrateDb(JSON.parse(raw));
+    const restored = migrateDb(await decryptGistContent(raw));
     restored.gistId = gistId;
     await persistManuscriptData(docId, restored);
     await touchDocListEntry(docId, restored);

@@ -25,7 +25,14 @@ function showEdit(k,i){
   const nameInput=document.createElement('input');nameInput.className='field';nameInput.style.fontWeight='700';nameInput.value=item.name;
   nameInput.addEventListener('input',()=>{db[k][i].name=nameInput.value;debouncedSave();renderLibrary(k);});
   const delBtn=document.createElement('button');delBtn.className='action-btn btn-sm';delBtn.style.background='#e74c3c';delBtn.textContent='✕';
-  delBtn.addEventListener('click',()=>{db[k].splice(i,1);save();renderLibrary(k);container.innerHTML='...';});
+  delBtn.addEventListener('click',()=>{
+    // Correction (audit) : suppression jusqu'ici sans confirmation (seul
+    // point de suppression de l'app dans ce cas), et sans nettoyer les liens
+    // d'AUTRES personnages/lieux/quêtes pointant vers celui-ci.
+    if(!confirm(`Supprimer définitivement « ${item.name||'cet élément'} » ? Les liens d'autres personnages/lieux/quêtes vers lui seront aussi retirés.`)) return;
+    removeAllLinksTo(k, item.id);
+    db[k].splice(i,1);save();renderLibrary(k);container.innerHTML='';
+  });
   hdr.appendChild(nameInput);hdr.appendChild(delBtn);container.appendChild(hdr);
   if(k==='chars'){
     const row=document.createElement('div');row.className='form-row';
@@ -49,29 +56,62 @@ function showEdit(k,i){
     const ta=document.createElement('textarea');ta.className='field';ta.value=item.info||'';ta.rows=4;
     ta.addEventListener('input',()=>{db.places[i].info=ta.value;debouncedSave();});container.appendChild(lbl);container.appendChild(ta);
   }
-  container.insertAdjacentHTML('beforeend',renderLinkPanel(k,i));updateLinkItems();
+  container.insertAdjacentHTML('beforeend',renderLinkPanel(k,item.id));updateLinkItems();
 }
 
 // ═══════════════════════════════════════════════════════
 // LIENS ENTRE ENTITÉS
+// v7.35.0 (audit) : les liens référencent désormais un ID STABLE (item.id)
+// plutôt qu'une position dans le tableau (item.idx) — supprimer un
+// personnage/lieu/quête ne décale plus les liens des autres éléments vers
+// un mauvais index. Migration automatique des données existantes : voir
+// schema.js (v<13).
 // ═══════════════════════════════════════════════════════
-function addLink(type,fromIdx,toType,toIdx){if(!db[type][fromIdx].links)db[type][fromIdx].links=[];const exists=db[type][fromIdx].links.some(l=>l.type===toType&&l.idx===toIdx);if(!exists){db[type][fromIdx].links.push({type:toType,idx:toIdx});save();showEdit(type,fromIdx);}}
-function removeLink(type,fromIdx,linkIdx){db[type][fromIdx].links=db[type][fromIdx].links.filter((_,i)=>i!==linkIdx);save();showEdit(type,fromIdx);}
-function navigateToLink(targetType,targetIdx){const tabId=targetType==='chars'?'tab-chars':targetType==='places'?'tab-places':'tab-quests';openTabOrSubtab(tabId);if(targetType==='quests')showQuestEdit(targetIdx);else showEdit(targetType,targetIdx);}
-function renderLinkPanel(type,idx){
-  const item=db[type][idx];let html=`<div class="u-mt-12px u-bdt-1px-solid-v-border u-pt-10px"><strong class="u-fs-_8rem">🔗 Liens</strong><div id="link-list" class="u-m-6px-0">`;
-  (item.links||[]).forEach((l,i)=>{const target=db[l.type]?.[l.idx];if(target)html+=`<span class="link-badge" data-nav-type="${l.type}" data-nav-idx="${l.idx}">${DOMPurify.sanitize(target.name||target.text)}<button data-remove-type="${type}" data-remove-from="${idx}" data-remove-link="${i}" class="u-bg-none u-bd-none u-c-hfff u-cur-pointer u-ml-3px">×</button></span>`;});
-  html+=`</div><div class="form-row u-mt-6px"><select id="link-type-sel" class="field"><option value="chars">Perso</option><option value="places">Lieu</option><option value="quests">Quête</option></select><select id="link-item-sel" class="field"></select><button class="action-btn btn-sm" data-link-from-type="${type}" data-link-from-idx="${idx}">+</button></div></div>`;
+function removeAllLinksTo(targetType, targetId) {
+  ['chars','places','quests'].forEach(t => {
+    (db[t]||[]).forEach(item => {
+      if (Array.isArray(item.links)) item.links = item.links.filter(l => !(l.type===targetType && l.id===targetId));
+    });
+  });
+}
+function showEditById(type, id) {
+  const idx = db[type].findIndex(x => x.id === id);
+  if (idx === -1) return;
+  if (type === 'quests') showQuestEdit(idx); else showEdit(type, idx);
+}
+function addLink(type,fromId,toType,toId){
+  const item=db[type].find(x=>x.id===fromId); if(!item) return;
+  if(!item.links)item.links=[];
+  const exists=item.links.some(l=>l.type===toType&&l.id===toId);
+  if(!exists){item.links.push({type:toType,id:toId});save();showEditById(type,fromId);}
+}
+function removeLink(type,fromId,linkIdx){
+  const item=db[type].find(x=>x.id===fromId); if(!item) return;
+  item.links=(item.links||[]).filter((_,i)=>i!==linkIdx);
+  save();showEditById(type,fromId);
+}
+function navigateToLink(targetType,targetId){
+  const tabId=targetType==='chars'?'tab-chars':targetType==='places'?'tab-places':'tab-quests';
+  openTabOrSubtab(tabId);
+  const idx=db[targetType].findIndex(x=>x.id===targetId);
+  if(idx===-1){toast('Cet élément a été supprimé depuis.','error');return;}
+  if(targetType==='quests')showQuestEdit(idx);else showEdit(targetType,idx);
+}
+function renderLinkPanel(type,id){
+  const item=db[type].find(x=>x.id===id);
+  let html=`<div class="u-mt-12px u-bdt-1px-solid-v-border u-pt-10px"><strong class="u-fs-_8rem">🔗 Liens</strong><div id="link-list" class="u-m-6px-0">`;
+  (item.links||[]).forEach((l,i)=>{const target=(db[l.type]||[]).find(x=>x.id===l.id);if(target)html+=`<span class="link-badge" data-nav-type="${l.type}" data-nav-id="${l.id}">${DOMPurify.sanitize(target.name||target.text)}<button data-remove-type="${type}" data-remove-from="${id}" data-remove-link="${i}" class="u-bg-none u-bd-none u-c-hfff u-cur-pointer u-ml-3px">×</button></span>`;});
+  html+=`</div><div class="form-row u-mt-6px"><select id="link-type-sel" class="field"><option value="chars">Perso</option><option value="places">Lieu</option><option value="quests">Quête</option></select><select id="link-item-sel" class="field"></select><button class="action-btn btn-sm" data-link-from-type="${type}" data-link-from-id="${id}">+</button></div></div>`;
   return html;
 }
 document.addEventListener('click',e=>{
-  const badge=e.target.closest('[data-nav-type]');if(badge&&e.target.dataset.removeType===undefined&&e.target.dataset.removeLink===undefined)navigateToLink(badge.dataset.navType,parseInt(badge.dataset.navIdx));
-  if(e.target.dataset.removeType!==undefined){e.stopPropagation();removeLink(e.target.dataset.removeType,parseInt(e.target.dataset.removeFrom),parseInt(e.target.dataset.removeLink));}
-  const addLinkBtn=e.target.closest('[data-link-from-type]');if(addLinkBtn)execAddLink(addLinkBtn.dataset.linkFromType,parseInt(addLinkBtn.dataset.linkFromIdx));
+  const badge=e.target.closest('[data-nav-type]');if(badge&&e.target.dataset.removeType===undefined&&e.target.dataset.removeLink===undefined)navigateToLink(badge.dataset.navType,badge.dataset.navId);
+  if(e.target.dataset.removeType!==undefined){e.stopPropagation();removeLink(e.target.dataset.removeType,e.target.dataset.removeFrom,parseInt(e.target.dataset.removeLink));}
+  const addLinkBtn=e.target.closest('[data-link-from-type]');if(addLinkBtn)execAddLink(addLinkBtn.dataset.linkFromType,addLinkBtn.dataset.linkFromId);
 });
-function updateLinkItems(){const sel=document.getElementById('link-type-sel');if(!sel)return;const itemSel=document.getElementById('link-item-sel');if(!itemSel)return;itemSel.innerHTML='';db[sel.value].forEach((it,i)=>{itemSel.innerHTML+=`<option value="${i}">${DOMPurify.sanitize(it.name||it.text)}</option>`;});}
+function updateLinkItems(){const sel=document.getElementById('link-type-sel');if(!sel)return;const itemSel=document.getElementById('link-item-sel');if(!itemSel)return;itemSel.innerHTML='';db[sel.value].forEach((it)=>{itemSel.innerHTML+=`<option value="${it.id}">${DOMPurify.sanitize(it.name||it.text)}</option>`;});}
 document.addEventListener('change',e=>{if(e.target.id==='link-type-sel')updateLinkItems();});
-function execAddLink(fromType,fromIdx){const toType=document.getElementById('link-type-sel')?.value;const toIdx=parseInt(document.getElementById('link-item-sel')?.value);if(toType&&!isNaN(toIdx))addLink(fromType,fromIdx,toType,toIdx);}
+function execAddLink(fromType,fromId){const toType=document.getElementById('link-type-sel')?.value;const toId=document.getElementById('link-item-sel')?.value;if(toType&&toId)addLink(fromType,fromId,toType,toId);}
 
 // ═══════════════════════════════════════════════════════
 // QUÊTES
@@ -87,8 +127,8 @@ function renderQuests(){
   c.querySelectorAll('[data-quest-check]').forEach(cb=>cb.addEventListener('click',e=>{e.stopPropagation();db.quests[parseInt(cb.dataset.questCheck)].done=cb.checked;save();}));
   c.querySelectorAll('[data-quest-idx]').forEach(el=>el.addEventListener('click',()=>showQuestEdit(parseInt(el.dataset.questIdx))));
 }
-function showQuestEdit(i){const q=db.quests[i],c=document.getElementById('quest-edit');c.innerHTML='';const ti=document.createElement('input');ti.className='field';ti.value=q.text;ti.addEventListener('input',()=>{db.quests[i].text=ti.value;debouncedSave();renderQuests();});const rl=document.createElement('label');rl.textContent='Récompense';rl.style.fontSize='.72rem';const ri=document.createElement('input');ri.className='field';ri.value=q.reward||'';ri.addEventListener('input',()=>{db.quests[i].reward=ri.value;debouncedSave();});const sl=document.createElement('label');sl.textContent='Étapes';sl.style.fontSize='.72rem';const sta=document.createElement('textarea');sta.className='field';sta.value=q.steps||'';sta.rows=4;sta.addEventListener('input',()=>{db.quests[i].steps=sta.value;debouncedSave();});c.append(ti,rl,ri,sl,sta);c.insertAdjacentHTML('beforeend',renderLinkPanel('quests',i));updateLinkItems();}
-function addQuest(){const i=document.getElementById('q-in');if(i.value.trim()){db.quests.push({text:i.value.trim(),done:false});i.value='';save();renderQuests();}}
+function showQuestEdit(i){const q=db.quests[i],c=document.getElementById('quest-edit');c.innerHTML='';const ti=document.createElement('input');ti.className='field';ti.value=q.text;ti.addEventListener('input',()=>{db.quests[i].text=ti.value;debouncedSave();renderQuests();});const rl=document.createElement('label');rl.textContent='Récompense';rl.style.fontSize='.72rem';const ri=document.createElement('input');ri.className='field';ri.value=q.reward||'';ri.addEventListener('input',()=>{db.quests[i].reward=ri.value;debouncedSave();});const sl=document.createElement('label');sl.textContent='Étapes';sl.style.fontSize='.72rem';const sta=document.createElement('textarea');sta.className='field';sta.value=q.steps||'';sta.rows=4;sta.addEventListener('input',()=>{db.quests[i].steps=sta.value;debouncedSave();});c.append(ti,rl,ri,sl,sta);c.insertAdjacentHTML('beforeend',renderLinkPanel('quests',q.id));updateLinkItems();}
+function addQuest(){const i=document.getElementById('q-in');if(i.value.trim()){db.quests.push({id:genChapterId(),text:i.value.trim(),done:false});i.value='';save();renderQuests();}}
 
 // ═══════════════════════════════════════════════════════
 // APPARENCE — palette de couleurs, thème, police d'écriture (nouveau v7.7.0)
@@ -160,14 +200,14 @@ function toggleMode(){
   document.body.classList.toggle('dark-mode',db.darkMode);
   save();
 }
-function addItem(k){const n=prompt('Nom :');if(n){db[k].push({name:n,info:''});save();renderLibrary(k);}}
+function addItem(k){const n=prompt('Nom :');if(n){db[k].push({id:genChapterId(),name:n,info:''});save();renderLibrary(k);}}
 
 // ═══════════════════════════════════════════════════════
 // MOTS FAIBLES
 // ═══════════════════════════════════════════════════════
 function renderWeakWords() {
   const c=document.getElementById('weak-words-list');
-  c.innerHTML=db.weakWords.map((w,i)=>`<span class="link-badge">${DOMPurify.sanitize(w)} <button class="remove-weak" data-idx="${i}" class="u-bg-none u-bd-none u-c-hfff u-cur-pointer u-fwt-700 u-p-0-2px">×</button></span>`).join('');
+  c.innerHTML=db.weakWords.map((w,i)=>`<span class="link-badge">${DOMPurify.sanitize(w)} <button class="remove-weak u-bg-none u-bd-none u-c-hfff u-cur-pointer u-fwt-700 u-p-0-2px" data-idx="${i}">×</button></span>`).join('');
   c.querySelectorAll('.remove-weak').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();db.weakWords.splice(parseInt(btn.dataset.idx),1);save();renderWeakWords();}));
 }
 function addWeakWord(){const i=document.getElementById('new-weak-word');const w=i.value.trim().toLowerCase();if(w&&!db.weakWords.includes(w)){db.weakWords.push(w);i.value='';save();renderWeakWords();}}

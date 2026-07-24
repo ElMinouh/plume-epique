@@ -63,6 +63,20 @@ function group(title) {
   assert(!!migratedV3.history[idA] && migratedV3.history[idA][0].label === 'snap A', "historique du chapitre A remappé sur son ID");
   assert(!!migratedV3.history[idB] && migratedV3.history[idB][0].label === 'snap B', "historique du chapitre B remappé sur son ID");
 
+  group('migrateDb() — remapping des liens et de la chronologie par ID, v12 → v13 (audit)');
+  const v12 = {
+    _schemaVersion: 12,
+    chapters: [{ id:'chX', title:'X' }, { id:'chY', title:'Y' }],
+    chars: [{ name:'Marie', links:[{ type:'places', idx:0 }] }],
+    places: [{ name:'Paris' }],
+    quests: [{ text:'Trouver le trésor' }],
+    timeline: [{ text:'Rencontre', chapterIdx:1 }]
+  };
+  const migratedV12 = migrateDb(JSON.parse(JSON.stringify(v12)));
+  assert(!!migratedV12.chars[0].id && !!migratedV12.places[0].id && !!migratedV12.quests[0].id, 'chaque personnage/lieu/quête reçoit un ID stable');
+  assert(migratedV12.chars[0].links[0].id === migratedV12.places[0].id && migratedV12.chars[0].links[0].idx === undefined, 'le lien personnage → lieu est remappé sur l\'ID (idx supprimé)');
+  assert(migratedV12.timeline[0].chapterId === 'chY' && migratedV12.timeline[0].chapterIdx === undefined, "l'événement de chronologie est remappé sur l'ID du chapitre (idx supprimé)");
+
   group('DEFAULT_DB()');
   const fresh = DEFAULT_DB();
   assert(fresh.chapters.length === 1, 'un chapitre par défaut');
@@ -216,10 +230,10 @@ function group(title) {
   assert(dl.dialog === 2 && dl.narration === 2, 'compte correctement les lignes de dialogue (—, «) et de narration');
 
   group('relations.js — buildGraphData()');
-  db = { chars:[{ name:'Marie', links:[{ type:'places', idx:0 }] }], places:[{ name:'Paris' }], quests:[], chapters:[{ title:'Chapitre Un' }] };
+  db = { chars:[{ id:'c1', name:'Marie', links:[{ type:'places', id:'p1' }] }], places:[{ id:'p1', name:'Paris' }], quests:[], chapters:[{ id:'ch1', title:'Chapitre Un' }] };
   const graph = buildGraphData();
   assert(graph.nodes.length === 3, 'un nœud par personnage/lieu/chapitre existant (ici 3)');
-  assert(graph.links.length === 1 && graph.links[0].source === 'chars-0' && graph.links[0].target === 'places-0', 'le lien personnage → lieu est bien construit');
+  assert(graph.links.length === 1 && graph.links[0].source === 'chars-c1' && graph.links[0].target === 'places-p1', 'le lien personnage → lieu est bien construit');
 
   group('snapshots.js — takeSnapshot()');
   db = { chapters:[{ id:'sx1', content:'Version A', title:'Ch1' }], history:{} };
@@ -240,13 +254,13 @@ function group(title) {
   assert(!xhtml.startsWith('<div'), 'l\'enveloppe technique <div> ajoutée pour le parsing n\'apparaît jamais dans la sortie');
 
   group('timeline.js — addTimelineEvent()');
-  db = { chapters:[{ title:'Ch1' }], timeline: [] };
-  document.body.insertAdjacentHTML('beforeend', '<input id="tl-event-text"><input id="tl-event-date"><select id="tl-chapter-sel"><option value="">--</option><option value="0">Ch1</option></select><div id="timeline-events"></div><div id="timeline-track"></div>');
+  db = { chapters:[{ id:'ch1', title:'Ch1' }], timeline: [] };
+  document.body.insertAdjacentHTML('beforeend', '<input id="tl-event-text"><input id="tl-event-date"><select id="tl-chapter-sel"><option value="">--</option><option value="ch1">Ch1</option></select><div id="timeline-events"></div><div id="timeline-track"></div>');
   document.getElementById('tl-event-text').value = 'Rencontre avec le mentor';
   document.getElementById('tl-event-date').value = 'An 1';
-  document.getElementById('tl-chapter-sel').value = '0';
+  document.getElementById('tl-chapter-sel').value = 'ch1';
   addTimelineEvent();
-  assert(db.timeline.length === 1 && db.timeline[0].text === 'Rencontre avec le mentor' && db.timeline[0].chapterIdx === 0, 'un événement est ajouté avec son texte, sa date et son chapitre associé');
+  assert(db.timeline.length === 1 && db.timeline[0].text === 'Rencontre avec le mentor' && db.timeline[0].chapterId === 'ch1', 'un événement est ajouté avec son texte, sa date et son chapitre associé');
   document.getElementById('tl-event-text').value = '';
   addTimelineEvent();
   assert(db.timeline.length === 1, 'un événement sans texte n\'est pas ajouté');
@@ -335,14 +349,14 @@ function group(title) {
   assert(db.darkMode === true && db.paperMode === false && document.body.classList.contains('dark-mode'), 'selectTheme("dark") active le mode sombre et désactive le mode papier');
 
   group('database.js — liens entre personnages/lieux (addLink / removeLink)');
-  db.chars = [{ name:'Marie', links:[] }];
-  db.places = [{ name:'Paris', links:[] }];
+  db.chars = [{ id:'c1', name:'Marie', links:[] }];
+  db.places = [{ id:'p1', name:'Paris', links:[] }];
   document.body.insertAdjacentHTML('beforeend', '<div id="char-edit"></div><div id="place-edit"></div>');
-  addLink('chars', 0, 'places', 0);
-  assert(db.chars[0].links.length === 1 && db.chars[0].links[0].type === 'places' && db.chars[0].links[0].idx === 0, 'addLink() ajoute un lien personnage → lieu');
-  addLink('chars', 0, 'places', 0);
+  addLink('chars', 'c1', 'places', 'p1');
+  assert(db.chars[0].links.length === 1 && db.chars[0].links[0].type === 'places' && db.chars[0].links[0].id === 'p1', 'addLink() ajoute un lien personnage → lieu');
+  addLink('chars', 'c1', 'places', 'p1');
   assert(db.chars[0].links.length === 1, 'un lien déjà existant n\'est pas dupliqué');
-  removeLink('chars', 0, 0);
+  removeLink('chars', 'c1', 0);
   assert(db.chars[0].links.length === 0, 'removeLink() retire bien le lien');
 
   group('database.js — quêtes et mots faibles');

@@ -5,7 +5,7 @@
 // pour pouvoir être testé indépendamment de l'application
 // (voir tests/test-runner.html).
 // ═══════════════════════════════════════════════════════
-const SCHEMA_VERSION = 12;
+const SCHEMA_VERSION = 13;
 
 function genChapterId() {
   return (crypto.randomUUID ? crypto.randomUUID() : 'ch_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
@@ -82,6 +82,36 @@ function migrateDb(data) {
     // non plus ici. Un `data.autoGistInterval` déjà présent dans un document
     // existant reste tel quel (inoffensif, simplement ignoré).
     if (!Array.isArray(data.hourlyActivity) || data.hourlyActivity.length !== 24) data.hourlyActivity = new Array(24).fill(0);
+  }
+  if (v < 13) {
+    // Correction (audit) : personnages/lieux/quêtes n'avaient pas d'identifiant
+    // stable, et les liens entre eux (.links[].idx) référençaient une simple
+    // POSITION dans le tableau — supprimer un élément décalait les index
+    // suivants et faisait pointer silencieusement les liens vers le mauvais
+    // élément. Idem pour db.timeline[].chapterIdx. Même classe de bug déjà
+    // corrigée pour les chapitres en v<4 (voir plus haut) ; on l'applique ici
+    // à chars/places/quests et à la chronologie.
+    ['chars','places','quests'].forEach(type => {
+      (data[type]||[]).forEach(item => { if (!item.id) item.id = genChapterId(); });
+    });
+    ['chars','places','quests'].forEach(type => {
+      (data[type]||[]).forEach(item => {
+        if (Array.isArray(item.links)) {
+          item.links = item.links.map(l => {
+            if (l.id !== undefined) return l; // déjà au nouveau format
+            const target = (data[l.type]||[])[l.idx];
+            return target ? { type:l.type, id:target.id } : null;
+          }).filter(Boolean);
+        }
+      });
+    });
+    (data.timeline||[]).forEach(evt => {
+      if (evt.chapterIdx !== undefined && evt.chapterId === undefined) {
+        const ch = (data.chapters||[])[evt.chapterIdx];
+        if (ch) evt.chapterId = ch.id;
+        delete evt.chapterIdx;
+      }
+    });
   }
   data._schemaVersion = SCHEMA_VERSION;
   return data;

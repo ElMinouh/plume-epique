@@ -88,7 +88,13 @@ function renderPlugins() {
       try {
         const text = getPlainText(db.chapters[cur].content);
         const result = await plugin.run(text);
-        resultDiv.innerHTML = result.replace ? result.replace(/\n/g,'<br>') : String(result);
+        const asHtml = result && result.replace ? result.replace(/\n/g,'<br>') : String(result);
+        // Correction (audit) : les autres plugins passent déjà leur texte par
+        // DOMPurify avant de le renvoyer, mais le plugin "Générateur de
+        // synopsis" renvoyait la réponse IA brute. Sanitisation systématique
+        // ici, une fois pour tous les plugins présents et futurs — défense
+        // en profondeur, au cas où une réponse IA contiendrait du HTML.
+        resultDiv.innerHTML = DOMPurify.sanitize(asHtml);
       } catch(e) { resultDiv.innerHTML = `<span class="u-c-v-danger">❌ ${e.message}</span>`; }
     });
     card.querySelector(`input[data-plugin="${plugin.id}"]`).addEventListener('change', e => {

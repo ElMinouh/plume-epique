@@ -20,6 +20,20 @@ setInterval(() => {
   if (db.chapters[cur]) { flushCurrentChapter(); takeSnapshot(cur); debouncedSave(); }
 }, 5 * 60 * 1000);
 
+// Construit le contenu (hors câblage des clics) d'une ligne de la liste des
+// snapshots — factorisé (audit v7.35.0) : c'était auparavant dupliqué à
+// l'identique entre renderHistoryTab() et openDiffViewer().
+function snapshotRowHtml(snap) {
+  return `<span>${DOMPurify.sanitize(snap.label)}</span><span class="u-op-_5 u-fs-_7rem">${getWordCount(snap.content)} mots</span>`;
+}
+
+// Correction (audit v7.35.0) : cet onglet ("🔖 Versions") affichait une liste
+// cliquable dont le clic n'avait AUCUN effet visible — showHistoryPreview()
+// écrivait dans #history-diff / activait #history-restore-btn, deux éléments
+// qui n'existent que dans la fenêtre de comparaison séparée (#history-overlay,
+// normalement masquée). Plutôt que dupliquer un second aperçu ici, un clic
+// ouvre directement cette fenêtre de comparaison existante, avec le snapshot
+// cliqué déjà sélectionné.
 function renderHistoryTab() {
   const key = db.chapters[cur]?.id, snaps = (key && db.history[key]) || [];
   const list = document.getElementById('snapshot-list');
@@ -27,46 +41,45 @@ function renderHistoryTab() {
   snaps.forEach((snap, i) => {
     const el = document.createElement('div');
     el.className = 'history-item';
-    el.innerHTML = `<span>${DOMPurify.sanitize(snap.label)}</span><span class="u-op-_5 u-fs-_7rem">${getWordCount(snap.content)} mots</span>`;
-    el.addEventListener('click', () => showHistoryPreview(key, i, el));
+    el.title = 'Ouvrir la comparaison et la restauration de cette version';
+    el.innerHTML = snapshotRowHtml(snap);
+    el.addEventListener('click', () => openDiffViewer(i));
     list.appendChild(el);
   });
 }
 
-let _selectedSnapIdx = -1;
-function showHistoryPreview(key, idx, el) {
-  _selectedSnapIdx = idx;
-  document.querySelectorAll('.history-item').forEach(e => e.classList.remove('selected'));
-  el.classList.add('selected');
-  const snap = db.history[key][idx];
-  const restoreBtn = document.getElementById('history-restore-btn');
-  if (restoreBtn) restoreBtn.disabled = false;
-  const diffEl = document.getElementById('history-diff');
-  if (diffEl) diffEl.textContent = getPlainText(snap.content).substring(0, 1200) + (snap.content.length > 1200 ? '…' : '');
-}
-
-function openDiffViewer() {
+function openDiffViewer(preselectIdx) {
+  // wireAppEventListenersOnce (router.js) appelle openDiffViewer directement
+  // comme gestionnaire de clic : l'événement de clic serait alors reçu ici
+  // en premier argument. On ignore tout ce qui n'est pas un index numérique.
+  if (typeof preselectIdx !== 'number') preselectIdx = undefined;
   flushCurrentChapter();
   const key = db.chapters[cur]?.id, snaps = (key && db.history[key]) || [];
   document.getElementById('history-chapter-name').textContent = db.chapters[cur].title;
   const list = document.getElementById('history-list');
   list.innerHTML = snaps.length ? '' : '<div class="u-op-_5 u-fs-_8rem">Aucun snapshot.</div>';
+  const rows = [];
   snaps.forEach((snap, i) => {
     const el = document.createElement('div');
     el.className = 'history-item';
-    el.innerHTML = `<span>${DOMPurify.sanitize(snap.label)}</span><span class="u-op-_5 u-fs-_7rem">${getWordCount(snap.content)} mots</span>`;
-    el.addEventListener('click', () => {
-      document.querySelectorAll('#history-list .history-item').forEach(e=>e.classList.remove('selected'));
-      el.classList.add('selected');
-      const current = getPlainText(db.chapters[cur].content);
-      const old = getPlainText(snap.content);
-      document.getElementById('history-diff').innerHTML = computeDiff(old, current);
-      document.getElementById('history-restore-btn').disabled = false;
-      document.getElementById('history-restore-btn').onclick = () => restoreSnapshot(key, i);
-    });
+    el.innerHTML = snapshotRowHtml(snap);
+    el.addEventListener('click', () => selectDiffSnapshot(key, i, el, rows));
     list.appendChild(el);
+    rows.push(el);
   });
   document.getElementById('history-overlay').classList.add('active');
+  if (preselectIdx !== undefined && rows[preselectIdx]) rows[preselectIdx].click();
+}
+
+function selectDiffSnapshot(key, idx, el, rows) {
+  rows.forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  const snap = db.history[key][idx];
+  const current = getPlainText(db.chapters[cur].content);
+  const old = getPlainText(snap.content);
+  document.getElementById('history-diff').innerHTML = computeDiff(old, current);
+  document.getElementById('history-restore-btn').disabled = false;
+  document.getElementById('history-restore-btn').onclick = () => restoreSnapshot(key, idx);
 }
 
 function restoreSnapshot(key, idx) {

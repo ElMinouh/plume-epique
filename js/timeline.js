@@ -10,7 +10,10 @@ function renderTimeline() {
     const ev=document.createElement('div'); ev.className=`tl-event ${isA?'above':'below'}`; ev.style.left=lp+'px'; ev.style.transform='translateX(-50%)';
     const conn=document.createElement('div'); conn.className='tl-connector'; conn.style.height='38px';
     const card=document.createElement('div'); card.className='tl-card';
-    const chT=evt.chapterIdx!==undefined?db.chapters[evt.chapterIdx]?.title||'':'';
+    // Correction (audit) : evt.chapterId (id stable) remplace evt.chapterIdx
+    // (position), qui pointait silencieusement vers le mauvais chapitre après
+    // une suppression/réorganisation — voir migration schema.js v<13.
+    const chT=evt.chapterId?(db.chapters.find(c=>c.id===evt.chapterId)?.title||''):'';
     if(chT){const s=document.createElement('strong');s.textContent=chT;card.appendChild(s);}
     if(evt.date){const d=document.createElement('div');d.className='tl-date';d.textContent=evt.date;card.appendChild(d);}
     const txt=document.createElement('div');txt.textContent=evt.text;card.appendChild(txt);
@@ -22,12 +25,12 @@ function renderTimeline() {
   });
 }
 function populateTimelineChapterSel() {
-  document.getElementById('tl-chapter-sel').innerHTML='<option value="">-- Chapitre --</option>'+db.chapters.map((c,i)=>`<option value="${i}">${i+1}. ${DOMPurify.sanitize(c.title)}</option>`).join('');
+  document.getElementById('tl-chapter-sel').innerHTML='<option value="">-- Chapitre --</option>'+db.chapters.map((c,i)=>`<option value="${c.id}">${i+1}. ${DOMPurify.sanitize(c.title)}</option>`).join('');
 }
 function addTimelineEvent() {
   const text=document.getElementById('tl-event-text').value.trim(), date=document.getElementById('tl-event-date').value.trim(), chSel=document.getElementById('tl-chapter-sel').value;
   if(!text) return;
-  db.timeline.push({text,date,chapterIdx:chSel!==''?parseInt(chSel):undefined});
+  db.timeline.push({text,date,chapterId:chSel||undefined});
   document.getElementById('tl-event-text').value=''; document.getElementById('tl-event-date').value='';
   save(); renderTimeline();
 }

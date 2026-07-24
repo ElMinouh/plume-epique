@@ -17,9 +17,18 @@ function updateDailyStats() {
   const goal = db.dailyGoal || 500, pct = Math.min(100, Math.round(todayW/goal*100));
   ['goal-bar','sidebar-goal-bar'].forEach(id => { const el=document.getElementById(id); if(el) el.style.width=pct+'%'; });
   const lbl = document.getElementById('goal-label'); if (lbl) lbl.textContent = pct + ' %';
-  if (pct >= 100 && todayW > 0) toast('🎉 Objectif journalier atteint !','success');
+  // Correction (audit) : updateDailyStats() est appelée à CHAQUE frappe
+  // (via liveCounter()) — sans ce garde-fou, le toast de célébration se
+  // redéclenchait à chaque caractère tapé tant que l'objectif restait
+  // dépassé. On ne félicite qu'une fois par jour (_goalCelebratedDay
+  // mémorise la date, remis à zéro naturellement dès que le jour change).
+  if (pct >= 100 && todayW > 0 && _goalCelebratedDay !== today) {
+    _goalCelebratedDay = today;
+    toast('🎉 Objectif journalier atteint !','success');
+  }
   updateGoalsUI(totalW);
 }
+let _goalCelebratedDay = null;
 
 // ═══════════════════════════════════════════════════════
 // OBJECTIFS HEBDOMADAIRE & MENSUEL (nouveau v6.2.0)

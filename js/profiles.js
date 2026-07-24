@@ -449,7 +449,10 @@ async function adminDeleteProfile(pid) {
 
   const docList = await loadData(docListKey(pid));
   if (docList && Array.isArray(docList.documents)) {
-    for (const d of docList.documents) await persistData(docDataKey(pid, d.id), null);
+    for (const d of docList.documents) {
+      await persistData(docDataKey(pid, d.id), null);
+      await cleanupDocumentSideData(pid, d.id);
+    }
   }
   await persistData(docListKey(pid), null);
   await persistData('data_' + pid, null);

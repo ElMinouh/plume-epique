@@ -343,7 +343,21 @@ function importProjectLibrary(input) {
         added++;
       }
       await saveDocList(list);
-      toast(added + ' manuscrit(s) importé(s) dans la bibliothèque.', 'success');
+      // Correction (audit) : le fichier importé peut venir d'un AUTRE profil
+      // (DEK différente) — dans ce cas, les manuscrits sont bien copiés mais
+      // resteraient silencieusement indéchiffrables. On vérifie ici en
+      // tentant de déchiffrer un des documents importés, pour prévenir
+      // clairement plutôt que de laisser croire à un import pleinement réussi.
+      let unreadable = false;
+      const firstNewId = list.documents[list.documents.length - added]?.id;
+      if (firstNewId) {
+        try { await loadManuscriptData(firstNewId); } catch(e) { unreadable = true; }
+      }
+      if (unreadable) {
+        toast('⚠️ Import terminé, mais ces manuscrits semblent illisibles : ce fichier vient probablement d\'un autre profil.', 'error');
+      } else {
+        toast(added + ' manuscrit(s) importé(s) dans la bibliothèque.', 'success');
+      }
       await renderLibraryScreen();
     } catch(err) {
       toast('Fichier invalide : ' + err.message, 'error');

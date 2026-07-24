@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '7.34.0';
+const APP_VERSION = '7.35.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -434,7 +434,7 @@ function wireAppEventListenersOnce(){
   document.getElementById('tl-add-btn').addEventListener('click',addTimelineEvent);
 
   document.getElementById('snapshot-btn').addEventListener('click',()=>{flushCurrentChapter();takeSnapshot(cur,'Manuel — '+new Date().toLocaleString('fr'));save();renderHistoryTab();toast('Snapshot sauvegardé','success');});
-  document.getElementById('open-diff-btn').addEventListener('click',openDiffViewer);
+  document.getElementById('open-diff-btn').addEventListener('click',()=>openDiffViewer());
   document.getElementById('history-close-btn').addEventListener('click',()=>document.getElementById('history-overlay').classList.remove('active'));
 
   document.getElementById('graph-rebuild-btn').addEventListener('click',renderGraph);
