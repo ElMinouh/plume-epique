@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '7.25.0';
+const APP_VERSION = '7.27.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -123,11 +123,61 @@ async function verifySyncKey(key) {
     return resp.ok;
   } catch(e) { return false; }
 }
+// v7.27.0 — Détection de conflit multi-appareils : jusqu'ici, syncPush()
+// écrasait toujours aveuglément la version distante, y compris si un AUTRE
+// appareil avait poussé une modification entre-temps (dernier écrivain gagne,
+// en silence — perte de texte possible sans aucun avertissement). On garde
+// désormais localement une empreinte (SHA-256) de la dernière version
+// distante connue pour chaque clé. Avant d'écraser, on récupère la version
+// distante réelle : si son empreinte a changé depuis notre dernier passage
+// ET qu'elle diffère aussi de ce qu'on s'apprête à écrire, un autre appareil
+// a écrit entre-temps → on sauvegarde cette version distante localement
+// (jamais perdue) avant de l'écraser, et on prévient l'utilisateur.
+// Volontairement PAS de fusion automatique ni d'écran de résolution (hors
+// scope pour un usage familial où ce cas est rare) — juste : rien ne
+// disparaît jamais en silence.
+async function sha256Hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function getKnownRemoteHash(key) { return localStorage.getItem('plume_synchash_' + key); }
+function setKnownRemoteHash(key, hash) { localStorage.setItem('plume_synchash_' + key, hash); }
+// Sauvegarde locale uniquement (ne relance pas syncPush, sans quoi on
+// boucle) — utilisée pour ne jamais perdre la version distante écrasée.
+async function persistConflictBackup(key, payload) {
+  try {
+    const backupKey = 'conflict_' + key + '_' + Date.now();
+    if (idbStore) await idbStore.put('data', payload, backupKey);
+    else localStorage.setItem('plume_' + backupKey, JSON.stringify(payload));
+  } catch(e) { /* la sauvegarde de secours elle-même ne doit jamais faire planter la sync normale */ }
+}
+
 async function syncPush(key, payload) {
   const syncKey = getSyncKey();
   if (!syncKey) return;
   try {
     const body = JSON.stringify(payload);
+    const newHash = await sha256Hex(body);
+
+    // --- Détection de conflit (v7.27.0), voir commentaire ci-dessus ---
+    const known = getKnownRemoteHash(key);
+    if (known) {
+      try {
+        const resp = await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), { headers: { 'Authorization': 'Bearer ' + syncKey } });
+        if (resp.ok) {
+          const remote = await resp.json();
+          if (remote !== null && remote !== undefined) {
+            const remoteHash = await sha256Hex(JSON.stringify(remote));
+            if (remoteHash !== known && remoteHash !== newHash) {
+              await persistConflictBackup(key, remote);
+              if (typeof toast === 'function') toast("Synchro : une version différente de cet élément a été détectée sur un autre appareil et sauvegardée avant remplacement.", 'error');
+            }
+          }
+        }
+      } catch(e) { /* vérif de conflit best-effort : si elle échoue, on pousse quand même normalement */ }
+    }
+    // --- fin détection de conflit ---
+
     // `keepalive` permet à une sauvegarde de se terminer même si l'utilisateur
     // ferme l'onglet juste après — mais Chrome impose une limite stricte
     // d'environ 64 Ko sur le corps de ce type de requête, et DÉPASSER cette
@@ -147,6 +197,7 @@ async function syncPush(key, payload) {
     if (body.length < 60000) opts.keepalive = true;
     const resp = await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), opts);
     _lastSyncStatus = { ok: resp.ok, ts: Date.now() };
+    if (resp.ok) setKnownRemoteHash(key, newHash);
   } catch(e) {
     _lastSyncStatus = { ok: false, ts: Date.now() };
     /* hors-ligne ou Worker injoignable : la copie locale suffit, on retentera à la prochaine écriture */
@@ -159,7 +210,12 @@ async function syncPull(key) {
     const resp = await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), { headers: { 'Authorization': 'Bearer ' + syncKey } });
     if (!resp.ok) { _lastSyncStatus = { ok: false, ts: Date.now() }; return undefined; }
     _lastSyncStatus = { ok: true, ts: Date.now() };
-    return await resp.json(); // peut être `null` (clé jamais synchronisée) : géré par l'appelant
+    const data = await resp.json(); // peut être `null` (clé jamais synchronisée) : géré par l'appelant
+    // v7.27.0 — on mémorise l'empreinte de ce qu'on vient de lire, pour que la
+    // détection de conflit (voir syncPush) sache dès la prochaine écriture
+    // locale si quelqu'un d'autre a modifié la donnée entre-temps.
+    if (data !== null && data !== undefined) setKnownRemoteHash(key, await sha256Hex(JSON.stringify(data)));
+    return data;
   } catch(e) { _lastSyncStatus = { ok: false, ts: Date.now() }; return undefined; }
 }
 

@@ -151,11 +151,11 @@ Cloudflare Pages, aucune configuration dashboard requise) applique une CSP en
 défense en profondeur contre le XSS : seuls les CDN réellement utilisés
 (jsDelivr, unpkg, d3js.org) peuvent charger du JavaScript, et seules les
 destinations réseau connues du projet (Worker IA, GitHub, LanguageTool) sont
-autorisées en `connect-src`. `style-src` inclut `'unsafe-inline'` car le projet
-utilise des attributs `style=""` en ligne dans tout `index.html` — un choix
-d'implémentation existant, pas une régression introduite par la CSP ; la
-protection principale contre le XSS (l'exécution de script) reste, elle,
-stricte. Si une future dépendance ou un futur appel réseau externe est ajouté
+autorisées en `connect-src`. `style-src` est strict (`'self'` uniquement,
+sans `'unsafe-inline'`) : le projet n'utilise plus d'attributs `style=""` en
+ligne (retirés au profit des classes utilitaires `u-*`/`gate-*`, voir
+conventions du projet) — la protection contre les injections de script comme
+de style est donc stricte des deux côtés. Si une future dépendance ou un futur appel réseau externe est ajouté
 au projet, il faudra penser à l'ajouter à `_headers`, sans quoi le navigateur
 le bloquera silencieusement (vérifier la console en cas de bouton qui ne
 répond plus après une modification).
@@ -382,9 +382,8 @@ Les versions ci-dessous sont classées de la plus récente à la plus ancienne.
   l'ensemble de l'application (pas de tests d'intégration UI).
 - Le rechercher/remplacer ne traite pas les occurrences qui chevauchent une limite de
   mise en forme (ex. un mot moitié en gras, moitié non) — cas rare, à corriger manuellement.
-- `style-src` de la CSP inclut `'unsafe-inline'` (nécessaire vu l'usage d'attributs
-  `style=""` en ligne dans tout le projet) — protection réduite contre les attaques par
-  injection de style pur, sans rapport avec l'exécution de script.
+- `style-src` de la CSP est strict (`'self'` uniquement) depuis que les attributs
+  `style=""` en ligne ont été retirés du projet — aucune protection réduite sur ce point.
 - Section bande dessinée / ouvrages illustrés : pas commencée. Nécessitera une structure
   de données séparée (ex. `db.comicPages`) plutôt qu'une réutilisation du modèle de
   chapitres texte, et une nouvelle version de schéma (`SCHEMA_VERSION` → 7).

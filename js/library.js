@@ -123,16 +123,27 @@ function docDataKey(profileId, docId) { return 'doc_' + profileId + '_' + docId;
 // sans attendre que chacun soit rouvert/modifié individuellement d'abord.
 async function syncPushEntireLibrary() {
   if (!getSyncKey()) return;
+  // v7.27.0 — Auparavant, un seul document en échec (réseau, Worker
+  // temporairement injoignable...) faisait échouer TOUT le `try/catch`
+  // englobant : les documents suivants de la boucle n'étaient alors jamais
+  // poussés, silencieusement. Chaque document a désormais son propre
+  // `try/catch` : un échec isolé n'empêche plus les autres d'être
+  // synchronisés (chacun sera de toute façon retenté à sa prochaine
+  // modification locale si celui-ci échoue encore).
   try {
     const idx = await loadProfilesIndex();
     if (idx) await persistData('profiles', idx);
+  } catch(e) { /* meilleure tentative uniquement */ }
+  try {
     const list = await loadDocList();
     await persistData(docListKey(_currentProfileId), list);
     for (const entry of list.documents) {
-      const raw = await loadData(docDataKey(_currentProfileId, entry.id));
-      if (raw) await persistData(docDataKey(_currentProfileId, entry.id), raw);
+      try {
+        const raw = await loadData(docDataKey(_currentProfileId, entry.id));
+        if (raw) await persistData(docDataKey(_currentProfileId, entry.id), raw);
+      } catch(e) { /* ce document sera retenté à sa prochaine modification, on continue avec les suivants */ }
     }
-  } catch(e) { /* meilleure tentative uniquement, aucune erreur affichée ici */ }
+  } catch(e) { /* meilleure tentative uniquement */ }
 }
 
 async function loadDocList() {
