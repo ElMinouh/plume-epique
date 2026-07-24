@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '7.27.0';
+const APP_VERSION = '7.28.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -578,10 +578,11 @@ document.addEventListener('visibilitychange', () => {
 // renderSyncKeyGate() dans profiles.js — avant même l'écran de connexion.
 // ═══════════════════════════════════════════════════════
 window.onload = async () => {
+  document.title = 'Plume · v' + APP_VERSION;
   const verEl = document.getElementById('app-version-label');
-  if (verEl) verEl.textContent = 'Plume Épique · v' + APP_VERSION;
+  if (verEl) verEl.textContent = 'Plume · v' + APP_VERSION;
   const libVerEl = document.getElementById('library-version-label');
-  if (libVerEl) libVerEl.textContent = 'Plume Épique · v' + APP_VERSION;
+  if (libVerEl) libVerEl.textContent = 'Plume · v' + APP_VERSION;
   await initIDB();
   if (needsSyncKeySetup()) renderSyncKeyGate();
   else await bootProfiles();

@@ -9,7 +9,7 @@ async function exportDocx(chapters, title) {
   if (typeof docx === 'undefined') { toast('Lib DOCX non chargée','error'); return; }
   if (!chapters || !chapters.length) { toast('Aucun chapitre sélectionné.','error'); return; }
   const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
-  const children = [new Paragraph({ text: title || 'Mon Roman — Plume Épique', heading:HeadingLevel.TITLE })];
+  const children = [new Paragraph({ text: title || 'Mon Roman — Plume', heading:HeadingLevel.TITLE })];
   chapters.forEach((ch, i) => {
     children.push(new Paragraph({ text:`Chapitre ${i+1} : ${ch.title}`, heading:HeadingLevel.HEADING_1 }));
     getPlainText(ch.content).split('\n').forEach(line => {
@@ -65,7 +65,7 @@ async function exportEpub(chapters, title) {
 
   const oebps = zip.folder('OEBPS');
   const uid = 'urn:uuid:' + genChapterId();
-  const bookTitle = title || 'Mon Roman — Plume Épique';
+  const bookTitle = title || 'Mon Roman — Plume';
 
   const manifestItems = [], spineItems = [], navPoints = [];
 
@@ -125,7 +125,7 @@ async function exportOdt(chapters, title) {
   if (!window.odfKit || !window.odfKit.htmlToOdt) { toast('Bibliothèque ODT non chargée (vérifiez la connexion).', 'error'); return; }
   if (!chapters || !chapters.length) { toast('Aucun chapitre sélectionné.','error'); return; }
   try {
-    let html = `<h1>${escapeXml(title || 'Mon Roman — Plume Épique')}</h1>`;
+    let html = `<h1>${escapeXml(title || 'Mon Roman — Plume')}</h1>`;
     chapters.forEach((ch, i) => {
       html += `<h2>Chapitre ${i+1} : ${escapeXml(ch.title||'')}</h2>` + toXhtmlSafe(ch.content);
     });
@@ -153,7 +153,7 @@ async function exportPdf(chapters, title) {
     let y = margin;
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
-    const titleLines = doc.splitTextToSize(title || 'Mon Roman — Plume Épique', maxWidth);
+    const titleLines = doc.splitTextToSize(title || 'Mon Roman — Plume', maxWidth);
     doc.text(titleLines, pageWidth / 2, 60, { align:'center' });
     doc.addPage();
     y = margin;
@@ -322,7 +322,7 @@ function importProjectLibrary(input) {
   reader.onload = async e => {
     try {
       const p = JSON.parse(e.target.result);
-      if (!p._plumeLibraryExport || !p.documents) throw new Error('Ce fichier n\'est pas un export de bibliothèque Plume Épique.');
+      if (!p._plumeLibraryExport || !p.documents) throw new Error('Ce fichier n\'est pas un export de bibliothèque Plume.');
       const list = await loadDocList();
       let added = 0;
       for (const oldId of Object.keys(p.documents)) {

@@ -422,6 +422,24 @@ function setLibraryViewMode(mode) {
   document.getElementById('library-shelf').style.display = isShelf ? 'block' : 'none';
   if (isShelf) renderLibraryShelf();
 }
+// v7.28.0 — Refonte visuelle de la vue étagère (voir style.css pour les
+// classes .lib-book-band / .lib-book-recent-dot / #library-shelf) :
+//   - la carte "+ Nouveau manuscrit" est désormais EN PREMIER (elle était
+//     en dernier), suivie des manuscrits du plus récent au plus ancien
+//     (tri déjà existant, inchangé).
+//   - un point vert signale uniquement le manuscrit le plus récemment
+//     modifié (sorted[0]).
+//   - deux filets dorés encadrent le titre sur chaque tranche. Leur
+//     position n'est PAS fixe : on les pose d'abord à leur position par
+//     défaut (proche du centre), puis on mesure le rendu RÉEL du titre
+//     (scrollHeight vs hauteur allouée, pas une estimation de largeur de
+//     caractères) ; si le titre déborde, les filets sont écartés vers les
+//     bords de la tranche pour lui laisser plus de place. Le titre ne
+//     déborde alors JAMAIS sur un filet : sa hauteur allouée est toujours
+//     exactement l'espace entre les deux filets, et le CSS
+//     (text-overflow:ellipsis) tronque proprement si, malgré l'écart
+//     maximal, le titre ne tient toujours pas. Le titre complet reste
+//     accessible via l'infobulle native (title="Ouvrir « ... »").
 async function renderLibraryShelf(sorted) {
   const cont = document.getElementById('library-shelf');
   if (!cont) return;
@@ -430,27 +448,48 @@ async function renderLibraryShelf(sorted) {
     sorted = list.documents.slice().sort((a,b) => b.lastModified - a.lastModified);
   }
   const PER_ROW = 7;
-  const items = sorted.map(d => ({ d })).concat([{ isNew:true }]);
+  const items = [{ isNew:true }].concat(sorted.map((d, idx) => ({ d, isRecent: idx === 0 })));
   let html = '';
   for (let i = 0; i < items.length; i += PER_ROW) {
     html += `<div class="lib-shelf-row"><div class="lib-shelf-plank"></div>` + items.slice(i, i + PER_ROW).map(it => {
-      if (it.isNew) return `<div class="lib-book lib-book-new u-h-80px" id="library-new-btn-shelf" role="button" tabindex="0" aria-label="Nouveau projet" title="Créer un nouveau manuscrit vierge">+</div>`;
+      if (it.isNew) return `<div class="lib-book lib-book-new u-h-80px" id="library-new-btn-shelf" role="button" tabindex="0" aria-label="Nouveau projet" title="Créer un nouveau manuscrit vierge"><span>+</span><span class="lib-book-new-label">Nouveau<br>manuscrit</span></div>`;
       const d = it.d;
       const cover = d.cover && d.cover !== 'auto' ? COVER_PALETTES[d.cover] : null;
       const shelfCoverClass = cover ? ` shelf-cover-${d.cover}` : '';
       const h = Math.max(80, Math.min(170, 80 + Math.round((d.wordCount||0) / 800)));
-      return `<div class="lib-book${shelfCoverClass}" data-doc-id="${d.id}" data-h="${h}" role="button" tabindex="0" title="Ouvrir « ${DOMPurify.sanitize(d.title || 'Sans titre')} »">
+      const safeTitle = DOMPurify.sanitize(d.title || 'Sans titre');
+      return `<div class="lib-book${shelfCoverClass}" data-doc-id="${d.id}" data-h="${h}" data-band-margin-default="${Math.round(h*0.16)}" data-band-margin-max="6" role="button" tabindex="0" title="Ouvrir « ${safeTitle} »">
         <button class="lib-book-kebab" data-kebab-doc="${d.id}" title="Actions du manuscrit" aria-label="Actions du manuscrit">⋮</button>
-        <span class="lib-book-title">${DOMPurify.sanitize(d.title || 'Sans titre')}</span>
+        ${it.isRecent ? '<span class="lib-book-recent-dot" title="Modifié le plus récemment" aria-hidden="true"></span>' : ''}
+        <span class="lib-book-band lib-book-band-top" aria-hidden="true"></span>
+        <span class="lib-book-title">${safeTitle}</span>
+        <span class="lib-book-band lib-book-band-bottom" aria-hidden="true"></span>
       </div>`;
     }).join('') + `</div>`;
   }
   cont.innerHTML = html;
-  // v7.18.0 : hauteur du dos de livre posée via la propriété CSSOM (autorisée
-  // par la CSP même sans 'unsafe-inline'), plutôt qu'un style="height:..."
-  // textuel dans le HTML généré ci-dessus (bloqué, lui).
+  // Hauteur du dos posée via CSSOM (autorisé par la CSP même sans
+  // 'unsafe-inline'), comme le reste du projet.
   cont.querySelectorAll('.lib-book[data-h]').forEach(el => {
-    el.style.height = el.dataset.h + 'px';
+    const h = parseInt(el.dataset.h, 10);
+    el.style.height = h + 'px';
+    const marginDefault = parseInt(el.dataset.bandMarginDefault, 10);
+    const marginMax = parseInt(el.dataset.bandMarginMax, 10);
+    const bandTop = el.querySelector('.lib-book-band-top');
+    const bandBottom = el.querySelector('.lib-book-band-bottom');
+    const titleEl = el.querySelector('.lib-book-title');
+    if (!bandTop || !bandBottom || !titleEl) return;
+    const applyMargin = m => {
+      bandTop.style.top = m + 'px';
+      bandBottom.style.bottom = m + 'px';
+      // 3px = épaisseur du filet, 3px = respiration avant le titre.
+      titleEl.style.height = Math.max(14, h - 2*m - 12) + 'px';
+    };
+    applyMargin(marginDefault);
+    // Mesure RÉELLE (pas d'estimation) : si le titre déborde de l'espace
+    // par défaut, on écarte les filets au maximum pour lui laisser plus
+    // de place. S'il déborde encore, l'ellipsis CSS prend le relais.
+    if (titleEl.scrollHeight > titleEl.clientHeight + 1) applyMargin(marginMax);
   });
 
   cont.querySelectorAll('[data-doc-id]').forEach(book => {

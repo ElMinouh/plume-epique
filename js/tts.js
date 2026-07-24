@@ -45,6 +45,17 @@ function ttsStop() {
 }
 
 let _dictationRange = null;
+// v7.28.0 — Correction du bug de dictée "frénétique" (le même texte inséré
+// des dizaines de fois) : le code se fiait auparavant à `e.resultIndex`,
+// fourni par le navigateur pour indiquer quels résultats sont nouveaux
+// depuis le dernier événement. Or sur de nombreuses versions de Chrome, en
+// mode `continuous`, cette valeur est peu fiable et peut revenir à 0 —
+// l'ancien code retraitait alors TOUT l'historique déjà dicté à chaque
+// nouvelle phrase (et le réinsérait en double, triple...), l'accumulation
+// s'aggravant au fil de la dictée. On ne dépend plus de `resultIndex` :
+// on suit nous-mêmes, avec `_dictationLastFinalIndex`, le dernier résultat
+// définitif déjà inséré pour la session de reconnaissance en cours.
+let _dictationLastFinalIndex = -1;
 // Capture la position du curseur au moment où la dictée démarre, pour y
 // insérer le texte au fil de la dictée — au lieu de toujours l'ajouter en
 // fin de texte, quel que soit l'endroit où on avait cliqué avant de dicter.
@@ -69,9 +80,13 @@ function initDictation() {
   _recognition.lang = 'fr-FR'; _recognition.continuous = true; _recognition.interimResults = true;
   _recognition.onresult = e => {
     let interim='', final='';
-    for (let i=e.resultIndex; i<e.results.length; i++) {
-      if (e.results[i].isFinal) final += e.results[i][0].transcript;
-      else interim += e.results[i][0].transcript;
+    // On parcourt TOUS les résultats de la session (et non depuis
+    // e.resultIndex, voir commentaire plus haut) ; seuls les résultats
+    // définitifs situés après le dernier déjà inséré sont pris en compte.
+    for (let i=0; i<e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        if (i > _dictationLastFinalIndex) { final += e.results[i][0].transcript; _dictationLastFinalIndex = i; }
+      } else interim += e.results[i][0].transcript;
     }
     document.getElementById('dictate-preview').textContent = interim;
     if (final) {
@@ -98,7 +113,12 @@ function initDictation() {
     }
   };
   _recognition.onerror = e => { toast('Erreur dictée : '+e.error,'error'); stopDictation(); };
-  _recognition.onend = () => { if (_dictating) _recognition.start(); };
+  // v7.28.0 — Une nouvelle session de reconnaissance qui redémarre repart
+  // avec un tableau `results` vide côté navigateur : notre compteur maison
+  // doit repartir à -1 avec elle, sans quoi le premier résultat définitif
+  // de la nouvelle session serait ignoré (i > _dictationLastFinalIndex
+  // resterait faux un temps).
+  _recognition.onend = () => { if (_dictating) { _dictationLastFinalIndex = -1; _recognition.start(); } };
 }
 
 function toggleDictation() {
@@ -107,6 +127,7 @@ function toggleDictation() {
 }
 function startDictation() {
   captureDictationRange();
+  _dictationLastFinalIndex = -1;
   _dictating = true; _recognition.start();
   const btn = document.getElementById('dictate-btn');
   btn.style.background = '#e74c3c'; btn.classList.add('record-pulse');

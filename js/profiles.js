@@ -69,7 +69,7 @@ function readLocalSession() {
 // ═══════════════════════════════════════════════════════════════════════
 async function notifyThirdPartyDataUseOnce() {
   if (!_currentProfile || _currentProfile.seenThirdPartyNotice) return;
-  alert('ℹ️ À savoir : les fonctions IA (résumé, continuation, incohérences, noms, synonymes/antonymes, mémoire narrative) et le plugin LanguageTool envoient le texte concerné à des services externes (Mistral AI, LanguageTool.org) pour être traités. Ce texte n\'est jamais stocké en clair par Plume Épique, mais transite en clair chez ces services le temps du traitement.\n\nCe message ne s\'affichera plus.');
+  alert('ℹ️ À savoir : les fonctions IA (résumé, continuation, incohérences, noms, synonymes/antonymes, mémoire narrative) et le plugin LanguageTool envoient le texte concerné à des services externes (Mistral AI, LanguageTool.org) pour être traités. Ce texte n\'est jamais stocké en clair par Plume, mais transite en clair chez ces services le temps du traitement.\n\nCe message ne s\'affichera plus.');
   _currentProfile.seenThirdPartyNotice = true;
   const idx = await loadProfilesIndex();
   const profil = idx.profiles.find(p => p.id === _currentProfileId);
@@ -154,7 +154,7 @@ async function bootProfiles() {
 // ── Petits utilitaires d'écran ──────────────────────────────────────────
 function gateShell(innerHtml) {
   const g = gateEl();
-  g.innerHTML = `<div class="gate-card">${innerHtml}</div>`;
+  g.innerHTML = `<div class="gate-card"><img src="icons/icon-192.png" class="gate-logo" alt="Plume" width="64" height="64">${innerHtml}</div>`;
   showGate();
 }
 function nameExists(idx, name, exceptId) {
@@ -169,7 +169,7 @@ function questionOptionsHtml() {
 function renderLoginScreen(idx) {
   const opts = idx.profiles.map(p => `<option value="${p.id}">${DOMPurify.sanitize(p.name)}</option>`).join('');
   gateShell(`
-    <div class="gate-title"><i>🔐</i> Plume Épique</div>
+    <div class="gate-title">Plume</div>
     <div class="gate-sub">Choisissez votre profil</div>
     <label class="gate-label">Profil</label>
     <select id="login-profile-sel" class="gate-field">${opts}</select>
@@ -295,7 +295,7 @@ function downloadRecoveryPdf(code, name) {
   if (!window.jspdf || !window.jspdf.jsPDF) { toast('Bibliothèque PDF non chargée.', 'error'); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-  doc.setFontSize(18); doc.text('Plume Épique — Code de récupération', 20, 25);
+  doc.setFontSize(18); doc.text('Plume — Code de récupération', 20, 25);
   doc.setFontSize(11);
   doc.text('Profil : ' + name, 20, 40);
   doc.text('Date : ' + new Date().toLocaleString('fr'), 20, 48);
@@ -552,7 +552,7 @@ function renderMigration(legacy) {
   const encrypted = !!(legacy && legacy._enc);
   gateShell(`
     <div class="gate-title"><i>✨</i> Mise à jour : profils</div>
-    <div class="gate-sub">Plume Épique gère maintenant plusieurs profils. On sécurise vos données actuelles dans le profil administrateur.</div>
+    <div class="gate-sub">Plume gère maintenant plusieurs profils. On sécurise vos données actuelles dans le profil administrateur.</div>
     <label class="gate-label">Nom du profil</label>
     <input id="mig-name" type="text" class="gate-field" value="Cyril">
     ${encrypted

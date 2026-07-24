@@ -7,7 +7,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
-<title>Plume Épique</title>
+<title>Plume</title>
 <link rel="stylesheet" href="css/style.css">
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -33,9 +33,12 @@
 <!-- BIBLIOTHÈQUE (nouveau v7.2.0) — écran affiché après connexion, avant l'éditeur -->
 <div id="library-screen">
   <div id="library-topbar">
-    <div class="u-d-flex u-fd-column u-gap-2px">
-      <span id="library-profile-name"></span>
-      <span class="u-fs-_65rem u-op-_35" id="library-version-label"></span>
+    <div class="u-d-flex u-ai-center u-gap-8px">
+      <img src="icons/icon-32.png" class="topbar-logo" alt="" width="32" height="32">
+      <div class="u-d-flex u-fd-column u-gap-2px">
+        <span id="library-profile-name"></span>
+        <span class="u-fs-_65rem u-op-_35" id="library-version-label"></span>
+      </div>
     </div>
     <div class="u-d-flex u-gap-6px u-fw-wrap">
       <button class="action-btn btn-sm u-bg-h7f8c8d" id="library-home-btn" title="Retourner à l'écran de connexion">🏠 Accueil</button>
@@ -333,7 +336,7 @@
 
 <!-- PWA BANNER -->
 <div id="pwa-banner">
-  <span>📱 Installer Plume Épique comme application ?</span>
+  <span>📱 Installer Plume comme application ?</span>
   <button class="action-btn btn-sm" id="pwa-install-btn" title="Installer l'application sur cet appareil">Installer</button>
   <button class="btn-sm u-bg-none u-bd-none u-cur-pointer u-c-v-text-muted" id="pwa-dismiss-btn" title="Ne plus afficher ce message">Plus tard</button>
 </div>
@@ -757,9 +760,10 @@
       <div id="save-indicator" aria-hidden="true"></div>
       <span class="u-fs-_7rem u-c-v-text-muted" id="autosave-label"></span>
       <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre">🌙 Nuit</button>
-      <button class="u-d-none u-bg-linear-gradient-135deg-v-acc-1qh64 u-c-hfff u-bd-none u-p-5px-14px u-br-20px u-cur-pointer u-fs-_72rem u-fwt-700 u-ff-inherit u-shadow-0-2px-8px-rgb19257433" id="install-app-btn" title="Installer Plume Épique comme application sur cet ordinateur">📲 Installer sur le bureau</button>
+      <button class="u-d-none u-bg-linear-gradient-135deg-v-acc-1qh64 u-c-hfff u-bd-none u-p-5px-14px u-br-20px u-cur-pointer u-fs-_72rem u-fwt-700 u-ff-inherit u-shadow-0-2px-8px-rgb19257433" id="install-app-btn" title="Installer Plume comme application sur cet ordinateur">📲 Installer sur le bureau</button>
       <button id="shortcuts-hint-btn" class="mode-indicator u-ml-auto u-p-2px-8px" title="Voir les raccourcis clavier (touche ?)">❔</button>
-      <span class="u-fs-_65rem u-op-_35" id="app-version-label">Plume Épique</span>
+      <img src="icons/icon-32.png" class="modebar-logo" alt="" width="16" height="16">
+      <span class="u-fs-_65rem u-op-_35" id="app-version-label">Plume</span>
     </div>
   </div>
 </main>
