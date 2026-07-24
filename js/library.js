@@ -470,6 +470,15 @@ async function renderLibraryShelf(sorted) {
   cont.innerHTML = html;
   // Hauteur du dos posée via CSSOM (autorisé par la CSP même sans
   // 'unsafe-inline'), comme le reste du projet.
+  // v7.33.0 — Repasse en 3 étapes groupées (tous les réglages par défaut,
+  // PUIS toutes les mesures, PUIS les réajustements) au lieu d'un
+  // réglage+mesure+réajustement livre par livre : avant, chaque lecture de
+  // scrollHeight/clientHeight forçait le navigateur à recalculer tout de
+  // suite la mise en page à cause de l'écriture juste précédente sur le
+  // MÊME livre — un recalcul complet par livre affiché. En séparant
+  // clairement les écritures des lectures, le navigateur ne fait plus
+  // qu'un seul recalcul pour toute la rangée. Résultat visuel identique.
+  const items2 = [];
   cont.querySelectorAll('.lib-book[data-h]').forEach(el => {
     const h = parseInt(el.dataset.h, 10);
     el.style.height = h + 'px';
@@ -489,12 +498,14 @@ async function renderLibraryShelf(sorted) {
       // sur les filets.
       titleEl.style.maxHeight = Math.max(14, h - 2*m - 12) + 'px';
     };
-    applyMargin(marginDefault);
-    // Mesure RÉELLE (pas d'estimation) : si le titre déborde de l'espace
-    // par défaut, on écarte les filets au maximum pour lui laisser plus
-    // de place. S'il déborde encore, l'ellipsis CSS prend le relais.
-    if (titleEl.scrollHeight > titleEl.clientHeight + 1) applyMargin(marginMax);
+    applyMargin(marginDefault); // 1er passage : écritures seulement
+    items2.push({ titleEl, applyMargin, marginMax });
   });
+  // 2e passage : lectures seulement (regroupées, un seul recalcul global).
+  items2.forEach(it => { it.overflow = it.titleEl.scrollHeight > it.titleEl.clientHeight + 1; });
+  // 3e passage : écritures de réajustement seulement, pour les titres qui
+  // débordaient réellement de l'espace par défaut.
+  items2.forEach(it => { if (it.overflow) it.applyMargin(it.marginMax); });
 
   cont.querySelectorAll('[data-doc-id]').forEach(book => {
     book.addEventListener('click', e => { if (e.target.closest('.lib-book-kebab')) return; openDocument(book.dataset.docId); });
@@ -808,8 +819,81 @@ async function openLibrarySystemPanel(preselectDocId) {
   document.getElementById('lib-sync-key-change-btn').textContent = '✏️ Changer la clé';
   document.getElementById('lib-sync-key-status').textContent = '';
   renderLastSyncStatus();
+  await renderConflictBackups();
 
   document.getElementById('library-system-overlay').classList.add('active');
+}
+
+// v7.33.0 — Bloc "Sauvegardes de conflit" du panneau Système : donne enfin
+// accès aux sauvegardes créées automatiquement par la détection de conflit
+// multi-appareils (voir persistConflictBackup() dans router.js, v7.27.0).
+// Jusqu'ici ces sauvegardes existaient (rien n'est jamais perdu) mais rien
+// ne permettait de les consulter ou de les restaurer soi-même.
+async function listConflictBackups() {
+  const prefix = 'conflict_doc_' + _currentProfileId + '_';
+  let keys = [];
+  if (idbStore) keys = (await idbStore.getAllKeys('data')).filter(k => typeof k === 'string' && k.startsWith(prefix));
+  else keys = Object.keys(localStorage).filter(k => k.startsWith('plume_' + prefix)).map(k => k.slice('plume_'.length));
+  const list = await loadDocList();
+  return keys.map(key => {
+    const rest = key.slice(prefix.length);
+    const lastUnderscore = rest.lastIndexOf('_');
+    const docId = rest.slice(0, lastUnderscore);
+    const ts = parseInt(rest.slice(lastUnderscore + 1), 10);
+    const entry = list.documents.find(d => d.id === docId);
+    return { key, docId, ts, title: entry ? entry.title : 'Manuscrit supprimé depuis' };
+  }).sort((a, b) => b.ts - a.ts);
+}
+async function getConflictBackupPayload(key) {
+  if (idbStore) return await idbStore.get('data', key);
+  const r = localStorage.getItem('plume_' + key);
+  return r ? JSON.parse(r) : undefined;
+}
+async function removeConflictBackup(key) {
+  if (idbStore) await idbStore.delete('data', key);
+  else localStorage.removeItem('plume_' + key);
+}
+async function renderConflictBackups() {
+  const cont = document.getElementById('lib-conflict-list');
+  const badge = document.getElementById('lib-conflict-count');
+  if (!cont || !badge) return;
+  const backups = await listConflictBackups();
+  badge.textContent = String(backups.length);
+  badge.classList.toggle('u-d-none', backups.length === 0);
+  if (!backups.length) {
+    cont.innerHTML = `<p class="u-fs-_68rem u-c-v-text-muted u-m-0">Aucune sauvegarde de conflit en attente.</p>`;
+    return;
+  }
+  cont.innerHTML = backups.map(b => `
+    <div class="u-d-flex u-ai-center u-gap-8px u-p-10px u-br-8px u-bd-1px-solid-v-border">
+      <div class="u-flex-1 u-minw-0">
+        <p class="u-fs-_8rem u-m-0">${DOMPurify.sanitize(b.title || 'Sans titre')}</p>
+        <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-0">Détectée le ${new Date(b.ts).toLocaleString('fr')}</p>
+      </div>
+      <button class="action-btn btn-sm" data-conflict-restore="${b.key}" data-conflict-docid="${b.docId}" title="Remplacer la version actuelle par celle-ci">♻️ Restaurer</button>
+      <button class="action-btn btn-sm u-bg-hc0392b" data-conflict-delete="${b.key}" title="Supprimer cette sauvegarde">🗑️</button>
+    </div>`).join('');
+  cont.querySelectorAll('[data-conflict-restore]').forEach(btn => {
+    btn.addEventListener('click', () => restoreConflictBackup(btn.dataset.conflictRestore, btn.dataset.conflictDocid));
+  });
+  cont.querySelectorAll('[data-conflict-delete]').forEach(btn => {
+    btn.addEventListener('click', () => deleteConflictBackup(btn.dataset.conflictDelete));
+  });
+}
+async function restoreConflictBackup(key, docId) {
+  const payload = await getConflictBackupPayload(key);
+  if (payload === undefined) { toast('Sauvegarde introuvable (déjà supprimée ?).', 'error'); await renderConflictBackups(); return; }
+  if (!confirm('Remplacer la version actuelle de ce manuscrit par cette sauvegarde de conflit ? La version actuelle sur cet appareil sera écrasée (mais synchronisée à nouveau ensuite).')) return;
+  await persistData(docDataKey(_currentProfileId, docId), payload);
+  await removeConflictBackup(key);
+  await renderConflictBackups();
+  toast('Sauvegarde restaurée.', 'success');
+}
+async function deleteConflictBackup(key) {
+  if (!confirm('Supprimer définitivement cette sauvegarde de conflit ?')) return;
+  await removeConflictBackup(key);
+  await renderConflictBackups();
+  toast('Sauvegarde supprimée.', 'success');
 }
 
 // v7.25.0 — Rend visible le résultat de la dernière tentative de
