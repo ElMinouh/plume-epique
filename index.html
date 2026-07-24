@@ -306,7 +306,7 @@
 <div id="node-tooltip" class="node-tooltip"></div>
 
 <!-- TTS/DICTÉE PANEL -->
-<div id="tts-panel" role="dialog" aria-label="Dictée et lecture vocale">
+<div id="tts-panel" role="dialog" aria-label="Lecture à voix haute">
   <div class="u-d-flex u-jc-space-between u-ai-center">
     <strong class="u-fs-_82rem">🎙️ Voix</strong>
     <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="tts-close-btn" title="Fermer">×</button>
@@ -325,13 +325,6 @@
     <span id="tts-rate-val">1×</span>
   </div>
   <div id="tts-progress"><div id="tts-progress-bar"></div></div>
-  <hr class="u-bdc-v-border u-m-4px-0">
-  <div class="u-fs-_75rem u-c-v-text-muted">Dictée vocale</div>
-  <div class="tts-row">
-    <button class="voice-btn u-bg-v-accent u-c-hfff" id="dictate-btn" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro">🎤</button>
-    <span class="u-fs-_72rem u-c-v-text-muted" id="dictate-status">Prêt</span>
-  </div>
-  <div class="u-fs-_75rem u-c-v-text-muted u-minh-24px u-fst-italic" id="dictate-preview"></div>
 </div>
 
 <!-- PWA BANNER -->
@@ -760,6 +753,9 @@
       <div id="save-indicator" aria-hidden="true"></div>
       <span class="u-fs-_7rem u-c-v-text-muted" id="autosave-label"></span>
       <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre">🌙 Nuit</button>
+      <button class="mode-indicator" id="dictate-btn" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro">🎤</button>
+      <span class="u-fs-_7rem u-c-v-text-muted" id="dictate-status">Prêt</span>
+      <span id="dictate-preview" aria-live="polite"></span>
       <button class="u-d-none u-bg-linear-gradient-135deg-v-acc-1qh64 u-c-hfff u-bd-none u-p-5px-14px u-br-20px u-cur-pointer u-fs-_72rem u-fwt-700 u-ff-inherit u-shadow-0-2px-8px-rgb19257433" id="install-app-btn" title="Installer Plume comme application sur cet ordinateur">📲 Installer sur le bureau</button>
       <button id="shortcuts-hint-btn" class="mode-indicator u-ml-auto u-p-2px-8px" title="Voir les raccourcis clavier (touche ?)">❔</button>
       <img src="icons/icon-32.png" class="modebar-logo" alt="" width="16" height="16">

@@ -142,7 +142,11 @@ mark{background-color:rgba(192,57,43,.22);color:var(--text);border-radius:3px;}
 .link-badge:hover{filter:brightness(1.2);}
 #save-indicator{display:inline-block;width:8px;height:8px;border-radius:50%;
   background:var(--save-glow);opacity:0;transition:opacity .4s;}
-#mode-bar{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;}
+#mode-bar{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;position:relative;}
+#dictate-preview{position:absolute;bottom:100%;left:0;margin-bottom:4px;font-size:.72rem;font-style:italic;
+  color:var(--text-muted,inherit);opacity:.85;pointer-events:none;max-width:90%;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;}
+#dictate-btn.record-pulse{background:#e74c3c;color:#fff;border-color:#e74c3c;}
 .mode-indicator{background:none;border:1px solid var(--border);color:inherit;
   padding:4px 10px;border-radius:6px;cursor:pointer;font-size:.72rem;font-family:inherit;}
 .mode-indicator:hover{border-color:var(--accent);}

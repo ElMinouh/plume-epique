@@ -184,14 +184,14 @@ function startDictation() {
   _dictationInsertedTail = '';
   _dictating = true; _recognition.start();
   const btn = document.getElementById('dictate-btn');
-  btn.style.background = '#e74c3c'; btn.classList.add('record-pulse');
+  btn.classList.add('record-pulse');
   document.getElementById('dictate-status').textContent = 'Enregistrement…';
 }
 function stopDictation() {
   _dictating = false; _recognition.stop();
   _dictationRange = null;
   const btn = document.getElementById('dictate-btn');
-  btn.style.background = 'var(--accent)'; btn.classList.remove('record-pulse');
+  btn.classList.remove('record-pulse');
   document.getElementById('dictate-status').textContent = 'Prêt';
   document.getElementById('dictate-preview').textContent = '';
 }
