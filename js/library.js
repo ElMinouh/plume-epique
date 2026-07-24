@@ -452,11 +452,11 @@ async function renderLibraryShelf(sorted) {
   let html = '';
   for (let i = 0; i < items.length; i += PER_ROW) {
     html += `<div class="lib-shelf-row"><div class="lib-shelf-plank"></div>` + items.slice(i, i + PER_ROW).map(it => {
-      if (it.isNew) return `<div class="lib-book lib-book-new u-h-80px" id="library-new-btn-shelf" role="button" tabindex="0" aria-label="Nouveau projet" title="Créer un nouveau manuscrit vierge"><span>+</span><span class="lib-book-new-label">Nouveau<br>manuscrit</span></div>`;
+      if (it.isNew) return `<div class="lib-book lib-book-new u-h-110px" id="library-new-btn-shelf" role="button" tabindex="0" aria-label="Nouveau projet" title="Créer un nouveau manuscrit vierge"><span>+</span><span class="lib-book-new-label">Nouveau<br>manuscrit</span></div>`;
       const d = it.d;
       const cover = d.cover && d.cover !== 'auto' ? COVER_PALETTES[d.cover] : null;
       const shelfCoverClass = cover ? ` shelf-cover-${d.cover}` : '';
-      const h = Math.max(80, Math.min(170, 80 + Math.round((d.wordCount||0) / 800)));
+      const h = Math.max(110, Math.min(190, 110 + Math.round((d.wordCount||0) / 700)));
       const safeTitle = DOMPurify.sanitize(d.title || 'Sans titre');
       return `<div class="lib-book${shelfCoverClass}" data-doc-id="${d.id}" data-h="${h}" data-band-margin-default="${Math.round(h*0.16)}" data-band-margin-max="6" role="button" tabindex="0" title="Ouvrir « ${safeTitle} »">
         <button class="lib-book-kebab" data-kebab-doc="${d.id}" title="Actions du manuscrit" aria-label="Actions du manuscrit">⋮</button>

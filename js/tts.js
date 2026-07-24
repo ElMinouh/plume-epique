@@ -74,6 +74,28 @@ function captureDictationRange() {
   _dictationRange = r;
 }
 function initDictation() {
+  // v7.29.0 — Cause réelle du bug de dictée "frénétique" : initDictation()
+  // est rappelée à CHAQUE ouverture de manuscrit (voir initApp(), router.js).
+  // Chaque appel créait une nouvelle reconnaissance vocale sans jamais
+  // arrêter proprement la précédente. Si la dictée était encore active (ou
+  // pas complètement arrêtée) au moment d'ouvrir un autre manuscrit,
+  // l'ancienne instance continuait à tourner en arrière-plan ET la nouvelle
+  // se mettait à écouter aussi — les deux écrivant dans la même zone de
+  // texte (l'élément #writer est réutilisé d'un manuscrit à l'autre), d'où
+  // le texte inséré en double, triple, voire beaucoup plus après plusieurs
+  // ouvertures. On coupe maintenant systématiquement toute instance
+  // précédente (et on neutralise ses gestionnaires d'événements en premier,
+  // au cas où stop() ne serait pas instantané) avant d'en créer une nouvelle.
+  if (_recognition) {
+    try {
+      _recognition.onresult = null;
+      _recognition.onerror = null;
+      _recognition.onend = null;
+      _recognition.abort();
+    } catch(e) { /* déjà arrêtée ou jamais démarrée : rien à faire */ }
+  }
+  _dictating = false;
+  _dictationLastFinalIndex = -1;
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) { document.getElementById('dictate-status').textContent='Non supporté'; return; }
   _recognition = new SpeechRecognition();

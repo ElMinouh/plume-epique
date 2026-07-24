@@ -454,22 +454,26 @@ body.library-mode #library-screen{display:block;}
 .lib-shelf-plank{position:absolute;left:0;right:0;bottom:10px;height:14px;
   background:linear-gradient(#7a5b3a,#4a3620 45%,#2e2214);
   border-radius:2px;box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 6px 10px rgba(0,0,0,.45);}
-.lib-book{position:relative;width:56px;border-radius:3px 3px 0 0;cursor:pointer;transition:transform .12s;
+.lib-book{position:relative;width:44px;border-radius:3px 3px 0 0;cursor:pointer;transition:transform .12s;
   box-shadow:inset 3px 0 5px rgba(255,255,255,.22),inset -4px 0 6px rgba(0,0,0,.35),2px 3px 6px rgba(0,0,0,.35);
   display:flex;align-items:center;justify-content:center;padding:0 3px;}
 .lib-book:hover,.lib-book:focus-visible{transform:translateY(-6px);}
-.lib-book-band{position:absolute;left:2px;right:2px;height:3px;border-radius:1px;pointer-events:none;
+.lib-book-band{position:absolute;left:2px;right:2px;height:3px;border-radius:1px;pointer-events:none;z-index:1;
   background:linear-gradient(90deg,#a8823a,#e8c97a 50%,#a8823a);box-shadow:0 1px 2px rgba(0,0,0,.35);}
-.lib-book-recent-dot{position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;
+.lib-book-recent-dot{position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;z-index:1;
   background:#2f9e6a;border:1px solid rgba(0,0,0,.35);box-shadow:0 0 0 2px rgba(255,255,255,.25);pointer-events:none;}
 .lib-book-title{writing-mode:vertical-rl;transform:rotate(180deg);font-size:.66rem;font-weight:700;
   color:rgba(255,255,255,.92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  text-shadow:0 1px 2px rgba(0,0,0,.35);}
-.lib-book-new{background:rgba(201,162,75,.12);border:1.5px dashed #c9a24b;color:#e8d9b8;
-  flex-direction:column;gap:4px;font-size:1.2rem;font-weight:700;}
+  text-shadow:0 1px 2px rgba(0,0,0,.35);pointer-events:none;}
+/* .lib-book.lib-book-new (et non .lib-book-new seul) : spécificité volontairement
+   plus élevée que la règle générique .lib-book{background:...} des couvertures
+   (plus bas dans ce fichier), sans quoi celle-ci écrasait ce fond transparent
+   en pointillés — bug corrigé en v7.29.0. */
+.lib-book.lib-book-new{background:rgba(201,162,75,.12);border:1.5px dashed #c9a24b;color:#e8d9b8;
+  box-shadow:none;flex-direction:column;gap:4px;font-size:1.2rem;font-weight:700;}
 .lib-book-new-label{font-size:.6rem;font-weight:700;line-height:1.25;text-align:center;}
-.lib-book-kebab{position:absolute;top:4px;left:50%;transform:translateX(-50%);width:22px;height:22px;border:none;
-  border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:.85rem;cursor:pointer;opacity:0;
+.lib-book-kebab{position:absolute;top:3px;left:50%;transform:translateX(-50%);width:24px;height:24px;border:none;
+  border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:.9rem;cursor:pointer;opacity:0;z-index:2;
   display:flex;align-items:center;justify-content:center;}
 .lib-book:hover .lib-book-kebab,.lib-book.menu-open .lib-book-kebab,.lib-book-kebab:focus-visible{opacity:1;}
 .lib-book-kebab:hover{background:rgba(0,0,0,.75);}
@@ -834,6 +838,7 @@ body.library-mode #library-screen{display:block;}
 .u-lh-1_55{line-height:1.55}
 .u-cur-default{cursor:default}
 .u-h-80px{height:80px}
+.u-h-110px{height:110px}
 /* Carte "réponse" de la mémoire narrative (valeurs propres, non réutilisées ailleurs) */
 .memory-answer-card{background:rgba(142,68,173,.1);border:1px solid rgba(142,68,173,.3);border-radius:10px;padding:14px;font-size:.83rem;line-height:1.65;}
 /* Couleurs par statut de chapitre (brouillon/à revoir/final) — remplace les
