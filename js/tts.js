@@ -59,6 +59,30 @@ let _dictationRange = null;
 // passage — une comparaison de contenu réel plutôt qu'une position dans
 // un tableau, donc robuste même si le navigateur répète un événement.
 let _dictationFinalTextSoFar = '';
+// v7.31.0 — Protection supplémentaire contre les répétitions qui
+// apparaissent AU FIL de la dictée (pas seulement entre deux séances
+// distinctes) : le navigateur redémarre régulièrement la reconnaissance en
+// arrière-plan même en mode continu (coupures après une pause, silences...),
+// et à chaque redémarrage il arrive que le moteur réentende la toute fin du
+// passage qui vient d'être dicté et le retranscrive comme si c'était un
+// texte nouveau. `_dictationFinalTextSoFar` (voir plus haut) repart
+// forcément de zéro à chaque redémarrage — il ne peut donc pas détecter ce
+// chevauchement. `_dictationInsertedTail` garde le souvenir du texte
+// RÉELLEMENT écrit dans l'éditeur (lui ne repart jamais de zéro pendant
+// toute la séance de dictée) ; avant chaque insertion, on vérifie si le
+// début du nouveau texte recoupe la fin de ce qui vient d'être écrit, et on
+// retire cette partie en double avant de l'insérer.
+let _dictationInsertedTail = '';
+function stripAlreadyInsertedOverlap(text) {
+  if (!_dictationInsertedTail || !text) return text;
+  const maxLen = Math.min(_dictationInsertedTail.length, text.length, 120);
+  const tailNorm = _dictationInsertedTail.toLowerCase();
+  const textNorm = text.toLowerCase();
+  for (let len = maxLen; len >= 4; len--) {
+    if (tailNorm.slice(-len) === textNorm.slice(0, len)) return text.slice(len);
+  }
+  return text;
+}
 // Capture la position du curseur au moment où la dictée démarre, pour y
 // insérer le texte au fil de la dictée — au lieu de toujours l'ajouter en
 // fin de texte, quel que soit l'endroit où on avait cliqué avant de dicter.
@@ -92,6 +116,7 @@ function initDictation() {
   }
   _dictating = false;
   _dictationFinalTextSoFar = '';
+  _dictationInsertedTail = '';
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) { document.getElementById('dictate-status').textContent='Non supporté'; return; }
   _recognition = new SpeechRecognition();
@@ -117,6 +142,7 @@ function initDictation() {
       // on resynchronise sans rien réinsérer, pour ne jamais dupliquer.
       _dictationFinalTextSoFar = currentFinalText;
     }
+    if (newText) newText = stripAlreadyInsertedOverlap(newText).trimStart();
     if (newText) {
       if (_dictationRange) {
         try {
@@ -136,6 +162,7 @@ function initDictation() {
       } else {
         document.getElementById('writer').innerHTML += DOMPurify.sanitize(' ' + newText);
       }
+      _dictationInsertedTail = (_dictationInsertedTail + ' ' + newText).slice(-200);
       liveCounter();
       document.getElementById('dictate-preview').textContent = '';
     }
@@ -154,6 +181,7 @@ function toggleDictation() {
 function startDictation() {
   captureDictationRange();
   _dictationFinalTextSoFar = '';
+  _dictationInsertedTail = '';
   _dictating = true; _recognition.start();
   const btn = document.getElementById('dictate-btn');
   btn.style.background = '#e74c3c'; btn.classList.add('record-pulse');
