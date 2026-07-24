@@ -45,17 +45,20 @@ function ttsStop() {
 }
 
 let _dictationRange = null;
-// v7.28.0 — Correction du bug de dictée "frénétique" (le même texte inséré
-// des dizaines de fois) : le code se fiait auparavant à `e.resultIndex`,
-// fourni par le navigateur pour indiquer quels résultats sont nouveaux
-// depuis le dernier événement. Or sur de nombreuses versions de Chrome, en
-// mode `continuous`, cette valeur est peu fiable et peut revenir à 0 —
-// l'ancien code retraitait alors TOUT l'historique déjà dicté à chaque
-// nouvelle phrase (et le réinsérait en double, triple...), l'accumulation
-// s'aggravant au fil de la dictée. On ne dépend plus de `resultIndex` :
-// on suit nous-mêmes, avec `_dictationLastFinalIndex`, le dernier résultat
-// définitif déjà inséré pour la session de reconnaissance en cours.
-let _dictationLastFinalIndex = -1;
+// v7.30.0 — Le correctif v7.28.0 (suivi par index de résultat) ne suffisait
+// pas : le bug se produit en réalité AU SEIN d'une même séance de dictée,
+// pas seulement entre deux séances. Cause probable : le navigateur peut
+// redéclencher `onresult` plusieurs fois pour le même passage de texte
+// (accumulation progressive de la reconnaissance), et se fier à l'INDEX
+// d'un résultat dans le tableau n'est pas fiable pour savoir si son
+// contenu a déjà été inséré ou non. On compare désormais le texte définitif
+// RÉELLEMENT DÉJÀ INSÉRÉ (`_dictationFinalTextSoFar`) au texte définitif
+// total rapporté par le navigateur à cet instant : seule la partie
+// nouvelle (au-delà de ce qui a déjà été écrit) est ajoutée à l'éditeur,
+// peu importe combien de fois l'événement se redéclenche pour le même
+// passage — une comparaison de contenu réel plutôt qu'une position dans
+// un tableau, donc robuste même si le navigateur répète un événement.
+let _dictationFinalTextSoFar = '';
 // Capture la position du curseur au moment où la dictée démarre, pour y
 // insérer le texte au fil de la dictée — au lieu de toujours l'ajouter en
 // fin de texte, quel que soit l'endroit où on avait cliqué avant de dicter.
@@ -74,18 +77,11 @@ function captureDictationRange() {
   _dictationRange = r;
 }
 function initDictation() {
-  // v7.29.0 — Cause réelle du bug de dictée "frénétique" : initDictation()
-  // est rappelée à CHAQUE ouverture de manuscrit (voir initApp(), router.js).
-  // Chaque appel créait une nouvelle reconnaissance vocale sans jamais
-  // arrêter proprement la précédente. Si la dictée était encore active (ou
-  // pas complètement arrêtée) au moment d'ouvrir un autre manuscrit,
-  // l'ancienne instance continuait à tourner en arrière-plan ET la nouvelle
-  // se mettait à écouter aussi — les deux écrivant dans la même zone de
-  // texte (l'élément #writer est réutilisé d'un manuscrit à l'autre), d'où
-  // le texte inséré en double, triple, voire beaucoup plus après plusieurs
-  // ouvertures. On coupe maintenant systématiquement toute instance
-  // précédente (et on neutralise ses gestionnaires d'événements en premier,
-  // au cas où stop() ne serait pas instantané) avant d'en créer une nouvelle.
+  // v7.29.0 — initDictation() est rappelée à CHAQUE ouverture de manuscrit
+  // (voir initApp(), router.js) : on coupe systématiquement toute instance
+  // précédente (gestionnaires neutralisés en premier, au cas où stop() ne
+  // serait pas instantané) avant d'en créer une nouvelle, pour empêcher
+  // deux reconnaissances de tourner en même temps.
   if (_recognition) {
     try {
       _recognition.onresult = null;
@@ -95,27 +91,37 @@ function initDictation() {
     } catch(e) { /* déjà arrêtée ou jamais démarrée : rien à faire */ }
   }
   _dictating = false;
-  _dictationLastFinalIndex = -1;
+  _dictationFinalTextSoFar = '';
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) { document.getElementById('dictate-status').textContent='Non supporté'; return; }
   _recognition = new SpeechRecognition();
   _recognition.lang = 'fr-FR'; _recognition.continuous = true; _recognition.interimResults = true;
   _recognition.onresult = e => {
-    let interim='', final='';
-    // On parcourt TOUS les résultats de la session (et non depuis
-    // e.resultIndex, voir commentaire plus haut) ; seuls les résultats
-    // définitifs situés après le dernier déjà inséré sont pris en compte.
+    let interim = '', currentFinalText = '';
+    // On reconstruit le texte définitif TOTAL rapporté à cet instant (tous
+    // les résultats marqués isFinal, dans l'ordre) plutôt que de se fier à
+    // quels indices seraient "nouveaux" — voir commentaire plus haut.
     for (let i=0; i<e.results.length; i++) {
-      if (e.results[i].isFinal) {
-        if (i > _dictationLastFinalIndex) { final += e.results[i][0].transcript; _dictationLastFinalIndex = i; }
-      } else interim += e.results[i][0].transcript;
+      if (e.results[i].isFinal) currentFinalText += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
     }
     document.getElementById('dictate-preview').textContent = interim;
-    if (final) {
+    let newText = '';
+    if (currentFinalText.length > _dictationFinalTextSoFar.length && currentFinalText.startsWith(_dictationFinalTextSoFar)) {
+      // Cas normal : le texte définitif a grandi, on n'insère que la partie
+      // qui n'était pas encore là.
+      newText = currentFinalText.slice(_dictationFinalTextSoFar.length);
+      _dictationFinalTextSoFar = currentFinalText;
+    } else if (currentFinalText && currentFinalText !== _dictationFinalTextSoFar) {
+      // Cas rare (le début du texte rapporté a changé de façon incompatible) :
+      // on resynchronise sans rien réinsérer, pour ne jamais dupliquer.
+      _dictationFinalTextSoFar = currentFinalText;
+    }
+    if (newText) {
       if (_dictationRange) {
         try {
           _dictationRange.deleteContents();
-          const node = document.createTextNode(' ' + final);
+          const node = document.createTextNode(' ' + newText);
           _dictationRange.insertNode(node);
           // Le curseur logique avance après le texte inséré, pour que la
           // phrase suivante s'enchaîne juste après (et non avant).
@@ -125,22 +131,20 @@ function initDictation() {
           // Le DOM a changé entre-temps (édition manuelle pendant la
           // dictée) : on se replie sur l'ajout en fin de texte pour ce
           // fragment, sans interrompre la dictée en cours.
-          document.getElementById('writer').innerHTML += DOMPurify.sanitize(' ' + final);
+          document.getElementById('writer').innerHTML += DOMPurify.sanitize(' ' + newText);
         }
       } else {
-        document.getElementById('writer').innerHTML += DOMPurify.sanitize(' ' + final);
+        document.getElementById('writer').innerHTML += DOMPurify.sanitize(' ' + newText);
       }
       liveCounter();
       document.getElementById('dictate-preview').textContent = '';
     }
   };
   _recognition.onerror = e => { toast('Erreur dictée : '+e.error,'error'); stopDictation(); };
-  // v7.28.0 — Une nouvelle session de reconnaissance qui redémarre repart
-  // avec un tableau `results` vide côté navigateur : notre compteur maison
-  // doit repartir à -1 avec elle, sans quoi le premier résultat définitif
-  // de la nouvelle session serait ignoré (i > _dictationLastFinalIndex
-  // resterait faux un temps).
-  _recognition.onend = () => { if (_dictating) { _dictationLastFinalIndex = -1; _recognition.start(); } };
+  // Une nouvelle session de reconnaissance qui redémarre repart avec un
+  // tableau `results` vide côté navigateur : notre suivi doit repartir de
+  // zéro avec elle.
+  _recognition.onend = () => { if (_dictating) { _dictationFinalTextSoFar = ''; _recognition.start(); } };
 }
 
 function toggleDictation() {
@@ -149,7 +153,7 @@ function toggleDictation() {
 }
 function startDictation() {
   captureDictationRange();
-  _dictationLastFinalIndex = -1;
+  _dictationFinalTextSoFar = '';
   _dictating = true; _recognition.start();
   const btn = document.getElementById('dictate-btn');
   btn.style.background = '#e74c3c'; btn.classList.add('record-pulse');

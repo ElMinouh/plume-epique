@@ -482,8 +482,12 @@ async function renderLibraryShelf(sorted) {
     const applyMargin = m => {
       bandTop.style.top = m + 'px';
       bandBottom.style.bottom = m + 'px';
-      // 3px = épaisseur du filet, 3px = respiration avant le titre.
-      titleEl.style.height = Math.max(14, h - 2*m - 12) + 'px';
+      // v7.30.0 — max-height (et non height) : un titre court garde sa
+      // hauteur naturelle (le flex le centre alors correctement dans toute
+      // la hauteur du livre) ; un titre trop long reste plafonné à l'espace
+      // disponible, ce qui déclenche l'ellipsis CSS sans jamais déborder
+      // sur les filets.
+      titleEl.style.maxHeight = Math.max(14, h - 2*m - 12) + 'px';
     };
     applyMargin(marginDefault);
     // Mesure RÉELLE (pas d'estimation) : si le titre déborde de l'espace
