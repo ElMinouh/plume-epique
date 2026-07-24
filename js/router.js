@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '7.33.0';
+const APP_VERSION = '7.34.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -325,6 +325,10 @@ function initApp(){
   // v7.6.0 : piles Annuler/Rétablir remises à zéro à chaque manuscrit ouvert
   // (elles sont propres à un document, pas à partager entre deux romans).
   _undoStacks = {}; _pendingUndoFlush = false; clearTimeout(_undoPushTimer);
+  // v7.34.0 — l'historique du chat IA est propre à un manuscrit (voir ai.js) :
+  // remis à zéro ici, rechargé (déchiffré) seulement à la prochaine ouverture
+  // du panneau, pour ne jamais mélanger deux conversations différentes.
+  resetAiChatForDocument();
   // v7.10.0 : la vue Chapitres (Liste/Fiches) revient toujours sur Liste à
   // l'ouverture d'un manuscrit — ce n'est pas une préférence mémorisée.
   setChapterViewMode('list');
@@ -418,6 +422,13 @@ function wireAppEventListenersOnce(){
   document.getElementById('ai-continue-btn').addEventListener('click',aiContinueSuggestions);
   document.getElementById('ai-check-btn').addEventListener('click',aiCheckInconsistencies);
   document.getElementById('ai-names-btn').addEventListener('click',aiGenerateNames);
+
+  document.getElementById('ai-chat-btn').addEventListener('click',toggleAiChat);
+  document.getElementById('ai-chat-close-btn').addEventListener('click',closeAiChat);
+  document.getElementById('ai-chat-reset-btn').addEventListener('click',resetAiChatConversation);
+  document.getElementById('ai-chat-send-btn').addEventListener('click',sendAiChatMessage);
+  document.getElementById('ai-chat-input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sendAiChatMessage();}});
+  document.getElementById('ai-selection-to-chat-btn').addEventListener('click',sendManuscriptSelectionToChat);
 
   document.getElementById('wc-gen-btn').addEventListener('click',renderWordCloud);
   document.getElementById('tl-add-btn').addEventListener('click',addTimelineEvent);

@@ -287,6 +287,24 @@ select.gate-field{height:38px;}
   border:1px solid var(--border);border-radius:14px;padding:14px;
   box-shadow:0 10px 40px rgba(0,0,0,.25);z-index:55;display:none;flex-direction:column;gap:8px;}
 #fr-panel.active{display:flex;animation:slideIn .25s ease;}
+/* ── Assistant IA conversationnel (v7.34.0) — même gabarit que les autres
+   panneaux flottants (ai-summary-panel, lex-panel), mais plus grand et plus
+   haut car pensé pour une vraie conversation, pas une simple consultation. ── */
+#ai-chat-panel{position:absolute;right:16px;top:58px;bottom:16px;width:340px;background:var(--glass);
+  border:1px solid var(--border);border-radius:14px;padding:14px;
+  box-shadow:0 10px 40px rgba(0,0,0,.25);z-index:56;display:none;flex-direction:column;gap:8px;}
+#ai-chat-panel.active{display:flex;animation:slideIn .25s ease;}
+#ai-chat-messages{flex-grow:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px 2px;}
+.ai-chat-msg{display:flex;flex-direction:column;gap:4px;max-width:88%;}
+.ai-chat-msg-user{align-self:flex-end;align-items:flex-end;}
+.ai-chat-msg-assistant{align-self:flex-start;align-items:flex-start;}
+.ai-chat-bubble{padding:8px 12px;border-radius:12px;font-size:.82rem;line-height:1.5;white-space:pre-wrap;}
+.ai-chat-msg-user .ai-chat-bubble{background:var(--accent);color:#fff;}
+.ai-chat-msg-assistant .ai-chat-bubble{background:var(--item-bg);color:var(--text);}
+.ai-chat-msg-actions{display:flex;gap:5px;flex-wrap:wrap;}
+.ai-chat-chip{padding:4px 10px;background:var(--item-bg);border-radius:20px;font-size:.72rem;
+  cursor:pointer;border:1px solid var(--border);font-family:inherit;color:inherit;transition:.15s;}
+.ai-chat-chip:hover{border-color:var(--accent);background:rgba(192,57,43,.1);}
 #gist-history-overlay{display:none;position:fixed;inset:0;z-index:8500;
   background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
   align-items:center;justify-content:center;}
@@ -514,6 +532,7 @@ body.library-mode #library-screen{display:block;}
   .toolbar{gap:3px;}
   .action-btn{padding:5px 7px;font-size:.67rem;}
   #ai-summary-panel{position:fixed;right:8px;left:8px;top:auto;bottom:70px;width:auto;}
+  #ai-chat-panel{position:fixed;right:8px;left:8px;top:auto;bottom:70px;width:auto;height:60vh;}
   #tts-panel{position:fixed;left:8px;right:8px;bottom:70px;width:auto;}
   .db-grid{grid-template-columns:1fr;}
   .stats-grid,.analytics-grid{grid-template-columns:1fr 1fr;}

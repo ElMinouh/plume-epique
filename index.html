@@ -703,6 +703,7 @@
       </div>
 
       <button class="action-btn btn-sm u-bg-h8e44ad" id="ai-summary-btn" title="Demander à l'IA un résumé du chapitre">✨ Résumé IA</button>
+      <button class="action-btn btn-sm u-bg-h8e44ad" id="ai-selection-to-chat-btn" title="Envoyer le passage sélectionné à l'assistant IA">💬 Discuter de la sélection</button>
       <div class="u-fg-1"></div>
       <select id="search-mode" class="field u-w-auto" aria-label="Mode dictionnaire" title="Choisir entre synonymes et antonymes">
         <option value="syn">✨ Synonymes</option><option value="ant">🌑 Antonymes</option>
@@ -755,11 +756,35 @@
       <span class="u-fs-_7rem u-c-v-text-muted" id="fr-status">Aucun résultat</span>
       <div class="u-fs-_66rem u-c-v-text-muted">Ne remplace pas les occurrences qui chevauchent une mise en forme (gras/italique).</div>
     </div>
+
+    <div id="ai-chat-panel" role="dialog" aria-label="Assistant IA">
+      <div class="u-d-flex u-jc-space-between u-ai-center">
+        <strong class="u-fs-_82rem">🤖 Assistant IA</strong>
+        <div class="u-d-flex u-gap-4px">
+          <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1rem" id="ai-chat-reset-btn" title="Nouvelle conversation">🔄</button>
+          <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="ai-chat-close-btn" aria-label="Fermer" title="Fermer">×</button>
+        </div>
+      </div>
+      <label class="u-d-flex u-ai-center u-gap-6px u-fs-_68rem u-c-v-text-muted">
+        <input type="checkbox" id="ai-chat-ctx-chapter" checked> Contexte : chapitre actuel
+      </label>
+      <label class="u-d-flex u-ai-center u-gap-6px u-fs-_68rem u-c-v-text-muted">
+        <input type="checkbox" id="ai-chat-ctx-chars"> Contexte : fiche des personnages
+      </label>
+      <div id="ai-chat-messages"></div>
+      <div id="ai-chat-chips" class="u-d-flex u-gap-6px u-fw-wrap"></div>
+      <div class="u-d-flex u-gap-6px">
+        <input type="text" id="ai-chat-input" class="field u-flex-1" placeholder="Écrire un message…" aria-label="Message à l'assistant IA">
+        <button class="action-btn btn-sm u-fsh-0" id="ai-chat-send-btn" title="Envoyer">➤</button>
+      </div>
+    </div>
+
     <div id="mode-bar">
       <div id="save-indicator" aria-hidden="true"></div>
       <span class="u-fs-_7rem u-c-v-text-muted" id="autosave-label"></span>
       <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre">🌙 Nuit</button>
       <button class="mode-indicator" id="dictate-btn" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro">🎤</button>
+      <button class="mode-indicator" id="ai-chat-btn" title="Discuter avec l'assistant IA">🤖 IA</button>
       <span class="u-fs-_7rem u-c-v-text-muted" id="dictate-status">Prêt</span>
       <span id="dictate-preview" aria-live="polite"></span>
       <button class="u-d-none u-bg-linear-gradient-135deg-v-acc-1qh64 u-c-hfff u-bd-none u-p-5px-14px u-br-20px u-cur-pointer u-fs-_72rem u-fwt-700 u-ff-inherit u-shadow-0-2px-8px-rgb19257433" id="install-app-btn" title="Installer Plume comme application sur cet ordinateur">📲 Installer sur le bureau</button>
