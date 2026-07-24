@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '7.35.0';
+const APP_VERSION = '7.35.1';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -478,10 +478,6 @@ function wireAppEventListenersOnce(){
   document.getElementById('global-search-btn').addEventListener('click',openGlobalSearch);
   document.getElementById('search-input').addEventListener('input',e=>debouncedSearch(e.target.value));
   document.getElementById('search-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeGlobalSearch();});
-
-  document.getElementById('pwa-install-btn').addEventListener('click',installPWA);
-  document.getElementById('pwa-dismiss-btn').addEventListener('click',()=>document.getElementById('pwa-banner').classList.remove('show'));
-  document.getElementById('install-app-btn').addEventListener('click',installPWA);
 
   document.getElementById('new-weak-word').addEventListener('keydown',e=>{if(e.key==='Enter')addWeakWord();});
   document.getElementById('q-in').addEventListener('keydown',e=>{if(e.key==='Enter')addQuest();});

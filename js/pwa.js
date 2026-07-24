@@ -70,6 +70,13 @@ if (_swDismissBtn) _swDismissBtn.addEventListener('click', () => {
   if (el) el.classList.remove('show');
 });
 
+const _pwaInstallBtn = document.getElementById('pwa-install-btn');
+if (_pwaInstallBtn) _pwaInstallBtn.addEventListener('click', installPWA);
+const _pwaDismissBtn = document.getElementById('pwa-dismiss-btn');
+if (_pwaDismissBtn) _pwaDismissBtn.addEventListener('click', () => document.getElementById('pwa-banner').classList.remove('show'));
+const _installAppBtn = document.getElementById('install-app-btn');
+if (_installAppBtn) _installAppBtn.addEventListener('click', installPWA);
+
 let _pwaPrompt = null;
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault(); _pwaPrompt = e;
