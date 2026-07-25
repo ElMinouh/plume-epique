@@ -263,6 +263,23 @@ function wireLibraryStaticUI() {
   document.getElementById('view-grid-btn').addEventListener('click', () => setLibraryViewMode('grid'));
   document.getElementById('view-shelf-btn').addEventListener('click', () => setLibraryViewMode('shelf'));
 
+  // Visite guidée complète (nouveau v7.39.0) — voir fulltour.js.
+  document.getElementById('library-tour-btn').addEventListener('click', launchLibraryTour);
+  document.getElementById('library-full-tour-btn').addEventListener('click', launchEditorFullTour);
+  document.getElementById('full-tour-prev-btn').addEventListener('click', fullTourPrev);
+  document.getElementById('full-tour-next-btn').addEventListener('click', fullTourNext);
+  document.getElementById('full-tour-quit-btn').addEventListener('click', endFullTour);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && _fullTourActive) endFullTour(); });
+  // Icônes d'aide contextuelle ⓘ (nouveau v7.39.0) : un seul appel suffit ici
+  // (tous les boutons visés — bibliothèque, sous-onglets, barre d'outils,
+  // bandeau du bas — existent déjà statiquement dans index.html dès le
+  // chargement de la page, que l'éditeur soit visible ou non).
+  wireContextualHelpIcons();
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.contextual-help-icon') && !e.target.closest('#info-popover')) hideInfoPopover();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') hideInfoPopover(); });
+
   // ── Menu ⋮ des manuscrits (v7.13.0, Lot 10) ──────────────────────────
   document.getElementById('lctx-cover').addEventListener('click', e => {
     // stopPropagation indispensable : sans elle, ce même clic remonte

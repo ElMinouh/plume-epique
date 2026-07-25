@@ -1,7 +1,7 @@
 'use strict';
 // Changez ce numéro de version à chaque mise à jour majeure des fichiers
 // pour forcer les navigateurs à récupérer la nouvelle version.
-const CACHE = 'plume-epique-v7.38.0';
+const CACHE = 'plume-epique-v7.39.0';
 
 const CORE_ASSETS = [
   './',
@@ -11,7 +11,7 @@ const CORE_ASSETS = [
   './icons/icon-32.png','./icons/icon-180.png','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-512-maskable.png',
   './js/schema.js','./js/pwa.js','./js/notifications.js','./js/crypto.js','./js/router.js','./js/profiles.js','./js/library.js','./js/editor.js',
   './js/tabs.js','./js/panels.js','./js/findreplace.js','./js/ai.js','./js/snapshots.js','./js/diff.js','./js/stats.js',
-  './js/readability.js','./js/relations.js','./js/timeline.js','./js/tts.js','./js/wordcloud.js',
+  './js/readability.js','./js/relations.js','./js/timeline.js','./js/fulltour.js','./js/tts.js','./js/wordcloud.js',
   './js/pluginSystem.js','./js/export-format-utils.js','./js/database.js','./js/memory.js','./js/odf-loader.js'
 ];
 

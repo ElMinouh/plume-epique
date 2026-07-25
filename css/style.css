@@ -364,6 +364,25 @@ select.gate-field{height:38px;}
   background:var(--glass);border:1px solid var(--border);border-radius:12px;
   padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);}
 #setup-tour-bubble.active{display:block;}
+
+/* ── Visite guidée complète (audit v7.39.0) ── */
+#full-tour-spotlight{display:none;position:fixed;z-index:9200;
+  pointer-events:none;border-radius:8px;box-shadow:0 0 0 9999px rgba(0,0,0,.65);
+  transition:top .25s ease,left .25s ease,width .25s ease,height .25s ease;}
+#full-tour-spotlight.active{display:block;}
+#full-tour-bubble{display:none;position:fixed;z-index:9201;width:300px;
+  background:var(--glass);border:1px solid var(--border);border-radius:12px;
+  padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.35);}
+#full-tour-bubble.active{display:block;}
+#full-tour-bubble .full-tour-nav{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;}
+.contextual-help-icon{display:inline-flex;align-items:center;justify-content:center;
+  width:16px;height:16px;margin-left:4px;border-radius:50%;border:none;cursor:pointer;
+  background:var(--item-bg);color:var(--text-muted);font-size:11px;line-height:1;vertical-align:middle;}
+.contextual-help-icon:hover{background:var(--accent);color:#fff;}
+#info-popover{display:none;position:fixed;z-index:9300;width:280px;
+  background:var(--glass);border:1px solid var(--border);border-radius:12px;
+  padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);}
+#info-popover.active{display:block;}
 .shortcut-row{display:flex;justify-content:space-between;align-items:center;gap:10px;
   padding:6px 0;border-bottom:1px solid var(--border);font-size:var(--fs-base);}
 .shortcut-row:last-child{border-bottom:none;}

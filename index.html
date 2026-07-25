@@ -45,6 +45,8 @@
       <button class="action-btn btn-sm" id="library-my-profile-btn" title="Modifier votre nom, mot de passe ou question de sécurité">👤 Mon profil</button>
       <button class="action-btn btn-sm u-bg-h8e44ad" id="library-manage-profiles-btn" title="Ajouter, renommer ou supprimer des profils (administrateur)">🛡️ Gérer les profils</button>
       <button class="action-btn btn-sm u-bg-h2980b9" id="library-system-btn" title="Sauvegardes, export/import et Gist pour toute la bibliothèque">💾 Système</button>
+      <button class="action-btn btn-sm u-bg-h16a085" id="library-tour-btn" title="Revoir la visite guidée de cet écran">🎓 Visite de la bibliothèque</button>
+      <button class="action-btn btn-sm u-bg-h16a085" id="library-full-tour-btn" title="Visite guidée complète de toutes les fonctions de l'éditeur">🎓 Visite complète</button>
       <button class="action-btn btn-sm u-bg-h7f8c8d" id="library-logout-btn" title="Fermer votre session">🚪 Déconnexion</button>
     </div>
   </div>
@@ -269,6 +271,27 @@
 <div id="setup-tour-bubble" role="dialog" aria-label="Configuration initiale">
   <p class="u-fs-_68rem u-c-v-accent u-m-0-0-4px" id="setup-tour-counter"></p>
   <p class="u-fs-_82rem u-m-0" id="setup-tour-text"></p>
+</div>
+
+<!-- VISITE GUIDÉE COMPLÈTE (nouveau v7.39.0) : ne s'affiche jamais toute
+     seule, uniquement relancée depuis les boutons de la bibliothèque —
+     voir fulltour.js. -->
+<div id="full-tour-spotlight" aria-hidden="true"></div>
+<div id="full-tour-bubble" role="dialog" aria-label="Visite guidée">
+  <p class="u-fs-_68rem u-c-v-accent u-m-0-0-4px" id="full-tour-counter"></p>
+  <strong class="u-fs-_92rem" id="full-tour-title"></strong>
+  <p class="u-fs-_82rem u-m-8px-0-0" id="full-tour-text"></p>
+  <div class="full-tour-nav">
+    <button class="action-btn btn-sm u-bg-h7f8c8d" id="full-tour-prev-btn">← Précédent</button>
+    <button class="action-btn btn-sm" id="full-tour-quit-btn">Quitter</button>
+    <button class="action-btn btn-sm" id="full-tour-next-btn">Suivant</button>
+  </div>
+</div>
+
+<!-- POPOVER D'AIDE CONTEXTUELLE ⓘ (nouveau v7.39.0) — voir fulltour.js -->
+<div id="info-popover" role="dialog" aria-label="Aide">
+  <strong class="u-fs-_92rem" id="info-popover-title"></strong>
+  <p class="u-fs-_82rem u-m-8px-0-0" id="info-popover-text"></p>
 </div>
 
 <div id="confirm-modal-overlay" role="dialog" aria-modal="true" aria-label="Confirmation">
@@ -975,6 +998,7 @@
 <script src="js/readability.js"></script>
 <script src="js/relations.js"></script>
 <script src="js/timeline.js"></script>
+<script src="js/fulltour.js"></script>
 <script src="js/tts.js"></script>
 <script src="js/wordcloud.js"></script>
 <script src="js/pluginSystem.js"></script>

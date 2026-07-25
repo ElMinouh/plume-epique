@@ -152,7 +152,7 @@ const DEFAULT_DB = () => ({
   chars:[], places:[], quests:[], timeline:[], history:{}, plugins:{},
   weakWords:['juste','très'],
   tabOrder:['tab-univers','tab-ia-memoire','tab-analysegroup','tab-systeme','tab-config'],
-  darkMode:false, gistId:'', dailyGoal:500, weeklyGoal:3000, monthlyGoal:12000, sessionStats:{}, sprint:null, trash:[],
+  darkMode:true, gistId:'', dailyGoal:500, weeklyGoal:3000, monthlyGoal:12000, sessionStats:{}, sprint:null, trash:[],
   accentPalette:'rouge-violet', paperMode:false, editorFont:'palatino', wordGoal:0,
   hourlyActivity: new Array(24).fill(0),
   projectType:'fantasy'
