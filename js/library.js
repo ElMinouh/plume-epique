@@ -217,7 +217,7 @@ async function maybeStartSetupTour() {
 
 function startSetupTour() {
   _setupTourActive = true;
-  showSetupBubble('#library-system-btn', 'Configurons ta sauvegarde cloud — clique ici.', 'Étape 3/3 — configuration initiale');
+  showSetupBubble('#library-system-btn', 'Configurer la sauvegarde cloud — cliquez ici.', 'Étape 3/3 — configuration initiale');
 }
 
 function showSetupBubble(targetSel, text, counter) {
@@ -941,7 +941,7 @@ async function openLibrarySystemPanel(preselectDocId) {
 
   if (_setupTourActive) {
     document.getElementById('library-system-close-btn').style.display = 'none';
-    showSetupBubble('#lib-gh-token', 'Colle ton token GitHub personnel ici, puis vérifie-le.', 'Étape 3/3 — configuration initiale');
+    showSetupBubble('#lib-gh-token', 'Collez votre token GitHub personnel ici, puis vérifiez-le.', 'Étape 3/3 — configuration initiale');
   }
 }
 
