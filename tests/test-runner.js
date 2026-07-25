@@ -541,6 +541,12 @@ function group(title) {
   // ═══════════════════════════════════════════════════════
 
   const total = _pass + _fail;
+  // Nettoyage final (correctif) : showGate() (profiles.js) affiche l'écran
+  // "code de récupération" via un style inline (style.display='flex'), qui
+  // l'emporte sur la classe .hidden pendant les tests de création de profil
+  // — sans quoi cet écran restait visible dans la page de résultats une
+  // fois les tests terminés.
+  if (typeof hideGate === 'function') hideGate();
   const summary = document.getElementById('summary');
   summary.className = _fail === 0 ? 'ok' : 'ko';
   summary.textContent = _fail === 0
