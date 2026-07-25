@@ -363,7 +363,9 @@ function deleteChapter(i) {
 // ═══════════════════════════════════════════════════════
 function purgeOldTrash() {
   const THIRTY_DAYS = 30*24*60*60*1000, now = Date.now();
+  const expired = (db.trash||[]).filter(t => (now - t.deletedAt) >= THIRTY_DAYS);
   db.trash = (db.trash||[]).filter(t => (now - t.deletedAt) < THIRTY_DAYS);
+  if (expired.length) gcOrphanTimelineLinks(expired.map(t => t.chapter && t.chapter.id).filter(Boolean));
   updateTrashBadge();
 }
 function openTrash() {
@@ -402,7 +404,9 @@ function restoreFromTrash(i) {
 }
 function permanentlyPurge(i) {
   if (!confirm('Supprimer définitivement ce chapitre ? Cette action est irréversible.')) return;
+  const item = db.trash[i];
   db.trash.splice(i,1);
+  if (item && item.chapter && item.chapter.id) gcOrphanTimelineLinks([item.chapter.id]);
   renderTrashList(); updateTrashBadge(); save();
 }
 function moveChapter(i, dir) {

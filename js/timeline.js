@@ -34,3 +34,22 @@ function addTimelineEvent() {
   document.getElementById('tl-event-text').value=''; document.getElementById('tl-event-date').value='';
   save(); renderTimeline();
 }
+
+// ═══════════════════════════════════════════════════════
+// NETTOYAGE DES LIENS ORPHELINS (nouveau v7.36.1)
+// evt.chapterId peut survivre à la suppression DÉFINITIVE de son chapitre
+// (le rendu tolère déjà ce cas, voir renderTimeline ci-dessus, mais rien ne
+// nettoyait activement le lien mort). Appelée uniquement depuis editor.js,
+// au moment où un chapitre quitte la corbeille pour de bon (bouton
+// "Définitif" ou purge auto à 30 jours) — jamais à la simple mise à la
+// corbeille, tant qu'une restauration reste possible.
+// ═══════════════════════════════════════════════════════
+function gcOrphanTimelineLinks(purgedChapterIds) {
+  if (!purgedChapterIds || !purgedChapterIds.length || !db.timeline) return;
+  const ids = new Set(purgedChapterIds);
+  let touched = false;
+  db.timeline.forEach(evt => {
+    if (evt.chapterId && ids.has(evt.chapterId)) { delete evt.chapterId; touched = true; }
+  });
+  if (touched) renderTimeline();
+}
