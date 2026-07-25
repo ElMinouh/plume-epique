@@ -265,15 +265,15 @@ async function confirmDocxImport() {
 
   if (isNew) {
     const title = document.getElementById('docx-new-title').value.trim() || 'Nouveau manuscrit';
-    const list = await loadDocList();
     const docId = genChapterId();
     const dbData = DEFAULT_DB();
     dbData.title = title;
     dbData.chapters = [newChapter];
     const cipher = await Crypto.encrypt(JSON.stringify(dbData), _dataKey);
     await persistData(docDataKey(_currentProfileId, docId), { _enc:true, data:cipher });
-    list.documents.push({ id:docId, title, lastModified:Date.now(), chapterCount:1, wordCount:getWordCount(newChapter.content), wordGoal:0, cover:'auto' });
-    await saveDocList(list);
+    await mutateDocList(list => {
+      list.documents.push({ id:docId, title, lastModified:Date.now(), chapterCount:1, wordCount:getWordCount(newChapter.content), wordGoal:0, cover:'auto' });
+    });
     closeDocxImportModal();
     toast('Nouveau manuscrit créé depuis le fichier importé.', 'success');
     await renderLibraryScreen();
@@ -323,7 +323,7 @@ function importProjectLibrary(input) {
     try {
       const p = JSON.parse(e.target.result);
       if (!p._plumeLibraryExport || !p.documents) throw new Error('Ce fichier n\'est pas un export de bibliothèque Plume.');
-      const list = await loadDocList();
+      const newEntries = [];
       let added = 0;
       for (const oldId of Object.keys(p.documents)) {
         const oldEntry = (p.doclist && p.doclist.documents || []).find(d => d.id === oldId);
@@ -331,7 +331,7 @@ function importProjectLibrary(input) {
         // Chaque manuscrit importé devient un NOUVEAU manuscrit (nouvel
         // identifiant) — jamais d'écrasement d'un manuscrit existant.
         await persistData(docDataKey(_currentProfileId, newId), p.documents[oldId]);
-        list.documents.push({
+        newEntries.push({
           id:newId,
           title: (oldEntry && oldEntry.title) || 'Manuscrit importé',
           lastModified: Date.now(),
@@ -342,14 +342,14 @@ function importProjectLibrary(input) {
         });
         added++;
       }
-      await saveDocList(list);
+      await mutateDocList(list => { newEntries.forEach(entry => list.documents.push(entry)); });
       // Correction (audit) : le fichier importé peut venir d'un AUTRE profil
       // (DEK différente) — dans ce cas, les manuscrits sont bien copiés mais
       // resteraient silencieusement indéchiffrables. On vérifie ici en
       // tentant de déchiffrer un des documents importés, pour prévenir
       // clairement plutôt que de laisser croire à un import pleinement réussi.
       let unreadable = false;
-      const firstNewId = list.documents[list.documents.length - added]?.id;
+      const firstNewId = newEntries[0]?.id;
       if (firstNewId) {
         try { await loadManuscriptData(firstNewId); } catch(e) { unreadable = true; }
       }

@@ -81,11 +81,10 @@ async function selectCover(key) {
   const docId = _coverPickerDocId;
   closeCoverPicker();
   if (!docId) return;
-  const list = await loadDocList();
-  const entry = list.documents.find(d => d.id === docId);
-  if (!entry) return;
-  entry.cover = key; // 'auto' ou une clé de COVER_PALETTES
-  await saveDocList(list);
+  await mutateDocList(list => {
+    const entry = list.documents.find(d => d.id === docId);
+    if (entry) entry.cover = key; // 'auto' ou une clé de COVER_PALETTES
+  });
   await renderLibraryScreen();
 }
 
@@ -148,8 +147,8 @@ async function syncPushEntireLibrary() {
     if (idx) await persistData('profiles', idx);
   } catch(e) { /* meilleure tentative uniquement */ }
   try {
+    await mutateDocList(() => {}); // relit puis réenregistre à l'identique (déclenche syncPush), sans risque d'écraser une modification concurrente entre-temps
     const list = await loadDocList();
-    await persistData(docListKey(_currentProfileId), list);
     for (const entry of list.documents) {
       try {
         const raw = await loadData(docDataKey(_currentProfileId, entry.id));
@@ -164,6 +163,36 @@ async function loadDocList() {
   return (list && Array.isArray(list.documents)) ? list : { version:1, documents:[] };
 }
 async function saveDocList(list) { await persistData(docListKey(_currentProfileId), list); }
+
+// ═══════════════════════════════════════════════════════
+// CORRECTIF (bug rapporté) : verrou sur l'index de la bibliothèque
+// De nombreuses opérations indépendantes (changer une couverture, la
+// sauvegarde Gist auto qui parcourt TOUS les manuscrits l'un après l'autre,
+// ouvrir/fermer un manuscrit, importer...) font toutes le même geste :
+// charger l'index complet, modifier UNE entrée, réenregistrer l'index
+// complet. Si deux de ces opérations s'entrelacent — l'une démarre avant
+// que l'autre ait fini d'enregistrer — la seconde écrase silencieusement le
+// changement de la première (elle a chargé sa copie AVANT que ce changement
+// soit enregistré). C'est la vraie cause du bug : une couleur de couverture
+// tout juste changée "revient en arrière" peu après, en particulier
+// déclenché par la sauvegarde Gist automatique au clic hors de la page
+// (voir syncAllLibraryManuscripts, qui boucle sur chaque manuscrit).
+// mutateDocList() sérialise ces opérations : chacune attend que la
+// précédente soit ENTIÈREMENT terminée (chargement + modification +
+// écriture) avant de commencer la sienne, ce qui élimine ce genre de
+// "dernier arrivé écrase tout", quelle que soit la fonction à l'origine.
+// ═══════════════════════════════════════════════════════
+let _docListLock = Promise.resolve();
+async function mutateDocList(mutator) {
+  const run = _docListLock.then(async () => {
+    const list = await loadDocList();
+    const result = await mutator(list);
+    await saveDocList(list);
+    return result;
+  });
+  _docListLock = run.then(() => {}, () => {}); // la chaîne continue même si `mutator` échoue
+  return run;
+}
 
 function libraryScreenEl() { return document.getElementById('library-screen'); }
 function showLibraryScreen() { document.body.classList.add('library-mode'); }
@@ -440,8 +469,9 @@ async function migrateLegacyDocumentIfNeeded() {
   } catch(e) { /* migration au mieux : on garde les valeurs par défaut ci-dessus */ }
 
   await persistData(docDataKey(_currentProfileId, docId), storedBlob);
-  list.documents.push({ id:docId, title, lastModified:Date.now(), chapterCount, wordCount, wordGoal:0, cover:'auto' });
-  await saveDocList(list);
+  await mutateDocList(list2 => {
+    list2.documents.push({ id:docId, title, lastModified:Date.now(), chapterCount, wordCount, wordGoal:0, cover:'auto' });
+  });
   await persistData('data_' + _currentProfileId, null);
 }
 
@@ -622,15 +652,15 @@ async function openDocument(docId) {
 }
 
 async function createNewDocument() {
-  const list = await loadDocList();
   const docId = genChapterId();
   const dbData = DEFAULT_DB();
   dbData.title = 'Nouveau manuscrit';
   if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) dbData.darkMode = true;
   const cipher = await Crypto.encrypt(JSON.stringify(dbData), _dataKey);
   await persistData(docDataKey(_currentProfileId, docId), { _enc:true, data:cipher });
-  list.documents.push({ id:docId, title:dbData.title, lastModified:Date.now(), chapterCount:1, wordCount:0, wordGoal:0, cover:'auto' });
-  await saveDocList(list);
+  await mutateDocList(list => {
+    list.documents.push({ id:docId, title:dbData.title, lastModified:Date.now(), chapterCount:1, wordCount:0, wordGoal:0, cover:'auto' });
+  });
   db = dbData;
   _currentDocumentId = docId;
   cur = 0;
@@ -672,8 +702,11 @@ async function deleteDocument(docId) {
   if (!ok) return;
   await persistData(docDataKey(_currentProfileId, docId), null);
   await cleanupDocumentSideData(_currentProfileId, docId);
-  list.documents = list.documents.filter(d => d.id !== docId);
-  await saveDocList(list);
+  // Copie rechargée à l'intérieur du verrou (pas celle lue plus haut, qui a
+  // pu devenir périmée pendant l'attente de la confirmation ci-dessus).
+  await mutateDocList(freshList => {
+    freshList.documents = freshList.documents.filter(d => d.id !== docId);
+  });
   await renderLibraryScreen();
   toast('Manuscrit supprimé définitivement', 'success');
 }
@@ -692,15 +725,15 @@ async function backToLibrary() {
 // appelé depuis save() à chaque sauvegarde du manuscrit ouvert.
 async function touchDocumentMeta() {
   if (!_currentDocumentId) return;
-  const list = await loadDocList();
-  const entry = list.documents.find(d => d.id === _currentDocumentId);
-  if (!entry) return;
-  entry.title = db.title || 'Sans titre';
-  entry.lastModified = Date.now();
-  entry.chapterCount = db.chapters.length;
-  entry.wordCount = db.chapters.reduce((s,c) => s + getWordCount(c.content), 0);
-  entry.wordGoal = db.wordGoal || 0;
-  await saveDocList(list);
+  await mutateDocList(list => {
+    const entry = list.documents.find(d => d.id === _currentDocumentId);
+    if (!entry) return;
+    entry.title = db.title || 'Sans titre';
+    entry.lastModified = Date.now();
+    entry.chapterCount = db.chapters.length;
+    entry.wordCount = db.chapters.reduce((s,c) => s + getWordCount(c.content), 0);
+    entry.wordGoal = db.wordGoal || 0;
+  });
 }
 
 function updateDocumentTitle(t) {
@@ -767,15 +800,15 @@ async function persistManuscriptData(docId, mData) {
   await persistData(docDataKey(_currentProfileId, docId), { _enc:true, data:cipher });
 }
 async function touchDocListEntry(docId, mData) {
-  const list = await loadDocList();
-  const entry = list.documents.find(d => d.id === docId);
-  if (!entry) return;
-  entry.title = mData.title || entry.title;
-  entry.chapterCount = mData.chapters.length;
-  entry.wordCount = mData.chapters.reduce((s,c) => s + getWordCount(c.content), 0);
-  entry.wordGoal = mData.wordGoal || 0;
-  entry.lastModified = Date.now();
-  await saveDocList(list);
+  await mutateDocList(list => {
+    const entry = list.documents.find(d => d.id === docId);
+    if (!entry) return;
+    entry.title = mData.title || entry.title;
+    entry.chapterCount = mData.chapters.length;
+    entry.wordCount = mData.chapters.reduce((s,c) => s + getWordCount(c.content), 0);
+    entry.wordGoal = mData.wordGoal || 0;
+    entry.lastModified = Date.now();
+  });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -820,9 +853,10 @@ async function libSyncManuscript(docId, opts) {
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     if (data.id && data.id !== mData.gistId) { mData.gistId = data.id; await persistManuscriptData(docId, mData); }
-    const list = await loadDocList();
-    const entry = list.documents.find(d => d.id === docId);
-    if (entry) { entry.lastGistSync = Date.now(); await saveDocList(list); }
+    await mutateDocList(list => {
+      const entry = list.documents.find(d => d.id === docId);
+      if (entry) entry.lastGistSync = Date.now();
+    });
     return true;
   } catch(e) {
     if (!opts.silent) toast('Erreur Gist : ' + e.message, 'error');
