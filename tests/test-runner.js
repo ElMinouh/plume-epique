@@ -218,6 +218,15 @@ function group(title) {
   // Suppression réussie d'un profil non-admin avec confirmation correcte
   // (interaction avec la modale stylée — voir showConfirmModal(), notifications.js).
   const delPromise = adminDeleteProfile(marie.id);
+  // Correction : adminDeleteProfile() fait un await (loadProfilesIndex())
+  // AVANT d'ouvrir la modale — celle-ci n'est donc pas encore active au
+  // moment où delPromise est retournée. Sans cette attente, le clic sur
+  // "Confirmer" arrive trop tôt (aucun effet) et delPromise ne se résout
+  // jamais : le test reste bloqué indéfiniment, sans la moindre erreur.
+  const cmOverlay = document.getElementById('confirm-modal-overlay');
+  while (!cmOverlay.classList.contains('active')) {
+    await new Promise(r => setTimeout(r, 0));
+  }
   const cmInput = document.getElementById('confirm-modal-input');
   cmInput.value = 'Marie';
   cmInput.dispatchEvent(new Event('input'));
