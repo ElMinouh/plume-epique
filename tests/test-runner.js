@@ -10,11 +10,11 @@ if (typeof DOMPurify === 'undefined') { window.DOMPurify = { sanitize: s => s };
 // remplace prompt()/confirm() natifs dans adminDeleteProfile() ; reproduit
 // uniquement les éléments requis par la fonction, pas le panneau visuel réel.
 document.body.insertAdjacentHTML('beforeend', `
-  <div id="toast"></div>
-  <div id="confirm-modal-overlay">
+  <div id="toast" class="hidden"></div>
+  <div id="confirm-modal-overlay" class="hidden">
     <strong id="confirm-modal-title"></strong>
     <p id="confirm-modal-message"></p>
-    <div id="confirm-modal-input-wrap" class="u-d-none">
+    <div id="confirm-modal-input-wrap" class="hidden">
       <label id="confirm-modal-input-label"></label>
       <input id="confirm-modal-input">
     </div>
