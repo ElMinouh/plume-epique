@@ -188,6 +188,61 @@ async function enterLibrary() {
   setLibraryViewMode('grid');
   await renderLibraryScreen();
   showLibraryScreen();
+  await maybeStartSetupTour();
+}
+
+// ═══════════════════════════════════════════════════════
+// PARCOURS "CONFIGURATION INITIALE" — étape 3/3 (nouveau v7.37.0)
+// Fait suite aux écrans clé de synchro (étape 1/3, gate dédiée existante,
+// voir renderSyncKeyGate() dans profiles.js) et code de récupération
+// (étape 2/3, showRecoveryCode()). Cette étape guide vers le token GitHub,
+// jusqu'ici le seul réglage de sauvegarde sans aucune guidance (le panneau
+// Système n'était découvert que si l'utilisateur cliquait dessus de
+// lui-même). Montrée une seule fois par profil (profil.setupTourDone), à
+// l'arrivée dans la bibliothèque. Contrairement au tour "premiers pas"
+// (voir notifications.js) : pas de bouton "Passer" — le panneau Système ne
+// peut être fermé tant que le token n'est pas vérifié, exactement comme le
+// bouton "Continuer" de l'écran du code de récupération reste désactivé
+// tant que la case n'est pas cochée.
+// ═══════════════════════════════════════════════════════
+let _setupTourActive = false;
+
+async function maybeStartSetupTour() {
+  try {
+    const idx = await loadProfilesIndex();
+    const profil = idx && idx.profiles && idx.profiles.find(p => p.id === _currentProfileId);
+    if (profil && !profil.setupTourDone) startSetupTour();
+  } catch(e) { /* ne bloque jamais l'entrée dans la bibliothèque */ }
+}
+
+function startSetupTour() {
+  _setupTourActive = true;
+  showSetupBubble('#library-system-btn', 'Configurons ta sauvegarde cloud — clique ici.', 'Étape 3/3 — configuration initiale');
+}
+
+function showSetupBubble(targetSel, text, counter) {
+  const bubble = document.getElementById('setup-tour-bubble');
+  const target = document.querySelector(targetSel);
+  document.getElementById('setup-tour-text').textContent = text;
+  document.getElementById('setup-tour-counter').textContent = counter;
+  bubble.classList.add('active');
+  if (target) {
+    const r = target.getBoundingClientRect();
+    bubble.style.top = Math.max(10, Math.min(window.innerHeight-160, r.bottom + 12)) + 'px';
+    bubble.style.left = Math.max(10, Math.min(window.innerWidth-280, r.left)) + 'px';
+  }
+}
+function hideSetupBubble() { document.getElementById('setup-tour-bubble').classList.remove('active'); }
+
+async function endSetupTour() {
+  _setupTourActive = false;
+  hideSetupBubble();
+  document.getElementById('library-system-close-btn').style.display = '';
+  try {
+    const idx = await loadProfilesIndex();
+    const profil = idx && idx.profiles && idx.profiles.find(p => p.id === _currentProfileId);
+    if (profil) { profil.setupTourDone = true; await saveProfilesIndex(idx); }
+  } catch(e) { /* best effort */ }
 }
 
 let _libraryWired = false;
@@ -232,7 +287,7 @@ function wireLibraryStaticUI() {
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     closeLibraryCtxMenu();
-    if (document.getElementById('library-system-overlay').classList.contains('active')) closeLibrarySystemPanel();
+    if (document.getElementById('library-system-overlay').classList.contains('active') && !_setupTourActive) closeLibrarySystemPanel();
     if (document.getElementById('docx-import-overlay').classList.contains('active')) closeDocxImportModal();
     if (document.getElementById('export-select-overlay').classList.contains('active')) closeExportSelect();
     if (document.getElementById('gist-history-overlay').classList.contains('active')) closeGistHistory();
@@ -248,7 +303,10 @@ function wireLibraryStaticUI() {
     if (!_cloudToken) { statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Colle un token d\'abord.'; return; }
     statusEl.style.color = 'var(--text-muted)'; statusEl.textContent = '⏳ Vérification…';
     const ok = await libVerifyToken();
-    if (ok) { statusEl.style.color = 'var(--success)'; statusEl.textContent = `✅ Token valide (connecté en tant que @${ok}).`; saveLibSettings(); }
+    if (ok) {
+      statusEl.style.color = 'var(--success)'; statusEl.textContent = `✅ Token valide (connecté en tant que @${ok}).`; saveLibSettings();
+      if (_setupTourActive) await endSetupTour();
+    }
     else { statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Token invalide ou refusé par GitHub.'; }
   });
   document.getElementById('lib-auto-gist-interval').addEventListener('change', e => { _libSettings.autoGistInterval = parseInt(e.target.value)||0; saveLibSettings(); scheduleLibraryAutoBackup(); });
@@ -880,6 +938,11 @@ async function openLibrarySystemPanel(preselectDocId) {
   await renderConflictBackups();
 
   document.getElementById('library-system-overlay').classList.add('active');
+
+  if (_setupTourActive) {
+    document.getElementById('library-system-close-btn').style.display = 'none';
+    showSetupBubble('#lib-gh-token', 'Colle ton token GitHub personnel ici, puis vérifie-le.', 'Étape 3/3 — configuration initiale');
+  }
 }
 
 // v7.33.0 — Bloc "Sauvegardes de conflit" du panneau Système : donne enfin

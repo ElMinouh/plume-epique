@@ -263,6 +263,14 @@
   </div>
 </div>
 
+<!-- PARCOURS "CONFIGURATION INITIALE" — étape 3/3 (nouveau v7.37.0) : pas de
+     bouton, elle avance toute seule au fil des vrais clics (bouton Système,
+     puis champ token + Vérifier) — voir maybeStartSetupTour() dans library.js. -->
+<div id="setup-tour-bubble" role="dialog" aria-label="Configuration initiale">
+  <p class="u-fs-_68rem u-c-v-accent u-m-0-0-4px" id="setup-tour-counter"></p>
+  <p class="u-fs-_82rem u-m-0" id="setup-tour-text"></p>
+</div>
+
 <div id="confirm-modal-overlay" role="dialog" aria-modal="true" aria-label="Confirmation">
   <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-360px-92vw u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-ai-center u-gap-8px u-mb-8px">

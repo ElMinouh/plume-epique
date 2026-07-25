@@ -326,6 +326,10 @@ select.gate-field{height:38px;}
   background:var(--glass);border:1px solid var(--border);border-radius:12px;
   padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);}
 #onboarding-tour-bubble.active{display:block;}
+#setup-tour-bubble{display:none;position:fixed;z-index:9200;width:260px;
+  background:var(--glass);border:1px solid var(--border);border-radius:12px;
+  padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);}
+#setup-tour-bubble.active{display:block;}
 .shortcut-row{display:flex;justify-content:space-between;align-items:center;gap:10px;
   padding:6px 0;border-bottom:1px solid var(--border);font-size:.82rem;}
 .shortcut-row:last-child{border-bottom:none;}

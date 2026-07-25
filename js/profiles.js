@@ -83,6 +83,7 @@ async function notifyThirdPartyDataUseOnce() {
 // utilisé dessus.
 function renderSyncKeyGate() {
   gateShell(`
+    <div class="u-fs-_68rem u-c-v-accent u-m-0-0-6px">Étape 1/3 — configuration initiale</div>
     <div class="gate-title"><i>🔑</i> Clé de synchronisation</div>
     <div class="gate-sub">Cet appareil ne connaît pas encore la clé de synchronisation. Demandez-la à votre administrateur pour retrouver vos profils et manuscrits ici aussi.</div>
     <label class="gate-label">Clé de synchronisation</label>
@@ -277,6 +278,7 @@ async function submitCreateProfile(opts) {
 // ── ÉCRAN 5 : Code de récupération ──────────────────────────────────────
 function showRecoveryCode(code, name, onContinue) {
   gateShell(`
+    <div class="u-fs-_68rem u-c-v-accent u-m-0-0-6px">Étape 2/3 — configuration initiale</div>
     <div class="gate-title"><i>🛡️</i> Votre code de récupération</div>
     <div class="gate-sub">Conservez ce code en lieu sûr. Il permet de récupérer le profil « ${DOMPurify.sanitize(name)} » en cas d'oubli du mot de passe. Il ne sera plus jamais affiché.</div>
     <div class="gate-code">${DOMPurify.sanitize(code)}</div>
