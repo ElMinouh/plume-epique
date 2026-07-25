@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '7.39.0';
+const APP_VERSION = '7.39.1';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -241,7 +241,21 @@ async function syncPull(key) {
   } catch(e) { setLastSyncStatus(false); return undefined; }
 }
 
+// Correction (bug rapporté) : le rafraîchissement du cache local en
+// arrière-plan (voir loadData() ci-dessous) pouvait écraser une écriture
+// locale plus récente survenue PENDANT l'attente de la réponse du Worker —
+// par exemple changer la couverture d'un manuscrit juste après avoir
+// ouvert/quitté un autre, ou changer deux couvertures coup sur coup. Le
+// symptôme observé : une couverture qui vient d'être changée revient
+// silencieusement à son ancienne valeur peu après. _localWriteVersion
+// compte les écritures locales par clé ; le rafraîchissement en arrière-
+// plan ne s'applique que si aucune écriture locale n'a eu lieu pour cette
+// clé depuis son propre lancement — sinon la copie locale est forcément
+// plus récente que ce que répond le Worker, et on la laisse intacte.
+const _localWriteVersion = {};
+
 async function persistData(key, payload) {
+  _localWriteVersion[key] = (_localWriteVersion[key] || 0) + 1;
   if (idbStore) await idbStore.put('data', payload, key);
   else {
     if (payload === null) localStorage.removeItem('plume_' + key);
@@ -262,7 +276,12 @@ async function loadData(key) {
   if (local !== undefined && local !== null) {
     // Trouvé en local : on renvoie tout de suite (rapide, marche hors-ligne),
     // et on rafraîchit le cache local en arrière-plan pour la prochaine fois.
-    syncPull(key).then(remote => { if (remote !== undefined && remote !== null && idbStore) idbStore.put('data', remote, key); });
+    const versionAtPullStart = _localWriteVersion[key] || 0;
+    syncPull(key).then(remote => {
+      if (remote !== undefined && remote !== null && idbStore && (_localWriteVersion[key] || 0) === versionAtPullStart) {
+        idbStore.put('data', remote, key);
+      }
+    });
     return local;
   }
   // Rien en local : premier accès à cette clé depuis cet appareil (ex.
