@@ -5,7 +5,20 @@
 // pour pouvoir être testé indépendamment de l'application
 // (voir tests/test-runner.html).
 // ═══════════════════════════════════════════════════════
-const SCHEMA_VERSION = 13;
+const SCHEMA_VERSION = 14;
+
+// Type de projet (nouveau v7.36.0, ergonomie) : adapte simplement le
+// vocabulaire de l'app selon le genre du manuscrit — la structure de
+// données (db.quests) ne change pas, seul le libellé affiché change.
+const PROJECT_TYPES = {
+  'fantasy':      { label:'Roman (fantasy / aventure)', questsLabel:'Quêtes',    questsSingular:'une quête',    questsIcon:'🎯' },
+  'contemporain': { label:'Roman contemporain',          questsLabel:'Intrigues', questsSingular:'une intrigue', questsIcon:'🧵' },
+  'polar':        { label:'Polar / thriller',            questsLabel:'Enquêtes',  questsSingular:'une enquête',  questsIcon:'🔎' },
+  'essai':        { label:'Essai / non-fiction',         questsLabel:'Objectifs', questsSingular:'un objectif',  questsIcon:'🧭' }
+};
+function questsLabelFor(projectType) {
+  return (PROJECT_TYPES[projectType] || PROJECT_TYPES['fantasy']).questsLabel;
+}
 
 function genChapterId() {
   return (crypto.randomUUID ? crypto.randomUUID() : 'ch_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
@@ -113,6 +126,21 @@ function migrateDb(data) {
       }
     });
   }
+  if (v < 14) {
+    // Réorganisation des onglets (audit ergonomie v7.36.0) : Structure rejoint
+    // Analyse, Sprint rejoint Config, tous deux en sous-onglets — ils ne sont
+    // plus des identifiants valides de premier niveau.
+    if (Array.isArray(data.tabOrder)) {
+      data.tabOrder = data.tabOrder.filter(id => id !== 'tab-map' && id !== 'tab-sprint');
+    }
+    // Type de projet (adapte le vocabulaire de l'app, ex. "Quêtes" → "Intrigues").
+    if (typeof data.projectType !== 'string') data.projectType = 'fantasy';
+    // Objectif de mots et notes de recherche par chapitre (nouveau).
+    (data.chapters||[]).forEach(ch => {
+      if (typeof ch.wordGoal !== 'number') ch.wordGoal = 0;
+      if (typeof ch.researchNotes !== 'string') ch.researchNotes = '';
+    });
+  }
   data._schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -120,11 +148,12 @@ function migrateDb(data) {
 const DEFAULT_DB = () => ({
   _schemaVersion: SCHEMA_VERSION,
   title: '',
-  chapters: [{ id: genChapterId(), title:'Chapitre 1', content:'', tension:20, summary:'', status:'draft', tags:[] }],
+  chapters: [{ id: genChapterId(), title:'Chapitre 1', content:'', tension:20, summary:'', status:'draft', tags:[], wordGoal:0, researchNotes:'' }],
   chars:[], places:[], quests:[], timeline:[], history:{}, plugins:{},
   weakWords:['juste','très'],
-  tabOrder:['tab-map','tab-sprint','tab-univers','tab-ia-memoire','tab-analysegroup','tab-systeme','tab-config'],
+  tabOrder:['tab-univers','tab-ia-memoire','tab-analysegroup','tab-systeme','tab-config'],
   darkMode:false, gistId:'', dailyGoal:500, weeklyGoal:3000, monthlyGoal:12000, sessionStats:{}, sprint:null, trash:[],
   accentPalette:'rouge-violet', paperMode:false, editorFont:'palatino', wordGoal:0,
-  hourlyActivity: new Array(24).fill(0)
+  hourlyActivity: new Array(24).fill(0),
+  projectType:'fantasy'
 });

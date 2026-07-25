@@ -111,12 +111,30 @@ function loadChapter(i) {
   if (t) t.innerText = ch.title || '';
   if (s) s.value = ch.tension ?? 20;
   if (st) st.value = ch.status || 'draft';
+  // v7.36.0 (ergonomie) — objectif de mots et notes de recherche, propres à
+  // chaque chapitre (panneau "📓 Notes", replié par défaut).
+  const wg = document.getElementById('chapter-word-goal-input');
+  if (wg) wg.value = ch.wordGoal || '';
+  const rn = document.getElementById('chapter-research-notes');
+  if (rn) rn.value = ch.researchNotes || '';
+  updateChapterWordGoalProgress();
   ensureUndoStack(ch); updateUndoRedoButtons();
+}
+// v7.36.0 (ergonomie) — affiche "1240 / 2500 mots" à côté de l'objectif de
+// mots du chapitre courant. Appelée à chaque changement de chapitre et à
+// chaque frappe (via liveCounter), pour un retour toujours à jour.
+function updateChapterWordGoalProgress() {
+  const el = document.getElementById('chapter-word-goal-progress');
+  if (!el) return;
+  const ch = db.chapters[cur];
+  if (!ch || !ch.wordGoal) { el.textContent = ''; return; }
+  el.textContent = `(${getWordCount(ch.content)} / ${ch.wordGoal} mots)`;
 }
 function liveCounter() {
   if (_switching) return;
   db.chapters[cur].content = document.getElementById('writer').innerHTML;
   updateDailyStats(); debouncedSave();
+  updateChapterWordGoalProgress();
   scheduleUndoSnapshot();
 }
 const CH_STATUS_META = {
@@ -535,7 +553,13 @@ function updateFocusCount() {
 function enterReadingMode() {
   flushCurrentChapter();
   const container = document.getElementById('reading-content');
-  container.innerHTML = db.chapters.map((ch,i) =>
+  // v7.36.0 (ergonomie) — temps de lecture estimé (~200 mots/min en
+  // moyenne), affiché en tête ; même donnée que le plugin "Temps de lecture",
+  // ici affichée là où elle est le plus utile (avant de commencer à lire).
+  const totalW = db.chapters.reduce((s,c)=>s+getWordCount(c.content),0);
+  const minutes = Math.ceil(totalW/200);
+  const readingTimeHtml = `<p class="u-fs-_78rem u-c-v-text-muted u-ta-center u-m-0-0-14px">≈ ${minutes} min de lecture (${totalW} mots)</p>`;
+  container.innerHTML = readingTimeHtml + db.chapters.map((ch,i) =>
     `<div class="reading-chapter"><h2>${DOMPurify.sanitize(ch.title||('Chapitre '+(i+1)))}</h2>${DOMPurify.sanitize(ch.content||'<p><em>(chapitre vide)</em></p>')}</div>`
   ).join('<hr class="reading-divider">');
   document.getElementById('reading-overlay').classList.add('active');

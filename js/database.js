@@ -18,6 +18,67 @@ function renderLibrary(k){
     .map(({item,i})=>`<div class="chapter-item" data-type="${k}" data-idx="${i}" role="listitem" tabindex="0">${DOMPurify.sanitize(item.name)}</div>`).join('')
     || `<div class="u-op-_5 u-fs-_78rem u-p-10px u-ta-center">${filter?'Aucun résultat.':'Aucun élément pour le moment.'}</div>`;
   c.querySelectorAll('.chapter-item').forEach(el=>{el.addEventListener('click',()=>showEdit(el.dataset.type,parseInt(el.dataset.idx)));el.addEventListener('keydown',e=>{if(e.key==='Enter')showEdit(el.dataset.type,parseInt(el.dataset.idx));});});
+  // v7.36.0 — la vue Cartes (si active) reste synchronisée avec la liste,
+  // même principe que le Corkboard des chapitres et l'étagère de la
+  // bibliothèque : un seul point d'entrée (renderLibrary) tient les deux
+  // vues à jour, quel que soit l'appelant (ajout, suppression, filtre...).
+  if (_universeViewMode === 'cards') renderLibraryCards(k);
+}
+
+// ═══════════════════════════════════════════════════════
+// VUE "CARTES" — Personnages/Lieux (nouveau v7.36.0, ergonomie)
+// Même langage visuel que l'étagère de la bibliothèque. La couleur de
+// chaque carte est dérivée de manière stable de son id (pas de champ dédié
+// à gérer) : un même personnage garde toujours la même couleur.
+// ═══════════════════════════════════════════════════════
+const CARD_SPINE_COLORS = [
+  {a:'#c0392b',b:'#8e44ad'}, {a:'#2980b9',b:'#16a085'}, {a:'#27ae60',b:'#2c3e50'},
+  {a:'#c2185b',b:'#d4af37'}, {a:'#34495e',b:'#7f8c8d'}, {a:'#f39c12',b:'#e74c3c'},
+  {a:'#6d4c41',b:'#3e2723'}, {a:'#8e7cc3',b:'#5b3a8e'}
+];
+function colorForId(id) {
+  let h = 0; const s = String(id||'');
+  for (let i=0;i<s.length;i++) h = (h*31 + s.charCodeAt(i)) >>> 0;
+  return CARD_SPINE_COLORS[h % CARD_SPINE_COLORS.length];
+}
+let _universeViewMode = 'list';
+function setUniverseViewMode(mode) {
+  _universeViewMode = mode;
+  const isCards = mode === 'cards';
+  document.querySelectorAll('.uni-view-list-btn').forEach(b=>b.classList.toggle('active', !isCards));
+  document.querySelectorAll('.uni-view-cards-btn').forEach(b=>b.classList.toggle('active', isCards));
+  const charList=document.getElementById('char-list-db'), charCards=document.getElementById('char-cards-view');
+  const placeList=document.getElementById('place-list-db'), placeCards=document.getElementById('place-cards-view');
+  if (charList) charList.style.display = isCards?'none':'';
+  if (charCards) charCards.style.display = isCards?'flex':'none';
+  if (placeList) placeList.style.display = isCards?'none':'';
+  if (placeCards) placeCards.style.display = isCards?'flex':'none';
+  if (isCards) { renderLibraryCards('chars'); renderLibraryCards('places'); }
+}
+function renderLibraryCards(type) {
+  const cont = document.getElementById(type==='chars'?'char-cards-view':'place-cards-view');
+  if (!cont) return;
+  const filter = (type==='chars'?_charFilter:_placeFilter).trim().toLowerCase();
+  const items = db[type]
+    .map((item,i)=>({item,i}))
+    .filter(({item})=>!filter||(item.name||'').toLowerCase().includes(filter));
+  cont.innerHTML = items.map(({item,i}) => {
+    const c = colorForId(item.id || String(i));
+    return `<div class="uni-card" data-idx="${i}" style="background:linear-gradient(160deg,${c.a},${c.b})" tabindex="0" role="listitem" title="${DOMPurify.sanitize(item.name||'Sans titre')}">
+      <div class="uni-card-band"></div>
+      <div class="uni-card-title">${DOMPurify.sanitize(item.name||'Sans titre')}</div>
+      <div class="uni-card-band"></div>
+    </div>`;
+  }).join('') + `<div class="uni-card uni-card-add" id="uni-card-add-${type}" tabindex="0" role="button" aria-label="Ajouter" title="Ajouter">+</div>`;
+  cont.querySelectorAll('.uni-card[data-idx]').forEach(el => {
+    el.addEventListener('click', () => showEdit(type, parseInt(el.dataset.idx,10)));
+    el.addEventListener('keydown', e => { if (e.key==='Enter') showEdit(type, parseInt(el.dataset.idx,10)); });
+  });
+  const addEl = document.getElementById(`uni-card-add-${type}`);
+  if (addEl) {
+    addEl.addEventListener('click', () => addItem(type));
+    addEl.addEventListener('keydown', e => { if (e.key==='Enter') addItem(type); });
+  }
 }
 function showEdit(k,i){
   const item=db[k][i];const container=document.getElementById(k==='chars'?'char-edit':'place-edit');container.innerHTML='';
@@ -25,11 +86,17 @@ function showEdit(k,i){
   const nameInput=document.createElement('input');nameInput.className='field';nameInput.style.fontWeight='700';nameInput.value=item.name;
   nameInput.addEventListener('input',()=>{db[k][i].name=nameInput.value;debouncedSave();renderLibrary(k);});
   const delBtn=document.createElement('button');delBtn.className='action-btn btn-sm';delBtn.style.background='#e74c3c';delBtn.textContent='✕';
-  delBtn.addEventListener('click',()=>{
+  delBtn.addEventListener('click', async () => {
     // Correction (audit) : suppression jusqu'ici sans confirmation (seul
     // point de suppression de l'app dans ce cas), et sans nettoyer les liens
     // d'AUTRES personnages/lieux/quêtes pointant vers celui-ci.
-    if(!confirm(`Supprimer définitivement « ${item.name||'cet élément'} » ? Les liens d'autres personnages/lieux/quêtes vers lui seront aussi retirés.`)) return;
+    const ok = await showConfirmModal({
+      title: `Supprimer « ${item.name || 'cet élément'} » ?`,
+      message: 'Les liens d\'autres personnages/lieux/quêtes vers lui seront aussi retirés.',
+      confirmLabel: 'Supprimer définitivement',
+      danger: true
+    });
+    if (!ok) return;
     removeAllLinksTo(k, item.id);
     db[k].splice(i,1);save();renderLibrary(k);container.innerHTML='';
   });
@@ -131,6 +198,33 @@ function showQuestEdit(i){const q=db.quests[i],c=document.getElementById('quest-
 function addQuest(){const i=document.getElementById('q-in');if(i.value.trim()){db.quests.push({id:genChapterId(),text:i.value.trim(),done:false});i.value='';save();renderQuests();}}
 
 // ═══════════════════════════════════════════════════════
+// TYPE DE PROJET (nouveau v7.36.0, ergonomie) — adapte le vocabulaire
+// "Quêtes" affiché selon le genre du manuscrit. La structure de données
+// (db.quests) ne change jamais ; seuls les libellés visibles changent.
+// ═══════════════════════════════════════════════════════
+function applyProjectTypeTerminology() {
+  const meta = PROJECT_TYPES[db.projectType] || PROJECT_TYPES['fantasy'];
+  const btn = document.querySelector('[data-subtab="tab-quests"]');
+  if (btn) btn.textContent = `${meta.questsIcon} ${meta.questsLabel}`;
+  const filter = document.getElementById('quest-filter');
+  if (filter) { filter.placeholder = `🔍 Filtrer (${meta.questsLabel.toLowerCase()})...`; filter.setAttribute('aria-label', `Filtrer les ${meta.questsLabel.toLowerCase()}`); }
+  const qIn = document.getElementById('q-in');
+  if (qIn) qIn.placeholder = `Nouvelle entrée (${meta.questsSingular})...`;
+  const addBtn = document.getElementById('add-quest-btn');
+  if (addBtn) addBtn.title = `Ajouter ${meta.questsSingular}`;
+  const legendLabel = document.getElementById('graph-legend-quest-label');
+  if (legendLabel) legendLabel.textContent = meta.questsSingular.replace(/^(une?)\s/, '');
+  const sel = document.getElementById('project-type-sel');
+  if (sel) sel.value = db.projectType || 'fantasy';
+}
+function selectProjectType(key) {
+  if (!PROJECT_TYPES[key]) return;
+  db.projectType = key;
+  applyProjectTypeTerminology();
+  save();
+}
+
+// ═══════════════════════════════════════════════════════
 // APPARENCE — palette de couleurs, thème, police d'écriture (nouveau v7.7.0)
 // Stocké par manuscrit (comme darkMode), appliqué via des variables CSS/classes
 // posées sur <html>/<body> — le fichier style.css garde ses valeurs par défaut
@@ -200,7 +294,21 @@ function toggleMode(){
   document.body.classList.toggle('dark-mode',db.darkMode);
   save();
 }
-function addItem(k){const n=prompt('Nom :');if(n){db[k].push({id:genChapterId(),name:n,info:''});save();renderLibrary(k);}}
+function addItem(k){
+  // Correction (audit ergonomie v7.36.0) : auparavant prompt('Nom :') puis
+  // il fallait recliquer pour ouvrir la fiche — création immédiate ("Sans
+  // titre") et focus direct sur le champ nom, un seul clic suffit désormais.
+  db[k].push({id:genChapterId(),name:'Sans titre',info:''});
+  save();
+  renderLibrary(k);
+  const newIdx = db[k].length-1;
+  showEdit(k, newIdx);
+  requestAnimationFrame(() => {
+    const container = document.getElementById(k==='chars'?'char-edit':'place-edit');
+    const nameInput = container && container.querySelector('input.field');
+    if (nameInput) { nameInput.focus(); nameInput.select(); }
+  });
+}
 
 // ═══════════════════════════════════════════════════════
 // MOTS FAIBLES

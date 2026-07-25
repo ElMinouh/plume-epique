@@ -248,6 +248,38 @@
 </div>
 
 <!-- TRASH OVERLAY (nouveau v6.2.0) -->
+<!-- MODALE DE CONFIRMATION GÉNÉRIQUE (nouveau v7.36.0, ergonomie) — remplace
+     confirm()/prompt() natifs pour les suppressions définitives. -->
+<!-- PARCOURS "PREMIERS PAS" (nouveau v7.36.0, ergonomie) — 4 bulles montrées
+     une seule fois par profil, à la première ouverture d'un manuscrit. -->
+<div id="onboarding-tour-bubble" role="dialog" aria-label="Premiers pas">
+  <p class="u-fs-_82rem u-m-0-0-10px" id="onboarding-tour-text"></p>
+  <div class="u-d-flex u-ai-center u-jc-space-between">
+    <span class="u-fs-_68rem u-c-v-text-muted" id="onboarding-tour-counter"></span>
+    <div class="u-d-flex u-gap-6px">
+      <button class="action-btn btn-sm u-bg-h7f8c8d" id="onboarding-tour-skip-btn">Passer</button>
+      <button class="action-btn btn-sm" id="onboarding-tour-next-btn">Suivant</button>
+    </div>
+  </div>
+</div>
+
+<div id="confirm-modal-overlay" role="dialog" aria-modal="true" aria-label="Confirmation">
+  <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-360px-92vw u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+    <div class="u-d-flex u-ai-center u-gap-8px u-mb-8px">
+      <strong class="u-fs-_92rem" id="confirm-modal-title">Confirmer</strong>
+    </div>
+    <p class="u-fs-_82rem u-c-v-text-muted u-m-0-0-12px" id="confirm-modal-message"></p>
+    <div id="confirm-modal-input-wrap" class="u-mb-12px u-d-none">
+      <label class="u-fs-_72rem u-c-v-text-muted u-d-block u-mb-4px" id="confirm-modal-input-label" for="confirm-modal-input"></label>
+      <input id="confirm-modal-input" class="field u-w-100pc" autocomplete="off">
+    </div>
+    <div class="u-d-flex u-gap-8px u-jc-flex-end">
+      <button class="action-btn btn-sm u-bg-h7f8c8d" id="confirm-modal-cancel-btn">Annuler</button>
+      <button class="action-btn btn-sm" id="confirm-modal-confirm-btn">Confirmer</button>
+    </div>
+  </div>
+</div>
+
 <div id="trash-overlay" role="dialog" aria-modal="true" aria-label="Corbeille">
   <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-500px-92vw u-maxh-70vh u-d-flex u-fd-column u-gap-10px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
@@ -352,24 +384,6 @@
 <nav class="tab-menu" id="tab-menu" aria-label="Onglets principaux"></nav>
 <div id="tab-container" role="region">
 
-  <div id="tab-map" class="tab-content" role="tabpanel">
-    <div class="db-grid">
-      <div><strong>Tension narrative</strong><br><small class="u-op-_6">Curseur dans la sidebar</small></div>
-      <div class="u-h-280px"><canvas id="tensionChart"></canvas></div>
-    </div>
-  </div>
-
-  <div id="tab-sprint" class="tab-content" role="tabpanel">
-    <div class="u-ta-center u-p-20px">
-      <div class="u-fs-3rem u-fwt-700 u-ls-2px" id="sprint-timer" aria-live="polite">25:00</div>
-      <div class="u-d-flex u-gap-8px u-jc-center u-m-12px-0">
-        <button class="action-btn" id="sprint-start-btn" title="Démarrer un sprint d'écriture chronométré">▶ Démarrer</button>
-        <button class="action-btn u-bg-h7f8c8d" id="sprint-reset-btn" title="Remettre le chronomètre à zéro">↺ Reset</button>
-      </div>
-      Progression : <strong><span id="sprint-progress" aria-live="polite">0</span></strong> mots
-    </div>
-  </div>
-
   <!-- CATÉGORIE : Univers narratif (nouveau v7.4.0 — regroupe 5 anciens onglets) -->
   <div id="tab-univers" class="tab-content" role="tabpanel">
     <div class="subtab-nav" role="tablist" aria-label="Univers narratif">
@@ -383,8 +397,15 @@
     <div id="tab-chars" class="subtab-content active" role="tabpanel">
       <div class="db-grid">
         <div>
-          <input id="char-filter" class="field u-mb-6px" placeholder="🔍 Filtrer les personnages..." aria-label="Filtrer les personnages" title="Filtrer la liste par nom">
+          <div class="u-d-flex u-ai-center u-gap-6px u-mb-6px">
+            <input id="char-filter" class="field u-flex-1" placeholder="🔍 Filtrer les personnages..." aria-label="Filtrer les personnages" title="Filtrer la liste par nom">
+            <div class="ch-view-toggle uni-view-toggle" role="group" aria-label="Vue des personnages">
+              <button class="mode-indicator uni-view-list-btn active" data-uni-view="list" title="Vue liste">☰</button>
+              <button class="mode-indicator uni-view-cards-btn" data-uni-view="cards" title="Vue cartes">🗂️</button>
+            </div>
+          </div>
           <div class="list-box u-h-260px" id="char-list-db" role="list"></div>
+          <div class="uni-cards-view" id="char-cards-view" role="list"></div>
           <button class="action-btn u-w-100pc u-mt-8px" id="add-char-btn" title="Ajouter un nouveau personnage">+ Personnage</button>
         </div>
         <div class="edit-box" id="char-edit">...</div>
@@ -394,8 +415,15 @@
     <div id="tab-places" class="subtab-content" role="tabpanel">
       <div class="db-grid">
         <div>
-          <input id="place-filter" class="field u-mb-6px" placeholder="🔍 Filtrer les lieux..." aria-label="Filtrer les lieux" title="Filtrer la liste par nom">
+          <div class="u-d-flex u-ai-center u-gap-6px u-mb-6px">
+            <input id="place-filter" class="field u-flex-1" placeholder="🔍 Filtrer les lieux..." aria-label="Filtrer les lieux" title="Filtrer la liste par nom">
+            <div class="ch-view-toggle uni-view-toggle" role="group" aria-label="Vue des lieux">
+              <button class="mode-indicator uni-view-list-btn active" data-uni-view="list" title="Vue liste">☰</button>
+              <button class="mode-indicator uni-view-cards-btn" data-uni-view="cards" title="Vue cartes">🗂️</button>
+            </div>
+          </div>
           <div class="list-box u-h-260px" id="place-list-db" role="list"></div>
+          <div class="uni-cards-view" id="place-cards-view" role="list"></div>
           <button class="action-btn u-w-100pc u-mt-8px" id="add-place-btn" title="Ajouter un nouveau lieu">+ Lieu</button>
         </div>
         <div class="edit-box" id="place-edit">...</div>
@@ -437,7 +465,7 @@
         <div class="graph-legend">
           <span><span class="legend-dot u-bg-hc0392b"></span>Perso</span>
           <span><span class="legend-dot u-bg-h2980b9"></span>Lieu</span>
-          <span><span class="legend-dot u-bg-h27ae60"></span>Quête</span>
+          <span><span class="legend-dot u-bg-h27ae60"></span><span id="graph-legend-quest-label">Quête</span></span>
           <span><span class="legend-dot u-bg-hf39c12"></span>Chapitre</span>
         </div>
       </div>
@@ -507,6 +535,7 @@
       <button class="subtab-btn active" data-subtab="tab-stats" title="Statistiques d'écriture">📊 Stats</button>
       <button class="subtab-btn" data-subtab="tab-wordcloud" title="Nuage des mots les plus utilisés">☁️ Mots</button>
       <button class="subtab-btn" data-subtab="tab-analytics" title="Longueur des chapitres et lisibilité du texte">📈 Détail</button>
+      <button class="subtab-btn" data-subtab="tab-map" title="Courbe de tension narrative du manuscrit">🏗️ Structure</button>
     </div>
 
     <div id="tab-stats" class="subtab-content active" role="tabpanel">
@@ -541,6 +570,13 @@
         </div>
       </div>
     </div>
+
+    <div id="tab-map" class="subtab-content" role="tabpanel">
+      <div class="db-grid">
+        <div><strong>Tension narrative</strong><br><small class="u-op-_6">Curseur dans la sidebar</small></div>
+        <div class="u-h-280px"><canvas id="tensionChart"></canvas></div>
+      </div>
+    </div>
   </div>
 
   <!-- CATÉGORIE : Système (nouveau v7.4.0 — regroupe 3 anciens onglets) -->
@@ -566,6 +602,23 @@
   </div>
 
   <div id="tab-config" class="tab-content" role="tabpanel">
+    <div class="subtab-nav" role="tablist" aria-label="Config">
+      <button class="subtab-btn active" data-subtab="tab-config-main" title="Apparence, objectifs, mots faibles, profil">⚙️ Réglages</button>
+      <button class="subtab-btn" data-subtab="tab-sprint" title="Chronomètre pour une session d'écriture concentrée">⏱️ Sprint</button>
+    </div>
+
+    <div id="tab-config-main" class="subtab-content active" role="tabpanel">
+    <strong>📖 Type de projet</strong>
+    <div class="u-mt-8px u-mb-14px">
+      <select id="project-type-sel" class="field u-w-min-260px-100pc">
+        <option value="fantasy">Roman (fantasy / aventure)</option>
+        <option value="contemporain">Roman contemporain</option>
+        <option value="polar">Polar / thriller</option>
+        <option value="essai">Essai / non-fiction</option>
+      </select>
+      <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-0">Adapte le vocabulaire de l'app (ex. "Quêtes" → "Intrigues" pour un roman contemporain). N'affecte aucune donnée.</p>
+    </div>
+    <hr class="u-bdc-v-border u-m-10px-0">
     <strong>🎨 Apparence</strong>
     <div class="u-fs-_78rem u-c-v-text-muted u-m-10px-0-8px">Palette de couleurs</div>
     <div class="u-d-flex u-gap-9px u-fw-wrap u-mb-14px" id="palette-picker">
@@ -630,6 +683,7 @@
       <span>mots au total</span>
     </div>
     <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-0">0 = pas d'objectif. Affiché en barre de progression sur la carte de ce manuscrit dans la bibliothèque.</p>
+    <p class="u-fs-_78rem u-c-v-text-accent u-m-6px-0-0" id="finish-date-estimate"></p>
     <hr class="u-bdc-v-border u-m-10px-0">
     <strong>👤 Profil</strong>
     <div class="u-d-flex u-gap-8px u-mt-8px u-fw-wrap">
@@ -637,7 +691,20 @@
       <button class="action-btn btn-sm u-bg-h8e44ad" id="manage-profiles-btn" title="Ajouter, renommer ou supprimer des profils (administrateur)">Gérer les profils</button>
       <button class="action-btn btn-sm u-bg-h7f8c8d" id="logout-btn" title="Fermer votre session">Se déconnecter</button>
     </div>
+    </div>
+
+    <div id="tab-sprint" class="subtab-content" role="tabpanel">
+      <div class="u-ta-center u-p-20px">
+        <div class="u-fs-3rem u-fwt-700 u-ls-2px" id="sprint-timer" aria-live="polite">25:00</div>
+        <div class="u-d-flex u-gap-8px u-jc-center u-m-12px-0">
+          <button class="action-btn" id="sprint-start-btn" title="Démarrer un sprint d'écriture chronométré">▶ Démarrer</button>
+          <button class="action-btn u-bg-h7f8c8d" id="sprint-reset-btn" title="Remettre le chronomètre à zéro">↺ Reset</button>
+        </div>
+        Progression : <strong><span id="sprint-progress" aria-live="polite">0</span></strong> mots
+      </div>
+    </div>
   </div>
+
 
 </div>
 </header>
@@ -703,8 +770,13 @@
         </div>
       </div>
 
-      <button class="action-btn btn-sm u-bg-h8e44ad" id="ai-summary-btn" title="Demander à l'IA un résumé du chapitre">✨ Résumé IA</button>
-      <button class="action-btn btn-sm u-bg-h8e44ad" id="ai-selection-to-chat-btn" title="Envoyer le passage sélectionné à l'assistant IA">💬 Discuter de la sélection</button>
+      <div class="toolbar-dropdown">
+        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h8e44ad" title="Assistant IA">🤖 IA ▾</button>
+        <div class="toolbar-menu">
+          <button id="ai-summary-btn" title="Demander à l'IA un résumé du chapitre">✨ Résumé du chapitre</button>
+          <button id="ai-selection-to-chat-btn" title="Envoyer le passage sélectionné à l'assistant IA">💬 Discuter de la sélection</button>
+        </div>
+      </div>
       <div class="u-fg-1"></div>
       <select id="search-mode" class="field u-w-auto" aria-label="Mode dictionnaire" title="Choisir entre synonymes et antonymes">
         <option value="syn">✨ Synonymes</option><option value="ant">🌑 Antonymes</option>
@@ -714,11 +786,21 @@
     </div>
     <div class="u-d-flex u-ai-center u-gap-10px u-mb-6px" id="chapter-title-row">
       <div class="u-fs-1_45rem u-fwt-700 u-c-v-accent u-outline-none u-minh-28px u-fg-1" id="chapter-title" contenteditable="true" role="textbox" aria-label="Titre" title="Cliquez pour renommer ce chapitre"></div>
+      <button class="mode-indicator u-fsh-0" id="chapter-notes-toggle-btn" title="Objectif de mots et notes de recherche pour ce chapitre">📓 Notes</button>
       <select id="chapter-status-sel" class="field u-w-auto u-fsh-0" aria-label="Statut du chapitre" title="Statut d'avancement de ce chapitre">
         <option value="draft">📝 Brouillon</option>
         <option value="review">🔎 À revoir</option>
         <option value="final">✅ Final</option>
       </select>
+    </div>
+    <div id="chapter-notes-panel" class="u-d-none u-mb-10px">
+      <div class="u-d-flex u-ai-center u-gap-8px u-mb-6px">
+        <label class="u-fs-_75rem u-c-v-text-muted" for="chapter-word-goal-input">🎯 Objectif de mots (ce chapitre)</label>
+        <input type="number" id="chapter-word-goal-input" class="field u-w-90px" min="0" step="100" placeholder="0">
+        <span class="u-fs-_72rem u-c-v-text-muted" id="chapter-word-goal-progress"></span>
+      </div>
+      <label class="u-fs-_75rem u-c-v-text-muted u-d-block u-mb-4px" for="chapter-research-notes">📓 Notes de recherche</label>
+      <textarea id="chapter-research-notes" class="field u-w-100pc" rows="3" placeholder="Prononciation, faits historiques, références..."></textarea>
     </div>
     <div id="writer" contenteditable="true" role="textbox" aria-multiline="true"
       aria-label="Zone d'écriture" spellcheck="false"></div>
@@ -783,11 +865,15 @@
     <div id="mode-bar">
       <div id="save-indicator" aria-hidden="true"></div>
       <span class="u-fs-_7rem u-c-v-text-muted" id="autosave-label"></span>
-      <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre">🌙 Nuit</button>
-      <button class="mode-indicator" id="dictate-btn" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro">🎤</button>
-      <button class="mode-indicator" id="ai-chat-btn" title="Discuter avec l'assistant IA">🤖 IA</button>
+      <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre"><span aria-hidden="true">🌙</span> Nuit</button>
+      <button class="mode-indicator" id="dictate-btn" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro"><span aria-hidden="true">🎤</span> Dictée</button>
+      <button class="mode-indicator" id="ai-chat-btn" title="Discuter avec l'assistant IA"><span aria-hidden="true">🤖</span> IA</button>
       <span class="u-fs-_7rem u-c-v-text-muted" id="dictate-status">Prêt</span>
       <span id="dictate-preview" aria-live="polite"></span>
+      <span class="u-d-flex u-ai-center u-gap-4px" id="sync-status-dot-wrap" title="État de la dernière synchronisation">
+        <span id="sync-status-dot" aria-hidden="true"></span>
+        <span class="u-fs-_66rem u-c-v-text-muted" id="sync-status-label"></span>
+      </span>
       <button class="u-d-none u-bg-linear-gradient-135deg-v-acc-1qh64 u-c-hfff u-bd-none u-p-5px-14px u-br-20px u-cur-pointer u-fs-_72rem u-fwt-700 u-ff-inherit u-shadow-0-2px-8px-rgb19257433" id="install-app-btn" title="Installer Plume comme application sur cet ordinateur">📲 Installer sur le bureau</button>
       <button id="shortcuts-hint-btn" class="mode-indicator u-ml-auto u-p-2px-8px" title="Voir les raccourcis clavier (touche ?)">❔</button>
       <img src="icons/icon-32.png" class="modebar-logo" alt="" width="16" height="16">
@@ -823,6 +909,16 @@
   <button class="cover-swatch u-bg-linear-gradient-135deg-h6d4c-1msqp" data-cover="sepia" title="Sépia"></button>
   <button class="cover-swatch u-bg-linear-gradient-135deg-hee5a-17vu9" data-cover="corail" title="Corail"></button>
   <button class="cover-swatch u-bg-linear-gradient-135deg-h8e7c-1o1k5" data-cover="lavande" title="Lavande"></button>
+  <button class="cover-swatch cover-foret-mystique" data-cover="foret-mystique" title="Forêt Mystique"></button>
+  <button class="cover-swatch cover-or-et-nuit" data-cover="or-et-nuit" title="Or et Nuit"></button>
+  <button class="cover-swatch cover-terre-cuite" data-cover="terre-cuite" title="Terre Cuite"></button>
+  <button class="cover-swatch cover-glacier" data-cover="glacier" title="Glacier"></button>
+  <button class="cover-swatch cover-vin-profond" data-cover="vin-profond" title="Vin Profond"></button>
+  <button class="cover-swatch cover-encre-de-chine" data-cover="encre-de-chine" title="Encre de Chine"></button>
+  <button class="cover-swatch cover-aurore" data-cover="aurore" title="Aurore"></button>
+  <button class="cover-swatch cover-bronze-antique" data-cover="bronze-antique" title="Bronze Antique"></button>
+  <button class="cover-swatch cover-jade" data-cover="jade" title="Jade"></button>
+  <button class="cover-swatch cover-poussiere-etoiles" data-cover="poussiere-etoiles" title="Poussière d'étoiles"></button>
 </div>
 
 <!-- Menu contextuel des chapitres (⋮) — élément unique, hors de la sidebar pour

@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '7.35.1';
+const APP_VERSION = '7.36.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -113,6 +113,28 @@ function needsSyncKeySetup() { return !getSyncKey() && !isSyncSkipped(); }
 // hors-ligne, ou clé de sync non configurée).
 let _lastSyncStatus = { ok: null, ts: null };
 function getLastSyncStatus() { return _lastSyncStatus; }
+// v7.36.0 (ergonomie) — setter centralisé : toute mise à jour du statut de
+// synchro rafraîchit aussi le point de couleur du bandeau du bas, sans
+// avoir à ajouter cet appel à chaque site d'écriture individuellement.
+function setLastSyncStatus(ok) {
+  _lastSyncStatus = { ok, ts: Date.now() };
+  if (typeof renderSyncDot === 'function') renderSyncDot();
+}
+// v7.36.0 (ergonomie) — reflète l'état de la dernière synchro dans un petit
+// point discret du bandeau du bas, sans avoir à ouvrir le panneau Système :
+// gris = pas de clé de synchro configurée sur cet appareil, vert = dernière
+// tentative réussie, rouge = dernière tentative échouée.
+function renderSyncDot() {
+  const dot = document.getElementById('sync-status-dot');
+  const label = document.getElementById('sync-status-label');
+  if (!dot) return;
+  dot.classList.remove('sync-ok','sync-warn','sync-error');
+  if (!getSyncKey()) { label.textContent = ''; dot.title = 'Synchro multi-appareils non configurée'; return; }
+  const status = getLastSyncStatus();
+  if (status.ok === null) { label.textContent = ''; dot.title = 'Aucune synchro tentée depuis l\'ouverture de la page'; return; }
+  if (status.ok) { dot.classList.add('sync-ok'); label.textContent = 'Synchro OK'; dot.title = 'Dernière synchro réussie'; }
+  else { dot.classList.add('sync-error'); label.textContent = 'Échec synchro'; dot.title = 'Dernière tentative de synchro échouée — réessai automatique à la prochaine sauvegarde'; }
+}
 
 // Vérifie une clé auprès du Worker sans rien lire ni écrire de réel (clé
 // technique réservée "__ping__", voir worker/sync-worker.js) — utilisé par
@@ -196,10 +218,10 @@ async function syncPush(key, payload) {
     };
     if (body.length < 60000) opts.keepalive = true;
     const resp = await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), opts);
-    _lastSyncStatus = { ok: resp.ok, ts: Date.now() };
+    setLastSyncStatus(resp.ok);
     if (resp.ok) setKnownRemoteHash(key, newHash);
   } catch(e) {
-    _lastSyncStatus = { ok: false, ts: Date.now() };
+    setLastSyncStatus(false);
     /* hors-ligne ou Worker injoignable : la copie locale suffit, on retentera à la prochaine écriture */
   }
 }
@@ -208,15 +230,15 @@ async function syncPull(key) {
   if (!syncKey) return undefined;
   try {
     const resp = await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), { headers: { 'Authorization': 'Bearer ' + syncKey } });
-    if (!resp.ok) { _lastSyncStatus = { ok: false, ts: Date.now() }; return undefined; }
-    _lastSyncStatus = { ok: true, ts: Date.now() };
+    if (!resp.ok) { setLastSyncStatus(false); return undefined; }
+    setLastSyncStatus(true);
     const data = await resp.json(); // peut être `null` (clé jamais synchronisée) : géré par l'appelant
     // v7.27.0 — on mémorise l'empreinte de ce qu'on vient de lire, pour que la
     // détection de conflit (voir syncPush) sache dès la prochaine écriture
     // locale si quelqu'un d'autre a modifié la donnée entre-temps.
     if (data !== null && data !== undefined) setKnownRemoteHash(key, await sha256Hex(JSON.stringify(data)));
     return data;
-  } catch(e) { _lastSyncStatus = { ok: false, ts: Date.now() }; return undefined; }
+  } catch(e) { setLastSyncStatus(false); return undefined; }
 }
 
 async function persistData(key, payload) {
@@ -269,20 +291,17 @@ let _currentProfileId = null, _currentProfile = null, _dataKey = null;
 let _unsavedChanges = false;
 
 const tabLabels = {
-  'tab-map':'🏗️ Structure','tab-sprint':'⏱️ Sprint',
   'tab-univers':'🌍 Univers ▾','tab-ia-memoire':'🤖 IA & Mémoire ▾',
   'tab-analysegroup':'📊 Analyse ▾','tab-systeme':'🗄️ Système ▾',
-  'tab-config':'⚙️ Config'
+  'tab-config':'⚙️ Config ▾'
 };
 // Descriptifs affichés en infobulle sur chaque onglet (neophytes).
 const tabDescriptions = {
-  'tab-map':'Courbe de tension narrative du roman',
-  'tab-sprint':'Chronomètre pour une session d\'écriture concentrée',
   'tab-univers':'Personnages, lieux, quêtes, chronologie et relations',
   'tab-ia-memoire':'Assistance IA et mémoire narrative du roman',
-  'tab-analysegroup':'Statistiques, mots-clés et analyse détaillée du texte',
+  'tab-analysegroup':'Statistiques, mots-clés, structure et analyse détaillée du texte',
   'tab-systeme':'Versions et plugins',
-  'tab-config':'Mots faibles, objectifs d\'écriture, profil'
+  'tab-config':'Apparence, sprint, objectifs d\'écriture, profil'
 };
 
 // ═══════════════════════════════════════════════════════
@@ -332,12 +351,18 @@ function initApp(){
   // v7.10.0 : la vue Chapitres (Liste/Fiches) revient toujours sur Liste à
   // l'ouverture d'un manuscrit — ce n'est pas une préférence mémorisée.
   setChapterViewMode('list');
+  // v7.36.0 (ergonomie) — même principe pour la vue Personnages/Lieux.
+  setUniverseViewMode('list');
   renderTabs();renderChapterList();loadChapter(0);updateDailyStats();
   renderLibrary('chars');renderLibrary('places');renderQuests();renderWeakWords();initGoalUI();
   resumeSprintIfNeeded();
   purgeOldTrash();
   updateTrashBadge();
   renderAppearanceUI();
+  applyProjectTypeTerminology();
+  renderSyncDot();
+  updateEstimatedFinishDate();
+  maybeStartOnboardingTour();
 
   const ctx=document.getElementById('tensionChart').getContext('2d');
   if (tensionChart) { tensionChart.destroy(); tensionChart = null; }
@@ -405,6 +430,8 @@ function wireAppEventListenersOnce(){
   document.getElementById('add-quest-btn').addEventListener('click',addQuest);
   document.getElementById('add-char-btn').addEventListener('click',()=>addItem('chars'));
   document.getElementById('add-place-btn').addEventListener('click',()=>addItem('places'));
+  document.querySelectorAll('.uni-view-list-btn').forEach(b=>b.addEventListener('click',()=>setUniverseViewMode('list')));
+  document.querySelectorAll('.uni-view-cards-btn').forEach(b=>b.addEventListener('click',()=>setUniverseViewMode('cards')));
   document.getElementById('open-trash-btn').addEventListener('click',openTrash);
   document.getElementById('trash-close-btn').addEventListener('click',closeTrash);
   document.getElementById('reading-mode-btn').addEventListener('click',enterReadingMode);
@@ -461,7 +488,19 @@ function wireAppEventListenersOnce(){
   document.getElementById('daily-goal-input').addEventListener('input',e=>{db.dailyGoal=parseInt(e.target.value)||500;debouncedSave();updateDailyStats();});
   document.getElementById('weekly-goal-input').addEventListener('input',e=>{db.weeklyGoal=parseInt(e.target.value)||3000;debouncedSave();updateGoalsUI();});
   document.getElementById('monthly-goal-input').addEventListener('input',e=>{db.monthlyGoal=parseInt(e.target.value)||12000;debouncedSave();updateGoalsUI();});
-  document.getElementById('manuscript-goal-input').addEventListener('input',e=>{db.wordGoal=parseInt(e.target.value)||0;debouncedSave();});
+  document.getElementById('manuscript-goal-input').addEventListener('input',e=>{db.wordGoal=parseInt(e.target.value)||0;debouncedSave();updateEstimatedFinishDate();});
+  document.getElementById('project-type-sel').addEventListener('change',e=>selectProjectType(e.target.value));
+  document.getElementById('chapter-notes-toggle-btn').addEventListener('click',()=>{
+    document.getElementById('chapter-notes-panel').classList.toggle('u-d-none');
+  });
+  document.getElementById('chapter-word-goal-input').addEventListener('input',e=>{
+    db.chapters[cur].wordGoal=parseInt(e.target.value)||0;debouncedSave();updateChapterWordGoalProgress();
+  });
+  document.getElementById('chapter-research-notes').addEventListener('input',e=>{
+    db.chapters[cur].researchNotes=e.target.value;debouncedSave();
+  });
+  document.getElementById('onboarding-tour-skip-btn').addEventListener('click',endOnboardingTour);
+  document.getElementById('onboarding-tour-next-btn').addEventListener('click',onboardingNext);
   // v7.0.0 — profils
   document.getElementById('my-profile-btn').addEventListener('click',openMyProfile);
   document.getElementById('logout-btn').addEventListener('click',logout);

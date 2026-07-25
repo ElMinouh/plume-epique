@@ -38,7 +38,20 @@ const COVER_PALETTES = {
   'nuit-etoilee':   { label:'Nuit Étoilée',      a:'#16213e', b:'#6a3093' },
   'sepia':          { label:'Sépia',             a:'#6d4c41', b:'#3e2723' },
   'corail':         { label:'Corail',            a:'#ee5a6f', b:'#f29263' },
-  'lavande':        { label:'Lavande',           a:'#8e7cc3', b:'#5b3a8e' }
+  'lavande':        { label:'Lavande',           a:'#8e7cc3', b:'#5b3a8e' },
+  // v7.36.0 (ergonomie) — 10 couvertures supplémentaires, avec un motif léger
+  // en surimpression (voir classes .cover-motif-* dans style.css) plutôt que
+  // des dégradés unis pour certaines d'entre elles.
+  'foret-mystique': { label:'Forêt Mystique',      a:'#1b4332', b:'#081c15', motif:'hachures' },
+  'or-et-nuit':     { label:'Or et Nuit',          a:'#1a1a3e', b:'#c9a227', motif:'etoiles' },
+  'terre-cuite':    { label:'Terre Cuite',         a:'#c98a5e', b:'#7a4a2b', motif:'lin' },
+  'glacier':        { label:'Glacier',             a:'#a9d6e5', b:'#468faf', motif:'givre' },
+  'vin-profond':    { label:'Vin Profond',         a:'#5e1a33', b:'#2c0a17', motif:'grain' },
+  'encre-de-chine': { label:'Encre de Chine',      a:'#2b2b2b', b:'#0a0a0a', motif:'pinceau' },
+  'aurore':         { label:'Aurore',              a:'#e07a9e', b:'#5b2a86', motif:'vagues' },
+  'bronze-antique': { label:'Bronze Antique',      a:'#a97142', b:'#4a3220', motif:'croisillons' },
+  'jade':           { label:'Jade',                a:'#0b6e4f', b:'#093824' },
+  'poussiere-etoiles': { label:'Poussière d\'étoiles', a:'#241654', b:'#4b2e83', motif:'etoiles' }
 };
 let _coverPickerDocId = null;
 function closeCoverPicker() {
@@ -574,9 +587,14 @@ async function deleteDocument(docId) {
   const entry = list.documents.find(d => d.id === docId);
   if (!entry) return;
   const title = entry.title || 'Sans titre';
-  const confirmTitle = prompt(`⚠️ SUPPRESSION DÉFINITIVE\n\nCela effacera le manuscrit « ${title} » ainsi que tous ses chapitres, sans possibilité de récupération.\n\nPour confirmer, tapez exactement le titre du manuscrit :`);
-  if (confirmTitle === null) return;
-  if (confirmTitle.trim().toLowerCase() !== title.toLowerCase()) { toast('Titre incorrect, suppression annulée.', 'error'); return; }
+  const ok = await showConfirmModal({
+    title: 'Supprimer ce manuscrit ?',
+    message: `« ${title} » et tous ses chapitres seront effacés définitivement, sans possibilité de récupération.`,
+    confirmLabel: 'Supprimer définitivement',
+    danger: true,
+    requireText: title
+  });
+  if (!ok) return;
   await persistData(docDataKey(_currentProfileId, docId), null);
   await cleanupDocumentSideData(_currentProfileId, docId);
   list.documents = list.documents.filter(d => d.id !== docId);

@@ -143,6 +143,10 @@ mark{background-color:rgba(192,57,43,.22);color:var(--text);border-radius:3px;}
 #save-indicator{display:inline-block;width:8px;height:8px;border-radius:50%;
   background:var(--save-glow);opacity:0;transition:opacity .4s;}
 #mode-bar{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;position:relative;}
+#sync-status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:#7f8c8d;}
+#sync-status-dot.sync-ok{background:#27ae60;}
+#sync-status-dot.sync-warn{background:#e67e22;}
+#sync-status-dot.sync-error{background:#e74c3c;}
 #dictate-preview{position:absolute;bottom:100%;left:0;margin-bottom:4px;font-size:.72rem;font-style:italic;
   color:var(--text-muted,inherit);opacity:.85;pointer-events:none;max-width:90%;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;}
@@ -314,6 +318,14 @@ select.gate-field{height:38px;}
   background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
   align-items:center;justify-content:center;}
 #trash-overlay.active,#export-select-overlay.active,#shortcuts-overlay.active,#docx-import-overlay.active,#library-system-overlay.active{display:flex;}
+#confirm-modal-overlay{display:none;position:fixed;inset:0;z-index:9500;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;}
+#confirm-modal-overlay.active{display:flex;}
+#onboarding-tour-bubble{display:none;position:fixed;z-index:9200;width:260px;
+  background:var(--glass);border:1px solid var(--border);border-radius:12px;
+  padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);}
+#onboarding-tour-bubble.active{display:block;}
 .shortcut-row{display:flex;justify-content:space-between;align-items:center;gap:10px;
   padding:6px 0;border-bottom:1px solid var(--border);font-size:.82rem;}
 .shortcut-row:last-child{border-bottom:none;}
@@ -499,6 +511,22 @@ body.library-mode #library-screen{display:block;}
   display:flex;align-items:center;justify-content:center;}
 .lib-book:hover .lib-book-kebab,.lib-book.menu-open .lib-book-kebab,.lib-book-kebab:focus-visible{opacity:1;}
 .lib-book-kebab:hover{background:rgba(0,0,0,.75);}
+
+/* ── Vue "Cartes" Personnages/Lieux (nouveau v7.36.0, ergonomie) — même
+   langage visuel que l'étagère de la bibliothèque (dos coloré, filets dorés,
+   titre centré), en plus compact et sans écriture verticale (lecture rapide
+   d'une liste de personnages/lieux). ── */
+.uni-cards-view{display:none;flex-wrap:wrap;gap:12px;padding:6px 2px;max-height:260px;overflow-y:auto;}
+.uni-card{position:relative;width:96px;height:130px;border-radius:10px 10px 4px 4px;cursor:pointer;
+  box-shadow:inset 3px 0 5px rgba(255,255,255,.18),inset -4px 0 6px rgba(0,0,0,.3),2px 3px 6px rgba(0,0,0,.3);
+  display:flex;flex-direction:column;justify-content:space-between;padding:10px 8px;transition:transform .12s;}
+.uni-card:hover,.uni-card:focus-visible{transform:translateY(-4px);}
+.uni-card-band{height:2px;border-radius:1px;background:linear-gradient(90deg,#a8823a,#e8c97a 50%,#a8823a);
+  box-shadow:0 1px 2px rgba(0,0,0,.3);}
+.uni-card-title{font-size:.72rem;font-weight:700;color:rgba(255,255,255,.92);text-align:center;
+  text-shadow:0 1px 2px rgba(0,0,0,.35);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.uni-card-add{background:rgba(201,162,75,.12);border:1.5px dashed #c9a24b;color:#e8d9b8;
+  align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;box-shadow:none;}
 
 
 /* ── Menus déroulants de la barre d'outils (v7.4.0) ── */
@@ -900,6 +928,29 @@ body.library-mode #library-screen{display:block;}
 .lib-book.shelf-cover-sepia{background:linear-gradient(160deg,#6d4c41,#3e2723)}
 .lib-book.shelf-cover-corail{background:linear-gradient(160deg,#ee5a6f,#f29263)}
 .lib-book.shelf-cover-lavande{background:linear-gradient(160deg,#8e7cc3,#5b3a8e)}
+
+/* v7.36.0 (ergonomie) — 10 couvertures supplémentaires, motifs légers en
+   surimpression (le premier calque listé passe au-dessus du dégradé). */
+.library-cover.cover-foret-mystique,.cover-swatch.cover-foret-mystique{background:repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0,rgba(255,255,255,.05) 2px,transparent 2px,transparent 10px),linear-gradient(135deg,#1b4332,#081c15)}
+.library-cover.cover-or-et-nuit,.cover-swatch.cover-or-et-nuit{background:radial-gradient(rgba(255,255,255,.18) 1px,transparent 1.5px) 0 0/16px 16px,linear-gradient(135deg,#1a1a3e,#c9a227)}
+.library-cover.cover-terre-cuite,.cover-swatch.cover-terre-cuite{background:repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0,rgba(255,255,255,.05) 1px,transparent 1px,transparent 6px),linear-gradient(135deg,#c98a5e,#7a4a2b)}
+.library-cover.cover-glacier,.cover-swatch.cover-glacier{background:repeating-linear-gradient(45deg,rgba(255,255,255,.14) 0,rgba(255,255,255,.14) 1px,transparent 1px,transparent 8px),linear-gradient(135deg,#a9d6e5,#468faf)}
+.library-cover.cover-vin-profond,.cover-swatch.cover-vin-profond{background:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px) 0 0/6px 6px,linear-gradient(135deg,#5e1a33,#2c0a17)}
+.library-cover.cover-encre-de-chine,.cover-swatch.cover-encre-de-chine{background:repeating-linear-gradient(120deg,rgba(255,255,255,.04) 0,rgba(255,255,255,.04) 4px,transparent 4px,transparent 16px),linear-gradient(135deg,#2b2b2b,#0a0a0a)}
+.library-cover.cover-aurore,.cover-swatch.cover-aurore{background:repeating-linear-gradient(100deg,rgba(255,255,255,.07) 0,rgba(255,255,255,.07) 3px,transparent 3px,transparent 20px),linear-gradient(135deg,#e07a9e,#5b2a86)}
+.library-cover.cover-bronze-antique,.cover-swatch.cover-bronze-antique{background:repeating-linear-gradient(45deg,rgba(255,255,255,.06) 0,rgba(255,255,255,.06) 1px,transparent 1px,transparent 12px),repeating-linear-gradient(-45deg,rgba(255,255,255,.06) 0,rgba(255,255,255,.06) 1px,transparent 1px,transparent 12px),linear-gradient(135deg,#a97142,#4a3220)}
+.library-cover.cover-jade,.cover-swatch.cover-jade{background:linear-gradient(135deg,#0b6e4f,#093824)}
+.library-cover.cover-poussiere-etoiles,.cover-swatch.cover-poussiere-etoiles{background:radial-gradient(rgba(255,255,255,.2) 1px,transparent 1.5px) 0 0/18px 18px,linear-gradient(135deg,#241654,#4b2e83)}
+.lib-book.shelf-cover-foret-mystique{background:repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0,rgba(255,255,255,.05) 2px,transparent 2px,transparent 10px),linear-gradient(160deg,#1b4332,#081c15)}
+.lib-book.shelf-cover-or-et-nuit{background:radial-gradient(rgba(255,255,255,.18) 1px,transparent 1.5px) 0 0/16px 16px,linear-gradient(160deg,#1a1a3e,#c9a227)}
+.lib-book.shelf-cover-terre-cuite{background:repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0,rgba(255,255,255,.05) 1px,transparent 1px,transparent 6px),linear-gradient(160deg,#c98a5e,#7a4a2b)}
+.lib-book.shelf-cover-glacier{background:repeating-linear-gradient(45deg,rgba(255,255,255,.14) 0,rgba(255,255,255,.14) 1px,transparent 1px,transparent 8px),linear-gradient(160deg,#a9d6e5,#468faf)}
+.lib-book.shelf-cover-vin-profond{background:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px) 0 0/6px 6px,linear-gradient(160deg,#5e1a33,#2c0a17)}
+.lib-book.shelf-cover-encre-de-chine{background:repeating-linear-gradient(120deg,rgba(255,255,255,.04) 0,rgba(255,255,255,.04) 4px,transparent 4px,transparent 16px),linear-gradient(160deg,#2b2b2b,#0a0a0a)}
+.lib-book.shelf-cover-aurore{background:repeating-linear-gradient(100deg,rgba(255,255,255,.07) 0,rgba(255,255,255,.07) 3px,transparent 3px,transparent 20px),linear-gradient(160deg,#e07a9e,#5b2a86)}
+.lib-book.shelf-cover-bronze-antique{background:repeating-linear-gradient(45deg,rgba(255,255,255,.06) 0,rgba(255,255,255,.06) 1px,transparent 1px,transparent 12px),repeating-linear-gradient(-45deg,rgba(255,255,255,.06) 0,rgba(255,255,255,.06) 1px,transparent 1px,transparent 12px),linear-gradient(160deg,#a97142,#4a3220)}
+.lib-book.shelf-cover-jade{background:linear-gradient(160deg,#0b6e4f,#093824)}
+.lib-book.shelf-cover-poussiere-etoiles{background:radial-gradient(rgba(255,255,255,.2) 1px,transparent 1.5px) 0 0/18px 18px,linear-gradient(160deg,#241654,#4b2e83)}
 /* Message vide de la chronologie + bouton × d'un événement (timeline.js) —
    remplacent un style="..." et un .style.cssText='...' (bloqués par la CSP
    style-src sans 'unsafe-inline'). */

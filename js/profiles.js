@@ -443,9 +443,14 @@ async function adminDeleteProfile(pid) {
   const admins = idx.profiles.filter(p => p.role === 'admin');
   if (profil.role === 'admin' && admins.length <= 1) { toast('Impossible de supprimer le dernier administrateur.', 'error'); return; }
 
-  const confirmName = prompt(`⚠️ SUPPRESSION DÉFINITIVE\n\nCela effacera le profil « ${profil.name} » ET tous ses manuscrits, sans possibilité de récupération.\n\nPour confirmer, tapez exactement le nom du profil :`);
-  if (confirmName === null) return;
-  if (confirmName.trim().toLowerCase() !== profil.name.toLowerCase()) { toast('Nom incorrect, suppression annulée.', 'error'); return; }
+  const ok = await showConfirmModal({
+    title: 'Supprimer ce profil ?',
+    message: `Cela effacera le profil « ${profil.name} » ET tous ses manuscrits, sans possibilité de récupération.`,
+    confirmLabel: 'Supprimer définitivement',
+    danger: true,
+    requireText: profil.name
+  });
+  if (!ok) return;
 
   const docList = await loadData(docListKey(pid));
   if (docList && Array.isArray(docList.documents)) {

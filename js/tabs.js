@@ -59,8 +59,9 @@ const SUBTAB_PARENTS = {
   'tab-chars':'tab-univers','tab-places':'tab-univers','tab-quests':'tab-univers',
   'tab-timeline':'tab-univers','tab-graph':'tab-univers',
   'tab-ai':'tab-ia-memoire','tab-memory':'tab-ia-memoire',
-  'tab-stats':'tab-analysegroup','tab-wordcloud':'tab-analysegroup','tab-analytics':'tab-analysegroup',
-  'tab-snaps':'tab-systeme','tab-history':'tab-systeme','tab-plugins':'tab-systeme'
+  'tab-stats':'tab-analysegroup','tab-wordcloud':'tab-analysegroup','tab-analytics':'tab-analysegroup','tab-map':'tab-analysegroup',
+  'tab-snaps':'tab-systeme','tab-history':'tab-systeme','tab-plugins':'tab-systeme',
+  'tab-config-main':'tab-config','tab-sprint':'tab-config'
 };
 // Rendu paresseux d'un sous-onglet (identique à ce que faisait toggleTab()
 // avant le regroupement en catégories).
@@ -73,9 +74,11 @@ function renderSubtabContent(id){
   if(id==='tab-stats')renderStats();
   if(id==='tab-wordcloud')renderWordCloud();
   if(id==='tab-analytics')renderAnalytics();
+  if(id==='tab-map')updateChart();
   if(id==='tab-history')renderHistoryTab();
   if(id==='tab-plugins')renderPlugins();
   if(id==='tab-memory'){ if(!_indexBuilt) document.getElementById('memory-index-status').textContent='Pas encore indexé.'; }
+  if(id==='tab-config-main'){renderWeakWords();initGoalUI();}
 }
 function activeSubtabId(categoryEl){
   const activeBtn = categoryEl && categoryEl.querySelector('.subtab-btn.active');
@@ -121,7 +124,6 @@ function toggleTab(id,btn,forceOpen){
     btn.classList.add('active');
     const contentEl=document.getElementById(id);
     contentEl.classList.add('active');cont.classList.add('open');
-    if(id==='tab-map')updateChart();
     if(id==='tab-config'){renderWeakWords();initGoalUI();}
     // Catégories groupées (Univers, IA & Mémoire, Analyse, Système) : rendre
     // le sous-onglet actuellement actif (le premier par défaut).

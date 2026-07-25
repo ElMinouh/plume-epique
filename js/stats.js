@@ -27,6 +27,7 @@ function updateDailyStats() {
     toast('🎉 Objectif journalier atteint !','success');
   }
   updateGoalsUI(totalW);
+  updateEstimatedFinishDate();
 }
 let _goalCelebratedDay = null;
 
@@ -52,12 +53,30 @@ function getWordsInLastNDays(n, totalW) {
 function updateGoalsUI(totalW) {
   totalW = totalW ?? db.chapters.reduce((s,c) => s + getWordCount(c.content), 0);
   const weekW = getWordsInLastNDays(7, totalW), monthW = getWordsInLastNDays(30, totalW);
-  const wGoal = db.weeklyGoal || 3000, mGoal = db.monthlyGoal || 12000;
-  const wPct = Math.min(100, Math.round(weekW/wGoal*100)), mPct = Math.min(100, Math.round(monthW/mGoal*100));
+  const wGoal = db.weeklyGoal || 3000, mGoal = db.monthlyGoal || 12000;  const wPct = Math.min(100, Math.round(weekW/wGoal*100)), mPct = Math.min(100, Math.round(monthW/mGoal*100));
   const wBar = document.getElementById('week-goal-bar'); if (wBar) wBar.style.width = wPct+'%';
   const wLbl = document.getElementById('week-goal-label'); if (wLbl) wLbl.textContent = `${weekW} / ${wGoal} mots (${wPct}%)`;
   const mBar = document.getElementById('month-goal-bar'); if (mBar) mBar.style.width = mPct+'%';
   const mLbl = document.getElementById('month-goal-label'); if (mLbl) mLbl.textContent = `${monthW} / ${mGoal} mots (${mPct}%)`;
+}
+
+// v7.36.0 (ergonomie) — À partir de l'objectif de mots du manuscrit et du
+// rythme réel des 7 derniers jours (déjà calculé par getWordsInLastNDays,
+// utilisé par ailleurs pour l'objectif hebdomadaire), estime une date de
+// fin réaliste. Purement indicatif : aucune donnée persistée.
+function updateEstimatedFinishDate() {
+  const el = document.getElementById('finish-date-estimate');
+  if (!el) return;
+  const goal = db.wordGoal || 0;
+  if (!goal) { el.textContent = ''; return; }
+  const totalW = db.chapters.reduce((s,c) => s + getWordCount(c.content), 0);
+  const remaining = goal - totalW;
+  if (remaining <= 0) { el.textContent = '🎉 Objectif de mots déjà atteint !'; return; }
+  const pace = getWordsInLastNDays(7, totalW) / 7;
+  if (pace <= 0) { el.textContent = `Il reste ${remaining} mots pour atteindre l'objectif (pas assez d'activité récente pour estimer une date).`; return; }
+  const daysNeeded = Math.ceil(remaining / pace);
+  const finish = new Date(); finish.setDate(finish.getDate() + daysNeeded);
+  el.textContent = `À ce rythme (${Math.round(pace)} mots/jour en moyenne) : terminé vers le ${finish.toLocaleDateString('fr',{day:'numeric',month:'long',year: finish.getFullYear()!==new Date().getFullYear()?'numeric':undefined})}.`;
 }
 
 // ═══════════════════════════════════════════════════════
