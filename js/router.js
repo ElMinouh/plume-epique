@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '7.39.2';
+const APP_VERSION = '7.39.3';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -254,6 +254,32 @@ async function syncPull(key) {
 // plus récente que ce que répond le Worker, et on la laisse intacte.
 const _localWriteVersion = {};
 
+// Correction (bug rapporté, persistant) : le garde-fou ci-dessus protège
+// contre UNE écriture locale survenue pendant l'attente du Worker, mais pas
+// contre deux envois (syncPush) lancés coup sur coup vers LA MÊME clé : ils
+// partaient jusqu'ici en parallèle, sans aucune garantie que le serveur les
+// reçoive dans l'ordre d'envoi. Si le second (le bon) arrivait avant le
+// premier (périmé), celui-ci l'écrasait ensuite silencieusement sur le
+// Worker — et le rafraîchissement en arrière-plan de loadData() rapatriait
+// alors cette version périmée, puisqu'aucune NOUVELLE écriture locale
+// n'avait forcément eu lieu entre-temps pour déclencher le garde-fou
+// existant (cas typique : changer 2 couvertures coup sur coup, ou changer
+// une couverture puis rouvrir/refermer un manuscrit juste après).
+// _pushChains sérialise les envois par clé (chacun attend que le précédent
+// soit terminé) ; _pendingPushCount compte les envois encore en cours par
+// clé, pour que loadData() n'applique jamais un rafraîchissement pendant
+// qu'un envoi est encore en vol pour cette même clé.
+const _pushChains = {}, _pendingPushCount = {};
+function queueSyncPush(key, payload) {
+  _pendingPushCount[key] = (_pendingPushCount[key] || 0) + 1;
+  const previous = _pushChains[key] || Promise.resolve();
+  const run = previous.then(() => syncPush(key, payload), () => syncPush(key, payload));
+  _pushChains[key] = run.then(() => {}, () => {});
+  run.then(() => { _pendingPushCount[key] = Math.max(0, (_pendingPushCount[key] || 0) - 1); },
+           () => { _pendingPushCount[key] = Math.max(0, (_pendingPushCount[key] || 0) - 1); });
+  return run;
+}
+
 async function persistData(key, payload) {
   _localWriteVersion[key] = (_localWriteVersion[key] || 0) + 1;
   if (idbStore) await idbStore.put('data', payload, key);
@@ -261,7 +287,7 @@ async function persistData(key, payload) {
     if (payload === null) localStorage.removeItem('plume_' + key);
     else localStorage.setItem('plume_' + key, JSON.stringify(payload));
   }
-  syncPush(key, payload);
+  queueSyncPush(key, payload);
 }
 async function loadData(key) {
   let local;
@@ -278,7 +304,9 @@ async function loadData(key) {
     // et on rafraîchit le cache local en arrière-plan pour la prochaine fois.
     const versionAtPullStart = _localWriteVersion[key] || 0;
     syncPull(key).then(remote => {
-      if (remote !== undefined && remote !== null && idbStore && (_localWriteVersion[key] || 0) === versionAtPullStart) {
+      if (remote !== undefined && remote !== null && idbStore
+          && (_localWriteVersion[key] || 0) === versionAtPullStart
+          && !(_pendingPushCount[key] > 0)) {
         idbStore.put('data', remote, key);
       }
     });
