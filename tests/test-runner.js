@@ -6,6 +6,23 @@
 // (le vrai DOMPurify n'apporte rien à ces tests et alourdirait ce fichier autonome).
 if (typeof DOMPurify === 'undefined') { window.DOMPurify = { sanitize: s => s }; }
 
+// Stub DOM minimal pour showConfirmModal() (notifications.js, v7.36.0) —
+// remplace prompt()/confirm() natifs dans adminDeleteProfile() ; reproduit
+// uniquement les éléments requis par la fonction, pas le panneau visuel réel.
+document.body.insertAdjacentHTML('beforeend', `
+  <div id="toast"></div>
+  <div id="confirm-modal-overlay">
+    <strong id="confirm-modal-title"></strong>
+    <p id="confirm-modal-message"></p>
+    <div id="confirm-modal-input-wrap" class="u-d-none">
+      <label id="confirm-modal-input-label"></label>
+      <input id="confirm-modal-input">
+    </div>
+    <button id="confirm-modal-cancel-btn"></button>
+    <button id="confirm-modal-confirm-btn"></button>
+  </div>
+`);
+
 // ── Environnement minimal simulé pour tester profiles.js sans charger
 // tout router.js (qui a des effets de bord au chargement — voir ADR-6) ──
 let db, cur, _currentProfileId, _currentProfile, _dataKey, _encPassword;
@@ -198,11 +215,14 @@ function group(title) {
   assert(idx.profiles.some(pr => pr.id === p1.id), "le dernier administrateur ne peut pas être supprimé");
   _currentProfileId = savedCurrentId;
 
-  // Suppression réussie d'un profil non-admin avec confirmation correcte.
-  const realPrompt = window.prompt;
-  window.prompt = () => 'Marie';
-  await adminDeleteProfile(marie.id);
-  window.prompt = realPrompt;
+  // Suppression réussie d'un profil non-admin avec confirmation correcte
+  // (interaction avec la modale stylée — voir showConfirmModal(), notifications.js).
+  const delPromise = adminDeleteProfile(marie.id);
+  const cmInput = document.getElementById('confirm-modal-input');
+  cmInput.value = 'Marie';
+  cmInput.dispatchEvent(new Event('input'));
+  document.getElementById('confirm-modal-confirm-btn').click();
+  await delPromise;
   idx = await loadProfilesIndex();
   assert(!idx.profiles.some(pr => pr.id === marie.id), 'le profil "Marie" est supprimé après confirmation correcte');
   const marieData = await loadData('data_' + marie.id);
