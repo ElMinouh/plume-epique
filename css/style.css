@@ -33,7 +33,7 @@
      tour 9200 < priorité absolue 9500-9999 < recherche globale 10000 <
      toast 20000 < gate de connexion 99999). Les valeurs ne sont donc PAS
      renumérotées ici (risque de casser cet ordre) ; voir le commentaire
-     juste avant chaque #xxx-overlay dans ce fichier pour son palier.
+     juste avant chaque #xxx-overlay dans ce fichier pour son palier. */
 }
 body.dark-mode {
   --glass:rgba(22,22,35,0.98); --grad:linear-gradient(135deg,#0d0d1a 0%,#1a1a2e 100%);
