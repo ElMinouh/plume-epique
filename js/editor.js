@@ -432,6 +432,14 @@ function changeCh(i) {
   _switching = true;
   flushCurrentChapter(); cur = i; renderChapterList(); loadChapter(cur); updateDailyStats();
   _switching = false;
+  // v7.41.1 — Sur mobile, le panneau chapitres est un tiroir replié par
+  // défaut (voir style.css/router.js) : on le referme après sélection pour
+  // rendre tout de suite la place à l'écriture. Sans effet sur desktop (la
+  // classe .open y est ignorée par le CSS).
+  const body = document.getElementById('chapter-sidebar-body');
+  if (body) body.classList.remove('open');
+  const toggleBtn = document.getElementById('chapter-sidebar-toggle-btn');
+  if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
 }
 function addChapter() {
   commitUndoSnapshot();

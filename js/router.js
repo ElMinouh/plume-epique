@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '7.41.0';
+const APP_VERSION = '7.42.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -476,6 +476,16 @@ function wireAppEventListenersOnce(){
   document.getElementById('document-title').addEventListener('blur',e=>updateDocumentTitle(e.target.innerText.trim()));
   document.getElementById('back-to-library-btn').addEventListener('click',backToLibrary);
   document.getElementById('editor-home-btn').addEventListener('click',goHome);
+  // v7.41.1 — Tiroir repliable du panneau chapitres (mobile uniquement,
+  // voir style.css) : n'a aucun effet visuel sur desktop, où ce bouton est
+  // masqué (u-d-none) et #chapter-sidebar-body toujours visible.
+  document.getElementById('chapter-sidebar-toggle-btn').addEventListener('click', () => {
+    const body = document.getElementById('chapter-sidebar-body');
+    const btn = document.getElementById('chapter-sidebar-toggle-btn');
+    const nowOpen = !body.classList.contains('open');
+    body.classList.toggle('open', nowOpen);
+    btn.setAttribute('aria-expanded', String(nowOpen));
+  });
   // Mise en forme riche (nouveau V56)
   document.getElementById('fmt-bold-btn').addEventListener('click',()=>formatText('bold'));
   document.getElementById('fmt-italic-btn').addEventListener('click',()=>formatText('italic'));

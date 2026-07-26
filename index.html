@@ -752,24 +752,36 @@
 
 <main role="main">
   <aside id="chapter-sidebar" aria-label="Chapitres">
-    <div id="document-title" contenteditable="true" role="textbox" aria-label="Titre du manuscrit" title="Cliquez pour renommer votre manuscrit"></div>
-    <div class="u-d-flex u-gap-6px u-mb-6px">
-      <button class="action-btn btn-sm u-bg-h7f8c8d u-flex-1" id="back-to-library-btn" title="Retourner à la liste de tous vos manuscrits">📚 Ma bibliothèque</button>
-      <button class="action-btn btn-sm u-bg-h7f8c8d u-flex-1" id="editor-home-btn" title="Retourner à l'écran de connexion">🏠 Accueil</button>
+    <div class="u-d-flex u-ai-center u-gap-6px">
+      <div id="document-title" class="u-fg-1" contenteditable="true" role="textbox" aria-label="Titre du manuscrit" title="Cliquez pour renommer votre manuscrit"></div>
+      <!-- v7.41.1 — Chantier Responsive Mobile, écran 3/N. Sur mobile, le
+           panneau ci-dessous (#chapter-sidebar-body) est replié par défaut
+           derrière ce bouton : il prenait jusqu'ici toute la hauteur
+           disponible (titre, boutons, liste, stats), au point d'écraser la
+           liste des chapitres elle-même à une hauteur nulle et invisible
+           (bug rapporté avec capture d'écran). Cache aussi sur desktop
+           (u-d-none), où le panneau reste toujours visible comme avant. -->
+      <button class="u-d-none" id="chapter-sidebar-toggle-btn" title="Afficher/masquer le panneau chapitres" aria-label="Afficher/masquer le panneau chapitres" aria-expanded="false">☰</button>
     </div>
-    <div class="u-d-flex u-gap-6px">
-      <button class="action-btn u-fg-1" id="add-chapter-btn" title="Ajouter un nouveau chapitre à ce manuscrit">+ Chapitre</button>
-      <button class="action-btn u-bg-h7f8c8d" id="open-trash-btn" title="Voir les chapitres supprimés (récupérables 30 jours)">🗑️<span class="trash-badge" id="trash-badge" aria-hidden="true"></span></button>
-    </div>
-    <div class="ch-view-toggle" role="group" aria-label="Vue des chapitres">
-      <button class="mode-indicator active" id="view-list-btn" title="Liste des chapitres">☰ Liste</button>
-      <button class="mode-indicator" id="view-cork-btn" title="Vue en tableau de fiches">🗂️ Fiches</button>
-    </div>
-    <div class="chapter-list-container" id="chapter-list" role="list"></div>
-    <div class="sidebar-stats">
-      📝 <strong id="total-words">0</strong> mots &nbsp;|&nbsp; 📅 <strong id="today-words">0</strong> aujourd'hui
-      <div class="daily-bar-wrap"><div class="daily-bar" id="sidebar-goal-bar"></div></div>
-      Tension : <input type="range" id="tension-slider" min="0" max="100" value="20" aria-label="Tension">
+    <div id="chapter-sidebar-body">
+      <div class="u-d-flex u-gap-6px u-mb-6px">
+        <button class="action-btn btn-sm u-bg-h7f8c8d u-flex-1" id="back-to-library-btn" title="Retourner à la liste de tous vos manuscrits">📚 Ma bibliothèque</button>
+        <button class="action-btn btn-sm u-bg-h7f8c8d u-flex-1" id="editor-home-btn" title="Retourner à l'écran de connexion">🏠 Accueil</button>
+      </div>
+      <div class="u-d-flex u-gap-6px">
+        <button class="action-btn u-fg-1" id="add-chapter-btn" title="Ajouter un nouveau chapitre à ce manuscrit">+ Chapitre</button>
+        <button class="action-btn u-bg-h7f8c8d" id="open-trash-btn" title="Voir les chapitres supprimés (récupérables 30 jours)">🗑️<span class="trash-badge" id="trash-badge" aria-hidden="true"></span></button>
+      </div>
+      <div class="ch-view-toggle" role="group" aria-label="Vue des chapitres">
+        <button class="mode-indicator active" id="view-list-btn" title="Liste des chapitres">☰ Liste</button>
+        <button class="mode-indicator" id="view-cork-btn" title="Vue en tableau de fiches">🗂️ Fiches</button>
+      </div>
+      <div class="chapter-list-container" id="chapter-list" role="list"></div>
+      <div class="sidebar-stats">
+        📝 <strong id="total-words">0</strong> mots &nbsp;|&nbsp; 📅 <strong id="today-words">0</strong> aujourd'hui
+        <div class="daily-bar-wrap"><div class="daily-bar" id="sidebar-goal-bar"></div></div>
+        Tension : <input type="range" id="tension-slider" min="0" max="100" value="20" aria-label="Tension">
+      </div>
     </div>
   </aside>
   <div id="editor-wrapper">
@@ -906,9 +918,9 @@
     <div id="mode-bar">
       <div id="save-indicator" aria-hidden="true"></div>
       <span class="u-fs-_7rem u-c-v-text-muted" id="autosave-label"></span>
-      <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre"><span aria-hidden="true">🌙</span> Nuit</button>
-      <button class="mode-indicator" id="dictate-btn" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro"><span aria-hidden="true">🎤</span> Dictée</button>
-      <button class="mode-indicator" id="ai-chat-btn" title="Discuter avec l'assistant IA"><span aria-hidden="true">🤖</span> IA</button>
+      <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre"><span aria-hidden="true">🌙</span><span class="mb-label"> Nuit</span></button>
+      <button class="mode-indicator" id="dictate-btn" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro"><span aria-hidden="true">🎤</span><span class="mb-label"> Dictée</span></button>
+      <button class="mode-indicator" id="ai-chat-btn" title="Discuter avec l'assistant IA"><span aria-hidden="true">🤖</span><span class="mb-label"> IA</span></button>
       <span class="u-fs-_7rem u-c-v-text-muted" id="dictate-status">Prêt</span>
       <span id="dictate-preview" aria-live="polite"></span>
       <span class="u-d-flex u-ai-center u-gap-4px" id="sync-status-dot-wrap" title="État de la dernière synchronisation">
