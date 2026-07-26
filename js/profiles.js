@@ -71,9 +71,10 @@ async function notifyThirdPartyDataUseOnce() {
   if (!_currentProfile || _currentProfile.seenThirdPartyNotice) return;
   alert('ℹ️ À savoir : les fonctions IA (résumé, continuation, incohérences, noms, synonymes/antonymes, mémoire narrative) et le plugin LanguageTool envoient le texte concerné à des services externes (Mistral AI, LanguageTool.org) pour être traités. Ce texte n\'est jamais stocké en clair par Plume, mais transite en clair chez ces services le temps du traitement.\n\nCe message ne s\'affichera plus.');
   _currentProfile.seenThirdPartyNotice = true;
-  const idx = await loadProfilesIndex();
-  const profil = idx.profiles.find(p => p.id === _currentProfileId);
-  if (profil) { profil.seenThirdPartyNotice = true; await saveProfilesIndex(idx); }
+  await mutateProfilesIndex(idx => {
+    const profil = idx.profiles.find(p => p.id === _currentProfileId);
+    if (profil) profil.seenThirdPartyNotice = true;
+  });
 }
 
 // ── ÉCRAN 0 : Clé de synchronisation de cet appareil (v7.22.0) ──────────
@@ -120,6 +121,32 @@ function renderSyncKeyGate() {
 
 async function loadProfilesIndex() { return loadData('profiles'); }
 async function saveProfilesIndex(idx) { await persistData('profiles', idx); }
+
+// ═══════════════════════════════════════════════════════
+// CORRECTIF (dette technique repérée pendant la correction du bug de
+// couverture, library.js) : l'index des profils suivait le même patron à
+// risque (lecture complète → modification → écriture complète, sans
+// verrou) que celui qui causait les couvertures qui "reviennent en
+// arrière". Plusieurs fonctions ci-dessous relisaient même l'index AVANT
+// une attente asynchrone (chiffrement, confirmation utilisateur) puis
+// réutilisaient cette copie devenue potentiellement périmée pour l'écrire
+// — un scénario identique à celui déjà corrigé sur la bibliothèque.
+// mutateProfilesIndex() sérialise ces opérations exactement comme
+// mutateDocList() (library.js) : chaque appel attend que le précédent soit
+// ENTIÈREMENT terminé (lecture + modification + écriture) avant de
+// commencer le sien.
+// ═══════════════════════════════════════════════════════
+let _profilesIndexLock = Promise.resolve();
+async function mutateProfilesIndex(mutator) {
+  const run = _profilesIndexLock.then(async () => {
+    const idx = (await loadProfilesIndex()) || { version: 1, profiles: [] };
+    const result = await mutator(idx);
+    await saveProfilesIndex(idx);
+    return result;
+  });
+  _profilesIndexLock = run.then(() => {}, () => {}); // la chaîne continue même si `mutator` échoue
+  return run;
+}
 
 function gateEl() { return document.getElementById('profile-gate'); }
 function showGate() { gateEl().style.display = 'flex'; }
@@ -263,8 +290,17 @@ async function submitCreateProfile(opts) {
     wrapCode: await Crypto.encrypt(dek, Crypto.normalizeCode(code))
   };
 
-  idx.profiles.push(profil);
-  await saveProfilesIndex(idx);
+  // Correction (audit) : entre la validation du nom ci-dessus et la fin des
+  // opérations de chiffrement (async, juste au-dessus), un autre profil a
+  // pu être créé entre-temps (autre onglet/appareil). mutateProfilesIndex()
+  // relit une copie fraîche juste avant d'écrire ; on revérifie le nom
+  // dessus pour couvrir ce cas de collision, désormais rarissime mais réel.
+  const nameTaken = await mutateProfilesIndex(freshIdx => {
+    if (nameExists(freshIdx, name)) return true;
+    freshIdx.profiles.push(profil);
+    return false;
+  });
+  if (nameTaken) { errEl.textContent = 'Ce nom de profil existe déjà (créé entre-temps sur un autre appareil).'; return; }
 
   // Affiche le code de récupération, puis :
   //  • création normale → bibliothèque (vide, "+ Nouveau projet" pour commencer)
@@ -361,8 +397,16 @@ async function submitRecovery(profileId) {
   if (!dek) { errEl.textContent = 'Réponse ou code de récupération incorrect.'; return; }
 
   // On ré-enveloppe la clé avec le nouveau mot de passe et on connecte.
-  profil.wrapPwd = await Crypto.encrypt(dek, pwd);
-  await saveProfilesIndex(idx);
+  // Correction (audit) : écrit sur une copie FRAÎCHE de l'index (relue à
+  // l'intérieur du verrou), pas celle chargée avant les déchiffrements/
+  // chiffrement ci-dessus — sans quoi une modification concurrente d'un
+  // AUTRE profil, survenue pendant cette attente, serait silencieusement
+  // écrasée par cette copie devenue périmée.
+  const newWrapPwd = await Crypto.encrypt(dek, pwd);
+  await mutateProfilesIndex(freshIdx => {
+    const freshProfil = freshIdx.profiles.find(p => p.id === profileId);
+    if (freshProfil) freshProfil.wrapPwd = newWrapPwd;
+  });
   toast('Mot de passe réinitialisé', 'success');
   await openProfile(profil, dek, pwd);
 }
@@ -429,10 +473,20 @@ async function adminRenameProfile(pid) {
   if (!profil) return;
   const newName = prompt('Nouveau nom pour « ' + profil.name + ' » :', profil.name);
   if (!newName || !newName.trim()) return;
-  if (nameExists(idx, newName, pid)) { toast('Ce nom existe déjà.', 'error'); return; }
-  profil.name = newName.trim();
-  await saveProfilesIndex(idx);
-  if (pid === _currentProfileId) _currentProfile.name = profil.name;
+  const trimmed = newName.trim();
+  // Correction (audit) : prompt() bloque le fil d'exécution, mais seulement
+  // dans CET onglet — un autre appareil/onglet a pu modifier l'index
+  // pendant que la boîte de dialogue restait ouverte. Écriture + revérif.
+  // du nom sur une copie fraîche, à l'intérieur du verrou.
+  let duplicate = false;
+  await mutateProfilesIndex(freshIdx => {
+    const freshProfil = freshIdx.profiles.find(p => p.id === pid);
+    if (!freshProfil) return;
+    if (nameExists(freshIdx, trimmed, pid)) { duplicate = true; return; }
+    freshProfil.name = trimmed;
+  });
+  if (duplicate) { toast('Ce nom existe déjà.', 'error'); return; }
+  if (pid === _currentProfileId) _currentProfile.name = trimmed;
   renderManageProfiles();
   toast('Profil renommé', 'success');
 }
@@ -463,8 +517,13 @@ async function adminDeleteProfile(pid) {
   }
   await persistData(docListKey(pid), null);
   await persistData('data_' + pid, null);
-  idx.profiles = idx.profiles.filter(p => p.id !== pid);
-  await saveProfilesIndex(idx);
+  // Correction (audit) : copie rechargée à l'intérieur du verrou (même
+  // principe que deleteDocument() dans library.js) — pas celle lue avant
+  // la confirmation ci-dessus, qui a pu devenir périmée pendant l'attente
+  // de l'utilisateur (saisie du nom exact à retaper).
+  await mutateProfilesIndex(freshIdx => {
+    freshIdx.profiles = freshIdx.profiles.filter(p => p.id !== pid);
+  });
   renderManageProfiles();
   toast('Profil supprimé définitivement', 'success');
 }
@@ -503,25 +562,28 @@ function closeMyProfile() { document.getElementById('my-profile-overlay').classL
 
 async function saveMySessionDuration() {
   const minutes = parseInt(document.getElementById('mp-session-duration').value, 10);
-  const idx = await loadProfilesIndex();
-  const profil = idx.profiles.find(p => p.id === _currentProfileId);
-  profil.sessionMinutes = minutes;
+  await mutateProfilesIndex(idx => {
+    const profil = idx.profiles.find(p => p.id === _currentProfileId);
+    if (profil) profil.sessionMinutes = minutes;
+  });
   _currentProfile.sessionMinutes = minutes;
-  await saveProfilesIndex(idx);
   // Répercute tout de suite sur la session déjà active de cet appareil,
   // sans attendre une prochaine connexion.
-  persistLocalSession(profil, _dataKey, _encPassword);
+  persistLocalSession(_currentProfile, _dataKey, _encPassword);
   toast('Durée de session mise à jour', 'success');
 }
 
 async function saveMyName() {
-  const idx = await loadProfilesIndex();
-  const profil = idx.profiles.find(p => p.id === _currentProfileId);
   const newName = document.getElementById('mp-my-name').value.trim();
   if (!newName) { toast('Le nom ne peut pas être vide.', 'error'); return; }
-  if (nameExists(idx, newName, _currentProfileId)) { toast('Ce nom existe déjà.', 'error'); return; }
-  profil.name = newName; _currentProfile.name = newName;
-  await saveProfilesIndex(idx);
+  let duplicate = false;
+  await mutateProfilesIndex(idx => {
+    if (nameExists(idx, newName, _currentProfileId)) { duplicate = true; return; }
+    const profil = idx.profiles.find(p => p.id === _currentProfileId);
+    if (profil) profil.name = newName;
+  });
+  if (duplicate) { toast('Ce nom existe déjà.', 'error'); return; }
+  _currentProfile.name = newName;
   toast('Nom du profil mis à jour', 'success');
 }
 
@@ -532,11 +594,12 @@ async function saveMyPassword() {
   if (oldPwd !== _encPassword) { toast('Mot de passe actuel incorrect.', 'error'); return; }
   if (newPwd.length < 8) { toast('Nouveau mot de passe trop court (8 min).', 'error'); return; }
   if (newPwd !== newPwd2) { toast('Les deux mots de passe ne correspondent pas.', 'error'); return; }
-  const idx = await loadProfilesIndex();
-  const profil = idx.profiles.find(p => p.id === _currentProfileId);
-  profil.wrapPwd = await Crypto.encrypt(_dataKey, newPwd);
+  const newWrapPwd = await Crypto.encrypt(_dataKey, newPwd);
+  await mutateProfilesIndex(idx => {
+    const profil = idx.profiles.find(p => p.id === _currentProfileId);
+    if (profil) profil.wrapPwd = newWrapPwd;
+  });
   _encPassword = newPwd;
-  await saveProfilesIndex(idx);
   document.getElementById('mp-old-pwd').value = '';
   document.getElementById('mp-new-pwd').value = '';
   document.getElementById('mp-new-pwd2').value = '';
@@ -547,12 +610,12 @@ async function saveMyQuestion() {
   const question = document.getElementById('mp-my-question').value;
   const answer = document.getElementById('mp-my-answer').value;
   if (!answer.trim()) { toast('Entrez la nouvelle réponse.', 'error'); return; }
-  const idx = await loadProfilesIndex();
-  const profil = idx.profiles.find(p => p.id === _currentProfileId);
-  profil.question = question;
-  profil.wrapAnswer = await Crypto.encrypt(_dataKey, Crypto.normalize(answer));
+  const newWrapAnswer = await Crypto.encrypt(_dataKey, Crypto.normalize(answer));
+  await mutateProfilesIndex(idx => {
+    const profil = idx.profiles.find(p => p.id === _currentProfileId);
+    if (profil) { profil.question = question; profil.wrapAnswer = newWrapAnswer; }
+  });
   _currentProfile.question = question;
-  await saveProfilesIndex(idx);
   document.getElementById('mp-my-answer').value = '';
   toast('Question de sécurité mise à jour', 'success');
 }
@@ -614,7 +677,10 @@ async function submitMigration(legacy, encrypted) {
     wrapAnswer: await Crypto.encrypt(dek, Crypto.normalize(answer)),
     wrapCode: await Crypto.encrypt(dek, Crypto.normalizeCode(code))
   };
-  await saveProfilesIndex({ version: 1, profiles: [profil] });
+  await mutateProfilesIndex(idx => {
+    idx.version = 1;
+    idx.profiles = [profil];
+  });
 
   // Le roman récupéré depuis l'ancien format mono-profil devient le premier
   // manuscrit de la bibliothèque de ce nouvel administrateur.

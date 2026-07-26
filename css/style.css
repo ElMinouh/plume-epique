@@ -23,10 +23,25 @@
      identiques (0,01-0,02rem d'écart) qui traînaient dans ce fichier. */
   --fs-xs:.68rem; --fs-sm:.75rem; --fs-base:.82rem; --fs-md:.95rem;
   --fs-lg:1.15rem; --fs-xl:1.45rem;
+  /* Tailles ≥1rem des classes utilitaires .u-fs-* (dette repérée pendant
+     l'audit v7.38.0, laissée de côté à l'époque) — nommées par leur valeur
+     exacte, sans en fusionner aucune : aucune de ces valeurs n'est modifiée
+     ici, seulement nommée, donc aucun changement visuel. Une vraie fusion
+     éventuelle (si certaines s'avèrent redondantes) resterait à valider sur
+     maquette séparément. */
+  --fs-1rem:1rem; --fs-1_1rem:1.1rem; --fs-3rem:3rem; --fs-12px:12px;
+  /* --fs-12px équivaut numériquement à --fs-sm (.75rem) sous une taille de
+     police racine standard (16px), mais gardé en px pour un rendu strictement
+     identique même si la personne a changé la taille de police par défaut de
+     son navigateur (rem est relatif à cette taille racine, px non). Une
+     éventuelle fusion vers --fs-sm serait un vrai choix visuel — à valider. */
   /* Rayons (audit v7.38.0) — var(--radius) existant conservé (panneaux/cartes) ;
      --radius-sm regroupe les petites valeurs 4-7px qui ne se distinguaient pas
      intentionnellement les unes des autres (puces, tags, petits contrôles). */
   --radius-sm:6px; --radius-pill:999px;
+  /* Rayons 8-30px des classes utilitaires .u-br-* (même dette, même principe
+     que les tailles ci-dessus : nommage à l'identique, zéro changement visuel). */
+  --radius-8px:8px; --radius-10px:10px; --radius-16px:16px; --radius-20px:20px;
   /* Empilement (audit v7.38.0) — en y regardant de plus près, l'ordre actuel
      n'est PAS anarchique : il encode une vraie hiérarchie (menus 50-250 <
      menus contextuels 5000-6000 < panneaux/modales 8000-8600 < bulles de
@@ -707,10 +722,10 @@ body.library-mode #library-screen{display:block;}
 .u-bdc-v-border{border-color:var(--border)}
 
 /* --- border-radius --- */
-.u-br-10px{border-radius:10px}
-.u-br-16px{border-radius:16px}
-.u-br-20px{border-radius:20px}
-.u-br-8px{border-radius:8px}
+.u-br-10px{border-radius:var(--radius-10px)}
+.u-br-16px{border-radius:var(--radius-16px)}
+.u-br-20px{border-radius:var(--radius-20px)}
+.u-br-8px{border-radius:var(--radius-8px)}
 
 /* --- border-top --- */
 .u-bdt-1px-solid-v-border{border-top:1px solid var(--border)}
@@ -766,10 +781,10 @@ body.library-mode #library-screen{display:block;}
 .u-fs-_82rem{font-size:var(--fs-base)}
 .u-fs-_85rem{font-size:var(--fs-base)}
 .u-fs-_8rem{font-size:var(--fs-base)}
-.u-fs-1_1rem{font-size:1.1rem}
-.u-fs-1_45rem{font-size:1.45rem}
-.u-fs-12px{font-size:12px}
-.u-fs-3rem{font-size:3rem}
+.u-fs-1_1rem{font-size:var(--fs-1_1rem)}
+.u-fs-1_45rem{font-size:var(--fs-xl)}
+.u-fs-12px{font-size:var(--fs-12px)}
+.u-fs-3rem{font-size:var(--fs-3rem)}
 
 /* --- font-style --- */
 .u-fst-italic{font-style:italic}
@@ -917,7 +932,7 @@ body.library-mode #library-screen{display:block;}
 .u-mb-4px{margin-bottom:4px}
 .u-fs-_74rem{font-size:var(--fs-sm)}
 .u-fs-_76rem{font-size:var(--fs-sm)}
-.u-fs-1rem{font-size:1rem}
+.u-fs-1rem{font-size:var(--fs-1rem)}
 .u-c-v-danger{color:var(--danger)}
 .u-c-v-accent2{color:var(--accent2)}
 .u-minw-70px{min-width:70px}
