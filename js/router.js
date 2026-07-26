@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '7.40.2';
+const APP_VERSION = '7.41.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -174,7 +174,7 @@ async function persistConflictBackup(key, payload) {
   } catch(e) { /* la sauvegarde de secours elle-même ne doit jamais faire planter la sync normale */ }
 }
 
-async function syncPush(key, payload) {
+async function syncPush(key, payload, version) {
   const syncKey = getSyncKey();
   if (!syncKey) return;
   try {
@@ -219,7 +219,15 @@ async function syncPush(key, payload) {
     if (body.length < 60000) opts.keepalive = true;
     const resp = await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), opts);
     setLastSyncStatus(resp.ok);
-    if (resp.ok) setKnownRemoteHash(key, newHash);
+    if (resp.ok) {
+      setKnownRemoteHash(key, newHash);
+      // v7.40.3 — voir le commentaire au-dessus de _confirmedPushVersion :
+      // seule une réponse OK confirme que le Worker a bien la version qu'on
+      // vient d'envoyer. Un 429 (quota dépassé) ou toute autre erreur HTTP ne
+      // met PAS à jour cette valeur — loadData() saura donc que le Worker
+      // est resté en retard sur nous.
+      if (version !== undefined) _confirmedPushVersion[key] = Math.max(_confirmedPushVersion[key] || 0, version);
+    }
   } catch(e) {
     setLastSyncStatus(false);
     /* hors-ligne ou Worker injoignable : la copie locale suffit, on retentera à la prochaine écriture */
@@ -270,10 +278,35 @@ const _localWriteVersion = {};
 // clé, pour que loadData() n'applique jamais un rafraîchissement pendant
 // qu'un envoi est encore en vol pour cette même clé.
 const _pushChains = {}, _pendingPushCount = {};
-function queueSyncPush(key, payload) {
+// Correction (bug rapporté, incident réel — v7.40.3) : les deux garde-fous
+// ci-dessus protègent contre une écriture locale EN COURS ou un envoi encore
+// EN VOL, mais pas contre un envoi qui a déjà ÉCHOUÉ silencieusement (Worker
+// injoignable, ou ici précisément : quota Cloudflare KV journalier dépassé,
+// réponse 429). Dans ce cas, syncPush() ne lève aucune erreur (juste
+// setLastSyncStatus(false)), donc _pendingPushCount retombe normalement à 0
+// une fois la réponse reçue — plus rien n'empêchait alors le rafraîchissement
+// en arrière-plan de loadData() de rapatrier la version du Worker, restée en
+// retard puisque son écriture n'avait jamais abouti, et d'écraser la copie
+// locale plus récente avec cette version périmée. Symptôme observé : un
+// profil créé sur un appareil, présent et fonctionnel pendant la session,
+// disparu après fermeture/réouverture — sans qu'aucune erreur visible
+// n'alerte sur le moment.
+// _confirmedPushVersion retient, par clé, la plus haute _localWriteVersion
+// dont on SAIT que l'envoi vers le Worker a réussi (mis à jour uniquement
+// si syncPush() reçoit resp.ok). loadData() n'applique désormais un
+// rafraîchissement que si cette valeur a bien rattrapé la version au moment
+// du lancement du pull — c'est-à-dire seulement si on est CERTAIN que le
+// Worker n'est pas en retard sur nous. Contrepartie acceptée : si un envoi
+// échoue et qu'aucune autre écriture locale ne survient sur cette clé, cet
+// appareil n'ira plus chercher les mises à jour d'un AUTRE appareil sur
+// cette même clé tant qu'il n'aura pas lui-même réécrit dessus (ce qui
+// relance un envoi, et débloque tout si celui-ci aboutit) — préférable à un
+// écrasement silencieux de données locales plus récentes.
+const _confirmedPushVersion = {};
+function queueSyncPush(key, payload, version) {
   _pendingPushCount[key] = (_pendingPushCount[key] || 0) + 1;
   const previous = _pushChains[key] || Promise.resolve();
-  const run = previous.then(() => syncPush(key, payload), () => syncPush(key, payload));
+  const run = previous.then(() => syncPush(key, payload, version), () => syncPush(key, payload, version));
   _pushChains[key] = run.then(() => {}, () => {});
   run.then(() => { _pendingPushCount[key] = Math.max(0, (_pendingPushCount[key] || 0) - 1); },
            () => { _pendingPushCount[key] = Math.max(0, (_pendingPushCount[key] || 0) - 1); });
@@ -281,13 +314,13 @@ function queueSyncPush(key, payload) {
 }
 
 async function persistData(key, payload) {
-  _localWriteVersion[key] = (_localWriteVersion[key] || 0) + 1;
+  const version = (_localWriteVersion[key] = (_localWriteVersion[key] || 0) + 1);
   if (idbStore) await idbStore.put('data', payload, key);
   else {
     if (payload === null) localStorage.removeItem('plume_' + key);
     else localStorage.setItem('plume_' + key, JSON.stringify(payload));
   }
-  queueSyncPush(key, payload);
+  queueSyncPush(key, payload, version);
 }
 async function loadData(key) {
   let local;
@@ -306,7 +339,8 @@ async function loadData(key) {
     syncPull(key).then(remote => {
       if (remote !== undefined && remote !== null && idbStore
           && (_localWriteVersion[key] || 0) === versionAtPullStart
-          && !(_pendingPushCount[key] > 0)) {
+          && !(_pendingPushCount[key] > 0)
+          && (_confirmedPushVersion[key] || 0) >= versionAtPullStart) {
         idbStore.put('data', remote, key);
       }
     });
