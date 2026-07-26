@@ -662,6 +662,17 @@ body.library-mode #library-screen{display:block;}
   .gate-field,select.gate-field,.gate-btn{height:46px;border-radius:10px;}
   .gate-link{padding:6px 4px;}
   .pwd-toggle-btn{padding:10px;font-size:1.1rem;}
+  /* Bibliothèque : chantier Responsive Mobile, écran 2/N.
+     Bug réel corrigé : le menu ⋮ de chaque manuscrit (grille et étagère)
+     n'apparaissait qu'au survol souris — au toucher, il n'y a pas de
+     survol, il était donc invisible et inaccessible sur mobile. */
+  .library-kebab-btn,.lib-book-kebab{opacity:1;}
+  /* Boutons de la barre du haut : cible tactile ~44px, scopé à cette barre
+     précise (#library-topbar) pour ne pas affecter .btn-sm ailleurs dans
+     l'app (ex. écrans gate). */
+  #library-topbar{padding:10px 12px;}
+  #library-topbar .action-btn{min-height:44px;padding:8px 12px;font-size:var(--fs-sm);
+    display:inline-flex;align-items:center;}
 }
 
 /* ═══════════════════════════════════════════════════════════════════
