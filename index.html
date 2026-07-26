@@ -40,7 +40,7 @@
         <span class="u-fs-_65rem u-op-_35" id="library-version-label"></span>
       </div>
     </div>
-    <div class="u-d-flex u-gap-6px u-fw-wrap">
+    <div class="u-d-flex u-gap-6px u-fw-wrap" id="library-topbar-actions">
       <button class="action-btn btn-sm u-bg-h7f8c8d" id="library-home-btn" title="Retourner à l'écran de connexion">🏠 Accueil</button>
       <button class="action-btn btn-sm" id="library-my-profile-btn" title="Modifier votre nom, mot de passe ou question de sécurité">👤 Mon profil</button>
       <button class="action-btn btn-sm u-bg-h8e44ad" id="library-manage-profiles-btn" title="Ajouter, renommer ou supprimer des profils (administrateur)">🛡️ Gérer les profils</button>
@@ -49,6 +49,13 @@
       <button class="action-btn btn-sm u-bg-h16a085" id="library-full-tour-btn" title="Visite guidée complète de toutes les fonctions de l'éditeur">🎓 Visite complète</button>
       <button class="action-btn btn-sm u-bg-h7f8c8d" id="library-logout-btn" title="Fermer votre session">🚪 Déconnexion</button>
     </div>
+    <!-- v7.40.2 — Bug d'ergonomie rapporté : sur mobile, la rangée ci-dessus
+         (masquée ici via media query) occupait trop de hauteur et forçait à
+         scroller longuement pour atteindre les manuscrits, alors que ce sont
+         des actions rarement utilisées. Remplacée par ce bouton unique, dont
+         le menu (#library-topbar-overflow-menu) ne fait que déclencher le
+         clic du vrai bouton correspondant ci-dessus — aucune logique dupliquée. -->
+    <button class="action-btn btn-sm u-d-none" id="library-topbar-more-btn" title="Plus d'actions" aria-label="Plus d'actions" aria-haspopup="true">⋯</button>
   </div>
   <h2 class="u-m-18px-0-2px">📚 Ma bibliothèque</h2>
   <div class="u-d-flex u-jc-space-between u-ai-center u-m-0-0-6px">
@@ -972,6 +979,21 @@
   <button id="lctx-export" role="menuitem">📤 Exporter</button>
   <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
   <button id="lctx-del" role="menuitem" class="ch-menu-danger">🗑️ Supprimer</button>
+</div>
+
+<!-- Menu "Plus d'actions" de la barre du haut de la bibliothèque (mobile
+     uniquement, v7.40.2) — même patron que #library-ctx-menu ci-dessus.
+     Chaque bouton ne fait que déclencher le clic du vrai bouton correspondant
+     (voir #library-topbar-actions plus haut) : aucune logique dupliquée. -->
+<div id="library-topbar-overflow-menu" class="toolbar-menu" role="menu">
+  <button id="ltop-my-profile" role="menuitem">👤 Mon profil</button>
+  <button id="ltop-manage-profiles" role="menuitem">🛡️ Gérer les profils</button>
+  <button id="ltop-system" role="menuitem">💾 Système</button>
+  <button id="ltop-tour" role="menuitem">🎓 Visite de la bibliothèque</button>
+  <button id="ltop-full-tour" role="menuitem">🎓 Visite complète</button>
+  <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
+  <button id="ltop-home" role="menuitem">🏠 Accueil</button>
+  <button id="ltop-logout" role="menuitem">🚪 Déconnexion</button>
 </div>
 
 <div id="toast" role="alert" aria-live="assertive"></div>

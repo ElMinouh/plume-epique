@@ -667,6 +667,13 @@ body.library-mode #library-screen{display:block;}
      n'apparaissait qu'au survol souris — au toucher, il n'y a pas de
      survol, il était donc invisible et inaccessible sur mobile. */
   .library-kebab-btn,.lib-book-kebab{opacity:1;}
+  /* v7.40.2 — Bug d'ergonomie rapporté : la rangée d'actions rarement
+     utilisées (Accueil, Mon profil, Système...) prenait trop de hauteur et
+     forçait à scroller pour atteindre les manuscrits. Remplacée par un
+     bouton unique "⋯" sur mobile (voir #library-topbar-overflow-menu). */
+  #library-topbar-actions{display:none;}
+  #library-topbar #library-topbar-more-btn{display:inline-flex;align-items:center;justify-content:center;
+    min-width:44px;min-height:44px;font-size:1.3rem;padding:8px;}
   /* Boutons de la barre du haut : cible tactile ~44px, scopé à cette barre
      précise (#library-topbar) pour ne pas affecter .btn-sm ailleurs dans
      l'app (ex. écrans gate). */
@@ -674,6 +681,11 @@ body.library-mode #library-screen{display:block;}
   #library-topbar .action-btn{min-height:44px;padding:8px 12px;font-size:var(--fs-sm);
     display:inline-flex;align-items:center;}
 }
+/* #library-topbar-overflow-menu réutilise .toolbar-menu (display/ouverture,
+   voir plus haut) — seul le positionnement change, même technique que
+   #library-ctx-menu (position fixed pour échapper à un éventuel
+   overflow:hidden du conteneur). */
+#library-topbar-overflow-menu{position:fixed;z-index:5000;min-width:200px;}
 
 /* ═══════════════════════════════════════════════════════════════════
    CLASSES UTILITAIRES — générées lors du retrait de 'unsafe-inline'

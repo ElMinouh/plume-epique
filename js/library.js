@@ -127,6 +127,37 @@ function openLibraryCtxMenu(docId, btn) {
 function docListKey(profileId) { return 'doclist_' + profileId; }
 function docDataKey(profileId, docId) { return 'doc_' + profileId + '_' + docId; }
 
+// v7.40.2 — Menu "Plus d'actions" de la topbar bibliothèque (mobile
+// uniquement, voir style.css) : même patron fixed-position que
+// openLibraryCtxMenu()/closeLibraryCtxMenu() ci-dessus, mais ancré sous un
+// bouton fixe plutôt qu'un bouton par carte.
+function closeLibraryTopbarMenu() {
+  const menu = document.getElementById('library-topbar-overflow-menu');
+  if (menu) menu.classList.remove('open');
+}
+function openLibraryTopbarMenu() {
+  const menu = document.getElementById('library-topbar-overflow-menu');
+  const btn = document.getElementById('library-topbar-more-btn');
+  const alreadyOpen = menu.classList.contains('open');
+  closeLibraryTopbarMenu();
+  if (alreadyOpen) return;
+  const rect = btn.getBoundingClientRect();
+  menu.style.visibility = 'hidden';
+  menu.classList.add('open');
+  const w = menu.offsetWidth || 200;
+  let left = rect.right - w;
+  if (left < 8) left = 8;
+  const maxLeft = window.innerWidth - w - 8;
+  if (left > maxLeft) left = maxLeft;
+  menu.style.left = left + 'px';
+  menu.style.top = (rect.bottom + 4) + 'px';
+  menu.style.visibility = 'visible';
+}
+function toggleLibraryTopbarMenu() {
+  document.getElementById('library-topbar-overflow-menu').classList.contains('open')
+    ? closeLibraryTopbarMenu() : openLibraryTopbarMenu();
+}
+
 // v7.22.0 — Après une connexion réussie, si une clé de synchronisation est
 // configurée sur cet appareil (voir router.js), on pousse tout de suite
 // l'ensemble de la bibliothèque de ce profil vers le Worker (arrière-plan,
@@ -298,6 +329,20 @@ function wireLibraryStaticUI() {
   document.getElementById('full-tour-prev-btn').addEventListener('click', fullTourPrev);
   document.getElementById('full-tour-next-btn').addEventListener('click', fullTourNext);
   document.getElementById('full-tour-quit-btn').addEventListener('click', endFullTour);
+
+  // v7.40.2 — Menu "Plus d'actions" de la topbar bibliothèque (mobile) :
+  // chaque entrée appelle directement le même gestionnaire que le bouton
+  // desktop équivalent, aucune logique dupliquée.
+  document.getElementById('library-topbar-more-btn').addEventListener('click', e => { e.stopPropagation(); toggleLibraryTopbarMenu(); });
+  document.getElementById('ltop-my-profile').addEventListener('click', () => { closeLibraryTopbarMenu(); openMyProfile(); });
+  document.getElementById('ltop-manage-profiles').addEventListener('click', () => { closeLibraryTopbarMenu(); openManageProfiles(); });
+  document.getElementById('ltop-system').addEventListener('click', () => { closeLibraryTopbarMenu(); openLibrarySystemPanel(); });
+  document.getElementById('ltop-tour').addEventListener('click', () => { closeLibraryTopbarMenu(); launchLibraryTour(); });
+  document.getElementById('ltop-full-tour').addEventListener('click', () => { closeLibraryTopbarMenu(); launchEditorFullTour(); });
+  document.getElementById('ltop-home').addEventListener('click', () => { closeLibraryTopbarMenu(); goHome(); });
+  document.getElementById('ltop-logout').addEventListener('click', () => { closeLibraryTopbarMenu(); logout(); });
+  document.addEventListener('click', () => closeLibraryTopbarMenu());
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLibraryTopbarMenu(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && _fullTourActive) endFullTour(); });
   // Icônes d'aide contextuelle ⓘ (nouveau v7.39.0) : un seul appel suffit ici
   // (tous les boutons visés — bibliothèque, sous-onglets, barre d'outils,
@@ -482,6 +527,7 @@ async function renderLibraryScreen() {
 
   document.getElementById('library-profile-name').textContent = 'Bonjour, ' + (_currentProfile ? _currentProfile.name : '');
   document.getElementById('library-manage-profiles-btn').style.display = (_currentProfile && _currentProfile.role === 'admin') ? '' : 'none';
+  document.getElementById('ltop-manage-profiles').style.display = (_currentProfile && _currentProfile.role === 'admin') ? '' : 'none';
   document.getElementById('library-count').textContent = sorted.length + ' manuscrit' + (sorted.length > 1 ? 's' : '');
 
   const container = document.getElementById('library-grid');
