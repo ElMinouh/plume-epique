@@ -121,7 +121,15 @@ function showFullTourStep() {
   if (step.clickFirst) { const trig = document.querySelector(step.clickFirst); if (trig) trig.click(); }
 
   requestAnimationFrame(() => {
-    const target = document.querySelector(step.target);
+    // Correction (bug rapporté) : les étapes "sous-onglet" (Personnages,
+    // Lieux, Statistiques...) ne définissent qu'un `subtab`, pas de
+    // `target` — document.querySelector(undefined) ne trouvait donc jamais
+    // rien, et l'étape était aussitôt sautée (visible dans le compteur :
+    // un saut direct de 8/29 à 24/29). On dérive ici le même sélecteur que
+    // celui déjà utilisé pour les icônes ⓘ (voir helpIconAnchorFor
+    // ci-dessous), qui cible le bouton du sous-onglet lui-même.
+    const targetSelector = step.target || (step.subtab ? `.subtab-btn[data-subtab="${step.subtab}"]` : null);
+    const target = targetSelector ? document.querySelector(targetSelector) : null;
     if (!target || !isVisible(target)) { fullTourNext(); return; }
     target.scrollIntoView({ block:'center' });
     requestAnimationFrame(() => positionFullTourStep(target, step));
