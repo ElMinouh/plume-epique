@@ -438,6 +438,8 @@ function changeCh(i) {
   // classe .open y est ignorée par le CSS).
   const body = document.getElementById('chapter-sidebar-body');
   if (body) body.classList.remove('open');
+  const sidebar = document.getElementById('chapter-sidebar');
+  if (sidebar) sidebar.classList.add('drawer-collapsed');
   const toggleBtn = document.getElementById('chapter-sidebar-toggle-btn');
   if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
 }

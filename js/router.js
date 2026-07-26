@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '7.42.0';
+const APP_VERSION = '7.42.1';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -476,14 +476,19 @@ function wireAppEventListenersOnce(){
   document.getElementById('document-title').addEventListener('blur',e=>updateDocumentTitle(e.target.innerText.trim()));
   document.getElementById('back-to-library-btn').addEventListener('click',backToLibrary);
   document.getElementById('editor-home-btn').addEventListener('click',goHome);
-  // v7.41.1 — Tiroir repliable du panneau chapitres (mobile uniquement,
+  // v7.42.1 — Tiroir repliable du panneau chapitres (mobile uniquement,
   // voir style.css) : n'a aucun effet visuel sur desktop, où ce bouton est
   // masqué (u-d-none) et #chapter-sidebar-body toujours visible.
+  // drawer-collapsed posé dès le départ : filet de sécurité qui plafonne
+  // #chapter-sidebar tant que le tiroir n'est pas ouvert (voir style.css).
+  document.getElementById('chapter-sidebar').classList.add('drawer-collapsed');
   document.getElementById('chapter-sidebar-toggle-btn').addEventListener('click', () => {
     const body = document.getElementById('chapter-sidebar-body');
     const btn = document.getElementById('chapter-sidebar-toggle-btn');
+    const sidebar = document.getElementById('chapter-sidebar');
     const nowOpen = !body.classList.contains('open');
     body.classList.toggle('open', nowOpen);
+    sidebar.classList.toggle('drawer-collapsed', !nowOpen);
     btn.setAttribute('aria-expanded', String(nowOpen));
   });
   // Mise en forme riche (nouveau V56)
@@ -688,8 +693,28 @@ function initToolbarDropdowns(){
       item.addEventListener('click',()=>menu.classList.remove('open'));
     });
   });
+  // v7.42.1 — Bascule Synonymes/Antonymes (mobile uniquement, voir
+  // style.css) : même principe que les menus ci-dessus, sans réutiliser
+  // .toolbar-dropdown/.toolbar-menu (qui sont masqués par défaut même sur
+  // desktop) car ce bloc doit, lui, rester visible en permanence sur
+  // desktop — seul son comportement mobile change.
+  const lexBtn = document.getElementById('lex-tools-toggle-btn');
+  const lexGroup = document.getElementById('lex-tools-group');
+  lexBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const wasOpen = lexGroup.classList.contains('open');
+    document.querySelectorAll('.toolbar-menu.open').forEach(m=>m.classList.remove('open'));
+    lexGroup.classList.toggle('open', !wasOpen);
+    lexBtn.setAttribute('aria-expanded', String(!wasOpen));
+  });
+  document.getElementById('search-btn').addEventListener('click', () => {
+    lexGroup.classList.remove('open');
+    lexBtn.setAttribute('aria-expanded', 'false');
+  });
   document.addEventListener('click',()=>{
     document.querySelectorAll('.toolbar-menu.open').forEach(m=>m.classList.remove('open'));
+    lexGroup.classList.remove('open');
+    lexBtn.setAttribute('aria-expanded', 'false');
     closeAllChapterMenus();
   });
 }

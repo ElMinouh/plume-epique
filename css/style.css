@@ -662,12 +662,21 @@ body.library-mode #library-screen{display:block;}
      au lieu du retour à la ligne" est repris pour la barre d'onglets du
      haut (#tab-menu) et la barre d'outils (.toolbar), qui prenaient chacune
      2-3 rangées de hauteur. Rien de tout cela n'est modifié sur desktop. */
-  #chapter-sidebar{max-height:none;}
+  #chapter-sidebar{max-height:none;height:auto;align-self:start;}
   #chapter-sidebar-toggle-btn{display:inline-flex;align-items:center;justify-content:center;
     min-width:44px;min-height:44px;font-size:1.2rem;background:none;border:1px solid var(--border);
     border-radius:var(--radius-sm);color:inherit;cursor:pointer;flex-shrink:0;}
   #chapter-sidebar-body{display:none;margin-top:8px;}
   #chapter-sidebar-body.open{display:flex;max-height:60vh;overflow-y:auto;}
+  /* Filet de sécurité (bug rapporté, capture d'écran à l'appui) : le panneau
+     restait immense une fois replié malgré #chapter-sidebar-body{display:
+     none} — très probablement le comportement par défaut d'une grille CSS
+     (align-items:stretch) qui étirait #chapter-sidebar sur toute la hauteur
+     de sa ligne, quel que soit son propre contenu. align-self:start
+     ci-dessus corrige la cause probable ; ce plafond explicite (classe
+     posée par le même bouton, voir router.js) garantit un résultat correct
+     même si la cause réelle était différente.*/
+  #chapter-sidebar.drawer-collapsed{max-height:64px;overflow:hidden;}
   #editor-wrapper{min-height:55vh;}
   .tab-menu{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .toolbar{gap:3px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;}
@@ -682,6 +691,19 @@ body.library-mode #library-screen{display:block;}
      position:fixed échappe à ces deux overflow:hidden ambiants. */
   .toolbar-dropdown .toolbar-menu{position:fixed;left:8px;right:8px;bottom:70px;top:auto;
     width:auto;min-width:0;max-height:50vh;overflow-y:auto;}
+  /* Bug rapporté : le texte des boutons (¶ Paragraphe, 🛠️ Outils...)
+     s'affichait toujours en plus de l'icône, forçant un long défilement
+     latéral pour une barre censée tenir sur une seule ligne compacte. */
+  .tb-label{display:none;}
+  /* Synonymes/Antonymes : select+champ+GO restaient affichés en
+     permanence au lieu de rejoindre un menu, comme annoncé. Repliés
+     derrière ✨▾, même traitement "feuille du bas" que les autres menus. */
+  #lex-tools-toggle-btn{display:inline-flex;align-items:center;justify-content:center;
+    min-width:44px;min-height:44px;flex-shrink:0;}
+  #lex-tools-group{display:none;}
+  #lex-tools-group.open{display:flex;flex-direction:column;gap:6px;position:fixed;
+    left:8px;right:8px;bottom:70px;top:auto;background:var(--glass);border:1px solid var(--border);
+    border-radius:8px;padding:8px;box-shadow:var(--shadow);z-index:250;}
   .action-btn{padding:5px 7px;font-size:var(--fs-xs);flex-shrink:0;}
   /* Bandeau du bas : les libellés texte et informations secondaires
      (version, statut synchro en toutes lettres) cèdent la place aux icônes

@@ -797,7 +797,7 @@
       <!-- Barre d'outils regroupée en menus déroulants (v7.4.0) : moins de
            boutons visibles en permanence, mêmes fonctionnalités qu'avant. -->
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h34495e" title="Mettre en forme le paragraphe">¶ Paragraphe ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h34495e" title="Mettre en forme le paragraphe">¶<span class="tb-label"> Paragraphe</span> ▾</button>
         <div class="toolbar-menu">
           <button id="fmt-title-btn" title="Transformer la ligne en sous-titre">Titre</button>
           <button id="fmt-para-btn" title="Revenir à un paragraphe normal">Paragraphe normal</button>
@@ -805,7 +805,7 @@
       </div>
 
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-hc0392b" title="Outils d'écriture">🛠️ Outils ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-hc0392b" title="Outils d'écriture">🛠️<span class="tb-label"> Outils</span> ▾</button>
         <div class="toolbar-menu">
           <button id="analyze-btn" title="Surligner les mots faibles/répétitifs dans le texte">🔍 Analyser le style</button>
           <button id="clear-btn" title="Retirer les surlignages de style (le texte n'est pas modifié)">🧹 Nettoyer les surlignages</button>
@@ -816,7 +816,7 @@
       </div>
 
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h1a1a2e" title="Rechercher du texte">🔎 Rechercher ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h1a1a2e" title="Rechercher du texte">🔎<span class="tb-label"> Rechercher</span> ▾</button>
         <div class="toolbar-menu">
           <button id="global-search-btn" title="Rechercher un mot dans tout le projet">Dans tout le projet</button>
           <button id="find-replace-btn" title="Rechercher et remplacer du texte dans ce chapitre">Ici, avec remplacement</button>
@@ -824,18 +824,21 @@
       </div>
 
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h8e44ad" title="Assistant IA">🤖 IA ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h8e44ad" title="Assistant IA">🤖<span class="tb-label"> IA</span> ▾</button>
         <div class="toolbar-menu">
           <button id="ai-summary-btn" title="Demander à l'IA un résumé du chapitre">✨ Résumé du chapitre</button>
           <button id="ai-selection-to-chat-btn" title="Envoyer le passage sélectionné à l'assistant IA">💬 Discuter de la sélection</button>
         </div>
       </div>
       <div class="u-fg-1"></div>
-      <select id="search-mode" class="field u-w-auto" aria-label="Mode dictionnaire" title="Choisir entre synonymes et antonymes">
-        <option value="syn">✨ Synonymes</option><option value="ant">🌑 Antonymes</option>
-      </select>
-      <input id="lex-in" class="field u-w-85px" placeholder="mot…" aria-label="Mot à chercher" title="Tapez un mot puis cliquez sur GO">
-      <button class="action-btn" id="search-btn" aria-label="Rechercher" title="Chercher les synonymes ou antonymes de ce mot">GO</button>
+      <button class="action-btn btn-sm u-bg-h16a085 u-d-none" id="lex-tools-toggle-btn" title="Synonymes / Antonymes" aria-label="Synonymes / Antonymes" aria-expanded="false">✨▾</button>
+      <div class="u-d-flex u-gap-6px" id="lex-tools-group">
+        <select id="search-mode" class="field u-w-auto" aria-label="Mode dictionnaire" title="Choisir entre synonymes et antonymes">
+          <option value="syn">✨ Synonymes</option><option value="ant">🌑 Antonymes</option>
+        </select>
+        <input id="lex-in" class="field u-w-85px" placeholder="mot…" aria-label="Mot à chercher" title="Tapez un mot puis cliquez sur GO">
+        <button class="action-btn" id="search-btn" aria-label="Rechercher" title="Chercher les synonymes ou antonymes de ce mot">GO</button>
+      </div>
     </div>
     <div class="u-d-flex u-ai-center u-gap-10px u-mb-6px" id="chapter-title-row">
       <div class="u-fs-1_45rem u-fwt-700 u-c-v-accent u-outline-none u-minh-28px u-fg-1" id="chapter-title" contenteditable="true" role="textbox" aria-label="Titre" title="Cliquez pour renommer ce chapitre"></div>
