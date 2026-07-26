@@ -53,10 +53,33 @@ plume-epique/
 │   └── memory.js                      → mémoire narrative (recherche + questions IA,
 │                                          navigation par ID de chapitre stable)
 ├── tests/
-│   └── test-runner.html   → tests automatisés minimaux (à ouvrir directement dans un
-│                             navigateur, aucune installation requise)
+│   ├── test-runner.html   → ancienne suite (héritée, gardée en secours : à ouvrir
+│   │                          directement dans un navigateur, aucune installation
+│   │                          requise) — remplacée comme suite de référence par
+│   │                          tests/vitest/ ci-dessous (dette technique corrigée,
+│   │                          voir "Tests automatisés" plus bas)
+│   └── vitest/            → suite Vitest (voir `npm test`) — même couverture logique
+│                              que l'ancienne suite, mais un `it()` par assertion :
+│                              un échec précis et nommé, pas un compteur global à
+│                              ouvrir dans un navigateur pour comprendre ce qui casse
+├── package.json           → dépendances de test (`npm install` puis `npm test`)
+├── vitest.config.js
 └── README.md
 ```
+
+## Tests automatisés
+
+`npm install` puis `npm test` (ou `npm run test:watch` en continu). La suite
+(`tests/vitest/`) charge les vrais fichiers de `js/` dans un contexte Node/jsdom
+partagé (même ordre que l'ancienne `tests/test-runner.html`, voir
+`tests/vitest/env.js`), et exécute le même contenu de test qu'avant
+(`tests/vitest/suite.js`, porté à l'identique) — seul le harnais change : chaque
+assertion devient un `it()` Vitest individuel, repéré nommément en cas d'échec,
+plutôt qu'un compteur global "X/Y réussis" qu'il fallait ouvrir dans un navigateur
+pour identifier lequel avait échoué. `tests/test-runner.html` reste disponible en
+secours (utile sans Node/npm), mais `tests/vitest/` est désormais la suite de
+référence.
+
 
 ## Intelligence artificielle
 

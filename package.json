@@ -1,0 +1,14 @@
+{
+  "name": "plume-epique",
+  "version": "1.0.0",
+  "description": "Plume Épique — suite de tests automatisés (migration vers Vitest)",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1",
+    "vitest": "^4.1.10"
+  }
+}
