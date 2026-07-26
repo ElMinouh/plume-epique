@@ -187,6 +187,15 @@ async function launchEditorFullTour() {
     return;
   }
   const sorted = list.documents.slice().sort((a,b) => b.lastModified - a.lastModified);
+  // Correction (bug rapporté, v7.40.0) : openDocument() ci-dessous appelle
+  // initApp(), qui déclenche aussi (sans le vouloir) le parcours "premiers
+  // pas" automatique (notifications.js) s'il n'a jamais été vu — les deux
+  // visites tournaient alors en même temps, et seules les 4 bulles
+  // "premiers pas" étaient visibles à la place des 29 étapes attendues.
+  // On désactive ce parcours pour CETTE ouverture précise (voir
+  // _suppressOnboardingOnce, notifications.js) : la visite complète couvre
+  // de toute façon largement ce qu'il montre.
+  _suppressOnboardingOnce = true;
   await openDocument(sorted[0].id);
   startFullTour(FULL_TOUR_STEPS);
 }

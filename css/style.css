@@ -164,6 +164,17 @@ mark{background-color:rgba(192,57,43,.22);color:var(--text);border-radius:3px;}
   border-radius:var(--radius-sm);padding:7px 10px;outline:none;font-family:inherit;
   font-size:var(--fs-base);width:100%;transition:border-color .2s;}
 .field:focus{border-color:var(--accent);}
+/* Bascule afficher/masquer mot de passe (v7.40.0) — enveloppe posée par
+   initPasswordToggle() (notifications.js) autour d'un champ existant, sans
+   toucher à ses classes (.gate-field ou .field). Le sélecteur composé
+   l'emporte sur le padding déjà fixé par ces classes (spécificité plus
+   élevée), pour laisser la place au bouton. */
+.pwd-toggle-wrap{position:relative;display:inline-flex;flex:1;width:100%;}
+.pwd-toggle-wrap input{width:100%;padding-right:38px;}
+.pwd-toggle-btn{position:absolute;right:4px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;font-size:1rem;line-height:1;
+  padding:6px;border-radius:6px;}
+.pwd-toggle-btn:hover{background:rgba(127,127,127,.15);}
 .corkboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;padding:6px;
   flex-grow:1;overflow-y:auto;align-content:start;}
 .card{background:#fffceb;color:#2d3436;padding:14px;border-radius:var(--radius-sm);cursor:grab;position:relative;
@@ -650,6 +661,7 @@ body.library-mode #library-screen{display:block;}
   .gate-title{font-size:1.25rem;}
   .gate-field,select.gate-field,.gate-btn{height:46px;border-radius:10px;}
   .gate-link{padding:6px 4px;}
+  .pwd-toggle-btn{padding:10px;font-size:1.1rem;}
 }
 
 /* ═══════════════════════════════════════════════════════════════════

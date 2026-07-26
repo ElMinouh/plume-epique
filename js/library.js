@@ -342,6 +342,7 @@ function wireLibraryStaticUI() {
   // ── Panneau Système : bibliothèque entière (v7.13.0, Lot 10) ─────────
   document.getElementById('library-system-btn').addEventListener('click', () => openLibrarySystemPanel());
   document.getElementById('library-system-close-btn').addEventListener('click', closeLibrarySystemPanel);
+  document.getElementById('lib-conflict-delete-all').addEventListener('click', deleteAllConflictBackups);
   document.getElementById('lib-gh-token').addEventListener('change', e => { _cloudToken = e.target.value.trim(); saveLibSettings(); scheduleLibraryAutoBackup(); });
   document.getElementById('lib-verify-token-btn').addEventListener('click', async () => {
     _cloudToken = document.getElementById('lib-gh-token').value.trim();
@@ -1001,20 +1002,29 @@ async function openLibrarySystemPanel(preselectDocId) {
 // multi-appareils (voir persistConflictBackup() dans router.js, v7.27.0).
 // Jusqu'ici ces sauvegardes existaient (rien n'est jamais perdu) mais rien
 // ne permettait de les consulter ou de les restaurer soi-même.
+// v7.40.0 — Rétention 7 jours : au-delà, une sauvegarde de conflit non
+// consultée est purgée automatiquement (silencieux, pas de tâche de fond
+// séparée — la vérification à chaque ouverture du panneau suffit vu la
+// fréquence de consultation attendue). Demande explicite de l'utilisateur.
+const CONFLICT_BACKUP_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 async function listConflictBackups() {
   const prefix = 'conflict_doc_' + _currentProfileId + '_';
   let keys = [];
   if (idbStore) keys = (await idbStore.getAllKeys('data')).filter(k => typeof k === 'string' && k.startsWith(prefix));
   else keys = Object.keys(localStorage).filter(k => k.startsWith('plume_' + prefix)).map(k => k.slice('plume_'.length));
   const list = await loadDocList();
-  return keys.map(key => {
+  const now = Date.now();
+  const kept = [];
+  for (const key of keys) {
     const rest = key.slice(prefix.length);
     const lastUnderscore = rest.lastIndexOf('_');
     const docId = rest.slice(0, lastUnderscore);
     const ts = parseInt(rest.slice(lastUnderscore + 1), 10);
+    if (now - ts > CONFLICT_BACKUP_MAX_AGE_MS) { await removeConflictBackup(key); continue; }
     const entry = list.documents.find(d => d.id === docId);
-    return { key, docId, ts, title: entry ? entry.title : 'Manuscrit supprimé depuis' };
-  }).sort((a, b) => b.ts - a.ts);
+    kept.push({ key, docId, ts, title: entry ? entry.title : 'Manuscrit supprimé depuis' });
+  }
+  return kept.sort((a, b) => b.ts - a.ts);
 }
 async function getConflictBackupPayload(key) {
   if (idbStore) return await idbStore.get('data', key);
@@ -1032,6 +1042,8 @@ async function renderConflictBackups() {
   const backups = await listConflictBackups();
   badge.textContent = String(backups.length);
   badge.classList.toggle('u-d-none', backups.length === 0);
+  const deleteAllBtn = document.getElementById('lib-conflict-delete-all');
+  if (deleteAllBtn) deleteAllBtn.classList.toggle('u-d-none', backups.length === 0);
   if (!backups.length) {
     cont.innerHTML = `<p class="u-fs-_68rem u-c-v-text-muted u-m-0">Aucune sauvegarde de conflit en attente.</p>`;
     return;
@@ -1066,6 +1078,22 @@ async function deleteConflictBackup(key) {
   await removeConflictBackup(key);
   await renderConflictBackups();
   toast('Sauvegarde supprimée.', 'success');
+}
+// v7.40.0 — Demande explicite de l'utilisateur : vider le bloc en un clic
+// plutôt que de supprimer chaque sauvegarde une par une.
+async function deleteAllConflictBackups() {
+  const backups = await listConflictBackups();
+  if (!backups.length) return;
+  const ok = await showConfirmModal({
+    title: 'Supprimer toutes les sauvegardes de conflit ?',
+    message: `${backups.length} sauvegarde(s) seront supprimées définitivement, sans possibilité de récupération.`,
+    confirmLabel: 'Tout supprimer',
+    danger: true
+  });
+  if (!ok) return;
+  for (const b of backups) await removeConflictBackup(b.key);
+  await renderConflictBackups();
+  toast('Sauvegardes de conflit supprimées.', 'success');
 }
 
 // v7.25.0 — Rend visible le résultat de la dernière tentative de

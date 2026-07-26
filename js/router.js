@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '7.39.9';
+const APP_VERSION = '7.40.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -677,6 +677,16 @@ window.onload = async () => {
   const libVerEl = document.getElementById('library-version-label');
   if (libVerEl) libVerEl.textContent = 'Plume · v' + APP_VERSION;
   await initIDB();
+  // v7.40.0 — bascule afficher/masquer sur les champs statiques (présents
+  // dans index.html dès le chargement, contrairement aux écrans gate qui se
+  // reconstruisent à chaque rendu — voir profiles.js pour ceux-là).
+  // lib-sync-key-input a déjà son propre bouton de révélation dédié
+  // (lib-sync-key-reveal-btn, library.js) — pas de bascule ajoutée dessus,
+  // pour éviter un doublon d'icône.
+  initPasswordToggle('mp-old-pwd');
+  initPasswordToggle('mp-new-pwd');
+  initPasswordToggle('mp-new-pwd2');
+  initPasswordToggle('lib-gh-token');
   if (needsSyncKeySetup()) renderSyncKeyGate();
   else await bootProfiles();
 };

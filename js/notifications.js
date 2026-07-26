@@ -13,6 +13,42 @@ function flashSave() {
 function showAiLoader(id) { document.getElementById(id).innerHTML = '<div class="ai-loader"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div>'; }
 
 // ═══════════════════════════════════════════════════════
+// BASCULE AFFICHER/MASQUER MOT DE PASSE (v7.40.0)
+// Jusqu'ici aucun champ mot de passe/clé n'était consultable en cours de
+// saisie — la moindre faute de frappe (mot de passe, clé de synchro, code
+// de récupération...) n'était détectable qu'après coup. Emoji 👁️/🙈 pour
+// rester cohérent avec le lexique d'icônes existant (audit v7.38.0), pas de
+// nouvelle police d'icônes. Enveloppe l'input existant dans un conteneur
+// (.pwd-toggle-wrap, voir style.css) sans toucher à son id ni ses classes —
+// donc sans impact sur le code qui lit sa valeur ailleurs. Idempotent via
+// dataset.pwdToggleInit : sans effet si l'input a déjà sa bascule (utile
+// pour les champs statiques initialisés une seule fois au chargement).
+// ═══════════════════════════════════════════════════════
+function initPasswordToggle(inputId) {
+  const input = document.getElementById(inputId);
+  if (!input || input.dataset.pwdToggleInit) return;
+  input.dataset.pwdToggleInit = '1';
+  const wrap = document.createElement('span');
+  wrap.className = 'pwd-toggle-wrap';
+  input.parentNode.insertBefore(wrap, input);
+  wrap.appendChild(input);
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'pwd-toggle-btn';
+  btn.textContent = '👁️';
+  btn.title = 'Afficher';
+  btn.setAttribute('aria-label', 'Afficher le mot de passe');
+  btn.addEventListener('click', () => {
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.textContent = show ? '🙈' : '👁️';
+    btn.title = show ? 'Masquer' : 'Afficher';
+    btn.setAttribute('aria-label', show ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+  });
+  wrap.appendChild(btn);
+}
+
+// ═══════════════════════════════════════════════════════
 // CORBEILLE — badge du nombre de chapitres en attente (v7.5.0)
 // Appelée depuis initApp() et depuis chaque mutation de db.trash (editor.js).
 // ═══════════════════════════════════════════════════════
@@ -45,7 +81,17 @@ const ONBOARDING_STEPS = [
   { target:'#tab-menu', text:'Tout le reste — personnages, statistiques, réglages — se trouve dans ces onglets.' }
 ];
 let _onboardingStep = 0;
+// v7.40.0 — Corrige un bug rapporté : lancer la visite guidée complète
+// (launchEditorFullTour(), fulltour.js) ouvre un manuscrit, ce qui déclenche
+// aussi ce parcours "premiers pas" s'il n'a jamais été vu (1ère installation)
+// — les deux visites tournaient alors en même temps, et l'utilisateur ne
+// voyait que ces 4 bulles à la place des 29 étapes attendues. fulltour.js
+// arme ce drapeau juste avant d'ouvrir le manuscrit pour SA visite à lui ;
+// il ne désactive ce parcours qu'une seule fois (pas onboardingDone, qui
+// reste intact pour une prochaine ouverture normale d'un manuscrit).
+let _suppressOnboardingOnce = false;
 async function maybeStartOnboardingTour() {
+  if (_suppressOnboardingOnce) { _suppressOnboardingOnce = false; return; }
   try {
     const idx = await loadProfilesIndex();
     const profil = idx && idx.profiles && idx.profiles.find(p => p.id === _currentProfileId);

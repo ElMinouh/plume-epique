@@ -112,6 +112,7 @@ function renderSyncKeyGate() {
     hideGate();
     await bootProfiles();
   });
+  initPasswordToggle('sync-key-input');
   document.getElementById('sync-key-skip-btn').addEventListener('click', () => {
     setSyncSkipped();
     hideGate();
@@ -211,6 +212,7 @@ function renderLoginScreen(idx) {
   `);
   document.getElementById('login-btn').addEventListener('click', doLogin);
   document.getElementById('login-pwd').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  initPasswordToggle('login-pwd');
   document.getElementById('login-add').addEventListener('click', () => renderCreateProfile({ firstAdmin: false }));
   document.getElementById('login-forgot').addEventListener('click', () => {
     const pid = document.getElementById('login-profile-sel').value;
@@ -255,6 +257,8 @@ function renderCreateProfile(opts) {
     ${opts.firstAdmin ? '' : '<button id="cp-cancel" class="gate-link">Annuler</button>'}
   `);
   document.getElementById('cp-submit').addEventListener('click', () => submitCreateProfile(opts));
+  initPasswordToggle('cp-pwd');
+  initPasswordToggle('cp-pwd2');
   const cancel = document.getElementById('cp-cancel');
   if (cancel) cancel.addEventListener('click', async () => {
     if (opts.byAdmin) { hideGate(); openManageProfiles(); }
@@ -375,6 +379,8 @@ function renderRecovery(profileId) {
     `);
     document.getElementById('rec-submit').addEventListener('click', () => submitRecovery(profileId));
     document.getElementById('rec-back').addEventListener('click', () => renderLoginScreen(idx));
+    initPasswordToggle('rec-pwd');
+    initPasswordToggle('rec-pwd2');
   });
 }
 
@@ -645,6 +651,8 @@ function renderMigration(legacy) {
     <button id="mig-submit" class="gate-btn gate-btn-primary">Sécuriser mes données</button>
   `);
   document.getElementById('mig-submit').addEventListener('click', () => submitMigration(legacy, encrypted));
+  if (encrypted) initPasswordToggle('mig-oldpwd');
+  else { initPasswordToggle('mig-newpwd'); initPasswordToggle('mig-newpwd2'); }
 }
 
 async function submitMigration(legacy, encrypted) {

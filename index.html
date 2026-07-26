@@ -95,8 +95,11 @@
     </div>
 
     <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
-      <strong class="u-fs-_8rem">🛟 Sauvegardes de conflit <span class="mp-badge u-d-none" id="lib-conflict-count">0</span></strong>
-      <p class="u-fs-_68rem u-c-v-text-muted u-m-6px-0-8px">Versions distantes remplacées par un autre appareil, jamais perdues.</p>
+      <div class="u-d-flex u-ai-center u-jc-space-between u-gap-8px">
+        <strong class="u-fs-_8rem">🛟 Sauvegardes de conflit <span class="mp-badge u-d-none" id="lib-conflict-count">0</span></strong>
+        <button class="action-btn btn-sm u-d-none" id="lib-conflict-delete-all" title="Supprimer toutes les sauvegardes de conflit">🗑️ Tout supprimer</button>
+      </div>
+      <p class="u-fs-_68rem u-c-v-text-muted u-m-6px-0-8px">Versions distantes remplacées par un autre appareil. Conservées 7 jours, puis supprimées automatiquement.</p>
       <div id="lib-conflict-list" class="u-d-flex u-fd-column u-gap-8px"></div>
     </div>
 
