@@ -641,6 +641,15 @@ body.library-mode #library-screen{display:block;}
 @media(max-width:480px){
   .tab-btn{padding:3px 6px;font-size:var(--fs-xs);}
   .stats-grid,.analytics-grid{grid-template-columns:1fr;}
+  /* Écran de connexion (gate) : chantier Responsive Mobile, écran 1/N.
+     Cibles tactiles agrandies (36-40px → 46px, recommandation Android)
+     et padding de carte resserré pour regagner de la largeur utile sur
+     petit écran. Couleurs/structure identiques au desktop. */
+  .profile-gate{padding:12px;}
+  .gate-card{padding:18px 14px;gap:12px;border-radius:14px;}
+  .gate-title{font-size:1.25rem;}
+  .gate-field,select.gate-field,.gate-btn{height:46px;border-radius:10px;}
+  .gate-link{padding:6px 4px;}
 }
 
 /* ═══════════════════════════════════════════════════════════════════
