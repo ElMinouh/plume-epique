@@ -230,7 +230,7 @@
   for (let i = 0; i < 35; i++) { db.chapters[0].content = 'Version ' + i; takeSnapshot(0, 'Snap ' + i); }
   assert(db.history['sx1'].length === MAX_SNAPSHOTS, `l'historique est plafonné à MAX_SNAPSHOTS (${MAX_SNAPSHOTS}), obtenu ${db.history['sx1'].length}`);
 
-  group('sync.js — escapeXml() / toXhtmlSafe()');
+  group('export-format-utils.js — escapeXml() / toXhtmlSafe()');
   assert(escapeXml('<a> & "b"') === '&lt;a&gt; &amp; &quot;b&quot;', 'échappe correctement <, >, & et "');
   const xhtml = toXhtmlSafe('<p>Bonjour <strong>monde</strong></p>');
   assert(xhtml.includes('<p') && xhtml.includes('<strong') && xhtml.includes('monde'), 'convertit un fragment HTML en XHTML bien formé');

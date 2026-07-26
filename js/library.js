@@ -786,7 +786,7 @@ async function libVerifyToken() {
 // ═══════════════════════════════════════════════════════
 // HELPERS PARTAGÉS — charger/persister un manuscrit par id, indépendamment
 // de ce qui est actuellement ouvert dans l'éditeur (`db`). Utilisés ici et
-// dans sync.js (import DOCX/ODT vers un autre manuscrit, export, etc.)
+// dans export-format-utils.js (import DOCX/ODT vers un autre manuscrit, export, etc.)
 // ═══════════════════════════════════════════════════════
 async function loadManuscriptData(docId) {
   const stored = await loadData(docDataKey(_currentProfileId, docId));
