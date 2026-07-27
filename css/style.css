@@ -644,7 +644,7 @@ body.library-mode #library-screen{display:block;}
 .subtab-content{display:none;flex-direction:column;gap:10px;flex-grow:1;min-height:0;}
 .subtab-content.active{display:flex;}
 @media(max-width:768px){
-  main{grid-template-columns:1fr;height:auto;}
+  main{grid-template-columns:1fr;height:auto;align-content:start;}
   /* v7.41.1 — Chantier Responsive Mobile, écran 3/N (page d'écriture).
      Remplace l'ancien `#chapter-sidebar{max-height:200px}` : le contenu fixe
      (titre, boutons, bascule Liste/Fiches, stats) dépassait déjà à lui seul
@@ -698,8 +698,7 @@ body.library-mode #library-screen{display:block;}
   /* Synonymes/Antonymes : select+champ+GO restaient affichés en
      permanence au lieu de rejoindre un menu, comme annoncé. Repliés
      derrière ✨▾, même traitement "feuille du bas" que les autres menus. */
-  #lex-tools-toggle-btn{display:inline-flex;align-items:center;justify-content:center;
-    min-width:44px;min-height:44px;flex-shrink:0;}
+  #lex-tools-toggle-btn{display:inline-flex;flex-shrink:0;}
   #lex-tools-group{display:none;}
   #lex-tools-group.open{display:flex;flex-direction:column;gap:6px;position:fixed;
     left:8px;right:8px;bottom:70px;top:auto;background:var(--glass);border:1px solid var(--border);

@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '7.43.1';
+const APP_VERSION = '7.43.2';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -704,10 +704,21 @@ function initToolbarDropdowns(){
     lexGroup.classList.remove('open');
     lexBtn.setAttribute('aria-expanded', 'false');
   });
-  document.addEventListener('click',()=>{
-    document.querySelectorAll('.toolbar-menu.open').forEach(m=>m.classList.remove('open'));
-    lexGroup.classList.remove('open');
-    lexBtn.setAttribute('aria-expanded', 'false');
+  document.addEventListener('click', e => {
+    // v7.43.2 — Bug bloquant rapporté : ce gestionnaire refermait le
+    // panneau Synonymes/Antonymes (et les menus déroulants) même quand le
+    // clic avait lieu À L'INTÉRIEUR d'eux (choisir "Antonymes" dans la
+    // liste, ou toucher le champ texte) — un clic sur un <select> ou un
+    // <input> remonte normalement jusqu'à document. Sur mobile, ça rendait
+    // la fonction Synonymes totalement inutilisable : impossible de choisir
+    // le type ou de taper un mot sans que le panneau se referme aussitôt.
+    if (!e.target.closest('.toolbar-dropdown')) {
+      document.querySelectorAll('.toolbar-menu.open').forEach(m=>m.classList.remove('open'));
+    }
+    if (!e.target.closest('#lex-tools-group') && e.target !== lexBtn && !lexBtn.contains(e.target)) {
+      lexGroup.classList.remove('open');
+      lexBtn.setAttribute('aria-expanded', 'false');
+    }
     closeAllChapterMenus();
   });
 }
