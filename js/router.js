@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '8.0.1';
+const APP_VERSION = '8.0.2';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -219,10 +219,26 @@ async function syncPush(key, payload) {
     if (body.length < 60000) opts.keepalive = true;
     const resp = await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), opts);
     setLastSyncStatus(resp.ok);
-    if (resp.ok) setKnownRemoteHash(key, newHash);
+    if (resp.ok) {
+      setKnownRemoteHash(key, newHash);
+      removePendingSyncKey(key);
+    } else {
+      // v8.0.2 — Réponse reçue mais pas 2xx (Worker en erreur, quota
+      // dépassé...) : jusqu'ici abandonné en silence comme un échec réseau,
+      // sans jamais être retenté avant la prochaine écriture ou connexion
+      // sur cette même clé (voir file d'attente ci-dessous / ADR-4).
+      addPendingSyncKey(key);
+      scheduleSyncRetry();
+    }
   } catch(e) {
     setLastSyncStatus(false);
-    /* hors-ligne ou Worker injoignable : la copie locale suffit, on retentera à la prochaine écriture */
+    // v8.0.2 — Hors-ligne ou Worker injoignable : la copie locale suffit
+    // pour l'instant, mais on mémorise cette clé pour la retenter nous-mêmes
+    // en arrière-plan (voir scheduleSyncRetry ci-dessous), plutôt que
+    // d'attendre indéfiniment la prochaine écriture ou connexion sur cette
+    // même clé (limite jusqu'ici documentée comme acceptée — voir README).
+    addPendingSyncKey(key);
+    scheduleSyncRetry();
   }
 }
 async function syncPull(key) {
@@ -279,6 +295,86 @@ function queueSyncPush(key, payload) {
            () => { _pendingPushCount[key] = Math.max(0, (_pendingPushCount[key] || 0) - 1); });
   return run;
 }
+
+// ═══════════════════════════════════════════════════════
+// FILE D'ATTENTE DE NOUVELLES TENTATIVES (v8.0.2)
+// Jusqu'ici, un envoi en échec (hors-ligne, Worker injoignable ou en erreur)
+// restait non synchronisé indéfiniment tant qu'aucune connexion ou écriture
+// ultérieure ne survenait sur cette clé précise (comportement accepté comme
+// contrepartie — voir README, section "Limites connues"). On mémorise ici,
+// PERSISTÉ dans localStorage (donc survit à un rechargement/fermeture
+// d'onglet), l'ensemble des clés en échec — retentées nous-mêmes en
+// arrière-plan avec un délai croissant (10s, 1min, 5min, puis reste à 5min
+// tant qu'il en reste). Un seul compteur de délai GLOBAL (pas un par clé) :
+// suffisant pour un usage familial où les échecs surviennent par lot
+// (coupure réseau) plutôt qu'isolément.
+//
+// Important : la retentative passe par queueSyncPush() ci-dessus — jamais
+// par un appel direct à syncPush() — pour ne jamais court-circuiter la
+// sérialisation par clé déjà en place (_pushChains/_pendingPushCount) : un
+// envoi de retentative et un envoi déclenché par une nouvelle frappe de
+// l'utilisateur sur la MÊME clé pourraient sinon partir en parallèle, avec
+// le même risque d'écrasement dans le désordre que celui déjà corrigé une
+// fois (voir commentaire _pushChains juste au-dessus).
+// ═══════════════════════════════════════════════════════
+const PENDING_SYNC_STORAGE_KEY = 'plume_pending_sync_keys';
+function getPendingSyncKeys() {
+  try { const raw = JSON.parse(localStorage.getItem(PENDING_SYNC_STORAGE_KEY) || '[]'); return Array.isArray(raw) ? raw : []; }
+  catch(e) { return []; }
+}
+function addPendingSyncKey(key) {
+  const keys = new Set(getPendingSyncKeys());
+  keys.add(key);
+  localStorage.setItem(PENDING_SYNC_STORAGE_KEY, JSON.stringify([...keys]));
+}
+function removePendingSyncKey(key) {
+  const keys = new Set(getPendingSyncKeys());
+  if (!keys.delete(key)) return;
+  localStorage.setItem(PENDING_SYNC_STORAGE_KEY, JSON.stringify([...keys]));
+}
+// Lecture strictement locale (IndexedDB ou localStorage), sans jamais
+// déclencher le rafraîchissement en arrière-plan de loadData() : on veut
+// uniquement la version locale la plus récente à repousser, pas relancer
+// une lecture distante ici.
+async function readLocalOnly(key) {
+  if (idbStore) return await idbStore.get('data', key);
+  const r = localStorage.getItem('plume_' + key);
+  return r ? JSON.parse(r) : undefined;
+}
+const SYNC_RETRY_DELAYS_MS = [10000, 60000, 300000]; // 10s, 1min, 5min
+let _syncRetryTimer = null, _syncRetryStep = 0;
+function scheduleSyncRetry() {
+  if (_syncRetryTimer) return; // déjà programmé, rien à faire de plus
+  const delay = SYNC_RETRY_DELAYS_MS[Math.min(_syncRetryStep, SYNC_RETRY_DELAYS_MS.length - 1)];
+  _syncRetryTimer = setTimeout(() => { _syncRetryTimer = null; retryPendingSyncs(); }, delay);
+  _syncRetryStep++;
+}
+async function retryPendingSyncs() {
+  const keys = getPendingSyncKeys();
+  if (!keys.length) { _syncRetryStep = 0; return; }
+  for (const key of keys) {
+    try {
+      const payload = await readLocalOnly(key);
+      // Plus rien en local sous cette clé (élément supprimé entre-temps) :
+      // rien à repousser, on l'oublie simplement.
+      if (payload === undefined || payload === null) { removePendingSyncKey(key); continue; }
+      await queueSyncPush(key, payload);
+    } catch(e) { /* on retentera au prochain passage */ }
+  }
+  if (getPendingSyncKeys().length) scheduleSyncRetry(); // il en reste encore : on reprogramme
+  else _syncRetryStep = 0;
+}
+// Dès que la connexion réseau revient (évènement navigateur fiable,
+// contrairement à un simple minuteur), on retente tout de suite plutôt que
+// d'attendre le prochain délai de la file — sans réinitialiser le compteur
+// de délai : si le réseau est instable (va-et-vient), on garde une
+// progression vers des délais plus longs plutôt que de retenter en boucle
+// à chaque micro-coupure.
+window.addEventListener('online', () => {
+  if (_syncRetryTimer) { clearTimeout(_syncRetryTimer); _syncRetryTimer = null; }
+  retryPendingSyncs();
+});
+
 
 async function persistData(key, payload) {
   _localWriteVersion[key] = (_localWriteVersion[key] || 0) + 1;
@@ -750,6 +846,10 @@ window.onload = async () => {
   const libVerEl = document.getElementById('library-version-label');
   if (libVerEl) libVerEl.textContent = 'Plume · v' + APP_VERSION;
   await initIDB();
+  // v8.0.2 — Si des clés étaient restées en échec lors de la dernière
+  // session (fermeture de l'onglet avant la fin du backoff), on reprend
+  // tout de suite, sans attendre la prochaine connexion ou écriture.
+  if (getPendingSyncKeys().length) scheduleSyncRetry();
   // v7.40.0 — bascule afficher/masquer sur les champs statiques (présents
   // dans index.html dès le chargement, contrairement aux écrans gate qui se
   // reconstruisent à chaque rendu — voir profiles.js pour ceux-là).

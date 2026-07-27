@@ -151,6 +151,12 @@ retomber sur la copie locale hors-ligne. Le contenu qui y transite reste
 chiffré côté client exactement comme pour IndexedDB — le Worker ne stocke
 que des blobs opaques, il ne voit jamais rien en clair.
 
+Un envoi qui échoue (hors-ligne, Worker temporairement injoignable) est
+mémorisé dans une file d'attente persistée (survit à une fermeture d'onglet)
+et retenté automatiquement en arrière-plan, avec un délai croissant (10s,
+1min, 5min) — sans attendre la prochaine écriture ou connexion sur cet
+élément précis.
+
 ### Clé de synchronisation
 
 Le code du site étant public, un Worker sans protection serait accessible à

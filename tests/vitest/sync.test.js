@@ -126,4 +126,51 @@ describe('Synchro réelle (router.js) — fetch mocké', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('un envoi échoué ajoute la clé à la file d’attente persistée (survit à un rechargement)', async () => {
+    const fetchMock = vi.fn(async () => { throw new TypeError('network error'); });
+    const ctx = makeRouterContext(fetchMock);
+    ctx.setSyncKey('cle-test');
+
+    await ctx.syncPush('doc_4', { titre: 'Chapitre en échec' });
+
+    expect(ctx.getPendingSyncKeys()).toEqual(['doc_4']);
+  });
+
+  it('la file d’attente retente les clés en échec et les retire une fois réussies', async () => {
+    // La 1ʳᵉ tentative échoue (mémorisée dans la file), la 2ᵉ (simulant le
+    // passage du délai de backoff) réussit.
+    let shouldFail = true;
+    const fetchMock = vi.fn(async () => {
+      if (shouldFail) throw new TypeError('network error');
+      return new Response('null', { status: 200 });
+    });
+    const ctx = makeRouterContext(fetchMock);
+    ctx.setSyncKey('cle-test');
+    // Contenu local déjà écrit (comme le ferait persistData), pour que
+    // retryPendingSyncs() ait bien quelque chose à relire et à repousser.
+    ctx.localStorage.setItem('plume_doc_5', JSON.stringify({ titre: 'Contenu local' }));
+    await ctx.syncPush('doc_5', { titre: 'Contenu local' }); // échoue, ajoute à la file
+    expect(ctx.getPendingSyncKeys()).toEqual(['doc_5']);
+
+    shouldFail = false;
+    await ctx.retryPendingSyncs(); // simule le déclenchement du minuteur de backoff
+
+    expect(ctx.getPendingSyncKeys()).toEqual([]);
+    expect(ctx.getKnownRemoteHash('doc_5')).toBeTruthy();
+  });
+
+  it('la file d’attente oublie une clé dont le contenu local a été supprimé entre-temps', async () => {
+    const fetchMock = vi.fn(async () => { throw new TypeError('network error'); });
+    const ctx = makeRouterContext(fetchMock);
+    ctx.setSyncKey('cle-test');
+    ctx.localStorage.setItem('plume_doc_6', JSON.stringify({ titre: 'Sera supprimé' }));
+    await ctx.syncPush('doc_6', { titre: 'Sera supprimé' }); // échoue, ajoute à la file
+    expect(ctx.getPendingSyncKeys()).toEqual(['doc_6']);
+
+    ctx.localStorage.removeItem('plume_doc_6'); // suppression locale entre-temps
+    await ctx.retryPendingSyncs();
+
+    expect(ctx.getPendingSyncKeys()).toEqual([]);
+  });
+
 });
