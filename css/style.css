@@ -677,7 +677,7 @@ body.library-mode #library-screen{display:block;}
      posée par le même bouton, voir router.js) garantit un résultat correct
      même si la cause réelle était différente.*/
   #chapter-sidebar.drawer-collapsed{max-height:64px;overflow:hidden;}
-  #editor-wrapper{min-height:55vh;}
+  #editor-wrapper{min-height:55vh;padding-bottom:60px;}
   .tab-menu{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .toolbar{gap:3px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .toolbar>*{flex-shrink:0;}
@@ -718,7 +718,6 @@ body.library-mode #library-screen{display:block;}
   #mode-bar{flex-wrap:nowrap;overflow-x:auto;gap:6px;position:fixed;left:0;right:0;
     bottom:0;z-index:220;margin:0;background:var(--glass);border-top:1px solid var(--border);
     padding:8px 10px;box-shadow:0 -4px 14px rgba(0,0,0,.25);border-radius:0;}
-  #editor-wrapper{padding-bottom:60px;}
   #ai-summary-panel{position:fixed;right:8px;left:8px;top:auto;bottom:70px;width:auto;}
   #ai-chat-panel{position:fixed;right:8px;left:8px;top:auto;bottom:70px;width:auto;height:60vh;}
   #tts-panel{position:fixed;left:8px;right:8px;bottom:70px;width:auto;}

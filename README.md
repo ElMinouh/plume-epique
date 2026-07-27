@@ -200,6 +200,11 @@ Chaque mise à jour doit :
 - mettre à jour le numéro affiché en bas à droite de l'éditeur (`index.html`, `#mode-bar`) ;
 - bumper le nom du cache dans `sw.js` (`const CACHE = 'plume-epique-vX.Y.Z'`).
 
+Convention de bump (sauf demande explicite contraire) :
+- **patch** (x.x.N) : ajustement ciblé (un bug, un détail visuel isolé) ;
+- **minor** (x.N.0) : un écran ou un lot complet validé, ou un correctif critique ;
+- **major** (N.0.0) : refonte importante.
+
 ## Historique des corrections majeures
 
 - **Mode Focus** : ne perd plus le gras/italique/souligné.
