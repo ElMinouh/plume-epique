@@ -96,6 +96,10 @@ synopsis, mémoire narrative) passent par un Worker Cloudflare relais
 text}]}`) — changer de fournisseur IA à l'avenir ne nécessite de modifier que
 `worker/worker.js`, jamais `ai.js` ni ses appelants.
 
+Depuis la v8.0.3, la réponse est relayée en flux (Server-Sent Events) plutôt
+qu'attendue en bloc : le texte s'affiche mot par mot au fur et à mesure de sa
+génération par Mistral, au lieu d'apparaître d'un coup à la fin.
+
 ## Multi-profils (v7.0.0)
 
 L'accès à l'application passe par un écran de connexion : on choisit un profil

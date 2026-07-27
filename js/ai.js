@@ -10,7 +10,13 @@
 // changeait. Le corps de la requête a été ajusté suite à un test réel : le
 // Worker attend un champ "prompt" direct (il a répondu "prompt manquant" avec
 // le format Anthropic {messages:[...]}), pas un tableau de messages.
-async function callClaude(prompt, maxTokens=1000) {
+// v8.0.3 — Le Worker relaie désormais la réponse de Mistral en flux (SSE,
+// voir worker/worker.js) au lieu d'attendre la réponse complète : callClaude
+// lit ce flux morceau par morceau et appelle onChunk(texte accumulé jusqu'ici)
+// à chaque morceau reçu, pour un affichage progressif côté utilisateur.
+// onChunk est optionnel — sans lui, callClaude se comporte comme avant :
+// on attend simplement la fin et on renvoie le texte complet.
+async function callClaude(prompt, maxTokens=1000, onChunk) {
   const resp = await fetch('https://plume-epique-ai.air7841.workers.dev', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body:JSON.stringify({ prompt, maxTokens })
@@ -24,8 +30,29 @@ async function callClaude(prompt, maxTokens=1000) {
     try { const err = await resp.json(); if (err.error?.message) msg = err.error.message; } catch(e) {}
     throw new Error(msg);
   }
-  const data = await resp.json();
-  return data.content?.map(b=>b.text||'').join('') || '';
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let full = '', buffer = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    // Dernière ligne potentiellement incomplète (coupée en plein milieu par ce
+    // morceau réseau) : gardée de côté, recollée au morceau suivant.
+    buffer = lines.pop();
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('data:')) continue;
+      const payload = trimmed.slice(5).trim();
+      if (!payload || payload === '[DONE]') continue;
+      try {
+        const delta = JSON.parse(payload).choices?.[0]?.delta?.content || '';
+        if (delta) { full += delta; if (onChunk) onChunk(full); }
+      } catch(e) { /* morceau JSON non exploitable (rare, coupure réseau) : ignoré */ }
+    }
+  }
+  return full;
 }
 async function generateAISummary() {
   await notifyThirdPartyDataUseOnce();
@@ -35,7 +62,8 @@ async function generateAISummary() {
   if (txt.length < 50) { toast('Chapitre trop court.','error'); return; }
   panel.classList.add('active'); showAiLoader('ai-summary-text');
   try {
-    const s = await callClaude(`Résume ce chapitre en 3-5 phrases concises en français.\n\nChapitre: "${db.chapters[cur].title}"\n\n${txt.substring(0,3000)}`);
+    const s = await callClaude(`Résume ce chapitre en 3-5 phrases concises en français.\n\nChapitre: "${db.chapters[cur].title}"\n\n${txt.substring(0,3000)}`, 1000,
+      partial => { textEl.innerText = partial; });
     textEl.innerText = s; textEl.dataset.generated = s;
   } catch(e) { textEl.innerHTML = `<span class="u-c-v-danger">❌ ${e.message}</span>`; }
 }
@@ -50,7 +78,8 @@ async function aiContinueSuggestions() {
   if (text.length < 100) { toast('Écrivez davantage.','error'); return; }
   const el = document.getElementById('ai-continue-result'); showAiLoader('ai-continue-result');
   try {
-    const r = await callClaude(`Voici la fin d'un chapitre: "...${text.slice(-600)}"\n\nPropose 3 continuations numérotées 1. 2. 3., chacune en 2-3 phrases en français, avec des tons variés.`, 800);
+    const r = await callClaude(`Voici la fin d'un chapitre: "...${text.slice(-600)}"\n\nPropose 3 continuations numérotées 1. 2. 3., chacune en 2-3 phrases en français, avec des tons variés.`, 800,
+      partial => { el.innerHTML = DOMPurify.sanitize(partial.replace(/\n/g,'<br>')); });
     el.innerHTML = DOMPurify.sanitize(r.replace(/\n/g,'<br>'));
   } catch(e) { el.innerHTML = `<span class="u-c-v-danger">❌ ${e.message}</span>`; }
 }
@@ -62,7 +91,8 @@ async function aiCheckInconsistencies() {
   const bible = db.chars.map(c=>`${c.name} (${c.role||'?'}): ${c.phys||''} ${c.info||''}`).join('\n');
   const el = document.getElementById('ai-check-result'); showAiLoader('ai-check-result');
   try {
-    const r = await callClaude(`Personnages: ${bible||'(vide)'}\n\nTexte: ${fullText.substring(0,4000)}\n\nListe les incohérences potentielles en français (max 5 points).`, 600);
+    const r = await callClaude(`Personnages: ${bible||'(vide)'}\n\nTexte: ${fullText.substring(0,4000)}\n\nListe les incohérences potentielles en français (max 5 points).`, 600,
+      partial => { el.innerHTML = DOMPurify.sanitize(partial.replace(/\n/g,'<br>')); });
     el.innerHTML = DOMPurify.sanitize(r.replace(/\n/g,'<br>'));
   } catch(e) { el.innerHTML = `<span class="u-c-v-danger">❌ ${e.message}</span>`; }
 }
@@ -84,7 +114,8 @@ Kael Dorn — guerrier tourmenté
 
 Génère 10 noms maintenant, en français ou adaptés au genre ${genre} :`;
 
-    const r = await callClaude(prompt, 600);
+    const r = await callClaude(prompt, 600,
+      partial => { el.innerHTML = DOMPurify.sanitize(partial.replace(/\n/g, '<br>')); });
     const lines = r.split('\n').map(l => l.trim()).filter(l => l.length > 3 && (l.includes('—') || l.includes('-') || l.match(/^[A-ZÀ-Ÿ]/)));
     if (lines.length === 0) {
       el.innerHTML = DOMPurify.sanitize(r.replace(/\n/g, '<br>'));
@@ -197,7 +228,16 @@ async function sendAiChatMessage() {
   messagesEl.scrollTop = messagesEl.scrollHeight;
   try {
     const prompt = buildAiChatPrompt(userText);
-    const reply = await callClaude(prompt, 700);
+    // v8.0.3 — dès le premier morceau reçu, la bulle de points clignotants
+    // est remplacée par le texte qui s'écrit progressivement (voir
+    // callClaude() plus haut) ; renderAiChatMessages() (appelé dans le
+    // finally ci-dessous) reconstruit ensuite la bulle définitive avec ses
+    // boutons Insérer/Copier/Remplacer, une fois la réponse complète.
+    const reply = await callClaude(prompt, 700, partial => {
+      const loadingEl = document.getElementById('ai-chat-loading');
+      if (loadingEl) loadingEl.innerHTML = `<div class="ai-chat-bubble">${DOMPurify.sanitize(partial).replace(/\n/g,'<br>')}</div>`;
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    });
     _aiChatHistory.push({ role:'assistant', text: (reply||'').trim() || '(réponse vide)', ts:Date.now() });
   } catch(e) {
     _aiChatHistory.push({ role:'assistant', text: '❌ ' + e.message, ts:Date.now() });
