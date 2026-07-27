@@ -277,7 +277,12 @@ async function maybeStartSetupTour() {
 
 function startSetupTour() {
   _setupTourActive = true;
-  showSetupBubble('#library-system-btn', 'Configurer la sauvegarde cloud — cliquez ici.', 'Étape 3/3 — configuration initiale');
+  // v7.43.1 — Bug d'ergonomie rapporté : le compteur "Étape 3/3" faisait
+  // penser à un néophyte que cette fenêtre appartenait à la visite guidée
+  // de la bibliothèque (fulltour.js) — alors qu'il s'agit d'une fenêtre
+  // totalement distincte et sans lien avec elle. Fenêtre détachée : plus de
+  // numérotation, juste ce qu'il faut faire et à quoi ça sert.
+  showSetupBubble('#library-system-btn', "Avant d'écrire, configurons la sauvegarde automatique de vos manuscrits sur GitHub — cliquez ici pour l'ouvrir.", 'Sauvegarde automatique');
 }
 
 function showSetupBubble(targetSel, text, counter) {
@@ -1039,7 +1044,7 @@ async function openLibrarySystemPanel(preselectDocId) {
 
   if (_setupTourActive) {
     document.getElementById('library-system-close-btn').style.display = 'none';
-    showSetupBubble('#lib-gh-token', 'Collez votre token GitHub personnel ici, puis vérifiez-le.', 'Étape 3/3 — configuration initiale');
+    showSetupBubble('#lib-gh-token', 'Collez ici votre token GitHub personnel, puis vérifiez-le : vos manuscrits seront alors sauvegardés automatiquement, à l\'abri d\'une panne ou d\'une perte d\'appareil.', 'Sauvegarde automatique');
   }
 }
 
