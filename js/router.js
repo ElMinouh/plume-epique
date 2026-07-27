@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '7.42.1';
+const APP_VERSION = '7.43.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -174,7 +174,7 @@ async function persistConflictBackup(key, payload) {
   } catch(e) { /* la sauvegarde de secours elle-même ne doit jamais faire planter la sync normale */ }
 }
 
-async function syncPush(key, payload, version) {
+async function syncPush(key, payload) {
   const syncKey = getSyncKey();
   if (!syncKey) return;
   try {
@@ -219,15 +219,7 @@ async function syncPush(key, payload, version) {
     if (body.length < 60000) opts.keepalive = true;
     const resp = await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), opts);
     setLastSyncStatus(resp.ok);
-    if (resp.ok) {
-      setKnownRemoteHash(key, newHash);
-      // v7.40.3 — voir le commentaire au-dessus de _confirmedPushVersion :
-      // seule une réponse OK confirme que le Worker a bien la version qu'on
-      // vient d'envoyer. Un 429 (quota dépassé) ou toute autre erreur HTTP ne
-      // met PAS à jour cette valeur — loadData() saura donc que le Worker
-      // est resté en retard sur nous.
-      if (version !== undefined) _confirmedPushVersion[key] = Math.max(_confirmedPushVersion[key] || 0, version);
-    }
+    if (resp.ok) setKnownRemoteHash(key, newHash);
   } catch(e) {
     setLastSyncStatus(false);
     /* hors-ligne ou Worker injoignable : la copie locale suffit, on retentera à la prochaine écriture */
@@ -278,35 +270,10 @@ const _localWriteVersion = {};
 // clé, pour que loadData() n'applique jamais un rafraîchissement pendant
 // qu'un envoi est encore en vol pour cette même clé.
 const _pushChains = {}, _pendingPushCount = {};
-// Correction (bug rapporté, incident réel — v7.40.3) : les deux garde-fous
-// ci-dessus protègent contre une écriture locale EN COURS ou un envoi encore
-// EN VOL, mais pas contre un envoi qui a déjà ÉCHOUÉ silencieusement (Worker
-// injoignable, ou ici précisément : quota Cloudflare KV journalier dépassé,
-// réponse 429). Dans ce cas, syncPush() ne lève aucune erreur (juste
-// setLastSyncStatus(false)), donc _pendingPushCount retombe normalement à 0
-// une fois la réponse reçue — plus rien n'empêchait alors le rafraîchissement
-// en arrière-plan de loadData() de rapatrier la version du Worker, restée en
-// retard puisque son écriture n'avait jamais abouti, et d'écraser la copie
-// locale plus récente avec cette version périmée. Symptôme observé : un
-// profil créé sur un appareil, présent et fonctionnel pendant la session,
-// disparu après fermeture/réouverture — sans qu'aucune erreur visible
-// n'alerte sur le moment.
-// _confirmedPushVersion retient, par clé, la plus haute _localWriteVersion
-// dont on SAIT que l'envoi vers le Worker a réussi (mis à jour uniquement
-// si syncPush() reçoit resp.ok). loadData() n'applique désormais un
-// rafraîchissement que si cette valeur a bien rattrapé la version au moment
-// du lancement du pull — c'est-à-dire seulement si on est CERTAIN que le
-// Worker n'est pas en retard sur nous. Contrepartie acceptée : si un envoi
-// échoue et qu'aucune autre écriture locale ne survient sur cette clé, cet
-// appareil n'ira plus chercher les mises à jour d'un AUTRE appareil sur
-// cette même clé tant qu'il n'aura pas lui-même réécrit dessus (ce qui
-// relance un envoi, et débloque tout si celui-ci aboutit) — préférable à un
-// écrasement silencieux de données locales plus récentes.
-const _confirmedPushVersion = {};
-function queueSyncPush(key, payload, version) {
+function queueSyncPush(key, payload) {
   _pendingPushCount[key] = (_pendingPushCount[key] || 0) + 1;
   const previous = _pushChains[key] || Promise.resolve();
-  const run = previous.then(() => syncPush(key, payload, version), () => syncPush(key, payload, version));
+  const run = previous.then(() => syncPush(key, payload), () => syncPush(key, payload));
   _pushChains[key] = run.then(() => {}, () => {});
   run.then(() => { _pendingPushCount[key] = Math.max(0, (_pendingPushCount[key] || 0) - 1); },
            () => { _pendingPushCount[key] = Math.max(0, (_pendingPushCount[key] || 0) - 1); });
@@ -314,13 +281,13 @@ function queueSyncPush(key, payload, version) {
 }
 
 async function persistData(key, payload) {
-  const version = (_localWriteVersion[key] = (_localWriteVersion[key] || 0) + 1);
+  _localWriteVersion[key] = (_localWriteVersion[key] || 0) + 1;
   if (idbStore) await idbStore.put('data', payload, key);
   else {
     if (payload === null) localStorage.removeItem('plume_' + key);
     else localStorage.setItem('plume_' + key, JSON.stringify(payload));
   }
-  queueSyncPush(key, payload, version);
+  queueSyncPush(key, payload);
 }
 async function loadData(key) {
   let local;
@@ -335,14 +302,40 @@ async function loadData(key) {
   if (local !== undefined && local !== null) {
     // Trouvé en local : on renvoie tout de suite (rapide, marche hors-ligne),
     // et on rafraîchit le cache local en arrière-plan pour la prochaine fois.
+    //
+    // Correction (v7.42.2) — le correctif précédent (v7.40.3, _confirmedPush-
+    // Version) protégeait bien contre un envoi qui venait d'échouer PENDANT
+    // la même session, mais ce compteur n'existait qu'en mémoire : il
+    // repartait de zéro à chaque rechargement/réouverture. Résultat exact du
+    // nouvel incident rapporté : le lendemain matin, dès le tout premier
+    // chargement (aucune écriture locale encore faite dans cette nouvelle
+    // session), la vérification devenait vraie par pure coïncidence
+    // (0 >= 0) et laissait passer l'écrasement par la version distante
+    // restée périmée — recréant exactement le bug initial.
+    // Le hash connu (getKnownRemoteHash/setKnownRemoteHash, déjà utilisé
+    // pour la détection de conflit) est lui PERSISTÉ dans localStorage et
+    // survit à un rechargement : il est mis à jour uniquement après un
+    // envoi RÉUSSI (syncPush) ou une lecture réussie (syncPull) — jamais
+    // après un échec. On ne rapatrie donc désormais la version distante que
+    // si la copie locale actuelle correspond exactement à ce hash connu
+    // (capturé AVANT l'appel à syncPull, qui le met lui-même à jour) :
+    // c'est la seule façon de savoir, de façon fiable et durable, que rien
+    // de local n'est resté non confirmé auprès du Worker.
     const versionAtPullStart = _localWriteVersion[key] || 0;
-    syncPull(key).then(remote => {
-      if (remote !== undefined && remote !== null && idbStore
-          && (_localWriteVersion[key] || 0) === versionAtPullStart
-          && !(_pendingPushCount[key] > 0)
-          && (_confirmedPushVersion[key] || 0) >= versionAtPullStart) {
-        idbStore.put('data', remote, key);
-      }
+    const knownHashAtPullStart = getKnownRemoteHash(key);
+    syncPull(key).then(async remote => {
+      if (remote === undefined || remote === null || !idbStore) return;
+      if ((_localWriteVersion[key] || 0) !== versionAtPullStart) return;
+      if (_pendingPushCount[key] > 0) return;
+      try {
+        const localHash = await sha256Hex(JSON.stringify(local));
+        if (knownHashAtPullStart && localHash === knownHashAtPullStart) {
+          await idbStore.put('data', remote, key);
+        }
+        // Si knownHashAtPullStart est absent, ou différent du hash local :
+        // on ne peut pas garantir que le Worker a bien la dernière version
+        // locale — on ne touche à rien, quitte à re-tenter au prochain appel.
+      } catch(e) { /* en cas de doute, on ne remplace rien */ }
     });
     return local;
   }
