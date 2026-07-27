@@ -1,4 +1,4 @@
-# Plume — v8.0.1
+# Plume — v8.1.0
 
 Outil d'aide et de suivi d'écriture (roman). Application 100% cliente (aucun serveur
 applicatif requis pour le cœur de l'app), stockage local chiffré (IndexedDB), déployée
@@ -161,6 +161,23 @@ et retenté automatiquement en arrière-plan, avec un délai croissant (10s,
 1min, 5min) — sans attendre la prochaine écriture ou connexion sur cet
 élément précis.
 
+### Versionnage (v8.1.0) — ⚠️ nécessite le redéploiement du Worker
+
+Chaque clé porte un numéro de version croissant, attribué par le Worker et
+stocké dans les métadonnées KV. Toute écriture annonce la version sur
+laquelle elle se base (`X-Plume-Base-Version`) ; le Worker la refuse (409)
+si elle ne correspond pas à la version stockée. Le client relit alors,
+réconcilie, et repart de la bonne base. Toute lecture n'est appliquée en
+local que si son numéro est **strictement** supérieur à celui de la copie
+locale.
+
+Sans ce numéro, la synchronisation ne savait comparer que « identique » ou
+« différent », jamais « plus récent » — c'est la cause racine de l'incident
+du 27/07/2026 (voir Historique). **Le Worker `worker/sync-worker.js` doit
+être redéployé** : tant qu'il renvoie l'ancien format (sans en-tête
+`X-Plume-Version`), le client refuse par sécurité d'appliquer toute mise à
+jour distante, et la synchronisation entrante reste donc inactive.
+
 ### Clé de synchronisation
 
 Le code du site étant public, un Worker sans protection serait accessible à
@@ -247,6 +264,55 @@ Convention de bump (sauf demande explicite contraire) :
   sélectionné au clavier).
 
 Les versions ci-dessous sont classées de la plus récente à la plus ancienne.
+
+### v8.1.0 — perte de profils par synchronisation (incident du 27/07/2026)
+
+**Symptôme.** Tous les profils sauf le plus ancien ont disparu simultanément
+sur tous les appareils, y compris côté serveur. Sur l'appareil observé, les
+profils s'affichaient quelques secondes avant de disparaître.
+
+**Cause racine.** La synchronisation n'avait aucune notion de « plus
+récent ». Elle ne comparait que des empreintes : « identique » ou
+« différent ». Face à deux versions différentes d'une même donnée, elle était
+donc structurellement incapable de choisir la bonne, et retenait simplement
+la dernière écrite. Deux conséquences, toutes deux constatées :
+
+1. `syncPushEntireLibrary()` (appelée à **chaque** connexion, y compris les
+   connexions automatiques via « rester connecté ») repoussait la copie
+   locale de l'index des profils. Depuis un appareil resté en arrière, cette
+   écriture écrasait la version à jour du serveur — donc celle de tous les
+   autres appareils.
+2. Cette écriture locale incrémentait `_localWriteVersion`, ce qui **annulait**
+   la mise à jour entrante que `loadData()` était en train de récupérer.
+   L'appareil en retard ne pouvait donc même pas apprendre qu'il l'était : il
+   restait périmé indéfiniment tout en imposant sa version aux autres.
+
+Les correctifs antérieurs (v7.27.0, v7.40.3, v7.42.2) traitaient les
+symptômes de ce défaut en tentant de deviner quelle version était la bonne,
+sans jamais donner au système le moyen de le savoir.
+
+**Correctif.** Numéro de version croissant attribué par le Worker, avec refus
+serveur des écritures périmées (voir « Versionnage » plus haut). S'y ajoutent
+trois garde-fous indépendants :
+
+- l'index des profils ne peut jamais rétrécir par synchronisation
+  (`mergeProfilesIndex`) : une version entrante ne peut qu'ajouter ou mettre
+  à jour des profils, jamais en retirer ;
+- l'écran « premier administrateur » n'est plus affiché lorsqu'une clé de
+  synchronisation est configurée et que le serveur n'a pas pu confirmer
+  l'absence de profils — c'est cet écran qui remplaçait l'index entier
+  (`profiles = [nouveau]`) et provoquait les créations de comptes en cascade ;
+- `endSetupTour()` (library.js) réécrivait l'index entier hors du verrou :
+  passe désormais par `mutateProfilesIndex()`.
+
+Le rafraîchissement en arrière-plan était par ailleurs entièrement désactivé
+sur les navigateurs sans IndexedDB : ces appareils ne recevaient jamais
+aucune mise à jour tout en poussant la leur. Corrigé.
+
+**Non-régression.** `tests/vitest/sync-versioning.test.js` rejoue le scénario
+exact de l'incident en faisant tourner ensemble le vrai client et le vrai
+Worker sur une base KV simulée. Le test échoue sur le code d'avant la v8.1.0
+(le serveur y finit avec un seul profil) et passe après.
 
 ### v7.16.2
 

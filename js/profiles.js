@@ -174,10 +174,52 @@ async function bootProfiles() {
     renderLoginScreen(idx);
     return;
   }
+  // ═══════════════════════════════════════════════════════
+  // GARDE-FOU (v8.1.0) — NE JAMAIS CONCLURE « PREMIÈRE INSTALLATION » SUR UN DOUTE
+  //
+  // Aucun profil trouvé peut vouloir dire deux choses radicalement
+  // différentes : « cet appareil est vierge » (légitime) ou « le serveur n'a
+  // pas répondu » (temporaire). Jusqu'ici les deux menaient au même écran de
+  // création du premier administrateur — et ce profil-là REMPLAÇAIT l'index
+  // entier (profiles = [nouveau]), effaçant les vrais profils dès l'envoi
+  // suivant. C'est très probablement l'origine des créations de comptes en
+  // cascade constatées les 26-27/07/2026.
+  //
+  // Désormais : si une clé de synchronisation est configurée sur cet appareil
+  // et que la dernière tentative de synchro a ÉCHOUÉ, on refuse de conclure.
+  // On propose de réessayer, plutôt que d'ouvrir un écran destructeur.
+  // ═══════════════════════════════════════════════════════
+  if (getSyncKey() && getLastSyncStatus().ok === false) {
+    renderSyncUnavailable();
+    return;
+  }
+
   // Aucun profil : soit première installation, soit anciennes données à migrer.
   const legacy = await loadData('main');
   if (legacy) renderMigration(legacy);
   else renderCreateProfile({ firstAdmin: true });
+}
+
+// Écran affiché quand des profils pourraient exister sur le serveur mais que
+// celui-ci est injoignable — voir le garde-fou ci-dessus. Volontairement sans
+// bouton « créer un profil » : c'est précisément l'action qui détruisait les
+// données. Pour repartir de zéro sciemment, l'utilisateur peut retirer sa clé
+// de synchronisation depuis l'écran de configuration.
+function renderSyncUnavailable() {
+  gateShell(`
+    <div class="gate-title"><i>📡</i> Serveur injoignable</div>
+    <div class="gate-sub">
+      Vos profils sont peut-être stockés en ligne, mais le serveur de
+      synchronisation ne répond pas pour l'instant. Aucun profil n'est affiché
+      tant que ce n'est pas vérifié — c'est volontaire : créer un profil
+      maintenant risquerait de remplacer les vôtres.
+    </div>
+    <div class="gate-sub">Vérifiez votre connexion internet, puis réessayez.</div>
+    <button id="sync-unavail-retry" class="gate-btn gate-btn-primary">Réessayer</button>
+    <button id="sync-unavail-settings" class="gate-link">Modifier la clé de synchronisation</button>
+  `);
+  document.getElementById('sync-unavail-retry').addEventListener('click', () => bootProfiles());
+  document.getElementById('sync-unavail-settings').addEventListener('click', () => renderSyncKeyGate());
 }
 
 // ── Petits utilitaires d'écran ──────────────────────────────────────────

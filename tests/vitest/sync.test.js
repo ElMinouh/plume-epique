@@ -87,30 +87,48 @@ describe('Synchro réelle (router.js) — fetch mocké', () => {
     expect(ctx.getKnownRemoteHash('doc_1')).toBeNull();
   });
 
-  it('un conflit détecté (version distante différente) sauvegarde l’ancienne version et prévient l’utilisateur', async () => {
+  // v8.1.0 — l'arbitrage des conflits a changé de camp : au lieu d'une
+  // vérification préalable côté client (qui ne savait pas distinguer une
+  // version plus récente d'une réponse périmée — cause de l'incident du
+  // 27/07/2026), c'est le serveur qui refuse désormais toute écriture ne se
+  // basant pas sur la version courante (409). Le client relit alors, sauvegarde
+  // la version qu'il s'apprête à remplacer, et prévient l'utilisateur.
+  it('un refus du serveur (409) sauvegarde la version distante et prévient l’utilisateur', async () => {
+    let puts = 0;
     const fetchMock = vi.fn(async (url, opts) => {
-      if (opts && opts.method === 'PUT') return new Response('ok', { status: 200 });
-      // Requête de vérification de conflit (GET implicite, voir syncPush) :
-      // renvoie un contenu différent de l'empreinte connue ET de ce qu'on
-      // s'apprête à écrire, pour forcer la détection.
-      return new Response(JSON.stringify({ titre: 'Modifié depuis un autre appareil' }), { status: 200 });
+      if (opts && opts.method === 'PUT') {
+        puts++;
+        if (puts === 1) {
+          // Le serveur détient plus récent que la version annoncée.
+          return new Response(JSON.stringify({ error: { message: 'périmé' }, serverVersion: 7 }), {
+            status: 409, headers: { 'Content-Type': 'application/json', 'X-Plume-Version': '7' }
+          });
+        }
+        return new Response(JSON.stringify({ ok: true, version: 8 }), {
+          status: 200, headers: { 'Content-Type': 'application/json', 'X-Plume-Version': '8' }
+        });
+      }
+      // Relecture consécutive au refus.
+      return new Response(JSON.stringify({ titre: 'Modifié depuis un autre appareil' }), {
+        status: 200, headers: { 'Content-Type': 'application/json', 'X-Plume-Version': '7' }
+      });
     });
     const ctx = makeRouterContext(fetchMock);
     ctx.setSyncKey('cle-test');
-    // Empreinte connue arbitraire, simulant un envoi précédent réussi.
-    ctx.setKnownRemoteHash('doc_2', 'empreinte-connue-perimee');
 
     await ctx.syncPush('doc_2', { titre: 'Nouveau contenu local' });
 
-    // Vérification (GET) puis envoi (PUT) : les deux appels ont bien eu lieu.
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    // La version distante écrasée doit être sauvegardée localement (jamais
+    // Envoi refusé → relecture → nouvel envoi accepté.
+    expect(puts).toBe(2);
+    // La version distante remplacée doit être sauvegardée localement (jamais
     // perdue), sous une clé 'plume_conflict_doc_2_<timestamp>'.
     const backupKeys = Object.keys(ctx.localStorage).filter(k => k.startsWith('plume_conflict_doc_2_'));
     expect(backupKeys.length).toBe(1);
     expect(JSON.parse(ctx.localStorage.getItem(backupKeys[0]))).toEqual({ titre: 'Modifié depuis un autre appareil' });
     // L'utilisateur est prévenu (voir toast(..., 'error') dans syncPush).
     expect(ctx.toast).toHaveBeenCalledWith(expect.stringContaining('autre appareil'), 'error');
+    // Et la version du serveur est désormais mémorisée.
+    expect(ctx.getSyncVersion('doc_2')).toBe(8);
   });
 
   it('persistData/loadData (sans IndexedDB) : ce qui est écrit est relu à l’identique', async () => {

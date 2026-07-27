@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '8.0.3';
+const APP_VERSION = '8.1.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -164,6 +164,80 @@ async function sha256Hex(str) {
 }
 function getKnownRemoteHash(key) { return localStorage.getItem('plume_synchash_' + key); }
 function setKnownRemoteHash(key, hash) { localStorage.setItem('plume_synchash_' + key, hash); }
+
+// ═══════════════════════════════════════════════════════
+// NUMÉRO DE VERSION PAR CLÉ (v8.1.0)
+//
+// Incident du 27/07/2026 (perte de tous les profils sauf un, sur tous les
+// appareils simultanément). Cause racine : la synchronisation ne savait
+// comparer que « identique » ou « différent », jamais « plus récent » ou
+// « plus ancien ». Deux conséquences, toutes deux constatées :
+//
+//   1. syncPushEntireLibrary() (appelée à CHAQUE connexion, y compris les
+//      connexions automatiques via « rester connecté ») repoussait la copie
+//      locale de l'index des profils. Sur un appareil resté en arrière, ça
+//      écrasait la version à jour du serveur — donc celle de tous les autres
+//      appareils.
+//   2. Cette écriture locale incrémentait _localWriteVersion, ce qui
+//      ANNULAIT la mise à jour entrante que loadData() était justement en
+//      train de récupérer. L'appareil en retard ne pouvait donc même pas
+//      apprendre qu'il était en retard : il restait périmé indéfiniment tout
+//      en imposant sa version périmée aux autres.
+//
+// Le serveur attribue désormais à chaque clé un numéro de version croissant
+// (voir worker/sync-worker.js). On mémorise ici, PAR CLÉ et de façon
+// persistante, le numéro correspondant à la copie locale actuelle :
+//   - toute écriture annonce ce numéro ; le serveur la refuse (409) s'il
+//     détient déjà plus récent → un appareil en retard ne peut plus écraser ;
+//   - toute lecture n'est appliquée en local que si son numéro est
+//     STRICTEMENT supérieur au nôtre → une réponse périmée ne peut plus
+//     écraser une copie locale plus récente.
+// ═══════════════════════════════════════════════════════
+function getSyncVersion(key) {
+  const v = parseInt(localStorage.getItem('plume_syncver_' + key), 10);
+  return Number.isInteger(v) && v >= 0 ? v : 0;
+}
+function setSyncVersion(key, v) {
+  if (Number.isInteger(v) && v >= 0) localStorage.setItem('plume_syncver_' + key, String(v));
+}
+// Lit le numéro de version renvoyé par le Worker. Renvoie null si l'en-tête
+// est absent (Worker pas encore redéployé en v8.1.0, ou en-tête masqué par
+// une règle CORS) : l'appelant traite alors la réponse comme non arbitrable
+// et, par prudence, ne remplace rien en local.
+function readVersionHeader(resp) {
+  const raw = resp.headers.get('X-Plume-Version');
+  if (raw === null) return null;
+  const v = parseInt(raw, 10);
+  return Number.isInteger(v) && v >= 0 ? v : null;
+}
+
+// ═══════════════════════════════════════════════════════
+// GARDE-FOU : L'INDEX DES PROFILS NE PEUT JAMAIS RÉTRÉCIR (v8.1.0)
+//
+// Deuxième filet, indépendant du numéro de version ci-dessus : même si une
+// version périmée franchissait tous les contrôles (cohérence différée de KV
+// entre deux continents, bug futur, régression...), un profil présent en
+// local ne doit JAMAIS disparaître à cause d'une synchronisation. Une
+// version entrante ne peut donc qu'AJOUTER ou METTRE À JOUR des profils,
+// jamais en retirer.
+//
+// La suppression volontaire d'un profil (deleteProfile, profiles.js) reste
+// possible : elle écrit en local puis pousse, et c'est cette version-là qui
+// fait autorité. Le seul effet de bord acceptable est qu'un profil supprimé
+// pendant qu'un autre appareil était hors ligne puisse réapparaître à son
+// retour — un profil en trop se resupprime en trois clics, un profil perdu
+// ne se récupère pas.
+// ═══════════════════════════════════════════════════════
+function mergeProfilesIndex(local, remote) {
+  if (!remote || !Array.isArray(remote.profiles)) return local;
+  if (!local || !Array.isArray(local.profiles)) return remote;
+  const merged = remote.profiles.slice();
+  const seen = new Set(merged.map(p => p && p.id));
+  for (const p of local.profiles) {
+    if (p && !seen.has(p.id)) { merged.push(p); seen.add(p.id); }
+  }
+  return { ...remote, profiles: merged };
+}
 // Sauvegarde locale uniquement (ne relance pas syncPush, sans quoi on
 // boucle) — utilisée pour ne jamais perdre la version distante écrasée.
 async function persistConflictBackup(key, payload) {
@@ -174,31 +248,27 @@ async function persistConflictBackup(key, payload) {
   } catch(e) { /* la sauvegarde de secours elle-même ne doit jamais faire planter la sync normale */ }
 }
 
-async function syncPush(key, payload) {
+// Écriture strictement locale, sans repasser par persistData() : utilisée
+// pendant la réconciliation d'un conflit (ci-dessous), où déclencher un
+// nouvel envoi depuis l'intérieur d'un envoi provoquerait une récursion.
+async function writeLocalOnly(key, payload) {
+  if (idbStore) await idbStore.put('data', payload, key);
+  else if (payload === null) localStorage.removeItem('plume_' + key);
+  else localStorage.setItem('plume_' + key, JSON.stringify(payload));
+}
+
+// Nombre maximal de réconciliations enchaînées pour une même écriture. Au-delà,
+// on abandonne et on laisse la file de nouvelles tentatives reprendre la main :
+// mieux vaut un envoi différé qu'une boucle infinie si un autre appareil écrit
+// en rafale sur la même clé.
+const SYNC_MAX_CONFLICT_RETRIES = 3;
+
+async function syncPush(key, payload, attempt = 0) {
   const syncKey = getSyncKey();
   if (!syncKey) return;
   try {
     const body = JSON.stringify(payload);
     const newHash = await sha256Hex(body);
-
-    // --- Détection de conflit (v7.27.0), voir commentaire ci-dessus ---
-    const known = getKnownRemoteHash(key);
-    if (known) {
-      try {
-        const resp = await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), { headers: { 'Authorization': 'Bearer ' + syncKey } });
-        if (resp.ok) {
-          const remote = await resp.json();
-          if (remote !== null && remote !== undefined) {
-            const remoteHash = await sha256Hex(JSON.stringify(remote));
-            if (remoteHash !== known && remoteHash !== newHash) {
-              await persistConflictBackup(key, remote);
-              if (typeof toast === 'function') toast("Synchro : une version différente de cet élément a été détectée sur un autre appareil et sauvegardée avant remplacement.", 'error');
-            }
-          }
-        }
-      } catch(e) { /* vérif de conflit best-effort : si elle échoue, on pousse quand même normalement */ }
-    }
-    // --- fin détection de conflit ---
 
     // `keepalive` permet à une sauvegarde de se terminer même si l'utilisateur
     // ferme l'onglet juste après — mais Chrome impose une limite stricte
@@ -213,13 +283,52 @@ async function syncPush(key, payload) {
     // locale reste intacte et sera repoussée à la prochaine écriture).
     const opts = {
       method: 'PUT',
-      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + syncKey },
+      headers: {
+        'Content-Type':'application/json',
+        'Authorization':'Bearer ' + syncKey,
+        // v8.1.0 — version sur laquelle cette écriture se base. Le serveur
+        // refuse (409) s'il détient déjà plus récent : c'est ce qui empêche
+        // définitivement un appareil en retard d'écraser les autres.
+        'X-Plume-Base-Version': String(getSyncVersion(key))
+      },
       body
     };
     if (body.length < 60000) opts.keepalive = true;
     const resp = await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), opts);
+
+    // ── Refus : le serveur détient une version plus récente que la nôtre ──
+    if (resp.status === 409) {
+      setLastSyncStatus(false);
+      if (attempt >= SYNC_MAX_CONFLICT_RETRIES) { addPendingSyncKey(key); scheduleSyncRetry(); return; }
+      // On relit la version à jour du serveur, on la réconcilie avec notre
+      // copie locale, puis on repart de cette base. Rien n'est jamais jeté :
+      //  • index des profils → fusion (aucun profil ne peut disparaître) ;
+      //  • toute autre clé → la version du serveur est sauvegardée localement
+      //    avant d'être remplacée par la nôtre, et l'utilisateur est prévenu.
+      const pulled = await syncPull(key);
+      if (pulled.version === null) { addPendingSyncKey(key); scheduleSyncRetry(); return; }
+      let reconciled = payload;
+      if (pulled.data !== null && pulled.data !== undefined) {
+        if (key === 'profiles') {
+          reconciled = mergeProfilesIndex(payload, pulled.data);
+        } else {
+          const remoteHash = await sha256Hex(JSON.stringify(pulled.data));
+          if (remoteHash !== newHash) {
+            await persistConflictBackup(key, pulled.data);
+            if (typeof toast === 'function') toast("Synchro : une version différente de cet élément a été détectée sur un autre appareil et sauvegardée avant remplacement.", 'error');
+          }
+        }
+      }
+      // La copie locale doit refléter ce qu'on s'apprête à envoyer, sinon le
+      // prochain chargement croirait à tort avoir des modifications en attente.
+      await writeLocalOnly(key, reconciled);
+      return await syncPush(key, reconciled, attempt + 1);
+    }
+
     setLastSyncStatus(resp.ok);
     if (resp.ok) {
+      const v = readVersionHeader(resp);
+      if (v !== null) setSyncVersion(key, v);
       setKnownRemoteHash(key, newHash);
       removePendingSyncKey(key);
     } else {
@@ -241,20 +350,27 @@ async function syncPush(key, payload) {
     scheduleSyncRetry();
   }
 }
+// v8.1.0 — renvoie désormais { data, version } (et non plus la seule donnée) :
+// sans le numéro de version, l'appelant n'a aucun moyen de savoir si ce qu'il
+// reçoit est plus récent ou plus ancien que ce qu'il détient déjà — c'est
+// exactement ce qui a causé la perte de profils du 27/07/2026.
+// `version: null` = information indisponible (échec réseau, ou Worker pas
+// encore redéployé en v8.1.0) → l'appelant ne doit alors RIEN remplacer.
 async function syncPull(key) {
   const syncKey = getSyncKey();
-  if (!syncKey) return undefined;
+  if (!syncKey) return { data: undefined, version: null };
   try {
     const resp = await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), { headers: { 'Authorization': 'Bearer ' + syncKey } });
-    if (!resp.ok) { setLastSyncStatus(false); return undefined; }
+    if (!resp.ok) { setLastSyncStatus(false); return { data: undefined, version: null }; }
     setLastSyncStatus(true);
+    const version = readVersionHeader(resp);
     const data = await resp.json(); // peut être `null` (clé jamais synchronisée) : géré par l'appelant
     // v7.27.0 — on mémorise l'empreinte de ce qu'on vient de lire, pour que la
     // détection de conflit (voir syncPush) sache dès la prochaine écriture
     // locale si quelqu'un d'autre a modifié la donnée entre-temps.
     if (data !== null && data !== undefined) setKnownRemoteHash(key, await sha256Hex(JSON.stringify(data)));
-    return data;
-  } catch(e) { setLastSyncStatus(false); return undefined; }
+    return { data, version };
+  } catch(e) { setLastSyncStatus(false); return { data: undefined, version: null }; }
 }
 
 // Correction (bug rapporté) : le rafraîchissement du cache local en
@@ -417,29 +533,63 @@ async function loadData(key) {
     // (capturé AVANT l'appel à syncPull, qui le met lui-même à jour) :
     // c'est la seule façon de savoir, de façon fiable et durable, que rien
     // de local n'est resté non confirmé auprès du Worker.
+    //
+    // Correction (v8.1.0, incident du 27/07/2026) — toutes les protections
+    // ci-dessus répondaient à la question « ma copie locale est-elle bien
+    // confirmée auprès du serveur ? ». Aucune ne répondait à la seule qui
+    // compte ici : « la version que le serveur me renvoie est-elle plus
+    // récente que la mienne ? ». Quand la réponse était non (serveur en
+    // retard, ou écrasé par un appareil resté en arrière), la copie locale à
+    // jour était remplacée par une version périmée — c'est ainsi que tous
+    // les profils sauf un ont disparu. On compare désormais les numéros de
+    // version attribués par le serveur : une version qui n'est pas
+    // STRICTEMENT plus récente que la nôtre n'est jamais appliquée.
     const versionAtPullStart = _localWriteVersion[key] || 0;
     const knownHashAtPullStart = getKnownRemoteHash(key);
-    syncPull(key).then(async remote => {
-      if (remote === undefined || remote === null || !idbStore) return;
+    syncPull(key).then(async ({ data: remote, version: remoteVersion }) => {
+      // v8.1.0 — la condition portait aussi sur `idbStore` : sur un navigateur
+      // sans IndexedDB (mode privé restrictif, quota refusé), l'appareil
+      // n'appliquait donc JAMAIS les mises à jour reçues — il restait périmé
+      // en permanence tout en poussant sa version. writeLocalOnly() gère
+      // indifféremment IndexedDB et localStorage : la restriction saute.
+      if (remote === undefined || remote === null) return;
+      // Version indisponible (Worker pas encore redéployé, en-tête masqué) :
+      // impossible d'arbitrer → on ne remplace rien, par sécurité.
+      if (remoteVersion === null) return;
+      // ── LE CONTRÔLE QUI MANQUAIT ──
+      if (remoteVersion <= getSyncVersion(key)) return;
+      // Une écriture locale a eu lieu pendant l'attente, ou un envoi est
+      // encore en vol : on laisse cet envoi arbitrer (il sera refusé par le
+      // serveur puis réconcilié sans perte, voir syncPush).
       if ((_localWriteVersion[key] || 0) !== versionAtPullStart) return;
       if (_pendingPushCount[key] > 0) return;
       try {
+        // Modifications locales non encore confirmées par le serveur : on ne
+        // les écrase pas. Elles seront poussées, refusées, puis réconciliées.
         const localHash = await sha256Hex(JSON.stringify(local));
-        if (knownHashAtPullStart && localHash === knownHashAtPullStart) {
-          await idbStore.put('data', remote, key);
+        if (!knownHashAtPullStart || localHash !== knownHashAtPullStart) return;
+
+        if (key === 'profiles') {
+          // Garde-fou : un profil présent en local ne disparaît jamais.
+          const merged = mergeProfilesIndex(local, remote);
+          await writeLocalOnly(key, merged);
+          setSyncVersion(key, remoteVersion);
+          // Des profils locaux absents du serveur ? On les y renvoie.
+          if (JSON.stringify(merged) !== JSON.stringify(remote)) queueSyncPush(key, merged);
+        } else {
+          await writeLocalOnly(key, remote);
+          setSyncVersion(key, remoteVersion);
         }
-        // Si knownHashAtPullStart est absent, ou différent du hash local :
-        // on ne peut pas garantir que le Worker a bien la dernière version
-        // locale — on ne touche à rien, quitte à re-tenter au prochain appel.
       } catch(e) { /* en cas de doute, on ne remplace rien */ }
     });
     return local;
   }
   // Rien en local : premier accès à cette clé depuis cet appareil (ex.
   // nouvel appareil découvrant un profil existant) — on attend le Worker.
-  const remote = await syncPull(key);
+  const { data: remote, version: remoteVersion } = await syncPull(key);
   if (remote !== undefined && remote !== null) {
     if (idbStore) await idbStore.put('data', remote, key);
+    if (remoteVersion !== null) setSyncVersion(key, remoteVersion);
     return remote;
   }
   return local ?? null;

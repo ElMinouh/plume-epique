@@ -304,9 +304,16 @@ async function endSetupTour() {
   hideSetupBubble();
   document.getElementById('library-system-close-btn').style.display = '';
   try {
-    const idx = await loadProfilesIndex();
-    const profil = idx && idx.profiles && idx.profiles.find(p => p.id === _currentProfileId);
-    if (profil) { profil.setupTourDone = true; await saveProfilesIndex(idx); }
+    // Correction (audit v8.1.0) : cette fonction lisait l'index puis le
+    // réécrivait ENTIÈREMENT hors du verrou — le patron exact qui a causé les
+    // pertes de données ailleurs (couvertures, puis profils). Une écriture
+    // concurrente survenue entre la lecture et l'écriture était silencieusement
+    // écrasée. mutateProfilesIndex() relit une copie fraîche à l'intérieur du
+    // verrou et sérialise l'opération.
+    await mutateProfilesIndex(idx => {
+      const profil = idx.profiles && idx.profiles.find(p => p.id === _currentProfileId);
+      if (profil) profil.setupTourDone = true;
+    });
   } catch(e) { /* best effort */ }
 }
 
