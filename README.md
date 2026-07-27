@@ -1,4 +1,4 @@
-# Plume Épique Studio — v7.0.0
+# Plume — v8.0.1
 
 Outil d'aide et de suivi d'écriture (roman). Application 100% cliente (aucun serveur
 applicatif requis pour le cœur de l'app), stockage local chiffré (IndexedDB), déployée
@@ -79,6 +79,11 @@ plutôt qu'un compteur global "X/Y réussis" qu'il fallait ouvrir dans un naviga
 pour identifier lequel avait échoué. `tests/test-runner.html` reste disponible en
 secours (utile sans Node/npm), mais `tests/vitest/` est désormais la suite de
 référence.
+
+`tests/vitest/sync.test.js` couvre en plus, séparément (fetch mocké, contexte
+jsdom isolé), la logique de synchro réelle de `router.js` : `syncPush`,
+`syncPull`, `persistData`, `loadData`, `getKnownRemoteHash` (envoi réussi, envoi
+échoué, conflit détecté entre appareils).
 
 
 ## Intelligence artificielle
