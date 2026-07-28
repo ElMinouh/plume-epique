@@ -770,6 +770,25 @@ body.library-mode #library-screen{display:block;}
      du montage projet consulté au moment de cette modification. */
   #graph-controls .action-btn{min-height:44px;padding:9px 12px;}
   .graph-legend{font-size:var(--fs-base);gap:14px;}
+  /* v8.1.3 — Chantier Responsive Mobile, écran 6/N (IA & Mémoire, Analyse,
+     Système, Config/Sprint). Champs/selects/boutons agrandis pour le
+     tactile, mêmes principes que les écrans précédents. Aucun changement
+     sur desktop. */
+  #tab-ai .field,#tab-memory .field{min-height:44px;padding:9px 10px;}
+  #tab-ai .action-btn,#tab-memory .action-btn{min-height:44px;padding:9px 12px;}
+  #tab-wordcloud .action-btn{min-height:44px;padding:9px 12px;}
+  #tab-config-main .field{min-height:44px;padding:9px 10px;}
+  #tab-config-main .action-btn,#tab-config-main .mode-indicator,
+  #tab-sprint .action-btn{min-height:44px;padding:9px 12px;}
+  /* Système : boutons Snapshot/Comparer/Restaurer agrandis. */
+  #tab-history .action-btn,#history-overlay .action-btn{min-height:44px;padding:9px 12px;}
+  /* Bug réel corrigé : le panneau "Historique des versions" (liste de
+     snapshots + aperçu/diff) restait affiché en 2 colonnes fixes côte à
+     côte même sur mobile — trop étroit pour être utilisable. Empilement
+     vertical : liste au-dessus (hauteur plafonnée, défilement propre),
+     aperçu/diff en dessous. */
+  #history-overlay .u-d-flex.u-gap-10px.u-fg-1{flex-direction:column;}
+  #history-overlay .u-w-220px{width:100%;max-height:180px;flex:0 0 auto;}
 }
 @media(max-width:480px){
   .tab-btn{padding:3px 6px;font-size:var(--fs-xs);}
