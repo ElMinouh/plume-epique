@@ -26,12 +26,13 @@ const LIBRARY_TOUR_STEPS = [
   // v9.0.0 — Bug rapporté : sur mobile, ces boutons sont cachés derrière le
   // menu "⋯" (chantier Responsive Mobile, écran 2/N) — la cible était donc
   // invisible, l'étape sautée, et de même pour l'étape suivante, ce qui
-  // terminait la visite d'un coup après l'étape 1/3. clickFirst ouvre le
-  // menu "⋯" (sans effet sur desktop, où il reste masqué, voir showFullTourStep),
-  // et le sélecteur de cible liste aussi l'équivalent qui y apparaît.
-  { clickFirst:'#library-topbar-more-btn', target:'#library-system-btn, #ltop-system', title:'💾 Système',
+  // terminait la visite d'un coup après l'étape 1/3. ensureLibraryMenuOpen
+  // ouvre le menu "⋯" si besoin (sans effet sur desktop, où il reste
+  // masqué), et le sélecteur de cible liste aussi l'équivalent qui y
+  // apparaît.
+  { ensureVisible:ensureLibraryMenuOpen, target:'#library-system-btn, #ltop-system', title:'💾 Système',
     text:"Ce bouton regroupe tout ce qui protège votre travail : la sauvegarde automatique sur GitHub (un service gratuit de stockage en ligne, indépendant de cet ordinateur), la synchronisation si vous écrivez depuis plusieurs appareils, et l'export ou l'import de vos manuscrits sous forme de fichier." },
-  { clickFirst:'#library-topbar-more-btn', target:'#library-manage-profiles-btn, #ltop-manage-profiles', title:'👤 Gérer les profils',
+  { ensureVisible:ensureLibraryMenuOpen, target:'#library-manage-profiles-btn, #ltop-manage-profiles', title:'👤 Gérer les profils',
     text:"Si plusieurs personnes se servent de cet ordinateur pour écrire, chacune peut avoir son propre profil protégé par mot de passe : ses manuscrits restent invisibles pour les autres. Ce bouton, réservé au compte administrateur, permet d'ajouter ou de retirer des profils." }
 ];
 
@@ -50,7 +51,7 @@ const FULL_TOUR_STEPS = [
     text:"Deux façons de retrouver du texte : dans tout le projet à la fois (tous les chapitres), ou seulement dans le chapitre actuel avec possibilité de remplacer le mot trouvé par un autre." },
   { clickFirst:'.toolbar-dropdown-btn.u-bg-h8e44ad', target:'.toolbar-dropdown-btn.u-bg-h8e44ad', title:'🤖 Assistant IA (dans le texte)',
     text:"Depuis n'importe quel chapitre : un résumé automatique de ce que vous venez d'écrire, ou le fait d'envoyer un passage que vous avez sélectionné à l'assistant IA pour en discuter avec lui." },
-  { target:'#search-btn', title:'✨ Synonymes & antonymes',
+  { ensureVisible:ensureLexToolsOpen, target:'#search-btn', title:'✨ Synonymes & antonymes',
     text:"Toujours visible dans la barre d'outils : tapez un mot dans le petit champ, choisissez « Synonymes » ou « Antonymes » dans le menu, puis cliquez sur GO pour obtenir des suggestions." },
   { subtab:'tab-chars', title:'👥 Personnages',
     text:"Une fiche par personnage de votre histoire : description, apparence, tout ce que vous voulez garder en mémoire à leur sujet. L'assistant IA peut ensuite vérifier que votre texte ne les contredit pas (voir l'onglet IA)." },
@@ -119,6 +120,23 @@ function startFullTour(steps) {
   showFullTourStep();
 }
 
+// v9.0.0 — Ouverture GARANTIE (jamais une fermeture) des deux menus repliés
+// sur mobile dont la visite a besoin. N'agit que si le déclencheur est
+// visible (mobile) ET que le menu n'est pas déjà ouvert ; ne fait rien sur
+// desktop (déclencheur masqué par CSS, cible déjà visible directement).
+function ensureLibraryMenuOpen() {
+  const menu = document.getElementById('library-topbar-overflow-menu');
+  const btn = document.getElementById('library-topbar-more-btn');
+  if (!menu || !btn || !isVisible(btn)) return;
+  if (!menu.classList.contains('open')) btn.click();
+}
+function ensureLexToolsOpen() {
+  const group = document.getElementById('lex-tools-group');
+  const btn = document.getElementById('lex-tools-toggle-btn');
+  if (!group || !btn || !isVisible(btn)) return;
+  if (!group.classList.contains('open')) btn.click();
+}
+
 function isVisible(el) {
   return !!el && !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
 }
@@ -149,6 +167,13 @@ function showFullTourStep() {
   // dans le DOM sur desktop (juste masqué par CSS), le cliquer quand même
   // ouvrirait inutilement son menu déroulant en plein écran desktop.
   if (step.clickFirst) { const trig = document.querySelector(step.clickFirst); if (trig && isVisible(trig)) trig.click(); }
+  // v9.0.0 — Bug rapporté : clickFirst sur un bouton "bascule" (ouvre/ferme)
+  // pouvait, selon l'état déjà en cours, le REFERMER au lieu de l'ouvrir —
+  // une étape sur deux se retrouvait alors sautée (bibliothèque : 1/3 puis
+  // 3/3 ; visite complète : Synonymes & antonymes sauté). ensureVisible
+  // vérifie l'état actuel et ne clique QUE si c'est nécessaire pour ouvrir,
+  // jamais pour fermer — résultat toujours prévisible.
+  if (step.ensureVisible) step.ensureVisible();
 
   requestAnimationFrame(() => {
     // Correction (bug rapporté) : les étapes "sous-onglet" (Personnages,
