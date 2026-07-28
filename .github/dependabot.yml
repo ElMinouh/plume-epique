@@ -9,6 +9,17 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+      # v9.1.x — jsdom 30.0.0 embarque une version d'"undici" cassée
+      # (TypeError: webidl.util.markAsUncloneable is not a function),
+      # qui fait échouer les 143 tests sans rapport avec le code de
+      # l'app elle-même (voir pull request #4, fermée sans fusion).
+      # Seules les mises à jour MAJEURES de jsdom sont ignorées ici ;
+      # les correctifs mineurs/patchs (ex. 29.1.x → 29.1.y) continuent
+      # d'être proposés normalement. À retirer une fois jsdom 30.x
+      # stabilisé.
+      - dependency-name: "jsdom"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
