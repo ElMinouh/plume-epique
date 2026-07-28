@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Récupérer le dépôt
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Déployer sur Cloudflare
         uses: cloudflare/wrangler-action@v3
         with:
@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Récupérer le dépôt
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Déployer sur Cloudflare
         uses: cloudflare/wrangler-action@v3
         with:
