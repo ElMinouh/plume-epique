@@ -1,4 +1,4 @@
-# Plume — v8.1.0
+# Plume — v9.1.1
 
 Outil d'aide et de suivi d'écriture (roman). Application 100% cliente (aucun serveur
 applicatif requis pour le cœur de l'app), stockage local chiffré (IndexedDB), déployée
@@ -14,11 +14,21 @@ plume-epique/
 ├── manifest.json        → manifeste PWA (installation en app)
 ├── sw.js                 → Service Worker (cache hors-ligne + notification de mise à jour)
 ├── _headers               → en-têtes HTTP Cloudflare Pages (CSP, nosniff, referrer-policy)
+├── .github/
+│   ├── workflows/
+│   │   ├── deploy-workers.yml → déploie automatiquement worker.js et sync-worker.js sur
+│   │   │                          Cloudflare à chaque push (voir section dédiée plus bas) —
+│   │   │                          remplace le copier-coller manuel dans le dashboard
+│   │   └── test.yml            → lance `npm test` à chaque push et pull request
+│   └── dependabot.yml            → alerte/PR automatique si une faille est trouvée dans une
+│                                     dépendance npm ou une action utilisée par les workflows
 ├── worker/
-│   ├── worker.js          → Worker Cloudflare relais IA (Mistral) — édité manuellement
-│   │                         dans le dashboard Cloudflare, ce fichier sert de référence
-│   └── sync-worker.js      → Worker Cloudflare de synchronisation multi-appareils (KV) —
-│                              même principe, voir section dédiée plus bas
+│   ├── worker.js          → Worker Cloudflare relais IA (Mistral) — déployé automatiquement
+│   │                          par .github/workflows/deploy-workers.yml, voir wrangler-ai.toml
+│   ├── wrangler-ai.toml    → configuration de déploiement du Worker IA
+│   ├── sync-worker.js      → Worker Cloudflare de synchronisation multi-appareils (KV) —
+│   │                          même principe, voir section dédiée plus bas
+│   └── wrangler-sync.toml  → configuration de déploiement du Worker de synchro (namespace KV)
 ├── css/
 │   └── style.css         → tous les styles
 ├── js/
@@ -69,8 +79,10 @@ plume-epique/
 
 ## Tests automatisés
 
-`npm install` puis `npm test` (ou `npm run test:watch` en continu). La suite
-(`tests/vitest/`) charge les vrais fichiers de `js/` dans un contexte Node/jsdom
+`npm install` puis `npm test` (ou `npm run test:watch` en continu). Depuis v9.1,
+`.github/workflows/test.yml` relance aussi automatiquement `npm test` à chaque
+push et pull request — une régression est détectée sans avoir à y penser, en
+plus de l'exécution manuelle. La suite (`tests/vitest/`) charge les vrais fichiers de `js/` dans un contexte Node/jsdom
 partagé (même ordre que l'ancienne `tests/test-runner.html`, voir
 `tests/vitest/env.js`), et exécute le même contenu de test qu'avant
 (`tests/vitest/suite.js`, porté à l'identique) — seul le harnais change : chaque
@@ -161,7 +173,7 @@ et retenté automatiquement en arrière-plan, avec un délai croissant (10s,
 1min, 5min) — sans attendre la prochaine écriture ou connexion sur cet
 élément précis.
 
-### Versionnage (v8.1.0) — ⚠️ nécessite le redéploiement du Worker
+### Versionnage (v8.1.0)
 
 Chaque clé porte un numéro de version croissant, attribué par le Worker et
 stocké dans les métadonnées KV. Toute écriture annonce la version sur
@@ -173,10 +185,7 @@ locale.
 
 Sans ce numéro, la synchronisation ne savait comparer que « identique » ou
 « différent », jamais « plus récent » — c'est la cause racine de l'incident
-du 27/07/2026 (voir Historique). **Le Worker `worker/sync-worker.js` doit
-être redéployé** : tant qu'il renvoie l'ancien format (sans en-tête
-`X-Plume-Version`), le client refuse par sécurité d'appliquer toute mise à
-jour distante, et la synchronisation entrante reste donc inactive.
+du 27/07/2026 (voir Historique).
 
 ### Clé de synchronisation
 
@@ -190,14 +199,28 @@ correcte, avant de valider. Un appareil peut aussi choisir de s'en passer
 (« Continuer sans synchronisation ») et rester 100% local, comme avant cette
 version.
 
-### Déploiement du Worker de synchronisation
+### Déploiement des Workers (automatisé depuis v9.0)
 
-1. Créez un nouveau Worker Cloudflare et collez-y le contenu de
-   `worker/sync-worker.js`.
-2. Créez un namespace KV et liez-le à ce Worker sous le nom exact `PLUME_SYNC`.
-3. Ajoutez un secret `SYNC_KEY` (la clé de synchronisation, choisie par vous).
-4. Reportez l'URL du Worker déployé dans `js/router.js` (constante
-   `SYNC_WORKER_URL`) et dans `_headers` (`connect-src`).
+Les deux Workers (`worker.js` et `sync-worker.js`) se déploient désormais
+automatiquement via GitHub Actions (`.github/workflows/deploy-workers.yml`,
+Wrangler) à chaque push touchant `worker/**` — le copier-coller manuel dans le
+dashboard Cloudflare ("Quick Edit") n'est plus utilisé et ne doit plus l'être :
+le dépôt est la seule source de vérité, ce qui est écrit dans ces fichiers est
+garanti être ce qui tourne réellement en ligne.
+
+Configuration nécessaire (déjà en place, à titre de référence si un jour un
+nouveau compte Cloudflare doit être relié) :
+1. Secrets GitHub du dépôt (Settings → Secrets and variables → Actions) :
+   `CLOUDFLARE_API_TOKEN` (jeton avec permission "Edit Cloudflare Workers") et
+   `CLOUDFLARE_ACCOUNT_ID`.
+2. `worker/wrangler-sync.toml` déclare le binding KV `PLUME_SYNC` (nom fixe,
+   ne pas modifier — c'est celui utilisé dans le code) avec l'ID du namespace
+   KV réel (non secret, visible dans le dashboard Cloudflare → Workers & Pages
+   → Storage & Databases → KV).
+3. Les secrets applicatifs (`SYNC_KEY`, `MISTRAL_API_KEY`) restent configurés
+   côté Cloudflare (Worker → Variables and Secrets) — ils ne se déclarent
+   jamais dans les fichiers du dépôt, et un déploiement Wrangler ne les touche
+   pas.
 
 ## Sécurité — Content Security Policy
 
@@ -264,6 +287,72 @@ Convention de bump (sauf demande explicite contraire) :
   sélectionné au clavier).
 
 Les versions ci-dessous sont classées de la plus récente à la plus ancienne.
+
+### v9.1.1 — accessibilité clavier
+
+Test manuel de navigation 100% au clavier (menus, fenêtres, visite guidée) :
+deux bugs trouvés et corrigés. Échap ne fermait que 14 fenêtres sur 20 (il
+manquait "Mon profil", "Gérer les profils", le panneau Système bibliothèque,
+le chat IA, les notes de chapitre, la modale de confirmation, et les menus
+déroulants de la barre d'outils). Aucun piège de focus n'existait : Tab
+pouvait faire sortir le focus d'une fenêtre ouverte vers la page derrière —
+corrigé par un mécanisme générique basé sur `role="dialog"`, qui protège
+automatiquement toute fenêtre actuelle et future sans rien à modifier ailleurs.
+
+### v9.1.0 — bibliothèque mobile
+
+Grille de la bibliothèque compactée sur mobile (3 colonnes au lieu d'une
+seule pleine largeur ; 2 manuscrits max visibles auparavant). Bouton menu (⋮)
+conservé à 44×44 de zone tactile malgré la carte étroite (padding autour d'une
+icône plus petite, pas un agrandissement visuel réel).
+
+### v9.0.0 – v9.0.2 — visites guidées (bugs Android)
+
+- Bulles de tour à largeur fixe pouvant déborder sur téléphone étroit —
+  largeur désormais plafonnée à l'écran.
+- Bulle "Visite complète" : hauteur supposée fixe (160px) pour décider du
+  placement au-dessus/en dessous de la cible, alors qu'elle varie avec la
+  longueur du texte — débordait en bas d'écran sur les étapes au texte long.
+  Hauteur réelle mesurée désormais.
+- Visite bibliothèque et étape "Synonymes & antonymes" : cibles cachées
+  derrière un menu replié sur mobile (⋯, ✨▾), sautées en cascade jusqu'à la
+  fin faute d'être jamais visibles.
+- **Bug de propagation de clic (Android uniquement)** : sur un clic tactile
+  réel, "Suivant" remontait (bubbling) jusqu'à `document`, où des écouteurs
+  déjà existants ("fermer tout menu au clic extérieur") refermaient aussitôt
+  le menu que la visite venait d'ouvrir dans ce même clic — avant même que la
+  résolution de cible ne s'exécute. Invisible sur PC (le chemin concerné n'y
+  est jamais emprunté). Corrigé par `e.stopPropagation()` sur les boutons de
+  navigation de la visite.
+- Onglet "Config" restant ouvert à la fin de la visite complète — restaure
+  désormais l'onglet actif d'avant son lancement.
+- Bouton "📚 retour bibliothèque" toujours visible sur mobile, entre le titre
+  du manuscrit et le bouton ☰ (jusqu'ici accessible seulement une fois le
+  panneau chapitres déplié).
+
+### v8.1.1 – v8.1.4 — Chantier Responsive Mobile
+
+Tous les écrans passés en revue et corrigés pour mobile (audit + maquette
+validée avant chaque implémentation) : panneaux "Mon profil"/"Gérer les
+profils", les 5 sous-onglets d'Univers (Personnages/Lieux/Quêtes/Chronologie/
+Relations — dont un bug réel : la fiche de détail pouvait être coupée sous la
+liste, cadre bloqué à la hauteur de l'écran), IA & Mémoire, Analyse, Système
+(dont le panneau Historique des versions, affiché en 2 colonnes fixes même
+sur mobile, empilées verticalement depuis), Config/Sprint, et les visites
+guidées/aide contextuelle. Cibles tactiles portées à ~44px partout.
+
+### Infrastructure (v9.0 – v9.1)
+
+- **Déploiement automatique des Workers** via GitHub Actions + Wrangler —
+  voir section dédiée plus haut. Élimine le risque de divergence entre le
+  fichier de référence du dépôt et le code réellement déployé (identifié
+  comme dette technique après l'incident v8.1.0 ci-dessous).
+- **Tests automatiques** à chaque push/pull request (`.github/workflows/test.yml`).
+- **Dependabot** actif (dépendances npm + actions GitHub), avec une exception
+  documentée : les mises à jour majeures de `jsdom` sont ignorées tant que
+  jsdom 30.x embarque une version cassée d'`undici` (`TypeError:
+  webidl.util.markAsUncloneable is not a function`, sans rapport avec le
+  code de l'app).
 
 ### v8.1.0 — perte de profils par synchronisation (incident du 27/07/2026)
 
@@ -487,6 +576,16 @@ Worker sur une base KV simulée. Le test échoue sur le code d'avant la v8.1.0
 
 ## Limites connues
 
+- Cohérence différée de Cloudflare KV (jusqu'à 60s de propagation entre
+  régions) : le versionnage (v8.1.0) empêche d'écraser une version connue,
+  mais pas de lire une version pas encore propagée. Ne concerne que le même
+  appareil/profil écrivant la même donnée à quelques dizaines de secondes
+  d'écart depuis deux régions différentes — jugé négligeable pour un usage
+  familial (filet de sécurité déjà en place : détection par empreinte,
+  sauvegarde de secours + avertissement). Migration vers D1/Durable Objects
+  envisageable si une garantie absolue devenait nécessaire un jour ;
+  explicitement non recommandée pour l'usage actuel (coût d'ingénierie
+  disproportionné, voir discussion du 28/07/2026).
 - Les tests couvrent les fonctions les plus critiques (schéma, chiffrement, diff), pas
   l'ensemble de l'application (pas de tests d'intégration UI).
 - Le rechercher/remplacer ne traite pas les occurrences qui chevauchent une limite de
