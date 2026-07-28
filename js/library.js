@@ -338,9 +338,18 @@ function wireLibraryStaticUI() {
   // Visite guidée complète (nouveau v7.39.0) — voir fulltour.js.
   document.getElementById('library-tour-btn').addEventListener('click', launchLibraryTour);
   document.getElementById('library-full-tour-btn').addEventListener('click', launchEditorFullTour);
-  document.getElementById('full-tour-prev-btn').addEventListener('click', fullTourPrev);
-  document.getElementById('full-tour-next-btn').addEventListener('click', fullTourNext);
-  document.getElementById('full-tour-quit-btn').addEventListener('click', endFullTour);
+  // v9.0.2 — Bug rapporté (Android uniquement) : ces clics remontaient
+  // (bubbling) jusqu'à document, où des écouteurs génériques ("fermer tout
+  // menu au clic extérieur", voir plus bas et router.js) refermaient
+  // aussitôt le menu "⋯"/"✨▾" que ensureLibraryMenuOpen()/ensureLexToolsOpen()
+  // (fulltour.js) venaient d'ouvrir dans ce même clic — avant même que la
+  // résolution de cible (différée via requestAnimationFrame) ne s'exécute.
+  // Sur PC (largeur desktop), ce chemin n'était jamais emprunté (cible déjà
+  // visible sans menu), d'où l'absence de bug observée là-bas. Même
+  // correctif que celui déjà appliqué à #lctx-cover un peu plus bas.
+  document.getElementById('full-tour-prev-btn').addEventListener('click', e => { e.stopPropagation(); fullTourPrev(); });
+  document.getElementById('full-tour-next-btn').addEventListener('click', e => { e.stopPropagation(); fullTourNext(); });
+  document.getElementById('full-tour-quit-btn').addEventListener('click', e => { e.stopPropagation(); endFullTour(); });
 
   // v7.40.2 — Menu "Plus d'actions" de la topbar bibliothèque (mobile) :
   // chaque entrée appelle directement le même gestionnaire que le bouton
