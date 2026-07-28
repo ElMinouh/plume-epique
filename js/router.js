@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.1.0';
+const APP_VERSION = '9.1.1';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -903,6 +903,43 @@ function wireAppEventListenersOnce(){
       if(document.getElementById('shortcuts-overlay').classList.contains('active'))closeShortcutsHelp();
       if(document.getElementById('docx-import-overlay').classList.contains('active'))closeDocxImportModal();
       if(document.getElementById('chapter-ctx-menu').classList.contains('open'))closeAllChapterMenus();
+      // v9.1.1 — Bug d'accessibilité rapporté (test clavier) : Échap ne
+      // fermait ni les menus déroulants de la barre d'outils, ni 6 fenêtres
+      // (Mon profil, Gérer les profils, Système bibliothèque, chat IA,
+      // notes de chapitre, confirmation) — simplement absentes de cette
+      // liste jusqu'ici.
+      document.querySelectorAll('.toolbar-menu.open').forEach(m=>m.classList.remove('open'));
+      if(document.getElementById('my-profile-overlay').classList.contains('active'))closeMyProfile();
+      if(document.getElementById('manage-profiles-overlay').classList.contains('active'))closeManageProfiles();
+      if(document.getElementById('library-system-overlay').classList.contains('active'))closeLibrarySystemPanel();
+      if(document.getElementById('ai-chat-panel').classList.contains('active'))closeAiChat();
+      if(!document.getElementById('chapter-notes-panel').classList.contains('u-d-none'))document.getElementById('chapter-notes-panel').classList.add('u-d-none');
+      // La modale de confirmation a besoin de résoudre sa promesse comme un
+      // vrai clic sur "Annuler" (showConfirmModal(), notifications.js) —
+      // simuler ce clic plutôt que retirer la classe directement.
+      if(document.getElementById('confirm-modal-overlay').classList.contains('active'))document.getElementById('confirm-modal-cancel-btn').click();
+    }
+    // v9.1.1 — Bug d'accessibilité rapporté (test clavier) : rien n'empêchait
+    // Tab de faire sortir le focus d'une fenêtre ouverte vers la page
+    // derrière. Générique : s'applique à toute fenêtre role="dialog"
+    // actuellement visible (couvre déjà toutes les fenêtres existantes,
+    // et les futures sans rien à modifier ailleurs), boucle Tab/Maj+Tab à
+    // l'intérieur de ses éléments focusables.
+    if(e.key==='Tab'){
+      const openDialogs = Array.from(document.querySelectorAll('[role="dialog"]'))
+        .filter(d => d.offsetWidth > 0 || d.offsetHeight > 0 || d.getClientRects().length > 0);
+      if(openDialogs.length){
+        const dialog = openDialogs.find(d => d.contains(document.activeElement)) || openDialogs[openDialogs.length-1];
+        const focusable = Array.from(dialog.querySelectorAll(
+          'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+        )).filter(el => el.offsetWidth>0||el.offsetHeight>0||el.getClientRects().length>0);
+        if(focusable.length){
+          const first = focusable[0], last = focusable[focusable.length-1];
+          if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+          else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+          else if(!dialog.contains(document.activeElement)){ e.preventDefault(); first.focus(); }
+        }
+      }
     }
   });
 
