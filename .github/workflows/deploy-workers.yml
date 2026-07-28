@@ -1,0 +1,52 @@
+name: Déployer les Workers Cloudflare
+
+# Rôle : jusqu'ici, toute modification de worker/sync-worker.js ou
+# worker/worker.js exigeait un copier-coller manuel dans le dashboard
+# Cloudflare ("Quick Edit") — avec le risque, déjà identifié, que le
+# fichier de référence du dépôt et le code réellement déployé finissent
+# par diverger sans que personne ne s'en aperçoive. Ce workflow supprime
+# ce risque : il déploie automatiquement le code du dépôt dès qu'il change.
+#
+# Se déclenche sur push vers main touchant l'un des deux Workers ou leur
+# config, ou manuellement via l'onglet "Actions" du dépôt GitHub (bouton
+# "Run workflow", utile pour un premier essai sans attendre un vrai push).
+#
+# Les deux jobs se redéploient TOUS LES DEUX dès qu'un seul fichier change
+# (plus simple et plus sûr qu'un déclenchement fin par fichier) : un
+# redéploiement d'un Worker dont le code n'a pas changé est sans effet,
+# le coût est négligeable.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/**'
+  workflow_dispatch:
+
+jobs:
+  deploy-sync-worker:
+    name: Déployer plume-epique-sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+      - name: Déployer sur Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: 'worker'
+          command: deploy sync-worker.js --config wrangler-sync.toml
+
+  deploy-ai-worker:
+    name: Déployer plume-epique-ai
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+      - name: Déployer sur Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: 'worker'
+          command: deploy worker.js --config wrangler-ai.toml

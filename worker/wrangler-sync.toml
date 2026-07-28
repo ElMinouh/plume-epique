@@ -1,0 +1,22 @@
+# Configuration de déploiement pour le Worker "plume-epique-sync".
+# Utilisée par .github/workflows/deploy-workers.yml (Wrangler, l'outil
+# officiel de déploiement Cloudflare) — plus besoin de copier-coller dans
+# le dashboard.
+
+name = "plume-epique-sync"
+main = "sync-worker.js"
+compatibility_date = "2026-07-28"
+
+# Namespace KV où sont stockées les données synchronisées (voir
+# sync-worker.js, variable PLUME_SYNC dans le code). Le nom du binding
+# ("PLUME_SYNC") DOIT rester exactement celui-ci, c'est ce nom que le code
+# utilise. L'ID ci-dessous n'est PAS un secret (juste un identifiant
+# technique), il est normal qu'il apparaisse ici, dans un fichier du dépôt.
+[[kv_namespaces]]
+binding = "PLUME_SYNC"
+id = "9abfbc1017d245ef8def8a6ac8c72418"
+
+# Les secrets (SYNC_KEY) ne se déclarent JAMAIS ici (ce fichier est dans le
+# dépôt Git) : ils restent tels que déjà configurés dans le dashboard
+# Cloudflare (Worker → Variables and Secrets), et un déploiement Wrangler
+# ne les touche pas.

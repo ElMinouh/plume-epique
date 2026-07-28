@@ -1,0 +1,13 @@
+# Configuration de déploiement pour le Worker "plume-epique-ai".
+# Utilisée par .github/workflows/deploy-workers.yml (Wrangler, l'outil
+# officiel de déploiement Cloudflare) — plus besoin de copier-coller dans
+# le dashboard.
+
+name = "plume-epique-ai"
+main = "worker.js"
+compatibility_date = "2026-07-28"
+
+# Pas de namespace KV pour ce Worker. Le secret MISTRAL_API_KEY reste tel
+# que déjà configuré dans le dashboard Cloudflare (Worker → Variables and
+# Secrets) — un déploiement Wrangler ne le touche pas, il ne se déclare
+# jamais dans ce fichier (qui est dans le dépôt Git).
