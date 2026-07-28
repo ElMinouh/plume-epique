@@ -23,9 +23,15 @@
 const LIBRARY_TOUR_STEPS = [
   { target:'#library-new-btn, #library-new-btn-shelf', title:'📚 Vos manuscrits',
     text:"Chaque roman que vous écrivez est un « manuscrit » séparé : ses propres chapitres, personnages et réglages, indépendants des autres. Ce bouton en crée un tout nouveau, vierge. Les manuscrits déjà commencés apparaissent juste en dessous sous forme de couvertures — un clic dessus les rouvre là où vous les avez laissés." },
-  { target:'#library-system-btn', title:'💾 Système',
+  // v9.0.0 — Bug rapporté : sur mobile, ces boutons sont cachés derrière le
+  // menu "⋯" (chantier Responsive Mobile, écran 2/N) — la cible était donc
+  // invisible, l'étape sautée, et de même pour l'étape suivante, ce qui
+  // terminait la visite d'un coup après l'étape 1/3. clickFirst ouvre le
+  // menu "⋯" (sans effet sur desktop, où il reste masqué, voir showFullTourStep),
+  // et le sélecteur de cible liste aussi l'équivalent qui y apparaît.
+  { clickFirst:'#library-topbar-more-btn', target:'#library-system-btn, #ltop-system', title:'💾 Système',
     text:"Ce bouton regroupe tout ce qui protège votre travail : la sauvegarde automatique sur GitHub (un service gratuit de stockage en ligne, indépendant de cet ordinateur), la synchronisation si vous écrivez depuis plusieurs appareils, et l'export ou l'import de vos manuscrits sous forme de fichier." },
-  { target:'#library-manage-profiles-btn', title:'👤 Gérer les profils',
+  { clickFirst:'#library-topbar-more-btn', target:'#library-manage-profiles-btn, #ltop-manage-profiles', title:'👤 Gérer les profils',
     text:"Si plusieurs personnes se servent de cet ordinateur pour écrire, chacune peut avoir son propre profil protégé par mot de passe : ses manuscrits restent invisibles pour les autres. Ce bouton, réservé au compte administrateur, permet d'ajouter ou de retirer des profils." }
 ];
 
@@ -94,9 +100,17 @@ const FULL_TOUR_STEPS = [
 // MOTEUR — commun aux deux tours ci-dessus
 // ═══════════════════════════════════════════════════════
 let _fullTourSteps = [], _fullTourIdx = 0, _fullTourActive = false;
+let _tourPrevActiveTabId = null;
 
 function startFullTour(steps) {
   if (!steps || !steps.length) return;
+  // v9.0.0 — Bug rapporté : à la fin de la visite complète, l'onglet
+  // "Config" (dernière catégorie traversée par les étapes) restait affiché
+  // au lieu de revenir à ce qui était ouvert avant de lancer la visite. On
+  // mémorise ici l'onglet actif d'origine (s'il y en avait un) pour le
+  // restaurer dans endFullTour().
+  const prevBtn = document.querySelector('.tab-btn.active');
+  _tourPrevActiveTabId = prevBtn ? prevBtn.dataset.tabId : null;
   _fullTourSteps = steps;
   _fullTourIdx = 0;
   _fullTourActive = true;
@@ -109,6 +123,18 @@ function isVisible(el) {
   return !!el && !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
 }
 
+// v9.0.0 — Un sélecteur d'étape peut désormais lister plusieurs candidats
+// séparés par une virgule (ex. bouton desktop + équivalent du menu "⋯" sur
+// mobile) : on retient le premier RÉELLEMENT VISIBLE, pas juste le premier
+// trouvé dans l'ordre du document (qui pouvait être un bouton caché par une
+// media query mobile, voir bug de la visite bibliothèque).
+function resolveVisibleTarget(selector) {
+  if (!selector) return null;
+  const candidates = document.querySelectorAll(selector);
+  for (const el of candidates) { if (isVisible(el)) return el; }
+  return null;
+}
+
 function showFullTourStep() {
   // Ferme un éventuel menu déroulant resté ouvert depuis l'étape précédente
   // (même mécanisme qu'un clic réel en dehors du menu).
@@ -118,7 +144,11 @@ function showFullTourStep() {
   if (!step) { endFullTour(); return; }
 
   if (step.subtab) openTabOrSubtab(step.subtab);
-  if (step.clickFirst) { const trig = document.querySelector(step.clickFirst); if (trig) trig.click(); }
+  // v9.0.0 — clickFirst ne déclenche le clic que si l'élément est
+  // réellement visible : le bouton "⋯" de la bibliothèque existe toujours
+  // dans le DOM sur desktop (juste masqué par CSS), le cliquer quand même
+  // ouvrirait inutilement son menu déroulant en plein écran desktop.
+  if (step.clickFirst) { const trig = document.querySelector(step.clickFirst); if (trig && isVisible(trig)) trig.click(); }
 
   requestAnimationFrame(() => {
     // Correction (bug rapporté) : les étapes "sous-onglet" (Personnages,
@@ -129,8 +159,8 @@ function showFullTourStep() {
     // celui déjà utilisé pour les icônes ⓘ (voir helpIconAnchorFor
     // ci-dessous), qui cible le bouton du sous-onglet lui-même.
     const targetSelector = step.target || (step.subtab ? `.subtab-btn[data-subtab="${step.subtab}"]` : null);
-    const target = targetSelector ? document.querySelector(targetSelector) : null;
-    if (!target || !isVisible(target)) { fullTourNext(); return; }
+    const target = targetSelector ? resolveVisibleTarget(targetSelector) : null;
+    if (!target) { fullTourNext(); return; }
     target.scrollIntoView({ block:'center' });
     requestAnimationFrame(() => positionFullTourStep(target, step));
   });
@@ -150,9 +180,22 @@ function positionFullTourStep(target, step) {
   document.getElementById('full-tour-next-btn').textContent = _fullTourIdx === _fullTourSteps.length-1 ? 'Terminer' : 'Suivant';
 
   const bubble = document.getElementById('full-tour-bubble');
-  const bw = 300, margin = 12;
+  const margin = 12;
+  // v9.0.0 — Bug rapporté : la hauteur de la bulle était supposée fixe
+  // (160px) pour décider de la placer au-dessus ou en dessous de la cible,
+  // alors qu'elle varie selon la longueur du texte de chaque étape — au-delà
+  // de cette hauteur supposée, la bulle débordait en bas de l'écran sans que
+  // le calcul de bascule ne s'en aperçoive (repéré sur les étapes au texte
+  // le plus long : 1, 25, 26, 28, 29). Le texte étant déjà posé ci-dessus,
+  // on mesure ici la hauteur RÉELLEMENT rendue de la bulle.
+  const bh = bubble.offsetHeight || 160;
+  const bw = bubble.offsetWidth || 300;
   let top = r.bottom + margin, left = r.left;
-  if (top + 160 > window.innerHeight) top = Math.max(margin, r.top - 160 - margin);
+  if (top + bh > window.innerHeight - margin) top = Math.max(margin, r.top - bh - margin);
+  // Filet de sécurité : si même bascule au-dessus ne suffit pas (cible très
+  // proche du haut ET bulle très grande), on la plaque au plus bas possible
+  // sans déborder, plutôt que de dépasser l'écran.
+  top = Math.max(margin, Math.min(top, window.innerHeight - bh - margin));
   left = Math.max(margin, Math.min(window.innerWidth - bw - margin, left));
   bubble.style.top = top + 'px'; bubble.style.left = left + 'px';
 }
@@ -172,6 +215,14 @@ function endFullTour() {
   document.body.click();
   document.getElementById('full-tour-spotlight').classList.remove('active');
   document.getElementById('full-tour-bubble').classList.remove('active');
+  // v9.0.0 — Restaure l'onglet actif d'avant la visite, ou referme tout
+  // s'il n'y en avait pas (voir startFullTour). Sans effet sur la visite
+  // de la bibliothèque (pas d'onglet dans cet écran, _tourPrevActiveTabId
+  // reste null).
+  document.querySelectorAll('.tab-btn.active,.tab-content.active').forEach(e => e.classList.remove('active'));
+  const restoreBtn = _tourPrevActiveTabId ? document.querySelector(`.tab-btn[data-tab-id="${_tourPrevActiveTabId}"]`) : null;
+  if (restoreBtn) { toggleTab(_tourPrevActiveTabId, restoreBtn, true); }
+  else { document.getElementById('tab-container').classList.remove('open'); }
 }
 
 // ═══════════════════════════════════════════════════════

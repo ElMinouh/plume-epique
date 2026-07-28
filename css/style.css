@@ -666,6 +666,11 @@ body.library-mode #library-screen{display:block;}
   #chapter-sidebar-toggle-btn{display:inline-flex;align-items:center;justify-content:center;
     min-width:44px;min-height:44px;font-size:1.2rem;background:none;border:1px solid var(--border);
     border-radius:var(--radius-sm);color:inherit;cursor:pointer;flex-shrink:0;}
+  /* v9.0.0 — Bouton "retour bibliothèque" toujours visible sur mobile,
+     même gabarit que le bouton ☰ juste à côté. */
+  #chapter-quick-library-btn{display:inline-flex;align-items:center;justify-content:center;
+    min-width:44px;min-height:44px;font-size:1.2rem;background:none;border:1px solid var(--border);
+    border-radius:var(--radius-sm);color:inherit;cursor:pointer;flex-shrink:0;}
   #chapter-sidebar-body{display:none;margin-top:8px;}
   #chapter-sidebar-body.open{display:flex;max-height:60vh;overflow-y:auto;}
   /* Filet de sécurité (bug rapporté, capture d'écran à l'appui) : le panneau

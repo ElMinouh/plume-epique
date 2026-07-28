@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '8.1.4';
+const APP_VERSION = '9.0.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -715,6 +715,10 @@ function wireAppEventListenersOnce(){
   document.getElementById('document-title').addEventListener('blur',e=>updateDocumentTitle(e.target.innerText.trim()));
   document.getElementById('back-to-library-btn').addEventListener('click',backToLibrary);
   document.getElementById('editor-home-btn').addEventListener('click',goHome);
+  // v9.0.0 — Bouton "retour bibliothèque" toujours visible sur mobile (voir
+  // index.html) : même fonction que #back-to-library-btn, pas de nouvelle
+  // logique.
+  document.getElementById('chapter-quick-library-btn').addEventListener('click',backToLibrary);
   // v7.42.1 — Tiroir repliable du panneau chapitres (mobile uniquement,
   // voir style.css) : n'a aucun effet visuel sur desktop, où ce bouton est
   // masqué (u-d-none) et #chapter-sidebar-body toujours visible.

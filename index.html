@@ -761,6 +761,13 @@
            liste des chapitres elle-même à une hauteur nulle et invisible
            (bug rapporté avec capture d'écran). Cache aussi sur desktop
            (u-d-none), où le panneau reste toujours visible comme avant. -->
+      <!-- v9.0.0 — Bouton "retour bibliothèque" toujours visible sur mobile
+           (demande utilisateur) : jusqu'ici, y retourner sur mobile exigeait
+           de d'abord déplier le panneau chapitres (☰) pour atteindre
+           "📚 Ma bibliothèque" à l'intérieur — voir #back-to-library-btn
+           plus bas. Caché sur desktop (u-d-none), où ce bouton existe déjà
+           et reste visible en permanence dans le panneau non replié. -->
+      <button class="u-d-none" id="chapter-quick-library-btn" title="Retour à la bibliothèque" aria-label="Retour à la bibliothèque">📚</button>
       <button class="u-d-none" id="chapter-sidebar-toggle-btn" title="Afficher/masquer le panneau chapitres" aria-label="Afficher/masquer le panneau chapitres" aria-expanded="false">☰</button>
     </div>
     <div id="chapter-sidebar-body">
