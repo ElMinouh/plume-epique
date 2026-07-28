@@ -1,0 +1,16 @@
+# Alerte et propose automatiquement une mise à jour (pull request) si une
+# faille de sécurité est découverte dans une dépendance — vitest, jsdom
+# (npm), ou les actions utilisées par les workflows (actions/checkout,
+# cloudflare/wrangler-action...). Gratuit, ne modifie jamais rien tout
+# seul : ça ouvre juste une pull request à examiner et fusionner soi-même.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

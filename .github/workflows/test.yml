@@ -1,0 +1,29 @@
+name: Tests automatisés
+
+# Rôle : jusqu'ici, "npm test" (143 tests) n'était lancé que manuellement.
+# Ce workflow le relance automatiquement à chaque push et à chaque pull
+# request sur main — une régression est détectée avant même de s'en
+# apercevoir, sans rien changer à la façon dont les tests sont écrits.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: npm test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Installer les dépendances
+        run: npm ci
+      - name: Lancer les tests
+        run: npm test
