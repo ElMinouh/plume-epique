@@ -828,6 +828,24 @@ body.library-mode #library-screen{display:block;}
      n'apparaissait qu'au survol souris — au toucher, il n'y a pas de
      survol, il était donc invisible et inaccessible sur mobile. */
   .library-kebab-btn,.lib-book-kebab{opacity:1;}
+  /* v9.1.0 — Bug d'ergonomie rapporté : chaque carte manuscrit (grille)
+     prenait la quasi-totalité de l'écran (1 seule colonne pleine largeur,
+     2 manuscrits max visibles). Compactée en 3 colonnes ; le bouton ⋮
+     conserve une zone tactile de 44×44 malgré la carte étroite (padding
+     autour d'une icône plus petite, pas un agrandissement visuel réel).
+     Texte des métadonnées abrégé sur mobile, voir library.js. */
+  #library-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
+  .library-cover{height:44px;font-size:1.1rem;}
+  .library-card-body{padding:5px 6px;}
+  .library-card-title{font-size:var(--fs-xs);}
+  .library-card-meta{font-size:.62rem;}
+  .library-card-date{display:none;}
+  .library-new{min-height:0;padding:10px 4px;gap:3px;}
+  .library-new-icon{font-size:1.1rem;}
+  .library-kebab-btn{top:0;right:0;width:44px;height:44px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:0 var(--radius) 0 8px;padding:0;font-size:.85rem;}
+  .library-progress-label{font-size:.6rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* Page d'écriture : chantier Responsive Mobile, écran 3/N.
      Même bug que ci-dessus, sur le menu ⋮ de chaque chapitre (renommer,
      tags, dupliquer, supprimer) — invisible au toucher sans ce correctif. */

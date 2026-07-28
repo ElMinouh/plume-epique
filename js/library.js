@@ -559,13 +559,19 @@ async function renderLibraryScreen() {
       const coverClass = cover ? ` cover-${d.cover}` : '';
       const goal = d.wordGoal || 0;
       const pct = goal > 0 ? Math.min(100, Math.round((d.wordCount||0) / goal * 100)) : 0;
+      // v9.1.0 — Cartes compactées en 3 colonnes sur mobile (voir style.css) :
+      // le texte complet "X chapitre(s) · Y mots" ne tient plus dans la
+      // largeur restante, abrégé en "X ch · Y mots" en dessous de 480px.
+      const metaText = window.innerWidth <= 480
+        ? `${d.chapterCount||0} ch · ${d.wordCount||0} mots`
+        : `${d.chapterCount||0} chapitre(s) · ${d.wordCount||0} mots`;
       return `
     <div class="library-card" data-doc-id="${d.id}" role="button" tabindex="0" title="Ouvrir « ${DOMPurify.sanitize(d.title || 'Sans titre')} »">
       <button class="library-kebab-btn" data-kebab-doc="${d.id}" title="Actions du manuscrit" aria-label="Actions du manuscrit">⋮</button>
       <div class="library-cover${coverClass}">📖</div>
       <div class="library-card-body">
         <p class="library-card-title">${DOMPurify.sanitize(d.title || 'Sans titre')}</p>
-        <p class="library-card-meta">${d.chapterCount||0} chapitre(s) · ${d.wordCount||0} mots</p>
+        <p class="library-card-meta">${metaText}</p>
         ${goal>0 ? `<div class="library-progress" title="${d.wordCount||0} / ${goal} mots"><div class="library-progress-bar" data-pct="${pct}"></div></div><p class="library-progress-label">${d.wordCount||0} / ${goal} mots · ${pct}%</p>` : ''}
         <p class="library-card-date">${formatRelativeDate(d.lastModified)}${d.lastGistSync ? ' · ☁️ '+formatRelativeDate(d.lastGistSync).replace('Modifié ','') : ''}</p>
       </div>
