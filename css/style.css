@@ -744,6 +744,32 @@ body.library-mode #library-screen{display:block;}
   .mp-row{flex-wrap:wrap;}
   .mp-avatar{width:36px;height:36px;}
   .mp-actions{flex:1 1 100%;justify-content:flex-end;margin-top:6px;}
+  /* v8.1.2 — Chantier Responsive Mobile, écran 5/N (5 sous-onglets
+     "Univers" : Personnages, Lieux, Quêtes, Chronologie, Relations).
+     Bug réel corrigé : .db-grid restait limité à height:100%/overflow:
+     hidden même une fois passé en 1 seule colonne empilée (liste puis
+     fiche) — la fiche de détail (edit-box) pouvait se retrouver coupée
+     sous la liste, invisible. Le cadre grandit désormais avec son
+     contenu, la page défile normalement (comme .tab-content le permet
+     déjà). Bénéficie aussi à l'écran "Analyse" (tab-map, même classe).
+     Aucun changement sur desktop. */
+  .db-grid{height:auto;overflow:visible;}
+  /* Champs, boutons et bascule Liste/Cartes agrandis pour le tactile. */
+  #tab-chars .field,#tab-places .field,#tab-quests .field,
+  #tab-chars .edit-box input,#tab-chars .edit-box select,
+  #tab-places .edit-box input,#tab-places .edit-box select,
+  #tab-quests .edit-box input,#tab-quests .edit-box select{min-height:44px;padding:9px 10px;}
+  #tab-chars .action-btn,#tab-places .action-btn,#tab-quests .action-btn,
+  #tab-chars .mode-indicator,#tab-places .mode-indicator{min-height:44px;padding:9px 12px;}
+  /* Chronologie : défilement horizontal du rail conservé tel quel (voulu) ;
+     seul le formulaire d'ajout est agrandi pour le tactile. */
+  #tl-add-form .field{min-height:44px;padding:9px 10px;}
+  #tl-add-form .action-btn{min-height:44px;padding:9px 12px;}
+  /* Relations : bouton Reconstruire et légende agrandis. Le tracé du
+     graphe lui-même (relations.js) n'a pas pu être audité ici — absent
+     du montage projet consulté au moment de cette modification. */
+  #graph-controls .action-btn{min-height:44px;padding:9px 12px;}
+  .graph-legend{font-size:var(--fs-base);gap:14px;}
 }
 @media(max-width:480px){
   .tab-btn{padding:3px 6px;font-size:var(--fs-xs);}

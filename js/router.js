@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '8.1.1';
+const APP_VERSION = '8.1.2';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
