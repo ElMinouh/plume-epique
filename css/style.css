@@ -724,6 +724,26 @@ body.library-mode #library-screen{display:block;}
   .db-grid{grid-template-columns:1fr;}
   .stats-grid,.analytics-grid{grid-template-columns:1fr 1fr;}
   header,main{width:99%;}
+  /* v8.1.1 — Chantier Responsive Mobile, écran 4/N (panneaux "Mon profil"
+     et "Gérer les profils"). Champs/menus/boutons de ces deux panneaux
+     agrandis pour une cible tactile ~44px, même logique que l'écran de
+     connexion (gate). Aucun changement sur desktop. */
+  #my-profile-overlay .field,#my-profile-overlay select.field,
+  #manage-profiles-overlay .field{min-height:44px;padding:9px 10px;}
+  #my-profile-overlay .action-btn,#manage-profiles-overlay .action-btn{
+    min-height:44px;padding:9px 12px;}
+  /* Ligne "Nom du profil" + bouton Enregistrer : le bouton passait à côté
+     du champ, trop étroit une fois agrandi pour le tactile — repasse sous
+     le champ, en pleine largeur. */
+  #my-profile-overlay .u-d-flex.u-gap-6px:has(#mp-save-name-btn){flex-wrap:wrap;}
+  #my-profile-overlay .u-d-flex.u-gap-6px:has(#mp-save-name-btn) #mp-save-name-btn{
+    flex:1 1 100%;}
+  /* Ligne de profil (.mp-row) : nom+badges sur une ligne, actions
+     (Renommer/Supprimer) repassées en dessous sur une seconde ligne pour
+     éviter tout débordement horizontal avec un nom long + badge. */
+  .mp-row{flex-wrap:wrap;}
+  .mp-avatar{width:36px;height:36px;}
+  .mp-actions{flex:1 1 100%;justify-content:flex-end;margin-top:6px;}
 }
 @media(max-width:480px){
   .tab-btn{padding:3px 6px;font-size:var(--fs-xs);}
