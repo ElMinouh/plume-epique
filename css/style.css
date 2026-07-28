@@ -789,6 +789,21 @@ body.library-mode #library-screen{display:block;}
      aperçu/diff en dessous. */
   #history-overlay .u-d-flex.u-gap-10px.u-fg-1{flex-direction:column;}
   #history-overlay .u-w-220px{width:100%;max-height:180px;flex:0 0 auto;}
+  /* v8.1.4 — Chantier Responsive Mobile, écran 7/N (dernier) : visites
+     guidées (Premiers pas, Configuration initiale, Visite complète) et
+     popover d'aide ⓘ. Bug réel corrigé : ces bulles avaient une largeur
+     fixe (260-300px) pouvant légèrement déborder sur un téléphone très
+     étroit. Largeur désormais plafonnée à celle de l'écran ; les calculs
+     de position en JS restent des majorants sûrs, aucune modification JS
+     nécessaire. Aucun changement sur desktop. */
+  #onboarding-tour-bubble,#setup-tour-bubble{width:min(260px,calc(100vw - 24px));}
+  #full-tour-bubble{width:min(300px,calc(100vw - 24px));}
+  #info-popover{width:min(280px,calc(100vw - 24px));}
+  #onboarding-tour-bubble .action-btn,#full-tour-bubble .action-btn{min-height:44px;padding:9px 12px;}
+  /* Icônes d'aide ⓘ : agrandies modérément (16→22px) plutôt qu'au standard
+     44px, pour ne pas se chevaucher dans les rangées déjà serrées de
+     sous-onglets où elles sont accolées à un bouton déjà assez grand. */
+  .contextual-help-icon{width:22px;height:22px;font-size:12px;}
 }
 @media(max-width:480px){
   .tab-btn{padding:3px 6px;font-size:var(--fs-xs);}
