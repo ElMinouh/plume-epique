@@ -39,6 +39,18 @@
         <span id="library-profile-name"></span>
         <span class="u-fs-_65rem u-op-_35" id="library-version-label"></span>
       </div>
+      <!-- v9.2.3 — Demande explicite de l'utilisateur : un indicateur visible
+           dès l'entrée dans la bibliothèque (sans avoir à ouvrir Système),
+           pour repérer une éventuelle anomalie de synchro au premier coup
+           d'œil. Vert = pas de conflit en attente, rouge = au moins un
+           conflit à vérifier (clic → ouvre directement Système, section
+           Sauvegardes de conflit). Voir renderLibrarySyncBadge() (library.js).
+           Masqué par défaut : n'apparaît que si une clé de synchro est
+           configurée sur cet appareil. -->
+      <button class="u-d-none" id="library-sync-status-badge" title="Statut de la synchronisation">
+        <i class="u-fs-1rem" id="library-sync-status-icon"></i>
+        <span class="u-fs-_75rem" id="library-sync-status-text"></span>
+      </button>
     </div>
     <div class="u-d-flex u-gap-6px u-fw-wrap" id="library-topbar-actions">
       <button class="action-btn btn-sm u-bg-h7f8c8d" id="library-home-btn" title="Retourner à l'écran de connexion">🏠 Accueil</button>
@@ -524,6 +536,16 @@
     <div id="tab-ai" class="subtab-content active" role="tabpanel">
       <div class="u-d-flex u-gap-10px u-fw-wrap">
         <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-14px u-bd-1px-solid-v-border">
+          <strong>✨ Résumé du chapitre</strong>
+          <p class="u-fs-_75rem u-op-_7 u-m-5px-0">Résumé en 3-5 phrases du chapitre ouvert.</p>
+          <button class="action-btn btn-sm" id="ai-summary-btn" title="Demander à l'IA un résumé du chapitre">Résumer</button>
+        </div>
+        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-14px u-bd-1px-solid-v-border">
+          <strong>💬 Discuter de la sélection</strong>
+          <p class="u-fs-_75rem u-op-_7 u-m-5px-0">Envoie le texte sélectionné dans l'éditeur au chat IA.</p>
+          <button class="action-btn btn-sm" id="ai-selection-to-chat-btn" title="Envoyer le passage sélectionné à l'assistant IA">Discuter</button>
+        </div>
+        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-14px u-bd-1px-solid-v-border">
           <strong>💡 Continuation</strong>
           <p class="u-fs-_75rem u-op-_7 u-m-5px-0">3 façons de poursuivre.</p>
           <button class="action-btn btn-sm" id="ai-continue-btn" title="Demander à l'IA 3 idées pour poursuivre le chapitre">Générer</button>
@@ -548,6 +570,14 @@
           </div>
           <button class="action-btn btn-sm" id="ai-names-btn" title="Demander à l'IA de proposer des noms de personnages">Générer</button>
           <div class="u-mt-8px u-fs-_78rem u-lh-1_8" id="ai-names-result"></div>
+        </div>
+        <!-- v9.2.3 — Point d'ancrage mobile uniquement : sur PC, reste vide
+             (Synonymes/Antonymes reste dans la barre d'outils). Sur mobile,
+             router.js y déplace #lex-tools-wrapper au chargement (voir
+             relocateLexToolsForMobile()). -->
+        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-14px u-bd-1px-solid-v-border u-d-none" id="ia-lex-tools-mount">
+          <strong>✨ Synonymes / Antonymes</strong>
+          <p class="u-fs-_75rem u-op-_7 u-m-5px-0">Tapez un mot, choisissez synonymes ou antonymes.</p>
         </div>
       </div>
     </div>
@@ -814,6 +844,7 @@
       <div class="toolbar-dropdown">
         <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-hc0392b" title="Outils d'écriture">🛠️<span class="tb-label"> Outils</span> ▾</button>
         <div class="toolbar-menu">
+          <button id="insert-datetime-btn" title="Insérer la date et l'heure actuelles à l'endroit du curseur">🕐 Insérer date/heure</button>
           <button id="analyze-btn" title="Surligner les mots faibles/répétitifs dans le texte">🔍 Analyser le style</button>
           <button id="clear-btn" title="Retirer les surlignages de style (le texte n'est pas modifié)">🧹 Nettoyer les surlignages</button>
           <button id="focus-btn" title="Passer en plein écran, sans distraction">🎯 Mode Focus</button>
@@ -829,22 +860,19 @@
           <button id="find-replace-btn" title="Rechercher et remplacer du texte dans ce chapitre">Ici, avec remplacement</button>
         </div>
       </div>
-
-      <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h8e44ad" title="Assistant IA">🤖<span class="tb-label"> IA</span> ▾</button>
-        <div class="toolbar-menu">
-          <button id="ai-summary-btn" title="Demander à l'IA un résumé du chapitre">✨ Résumé du chapitre</button>
-          <button id="ai-selection-to-chat-btn" title="Envoyer le passage sélectionné à l'assistant IA">💬 Discuter de la sélection</button>
-        </div>
-      </div>
       <div class="u-fg-1"></div>
-      <button class="action-btn btn-sm u-bg-h16a085 u-d-none" id="lex-tools-toggle-btn" title="Synonymes / Antonymes" aria-label="Synonymes / Antonymes" aria-expanded="false">✨▾</button>
-      <div class="u-d-flex u-gap-6px" id="lex-tools-group">
-        <select id="search-mode" class="field u-w-auto" aria-label="Mode dictionnaire" title="Choisir entre synonymes et antonymes">
-          <option value="syn">✨ Synonymes</option><option value="ant">🌑 Antonymes</option>
-        </select>
-        <input id="lex-in" class="field u-w-85px" placeholder="mot…" aria-label="Mot à chercher" title="Tapez un mot puis cliquez sur GO">
-        <button class="action-btn" id="search-btn" aria-label="Rechercher" title="Chercher les synonymes ou antonymes de ce mot">GO</button>
+      <!-- v9.2.3 — Regroupées dans ce wrapper pour pouvoir être déplacées en
+           bloc vers IA & Mémoire → IA sur mobile (voir relocateLexToolsForMobile()
+           dans router.js). Sur PC, ce wrapper reste ici, inchangé. -->
+      <div id="lex-tools-wrapper" class="u-d-flex u-ai-center u-gap-6px">
+        <button class="action-btn btn-sm u-bg-h16a085 u-d-none" id="lex-tools-toggle-btn" title="Synonymes / Antonymes" aria-label="Synonymes / Antonymes" aria-expanded="false">✨▾</button>
+        <div class="u-d-flex u-gap-6px" id="lex-tools-group">
+          <select id="search-mode" class="field u-w-auto" aria-label="Mode dictionnaire" title="Choisir entre synonymes et antonymes">
+            <option value="syn">✨ Synonymes</option><option value="ant">🌑 Antonymes</option>
+          </select>
+          <input id="lex-in" class="field u-w-85px" placeholder="mot…" aria-label="Mot à chercher" title="Tapez un mot puis cliquez sur GO">
+          <button class="action-btn" id="search-btn" aria-label="Rechercher" title="Chercher les synonymes ou antonymes de ce mot">GO</button>
+        </div>
       </div>
     </div>
     <div class="u-d-flex u-ai-center u-gap-10px u-mb-6px" id="chapter-title-row">

@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.2.2';
+const APP_VERSION = '9.2.3';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1003,11 +1003,45 @@ function wireAppEventListenersOnce(){
   document.getElementById('memory-query-input').addEventListener('keydown', e => { if(e.key==='Enter') queryNarrativeMemory(); });
 
   // Menus déroulants de la toolbar + sous-navigation des onglets groupés (v7.4.0)
+  relocateLexToolsForMobile();
   initToolbarDropdowns();
   initSubtabNavs();
 }
 
 // Menus déroulants de la barre d'outils (¶ Paragraphe / 🛠️ Outils / 🔎 Rechercher).
+// v9.2.3 — Demande explicite de l'utilisateur : sur PC, Synonymes/Antonymes
+// reste dans la barre d'outils (inchangé). Sur mobile, faute de place, ce
+// bloc rejoint IA & Mémoire → IA (voir #ia-lex-tools-mount, index.html).
+// Fait une seule fois au chargement (comme le reste de l'app, qui ne réagit
+// pas à un redimensionnement en direct) — rouvrir/recharger l'app suffit si
+// l'appareil change.
+function relocateLexToolsForMobile() {
+  const wrapper = document.getElementById('lex-tools-wrapper');
+  const mount = document.getElementById('ia-lex-tools-mount');
+  if (!wrapper || !mount) return;
+  if (window.innerWidth <= 768) {
+    // Une fois dans l'onglet IA, plus besoin du repli derrière ✨▾ : la
+    // place ne manque pas comme dans la barre d'outils.
+    const toggleBtn = document.getElementById('lex-tools-toggle-btn');
+    const group = document.getElementById('lex-tools-group');
+    if (toggleBtn) toggleBtn.classList.add('u-d-none');
+    if (group) { group.classList.remove('open'); group.classList.add('u-d-flex'); group.style.display = 'flex'; }
+    mount.appendChild(wrapper);
+    mount.classList.remove('u-d-none');
+  }
+}
+
+// v9.2.3 — Nouveau bouton du menu "Outils" : insère la date et l'heure
+// actuelles à l'endroit du curseur dans le texte (même mécanisme que
+// l'insertion d'un synonyme, voir insertWordAtCursor()/saveCursorPosition()
+// dans panels.js).
+function insertDateTimeAtCursor() {
+  saveCursorPosition();
+  const now = new Date();
+  const formatted = now.toLocaleDateString('fr-FR') + ' ' + now.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+  insertWordAtCursor(formatted);
+}
+
 function initToolbarDropdowns(){
   document.querySelectorAll('.toolbar-dropdown').forEach(dd=>{
     const trigger=dd.querySelector('.toolbar-dropdown-btn');
@@ -1040,6 +1074,7 @@ function initToolbarDropdowns(){
     lexGroup.classList.remove('open');
     lexBtn.setAttribute('aria-expanded', 'false');
   });
+  document.getElementById('insert-datetime-btn').addEventListener('click', insertDateTimeAtCursor);
   document.addEventListener('click', e => {
     // v7.43.2 — Bug bloquant rapporté : ce gestionnaire refermait le
     // panneau Synonymes/Antonymes (et les menus déroulants) même quand le

@@ -36,23 +36,38 @@ const LIBRARY_TOUR_STEPS = [
     text:"Si plusieurs personnes se servent de cet ordinateur pour écrire, chacune peut avoir son propre profil protégé par mot de passe : ses manuscrits restent invisibles pour les autres. Ce bouton, réservé au compte administrateur, permet d'ajouter ou de retirer des profils." }
 ];
 
-const FULL_TOUR_STEPS = [
-  { target:'#chapter-sidebar', title:'📖 Vos chapitres',
-    text:"Cette colonne liste, dans l'ordre, tous les chapitres de votre manuscrit. Cliquez sur l'un d'eux pour l'ouvrir et l'écrire. Vous pouvez les faire glisser pour changer leur ordre ; la petite icône de corbeille en haut retrouve les chapitres supprimés pendant 30 jours, au cas où." },
-  { target:'#chapter-title-row', title:'✏️ Titre, statut et notes du chapitre',
-    text:"Le grand titre en haut de la page se modifie en cliquant simplement dessus. Le menu déroulant à côté (Brouillon / À revoir / Final) indique où en est ce chapitre. Le bouton « Notes » ouvre un espace pour un objectif de mots et des notes de recherche propres à ce seul chapitre." },
+// v9.2.3 — Repositionnement de fonctions selon l'appareil : sur PC, la barre
+// d'outils garde Synonymes/Antonymes ; sur mobile, faute de place, ce bloc a
+// rejoint IA & Mémoire → IA, aux côtés du Résumé de chapitre et de "Discuter
+// de la sélection" (qui, eux, ont quitté la barre d'outils pour de bon, sur
+// les deux appareils). La visite complète pointe donc vers des emplacements
+// différents selon l'appareil utilisé.
+function isMobileDevice() { return window.innerWidth <= 768; }
+
+const FULL_TOUR_TOOLBAR_STEPS_COMMON = [
   { target:'.toolbar', title:'🛠️ La barre d\'outils',
     text:"Juste au-dessus de votre texte : les boutons G (gras), I (italique) et S (souligné) mettent en forme la sélection en cours, et les flèches courbes annulent ou rétablissent votre dernière action. Les menus déroulants à droite en couvrent bien plus — on les découvre juste après." },
   { clickFirst:'.toolbar-dropdown-btn.u-bg-h34495e', target:'.toolbar-dropdown-btn.u-bg-h34495e', title:'¶ Paragraphe',
     text:"Ce menu transforme la ligne où se trouve votre curseur : « Titre » pour un sous-titre de section, « Paragraphe normal » pour revenir à du texte simple." },
   { clickFirst:'.toolbar-dropdown-btn.u-bg-hc0392b', target:'.toolbar-dropdown-btn.u-bg-hc0392b', title:'🛠️ Outils d\'écriture',
-    text:"Ce menu regroupe cinq aides à l'écriture : surligner les mots que vous répétez trop souvent, nettoyer ces surlignages, passer en Mode Focus (plein écran, sans distraction), relire tout le roman à la suite comme un vrai lecteur (Mode Lecture), et écrire ou vous faire lire le texte à voix haute (dictée)." },
+    text:"Ce menu regroupe six aides à l'écriture : insérer la date et l'heure actuelles à l'endroit du curseur (premier bouton du menu), surligner les mots que vous répétez trop souvent, nettoyer ces surlignages, passer en Mode Focus (plein écran, sans distraction), relire tout le roman à la suite comme un vrai lecteur (Mode Lecture), et écrire ou vous faire lire le texte à voix haute (dictée)." },
   { clickFirst:'.toolbar-dropdown-btn.u-bg-h1a1a2e', target:'.toolbar-dropdown-btn.u-bg-h1a1a2e', title:'🔎 Rechercher',
-    text:"Deux façons de retrouver du texte : dans tout le projet à la fois (tous les chapitres), ou seulement dans le chapitre actuel avec possibilité de remplacer le mot trouvé par un autre." },
-  { clickFirst:'.toolbar-dropdown-btn.u-bg-h8e44ad', target:'.toolbar-dropdown-btn.u-bg-h8e44ad', title:'🤖 Assistant IA (dans le texte)',
-    text:"Depuis n'importe quel chapitre : un résumé automatique de ce que vous venez d'écrire, ou le fait d'envoyer un passage que vous avez sélectionné à l'assistant IA pour en discuter avec lui." },
+    text:"Deux façons de retrouver du texte : dans tout le projet à la fois (tous les chapitres), ou seulement dans le chapitre actuel avec possibilité de remplacer le mot trouvé par un autre." }
+];
+// PC uniquement : Synonymes/Antonymes reste visible en permanence dans la
+// barre d'outils (pas sur mobile, où ce bloc a rejoint IA & Mémoire → IA).
+const FULL_TOUR_TOOLBAR_STEP_LEX_DESKTOP =
   { ensureVisible:ensureLexToolsOpen, target:'#search-btn', title:'✨ Synonymes & antonymes',
-    text:"Toujours visible dans la barre d'outils : tapez un mot dans le petit champ, choisissez « Synonymes » ou « Antonymes » dans le menu, puis cliquez sur GO pour obtenir des suggestions." },
+    text:"Toujours visible dans la barre d'outils (PC uniquement) : tapez un mot dans le petit champ, choisissez « Synonymes » ou « Antonymes » dans le menu, puis cliquez sur GO pour obtenir des suggestions." };
+
+const FULL_TOUR_AI_STEP_DESKTOP =
+  { subtab:'tab-ai', title:'🤖 Assistant IA (page dédiée)',
+    text:"Cinq aides à la demande : un résumé automatique du chapitre en cours, la possibilité de discuter d'un passage sélectionné avec l'assistant, des idées pour poursuivre le chapitre, une vérification des incohérences avec vos fiches Personnages, et un générateur de noms de personnages selon le genre de votre histoire." };
+const FULL_TOUR_AI_STEP_MOBILE =
+  { subtab:'tab-ai', title:'🤖 Assistant IA (page dédiée)',
+    text:"Sur mobile, toutes les aides IA sont regroupées ici, faute de place dans la barre d'outils : résumé automatique du chapitre, discuter d'un passage sélectionné, idées pour poursuivre le chapitre, vérification des incohérences, générateur de noms de personnages, et les synonymes/antonymes." };
+
+const FULL_TOUR_STEPS_REST = [
   { subtab:'tab-chars', title:'👥 Personnages',
     text:"Une fiche par personnage de votre histoire : description, apparence, tout ce que vous voulez garder en mémoire à leur sujet. L'assistant IA peut ensuite vérifier que votre texte ne les contredit pas (voir l'onglet IA)." },
   { subtab:'tab-places', title:'🏰 Lieux',
@@ -63,8 +78,6 @@ const FULL_TOUR_STEPS = [
     text:"Une frise du temps qui passe dans votre histoire : ajoutez un événement, une date ou un moment, et reliez-le si besoin à un chapitre précis. Utile pour garder une cohérence temporelle sur un roman long." },
   { subtab:'tab-graph', title:'🕸️ Relations',
     text:"Un schéma visuel qui relie automatiquement vos personnages, lieux et quêtes entre eux, à partir de ce qui est mentionné dans votre texte. Pratique pour voir d'un coup d'œil qui est lié à quoi." },
-  { subtab:'tab-ai', title:'🤖 Assistant IA (page dédiée)',
-    text:"Trois aides à la demande : des idées pour poursuivre le chapitre en cours, une vérification des incohérences avec vos fiches Personnages, et un générateur de noms de personnages selon le genre de votre histoire." },
   { subtab:'tab-memory', title:'🧠 Mémoire narrative',
     text:"Indexez tout votre roman en un clic, puis posez n'importe quelle question dessus en langage naturel — par exemple « que portait Léa au chapitre 3 ? ». L'assistant IA retrouve le passage concerné pour vous." },
   { subtab:'tab-stats', title:'📊 Statistiques',
@@ -96,6 +109,26 @@ const FULL_TOUR_STEPS = [
   { target:'#shortcuts-hint-btn', title:'❔ Raccourcis clavier',
     text:"Un aide-mémoire de tous les raccourcis clavier disponibles (Ctrl+B pour le gras, la touche « ? » pour rouvrir cette aide, et bien d'autres)." }
 ];
+
+// Point d'entrée unique : reconstruit la liste d'étapes selon l'appareil au
+// moment où la visite est lancée (et non une fois pour toutes au chargement),
+// pour rester correct même si la fenêtre a été redimensionnée depuis.
+function getFullTourSteps() {
+  const mobile = isMobileDevice();
+  const toolbarSteps = mobile
+    ? FULL_TOUR_TOOLBAR_STEPS_COMMON
+    : [...FULL_TOUR_TOOLBAR_STEPS_COMMON, FULL_TOUR_TOOLBAR_STEP_LEX_DESKTOP];
+  return [
+    { target:'#chapter-sidebar', title:'📖 Vos chapitres',
+      text:"Cette colonne liste, dans l'ordre, tous les chapitres de votre manuscrit. Cliquez sur l'un d'eux pour l'ouvrir et l'écrire. Vous pouvez les faire glisser pour changer leur ordre ; la petite icône de corbeille en haut retrouve les chapitres supprimés pendant 30 jours, au cas où." },
+    { target:'#chapter-title-row', title:'✏️ Titre, statut et notes du chapitre',
+      text:"Le grand titre en haut de la page se modifie en cliquant simplement dessus. Le menu déroulant à côté (Brouillon / À revoir / Final) indique où en est ce chapitre. Le bouton « Notes » ouvre un espace pour un objectif de mots et des notes de recherche propres à ce seul chapitre." },
+    ...toolbarSteps,
+    ...FULL_TOUR_STEPS_REST.slice(0, 5), // Personnages → Relations
+    mobile ? FULL_TOUR_AI_STEP_MOBILE : FULL_TOUR_AI_STEP_DESKTOP,
+    ...FULL_TOUR_STEPS_REST.slice(5) // Mémoire narrative → Raccourcis clavier
+  ];
+}
 
 // ═══════════════════════════════════════════════════════
 // MOTEUR — commun aux deux tours ci-dessus
@@ -273,7 +306,7 @@ async function launchEditorFullTour() {
   // de toute façon largement ce qu'il montre.
   _suppressOnboardingOnce = true;
   await openDocument(sorted[0].id);
-  startFullTour(FULL_TOUR_STEPS);
+  startFullTour(getFullTourSteps());
 }
 
 // ═══════════════════════════════════════════════════════
@@ -309,7 +342,7 @@ function showInfoPopover(anchor, title, text) {
 function hideInfoPopover() { document.getElementById('info-popover').classList.remove('active'); }
 
 function wireContextualHelpIcons() {
-  [...LIBRARY_TOUR_STEPS, ...FULL_TOUR_STEPS].forEach(step => {
+  [...LIBRARY_TOUR_STEPS, ...getFullTourSteps()].forEach(step => {
     const anchor = helpIconAnchorFor(step);
     if (!anchor || anchor.dataset.helpWired) return;
     anchor.dataset.helpWired = '1';

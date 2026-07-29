@@ -214,6 +214,13 @@ mark{background-color:rgba(192,57,43,.22);color:var(--text);border-radius:3px;}
 #sync-status-dot.sync-ok{background:#27ae60;}
 #sync-status-dot.sync-warn{background:#e67e22;}
 #sync-status-dot.sync-error{background:#e74c3c;}
+/* v9.2.3 — Pastille de statut de synchro visible dès l'entrée dans la
+   bibliothèque (voir renderLibrarySyncBadge() dans library.js). */
+#library-sync-status-badge{display:inline-flex;align-items:center;gap:5px;
+  border:none;border-radius:20px;padding:4px 10px;cursor:pointer;background:rgba(39,174,96,.18);}
+#library-sync-status-badge #library-sync-status-icon,#library-sync-status-badge #library-sync-status-text{color:#27ae60;}
+#library-sync-status-badge.sync-warn{background:rgba(231,76,60,.18);}
+#library-sync-status-badge.sync-warn #library-sync-status-icon,#library-sync-status-badge.sync-warn #library-sync-status-text{color:#e74c3c;}
 #dictate-preview{position:absolute;bottom:100%;left:0;margin-bottom:4px;font-size:var(--fs-sm);font-style:italic;
   color:var(--text-muted,inherit);opacity:.85;pointer-events:none;max-width:90%;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;}

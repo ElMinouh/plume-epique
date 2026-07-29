@@ -248,7 +248,36 @@ async function enterLibrary() {
   setLibraryViewMode('grid');
   await renderLibraryScreen();
   showLibraryScreen();
+  await renderLibrarySyncBadge();
   await maybeStartSetupTour();
+}
+
+// v9.2.3 — Demande explicite de l'utilisateur : un indicateur visible dès
+// l'entrée dans la bibliothèque (sans avoir à ouvrir Système), pour repérer
+// une éventuelle anomalie de synchro au premier coup d'œil. Masqué si aucune
+// clé de synchro n'est configurée sur cet appareil (rien à signaler).
+async function renderLibrarySyncBadge() {
+  const badge = document.getElementById('library-sync-status-badge');
+  if (!badge) return;
+  if (!getSyncKey()) { badge.classList.add('u-d-none'); return; }
+  badge.classList.remove('u-d-none');
+  const icon = document.getElementById('library-sync-status-icon');
+  const text = document.getElementById('library-sync-status-text');
+  let count = 0;
+  try { count = (await listConflictBackups()).length; } catch(e) { count = 0; }
+  if (count > 0) {
+    badge.classList.add('sync-warn');
+    icon.textContent = '⚠️';
+    text.textContent = count + (count > 1 ? ' conflits à vérifier' : ' conflit à vérifier');
+  } else {
+    badge.classList.remove('sync-warn');
+    icon.textContent = '✅';
+    text.textContent = 'Sauvegardes à jour';
+  }
+  if (!badge.dataset.wired) {
+    badge.dataset.wired = '1';
+    badge.addEventListener('click', () => openLibrarySystemPanel());
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1108,13 +1137,6 @@ async function removeConflictBackup(key) {
   if (idbStore) await idbStore.delete('data', key);
   else localStorage.removeItem('plume_' + key);
 }
-// v9.2.0 — Demande explicite de l'utilisateur : jusqu'ici, rien ne
-// distinguait la sauvegarde de conflit correspondant réellement à la
-// version active sur l'autre appareil des simples étapes intermédiaires
-// (plusieurs sauvegardes quasi-identiques pouvaient s'accumuler pour un
-// même manuscrit, sans indication de laquelle restaurer). On interroge donc
-// le serveur pour connaître le hash actuellement stocké à distance et on
-// le compare à chaque sauvegarde de conflit locale.
 async function getRemoteHashForDoc(docId) {
   const key = docDataKey(_currentProfileId, docId);
   const { data, version } = await syncPull(key);
@@ -1185,10 +1207,6 @@ async function renderConflictBackups() {
   });
 }
 
-// v9.2.0 — Aperçu des différences avant restauration : sans ça, restaurer
-// une sauvegarde de conflit se faisait à l'aveugle (rien ne montrait ce qui
-// changerait réellement), et pouvait recréer un conflit avec l'appareil
-// dont la version venait d'être écrasée.
 async function compareConflictBackup(key, docId) {
   const backupPayload = await getConflictBackupPayload(key);
   if (backupPayload === undefined) { toast('Sauvegarde introuvable.', 'error'); return; }
@@ -1210,19 +1228,17 @@ async function restoreConflictBackup(key, docId) {
   if (payload === undefined) { toast('Sauvegarde introuvable (déjà supprimée ?).', 'error'); await renderConflictBackups(); return; }
   if (!confirm('Remplacer la version actuelle de ce manuscrit par cette sauvegarde de conflit ? La version actuelle sur cet appareil sera écrasée (mais synchronisée à nouveau ensuite).')) return;
   await persistData(docDataKey(_currentProfileId, docId), payload);
-  // v9.2.0 — Ce choix devient la référence pour ce manuscrit : les autres
-  // sauvegardes de conflit du même manuscrit n'ont plus lieu d'être. Sans
-  // ce nettoyage, l'utilisateur retombait dans une liste de conflits sans
-  // fin (voir remontée utilisateur du 29/07/2026).
   const siblings = (await listConflictBackups()).filter(b => b.docId === docId);
   for (const s of siblings) await removeConflictBackup(s.key);
   await renderConflictBackups();
+  await renderLibrarySyncBadge();
   toast('Sauvegarde restaurée.', 'success');
 }
 async function deleteConflictBackup(key) {
   if (!confirm('Supprimer définitivement cette sauvegarde de conflit ?')) return;
   await removeConflictBackup(key);
   await renderConflictBackups();
+  await renderLibrarySyncBadge();
   toast('Sauvegarde supprimée.', 'success');
 }
 // v7.40.0 — Demande explicite de l'utilisateur : vider le bloc en un clic
@@ -1239,6 +1255,7 @@ async function deleteAllConflictBackups() {
   if (!ok) return;
   for (const b of backups) await removeConflictBackup(b.key);
   await renderConflictBackups();
+  await renderLibrarySyncBadge();
   toast('Sauvegardes de conflit supprimées.', 'success');
 }
 
