@@ -242,9 +242,23 @@ function mergeProfilesIndex(local, remote) {
 // boucle) — utilisée pour ne jamais perdre la version distante écrasée.
 async function persistConflictBackup(key, payload) {
   try {
-    const backupKey = 'conflict_' + key + '_' + Date.now();
+    // v9.2.1 — Avant la correction ci-dessus, une seule séquence de conflit
+    // pouvait produire plusieurs sauvegardes strictement identiques (une par
+    // tentative ratée). On évite désormais de dupliquer une sauvegarde dont
+    // le contenu est déjà identique à la plus récente existante pour cette clé.
+    const prefix = 'conflict_' + key + '_';
+    const body = JSON.stringify(payload);
+    let existingKeys = [];
+    if (idbStore) existingKeys = (await idbStore.getAllKeys('data')).filter(k => typeof k === 'string' && k.startsWith(prefix));
+    else existingKeys = Object.keys(localStorage).filter(k => k.startsWith('plume_' + prefix)).map(k => k.slice('plume_'.length));
+    if (existingKeys.length) {
+      const mostRecentKey = existingKeys.sort().slice(-1)[0];
+      const existing = idbStore ? await idbStore.get('data', mostRecentKey) : JSON.parse(localStorage.getItem('plume_' + mostRecentKey));
+      if (JSON.stringify(existing) === body) return; // déjà sauvegardé, rien à dupliquer
+    }
+    const backupKey = prefix + Date.now();
     if (idbStore) await idbStore.put('data', payload, backupKey);
-    else localStorage.setItem('plume_' + backupKey, JSON.stringify(payload));
+    else localStorage.setItem('plume_' + backupKey, body);
   } catch(e) { /* la sauvegarde de secours elle-même ne doit jamais faire planter la sync normale */ }
 }
 
@@ -307,6 +321,14 @@ async function syncPush(key, payload, attempt = 0) {
       //    avant d'être remplacée par la nôtre, et l'utilisateur est prévenu.
       const pulled = await syncPull(key);
       if (pulled.version === null) { addPendingSyncKey(key); scheduleSyncRetry(); return; }
+      // v9.2.1 — Correction du bug à l'origine des conflits infinis (remontée
+      // utilisateur du 29/07/2026) : ce numéro de version était récupéré mais
+      // jamais retenu ici. Le réessai ci-dessous repartait donc avec le MÊME
+      // numéro périmé qu'avant, se faisait refuser pour la même raison, et
+      // ainsi de suite jusqu'à épuiser les 3 tentatives — recréant le même
+      // blocage (et une nouvelle sauvegarde de conflit) à chaque connexion
+      // suivante, sans jamais réellement se corriger.
+      setSyncVersion(key, pulled.version);
       let reconciled = payload;
       if (pulled.data !== null && pulled.data !== undefined) {
         if (key === 'profiles') {
