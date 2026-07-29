@@ -93,19 +93,25 @@ describe('Synchro réelle (router.js) — fetch mocké', () => {
   // 27/07/2026), c'est le serveur qui refuse désormais toute écriture ne se
   // basant pas sur la version courante (409). Le client relit alors, sauvegarde
   // la version qu'il s'apprête à remplacer, et prévient l'utilisateur.
-  it('un refus du serveur (409) sauvegarde la version distante et prévient l’utilisateur', async () => {
+  // v9.3.0 — Ce test documentait l'ANCIEN comportement : après un refus, le
+  // client relisait puis FORÇAIT quand même sa version locale (`puts` valait
+  // 2). C'est exactement le défaut qui faisait qu'un appareil resté en
+  // arrière écrasait le travail fait ailleurs (incident du 29/07/2026) — voir
+  // tests/vitest/sync-conflict-arbitration.test.js pour le scénario complet.
+  //
+  // Le nouveau comportement distingue trois cas selon une empreinte de la
+  // base commune (classifySyncDivergence() dans router.js). Ici, aucune
+  // synchronisation n'a encore eu lieu pour cette clé dans ce test : la base
+  // commune est inconnue, donc — par prudence — traité comme un VRAI conflit
+  // à arbitrer, plutôt que de risquer d'écraser le travail de quelqu'un.
+  it('un refus du serveur (409) sans base commune connue est traité comme un vrai conflit : mis en pause, sauvegardé, sans rien écraser', async () => {
     let puts = 0;
     const fetchMock = vi.fn(async (url, opts) => {
       if (opts && opts.method === 'PUT') {
         puts++;
-        if (puts === 1) {
-          // Le serveur détient plus récent que la version annoncée.
-          return new Response(JSON.stringify({ error: { message: 'périmé' }, serverVersion: 7 }), {
-            status: 409, headers: { 'Content-Type': 'application/json', 'X-Plume-Version': '7' }
-          });
-        }
-        return new Response(JSON.stringify({ ok: true, version: 8 }), {
-          status: 200, headers: { 'Content-Type': 'application/json', 'X-Plume-Version': '8' }
+        // Le serveur détient une version différente de celle annoncée.
+        return new Response(JSON.stringify({ error: { message: 'périmé' }, serverVersion: 7 }), {
+          status: 409, headers: { 'Content-Type': 'application/json', 'X-Plume-Version': '7' }
         });
       }
       // Relecture consécutive au refus.
@@ -118,17 +124,22 @@ describe('Synchro réelle (router.js) — fetch mocké', () => {
 
     await ctx.syncPush('doc_2', { titre: 'Nouveau contenu local' });
 
-    // Envoi refusé → relecture → nouvel envoi accepté.
-    expect(puts).toBe(2);
-    // La version distante remplacée doit être sauvegardée localement (jamais
+    // Un seul envoi (celui refusé) : plus de second envoi qui forcerait la
+    // version locale — c'est précisément ce qui empêche l'écrasement.
+    expect(puts).toBe(1);
+    // La version distante est tout de même sauvegardée localement (jamais
     // perdue), sous une clé 'plume_conflict_doc_2_<timestamp>'.
     const backupKeys = Object.keys(ctx.localStorage).filter(k => k.startsWith('plume_conflict_doc_2_'));
     expect(backupKeys.length).toBe(1);
     expect(JSON.parse(ctx.localStorage.getItem(backupKeys[0]))).toEqual({ titre: 'Modifié depuis un autre appareil' });
-    // L'utilisateur est prévenu (voir toast(..., 'error') dans syncPush).
-    expect(ctx.toast).toHaveBeenCalledWith(expect.stringContaining('autre appareil'), 'error');
-    // Et la version du serveur est désormais mémorisée.
-    expect(ctx.getSyncVersion('doc_2')).toBe(8);
+    // L'utilisateur est prévenu qu'un arbitrage est nécessaire...
+    expect(ctx.toast).toHaveBeenCalledWith(expect.stringContaining('deux appareils'), 'error');
+    // ...et la synchronisation de CETTE clé est mise en pause dans l'attente
+    // de sa décision (les autres clés continuent de se synchroniser).
+    expect(ctx.isConflictPaused('doc_2')).toBe(true);
+    // Le numéro de version du serveur est mémorisé même sans rien renvoyer :
+    // on sait désormais où il en est, pour le prochain arbitrage.
+    expect(ctx.getSyncVersion('doc_2')).toBe(7);
   });
 
   it('persistData/loadData (sans IndexedDB) : ce qui est écrit est relu à l’identique', async () => {

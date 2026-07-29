@@ -18,10 +18,20 @@ async function loadData(key) { return _mockStore.has(key) ? _mockStore.get(key) 
 function initApp() { /* stub : non testé ici, seule la logique profils l'est */ }
 function getWordCount(t) { const m=(t||'').replace(/<[^>]*>/g,' ').match(/[a-zA-Z0-9À-ÿ]+/g); return m?m.length:0; }
 async function enterLibrary() { /* stub : l'écran bibliothèque (DOM) n'est pas testé ici, voir createNewDocument()/openDocument() plus bas pour la logique réelle */ }
+// v9.3.0 — Depuis l'arbitrage de synchro à empreinte de contenu, library.js
+// crée toute enveloppe chiffrée de manuscrit via makeEncryptedEnvelope()
+// (router.js), au lieu de construire {_enc:true,data:...} à la main — point
+// de passage unique garantissant qu'aucune enveloppe n'oublie l'empreinte.
+// router.js n'étant volontairement pas chargé dans ce harnais (voir en-tête
+// de fichier), ce stub reproduit sa forme exacte SANS dépendre de
+// sha256Hex()/_dataKey de synchro (uniquement utiles à l'arbitrage réel,
+// testé lui à part — voir tests/vitest/sync-conflict-arbitration.test.js).
+async function makeEncryptedEnvelope(plaintext) {
+  return { _enc: true, data: await Crypto.encrypt(plaintext, _dataKey), _fp: null, _ts: Date.now() };
+}
 const save = async () => {
   if (!_currentProfileId || !_dataKey || !_currentDocumentId) return;
-  const cipher = await Crypto.encrypt(JSON.stringify(db), _dataKey);
-  await persistData(docDataKey(_currentProfileId, _currentDocumentId), { _enc:true, data:cipher });
+  await persistData(docDataKey(_currentProfileId, _currentDocumentId), await makeEncryptedEnvelope(JSON.stringify(db)));
   await touchDocumentMeta();
 };
 let _lastToast = null;
