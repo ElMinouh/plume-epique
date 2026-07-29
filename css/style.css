@@ -381,10 +381,10 @@ select.gate-field{height:38px;}
   align-items:center;justify-content:center;}
 #gist-history-overlay.active{display:flex;}
 /* Corbeille, export sélectif, aide-mémoire raccourcis & import DOCX (v7.5.0/v7.12.0) — même gabarit d'overlay */
-#trash-overlay,#export-select-overlay,#shortcuts-overlay,#docx-import-overlay,#library-system-overlay{display:none;position:fixed;inset:0;z-index:8500;
+#trash-overlay,#export-select-overlay,#shortcuts-overlay,#docx-import-overlay,#library-system-overlay,#conflict-diff-overlay{display:none;position:fixed;inset:0;z-index:8500;
   background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
   align-items:center;justify-content:center;}
-#trash-overlay.active,#export-select-overlay.active,#shortcuts-overlay.active,#docx-import-overlay.active,#library-system-overlay.active{display:flex;}
+#trash-overlay.active,#export-select-overlay.active,#shortcuts-overlay.active,#docx-import-overlay.active,#library-system-overlay.active,#conflict-diff-overlay.active{display:flex;}
 #confirm-modal-overlay{display:none;position:fixed;inset:0;z-index:9500;
   background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
   align-items:center;justify-content:center;}

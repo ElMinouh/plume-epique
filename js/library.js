@@ -1108,6 +1108,20 @@ async function removeConflictBackup(key) {
   if (idbStore) await idbStore.delete('data', key);
   else localStorage.removeItem('plume_' + key);
 }
+// v9.2.0 — Demande explicite de l'utilisateur : jusqu'ici, rien ne
+// distinguait la sauvegarde de conflit correspondant réellement à la
+// version active sur l'autre appareil des simples étapes intermédiaires
+// (plusieurs sauvegardes quasi-identiques pouvaient s'accumuler pour un
+// même manuscrit, sans indication de laquelle restaurer). On interroge donc
+// le serveur pour connaître le hash actuellement stocké à distance et on
+// le compare à chaque sauvegarde de conflit locale.
+async function getRemoteHashForDoc(docId) {
+  const key = docDataKey(_currentProfileId, docId);
+  const { data, version } = await syncPull(key);
+  if (data === undefined || data === null || version === null) return null;
+  return await sha256Hex(JSON.stringify(data));
+}
+
 async function renderConflictBackups() {
   const cont = document.getElementById('lib-conflict-list');
   const badge = document.getElementById('lib-conflict-count');
@@ -1121,12 +1135,42 @@ async function renderConflictBackups() {
     cont.innerHTML = `<p class="u-fs-_68rem u-c-v-text-muted u-m-0">Aucune sauvegarde de conflit en attente.</p>`;
     return;
   }
-  cont.innerHTML = backups.map(b => `
-    <div class="u-d-flex u-ai-center u-gap-8px u-p-10px u-br-8px u-bd-1px-solid-v-border">
+
+  const byDoc = {};
+  backups.forEach(b => { (byDoc[b.docId] = byDoc[b.docId] || []).push(b); });
+
+  const remoteHashByDoc = {};
+  await Promise.all(Object.keys(byDoc).map(async docId => {
+    try { remoteHashByDoc[docId] = await getRemoteHashForDoc(docId); }
+    catch(e) { remoteHashByDoc[docId] = null; }
+  }));
+
+  const rows = [];
+  for (const docId of Object.keys(byDoc)) {
+    const remoteHash = remoteHashByDoc[docId];
+    for (const b of byDoc[docId]) {
+      let isActive = false;
+      if (remoteHash) {
+        try {
+          const payload = await getConflictBackupPayload(b.key);
+          isActive = (await sha256Hex(JSON.stringify(payload))) === remoteHash;
+        } catch(e) {}
+      }
+      rows.push({ ...b, isActive, verified: !!remoteHash });
+    }
+  }
+
+  cont.innerHTML = rows.map(b => `
+    <div class="u-d-flex u-ai-center u-gap-8px u-p-10px u-br-8px u-bd-1px-solid-v-border"
+         style="${b.isActive ? 'border:2px solid var(--border-accent);' : 'opacity:.6;'}">
       <div class="u-flex-1 u-minw-0">
-        <p class="u-fs-_8rem u-m-0">${DOMPurify.sanitize(b.title || 'Sans titre')}</p>
-        <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-0">Détectée le ${new Date(b.ts).toLocaleString('fr')}</p>
+        <p class="u-fs-_8rem u-m-0">${DOMPurify.sanitize(b.title || 'Sans titre')}
+          ${b.isActive ? '<span class="mp-badge" style="background:var(--bg-accent);color:var(--text-accent);margin-left:6px;">Version actuelle autre appareil</span>' : ''}
+        </p>
+        <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-0">Détectée le ${new Date(b.ts).toLocaleString('fr')}${b.verified && !b.isActive ? ' · remplacée' : ''}</p>
+        ${!b.verified ? '<p class="u-fs-_66rem u-c-v-text-muted u-m-2px-0-0">⚠️ Serveur injoignable : impossible de confirmer, comparez manuellement.</p>' : ''}
       </div>
+      <button class="action-btn btn-sm" data-conflict-compare="${b.key}" data-conflict-docid="${b.docId}" title="Comparer avec la version actuelle sur cet appareil">🔍 Comparer</button>
       <button class="action-btn btn-sm" data-conflict-restore="${b.key}" data-conflict-docid="${b.docId}" title="Remplacer la version actuelle par celle-ci">♻️ Restaurer</button>
       <button class="action-btn btn-sm u-bg-hc0392b" data-conflict-delete="${b.key}" title="Supprimer cette sauvegarde">🗑️</button>
     </div>`).join('');
@@ -1136,13 +1180,42 @@ async function renderConflictBackups() {
   cont.querySelectorAll('[data-conflict-delete]').forEach(btn => {
     btn.addEventListener('click', () => deleteConflictBackup(btn.dataset.conflictDelete));
   });
+  cont.querySelectorAll('[data-conflict-compare]').forEach(btn => {
+    btn.addEventListener('click', () => compareConflictBackup(btn.dataset.conflictCompare, btn.dataset.conflictDocid));
+  });
+}
+
+// v9.2.0 — Aperçu des différences avant restauration : sans ça, restaurer
+// une sauvegarde de conflit se faisait à l'aveugle (rien ne montrait ce qui
+// changerait réellement), et pouvait recréer un conflit avec l'appareil
+// dont la version venait d'être écrasée.
+async function compareConflictBackup(key, docId) {
+  const backupPayload = await getConflictBackupPayload(key);
+  if (backupPayload === undefined) { toast('Sauvegarde introuvable.', 'error'); return; }
+  const currentPayload = await loadData(docDataKey(_currentProfileId, docId));
+  const oldText = ((currentPayload && currentPayload.chapters) || []).map(c => getPlainText(c.content)).join('\n');
+  const newText = ((backupPayload && backupPayload.chapters) || []).map(c => getPlainText(c.content)).join('\n');
+  document.getElementById('conflict-diff-content').innerHTML = computeDiff(oldText, newText);
+  document.getElementById('conflict-diff-keep-local-btn').onclick = () => {
+    document.getElementById('conflict-diff-overlay').classList.remove('active');
+  };
+  document.getElementById('conflict-diff-keep-backup-btn').onclick = () => {
+    document.getElementById('conflict-diff-overlay').classList.remove('active');
+    restoreConflictBackup(key, docId);
+  };
+  document.getElementById('conflict-diff-overlay').classList.add('active');
 }
 async function restoreConflictBackup(key, docId) {
   const payload = await getConflictBackupPayload(key);
   if (payload === undefined) { toast('Sauvegarde introuvable (déjà supprimée ?).', 'error'); await renderConflictBackups(); return; }
   if (!confirm('Remplacer la version actuelle de ce manuscrit par cette sauvegarde de conflit ? La version actuelle sur cet appareil sera écrasée (mais synchronisée à nouveau ensuite).')) return;
   await persistData(docDataKey(_currentProfileId, docId), payload);
-  await removeConflictBackup(key);
+  // v9.2.0 — Ce choix devient la référence pour ce manuscrit : les autres
+  // sauvegardes de conflit du même manuscrit n'ont plus lieu d'être. Sans
+  // ce nettoyage, l'utilisateur retombait dans une liste de conflits sans
+  // fin (voir remontée utilisateur du 29/07/2026).
+  const siblings = (await listConflictBackups()).filter(b => b.docId === docId);
+  for (const s of siblings) await removeConflictBackup(s.key);
   await renderConflictBackups();
   toast('Sauvegarde restaurée.', 'success');
 }
