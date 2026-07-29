@@ -1265,3 +1265,11 @@ body.library-mode #library-screen{display:block;}
 
 /* --- v7.20.0 : classe manquante pour l'étape 2/3 refaite proprement --- */
 .u-ovf-hidden{overflow:hidden}
+
+/* v9.3.0 — Classes utilitaires manquantes, utilisées par la modale de
+   comparaison des versions en conflit (voir #conflict-diff-overlay). */
+.u-fs-_9rem{font-size:.9rem}
+.u-m-4px-0-2px{margin:4px 0 2px}
+.u-m-8px-0-0{margin:8px 0 0}
+.u-m-10px-0-0{margin:10px 0 0}
+.u-m-12px-0-0{margin:12px 0 0}

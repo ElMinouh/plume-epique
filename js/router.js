@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.2.4';
+const APP_VERSION = '9.3.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -166,6 +166,142 @@ function getKnownRemoteHash(key) { return localStorage.getItem('plume_synchash_'
 function setKnownRemoteHash(key, hash) { localStorage.setItem('plume_synchash_' + key, hash); }
 
 // ═══════════════════════════════════════════════════════
+// EMPREINTE DE CONTENU (v9.3.0)
+//
+// Problème résolu : Crypto.encrypt() tire un sel et un IV ALÉATOIRES à chaque
+// appel — le même texte produit donc un chiffré différent à chaque sauvegarde.
+// Comparer deux enveloppes chiffrées ne permet donc PAS de savoir si le
+// contenu a réellement changé, ce qui obligeait la synchronisation à traiter
+// toute divergence apparente comme un conflit, et l'empêchait de distinguer
+// « je suis simplement en retard » de « nous avons tous les deux modifié ».
+//
+// On joint désormais à chaque enveloppe une empreinte du contenu EN CLAIR.
+// Elle est dérivée avec la clé de données du profil (_dataKey) : deux
+// appareils du même profil obtiennent la même empreinte pour le même texte,
+// mais le serveur, qui n'a pas cette clé, ne peut rien en déduire — le
+// chiffrement reste "zero-knowledge".
+// ═══════════════════════════════════════════════════════
+async function contentFingerprint(plaintext) {
+  return await sha256Hex((_dataKey || '') + '\u0000' + plaintext);
+}
+// Fabrique l'enveloppe stockée/synchronisée d'un contenu chiffré. Point de
+// passage UNIQUE : toute création d'enveloppe doit passer par ici, sinon
+// l'empreinte manque et la synchronisation retombe en mode prudent.
+async function makeEncryptedEnvelope(plaintext) {
+  return {
+    _enc: true,
+    data: await Crypto.encrypt(plaintext, _dataKey),
+    _fp: await contentFingerprint(plaintext),
+    _ts: Date.now()
+  };
+}
+// Empreinte comparable d'une valeur synchronisée, quelle qu'elle soit :
+//  • enveloppe récente          → _fp joint (aucun déchiffrement nécessaire) ;
+//  • enveloppe ancienne         → déchiffrée puis empreinte recalculée
+//                                 (compatibilité avec l'existant) ;
+//  • clé non chiffrée           → empreinte du JSON (doclist, index profils).
+// Renvoie null si l'empreinte ne peut pas être établie (clé de profil absente,
+// déchiffrement impossible) : l'appelant traite alors le cas avec prudence.
+async function valueFingerprint(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'object' && value._enc) {
+    if (value._fp) return value._fp;
+    if (!_dataKey || !value.data) return null;
+    try {
+      const plain = await Crypto.decrypt(value.data, _dataKey);
+      if (plain === null) return null;
+      return await contentFingerprint(plain);
+    } catch(e) { return null; }
+  }
+  try { return await sha256Hex(JSON.stringify(value)); } catch(e) { return null; }
+}
+// Empreinte du contenu tel qu'il était à la dernière synchronisation RÉUSSIE
+// avec le serveur — la "base commune" des deux appareils. C'est elle qui
+// permet de répondre à la seule question qui compte lors d'un refus : qui, de
+// nous deux, a réellement modifié quelque chose depuis cette base ?
+function getKnownRemoteFp(key) { return localStorage.getItem('plume_syncfp_' + key); }
+function setKnownRemoteFp(key, fp) { if (fp) localStorage.setItem('plume_syncfp_' + key, fp); }
+
+// ═══════════════════════════════════════════════════════
+// ARBITRAGE D'UN REFUS SERVEUR (v9.3.0)
+//
+// Remplace le comportement précédent, qui repoussait TOUJOURS la version
+// locale après un refus — neutralisant complètement la protection du serveur
+// et faisant gagner le dernier appareil connecté, même quand son contenu
+// était le plus ancien (bug rapporté le 29/07/2026 : un manuscrit enrichi sur
+// un appareil revenait systématiquement à sa version courte).
+//
+// Quatre verdicts possibles :
+//   'identical'   → même contenu des deux côtés (seul le chiffrement diffère)
+//   'remote-only' → seul l'autre appareil a modifié : nous étions en retard
+//   'local-only'  → seul cet appareil a modifié : notre version fait autorité
+//   'both'        → les deux ont modifié depuis la base commune : vrai conflit
+// ═══════════════════════════════════════════════════════
+async function classifySyncDivergence(localValue, remoteValue, baseFp) {
+  const localFp = await valueFingerprint(localValue);
+  const remoteFp = await valueFingerprint(remoteValue);
+  if (localFp && remoteFp && localFp === remoteFp) return 'identical';
+  // Sans empreinte exploitable ou sans base commune connue, on ne peut rien
+  // affirmer : on traite comme un vrai conflit plutôt que de risquer d'écraser
+  // le travail de quelqu'un.
+  if (!localFp || !remoteFp || !baseFp) return 'both';
+  if (localFp === baseFp) return 'remote-only';
+  if (remoteFp === baseFp) return 'local-only';
+  return 'both';
+}
+
+// ═══════════════════════════════════════════════════════
+// MISE EN PAUSE D'UNE CLÉ EN CONFLIT (v9.3.0)
+//
+// Tant qu'un vrai conflit n'est pas tranché par l'utilisateur, cette clé ne
+// doit plus être poussée : sinon notre version partirait quand même et
+// écraserait celle de l'autre appareil pendant la réflexion — exactement ce
+// qu'on cherche à éviter. Les AUTRES manuscrits continuent de se synchroniser
+// normalement. Persisté : la pause survit à un rechargement de la page.
+// ═══════════════════════════════════════════════════════
+function getConflictPausedKeys() {
+  try { const v = JSON.parse(localStorage.getItem('plume_conflict_paused') || '[]'); return Array.isArray(v) ? v : []; }
+  catch(e) { return []; }
+}
+function isConflictPaused(key) { return getConflictPausedKeys().includes(key); }
+function addConflictPausedKey(key) {
+  const keys = new Set(getConflictPausedKeys());
+  keys.add(key);
+  localStorage.setItem('plume_conflict_paused', JSON.stringify([...keys]));
+}
+function removeConflictPausedKey(key) {
+  const keys = new Set(getConflictPausedKeys());
+  keys.delete(key);
+  localStorage.setItem('plume_conflict_paused', JSON.stringify([...keys]));
+}
+
+// ═══════════════════════════════════════════════════════
+// FUSION DE L'INDEX DES MANUSCRITS (v9.3.0)
+//
+// Même principe que mergeProfilesIndex : cet index (titres, nombre de mots,
+// date de modification affichés dans la bibliothèque) était jusqu'ici écrasé
+// en bloc par l'appareil qui écrivait en dernier. Un appareil en retard
+// réimposait donc ses anciens compteurs — c'est ce qui rendait l'écart de
+// nombre de mots visible dès la bibliothèque, avant même d'ouvrir le texte.
+// Aucun manuscrit ne peut disparaître par fusion ; pour un même manuscrit,
+// l'entrée la plus récemment modifiée l'emporte.
+// ═══════════════════════════════════════════════════════
+function mergeDocList(local, remote) {
+  if (!remote || !Array.isArray(remote.documents)) return local;
+  if (!local || !Array.isArray(local.documents)) return remote;
+  const byId = new Map();
+  for (const d of remote.documents) if (d && d.id) byId.set(d.id, d);
+  for (const d of local.documents) {
+    if (!d || !d.id) continue;
+    const other = byId.get(d.id);
+    if (!other) { byId.set(d.id, d); continue; }
+    byId.set(d.id, (d.lastModified || 0) >= (other.lastModified || 0) ? d : other);
+  }
+  return { ...remote, documents: Array.from(byId.values()) };
+}
+function isDocListKey(key) { return typeof key === 'string' && key.startsWith('doclist_'); }
+
+// ═══════════════════════════════════════════════════════
 // NUMÉRO DE VERSION PAR CLÉ (v8.1.0)
 //
 // Incident du 27/07/2026 (perte de tous les profils sauf un, sur tous les
@@ -280,6 +416,12 @@ const SYNC_MAX_CONFLICT_RETRIES = 3;
 async function syncPush(key, payload, attempt = 0) {
   const syncKey = getSyncKey();
   if (!syncKey) return;
+  // v9.3.0 — Un conflit réel attend l'arbitrage de l'utilisateur sur cette
+  // clé : on continue d'écrire en local (rien n'est perdu, l'écriture reste
+  // fluide) mais on n'envoie rien, sinon notre version écraserait celle de
+  // l'autre appareil avant même qu'il ait choisi. Reprend automatiquement dès
+  // que le conflit est tranché (voir resolveSyncConflict*, library.js).
+  if (isConflictPaused(key)) return;
   try {
     const body = JSON.stringify(payload);
     const newHash = await sha256Hex(body);
@@ -319,59 +461,81 @@ async function syncPush(key, payload, attempt = 0) {
       //  • index des profils → fusion (aucun profil ne peut disparaître) ;
       //  • toute autre clé → la version du serveur est sauvegardée localement
       //    avant d'être remplacée par la nôtre, et l'utilisateur est prévenu.
+      // ⚠️ L'empreinte de la base commune doit être lue AVANT syncPull(),
+      // qui la met lui-même à jour avec ce qu'il vient de recevoir : la lire
+      // après reviendrait à comparer la version distante à elle-même, et à
+      // conclure à tort que nous sommes les seuls à avoir modifié.
+      const baseFpBeforePull = getKnownRemoteFp(key);
       const pulled = await syncPull(key);
       if (pulled.version === null) { addPendingSyncKey(key); scheduleSyncRetry(); return; }
-      // v9.2.1 — Correction du bug à l'origine des conflits infinis (remontée
-      // utilisateur du 29/07/2026) : ce numéro de version était récupéré mais
-      // jamais retenu ici. Le réessai ci-dessous repartait donc avec le MÊME
-      // numéro périmé qu'avant, se faisait refuser pour la même raison, et
-      // ainsi de suite jusqu'à épuiser les 3 tentatives — recréant le même
-      // blocage (et une nouvelle sauvegarde de conflit) à chaque connexion
-      // suivante, sans jamais réellement se corriger.
+      // v9.2.1 — Ce numéro de version était récupéré mais jamais retenu : le
+      // réessai repartait donc avec le MÊME numéro périmé, se faisait refuser
+      // pour la même raison, et rejouait ce blocage à chaque connexion.
       setSyncVersion(key, pulled.version);
-      let reconciled = payload;
-      if (pulled.data !== null && pulled.data !== undefined) {
-        if (key === 'profiles') {
-          reconciled = mergeProfilesIndex(payload, pulled.data);
-        } else {
-          // v9.2.2 — Correction d'un second bug (remontée utilisateur du
-          // 29/07/2026) : pour un manuscrit, `payload`/`pulled.data` sont des
-          // enveloppes chiffrées ({_enc:true,data:<cipher>}). Or Crypto.encrypt()
-          // tire un sel et un IV ALÉATOIRES à chaque appel — chiffrer deux fois
-          // le même texte produit donc deux chiffrés totalement différents.
-          // Comparer directement le hash du chiffré (comme avant) déclarait donc
-          // un "conflit" à CHAQUE sauvegarde automatique, même sans la moindre
-          // modification réelle : le texte était identique, seul son emballage
-          // chiffré changeait. On déchiffre désormais les deux côtés (avec la
-          // clé du profil ouvert) pour comparer le contenu réel avant de
-          // conclure à un vrai conflit.
-          let sameContent = false;
-          if (payload && payload._enc && pulled.data && pulled.data._enc && _dataKey) {
-            try {
-              const localPlain = await Crypto.decrypt(payload.data, _dataKey);
-              const remotePlain = await Crypto.decrypt(pulled.data.data, _dataKey);
-              if (localPlain !== null && remotePlain !== null) sameContent = (localPlain === remotePlain);
-            } catch(e) { sameContent = false; }
-          }
-          if (sameContent) {
-            // Contenu réellement identique : rien à réconcilier ni à signaler,
-            // on adopte simplement la version distante (même texte, chiffré
-            // différemment) pour se resynchroniser sur le bon numéro de version.
-            await writeLocalOnly(key, pulled.data);
-            setKnownRemoteHash(key, await sha256Hex(JSON.stringify(pulled.data)));
-            return;
-          }
-          const remoteHash = await sha256Hex(JSON.stringify(pulled.data));
-          if (remoteHash !== newHash) {
-            await persistConflictBackup(key, pulled.data);
-            if (typeof toast === 'function') toast("Synchro : une version différente de cet élément a été détectée sur un autre appareil et sauvegardée avant remplacement.", 'error');
-          }
-        }
+
+      // Rien côté serveur : notre version peut partir telle quelle.
+      if (pulled.data === null || pulled.data === undefined) {
+        await writeLocalOnly(key, payload);
+        return await syncPush(key, payload, attempt + 1);
       }
-      // La copie locale doit refléter ce qu'on s'apprête à envoyer, sinon le
-      // prochain chargement croirait à tort avoir des modifications en attente.
-      await writeLocalOnly(key, reconciled);
-      return await syncPush(key, reconciled, attempt + 1);
+
+      // ── Clés fusionnables : aucune décision à demander ──
+      // L'index des profils et celui des manuscrits se fusionnent sans perte
+      // (rien ne peut disparaître) ; il n'y a donc jamais de conflit à
+      // arbitrer sur ces deux clés.
+      if (key === 'profiles' || isDocListKey(key)) {
+        const merged = key === 'profiles'
+          ? mergeProfilesIndex(payload, pulled.data)
+          : mergeDocList(payload, pulled.data);
+        await writeLocalOnly(key, merged);
+        return await syncPush(key, merged, attempt + 1);
+      }
+
+      // ── Manuscrits : arbitrage à trois voies ──
+      const verdict = await classifySyncDivergence(payload, pulled.data, baseFpBeforePull);
+
+      if (verdict === 'identical') {
+        // Même texte des deux côtés, seul l'emballage chiffré diffère (sel et
+        // IV aléatoires). Rien à signaler : on adopte la version distante pour
+        // se recaler sur son numéro de version, et on s'arrête là.
+        await writeLocalOnly(key, pulled.data);
+        setKnownRemoteHash(key, await sha256Hex(JSON.stringify(pulled.data)));
+        setKnownRemoteFp(key, await valueFingerprint(pulled.data));
+        return;
+      }
+
+      if (verdict === 'remote-only') {
+        // ── LE CORRECTIF CENTRAL (v9.3.0) ──
+        // Nous n'avons rien modifié depuis la dernière synchro : c'est l'autre
+        // appareil qui a du nouveau. Jusqu'ici, cette situation repoussait
+        // quand même notre copie périmée, qui écrasait son travail — d'où un
+        // manuscrit qui « rétrécissait » à chaque connexion de l'autre
+        // appareil. On adopte désormais sa version, silencieusement.
+        await writeLocalOnly(key, pulled.data);
+        setKnownRemoteHash(key, await sha256Hex(JSON.stringify(pulled.data)));
+        setKnownRemoteFp(key, await valueFingerprint(pulled.data));
+        if (typeof onRemoteVersionAdopted === 'function') onRemoteVersionAdopted(key);
+        return;
+      }
+
+      if (verdict === 'local-only') {
+        // Seuls nos changements sont nouveaux : notre version fait autorité,
+        // on la pousse sur la base à jour. Aucun conflit, aucun message.
+        await writeLocalOnly(key, payload);
+        return await syncPush(key, payload, attempt + 1);
+      }
+
+      // ── verdict === 'both' : vrai conflit ──
+      // Les deux appareils ont modifié ce manuscrit depuis leur dernière base
+      // commune. On ne tranche PAS à la place de l'utilisateur : la version
+      // distante est sauvegardée, la synchronisation de CE manuscrit est mise
+      // en pause (sans quoi notre version partirait et écraserait la sienne
+      // pendant qu'il réfléchit), et il arbitre quand il le souhaite.
+      await persistConflictBackup(key, pulled.data);
+      addConflictPausedKey(key);
+      if (typeof onSyncConflictDetected === 'function') onSyncConflictDetected(key);
+      if (typeof toast === 'function') toast("Synchro : ce manuscrit a été modifié sur les deux appareils. Votre texte est intact — ouvrez « Système » pour comparer et choisir.", 'error');
+      return;
     }
 
     setLastSyncStatus(resp.ok);
@@ -379,6 +543,10 @@ async function syncPush(key, payload, attempt = 0) {
       const v = readVersionHeader(resp);
       if (v !== null) setSyncVersion(key, v);
       setKnownRemoteHash(key, newHash);
+      // v9.3.0 — Ce qui vient d'être accepté par le serveur devient la base
+      // commune des deux appareils : c'est à elle qu'on comparera pour savoir,
+      // au prochain refus, qui a réellement modifié quoi.
+      setKnownRemoteFp(key, await valueFingerprint(payload));
       removePendingSyncKey(key);
     } else {
       // v8.0.2 — Réponse reçue mais pas 2xx (Worker en erreur, quota
@@ -417,7 +585,11 @@ async function syncPull(key) {
     // v7.27.0 — on mémorise l'empreinte de ce qu'on vient de lire, pour que la
     // détection de conflit (voir syncPush) sache dès la prochaine écriture
     // locale si quelqu'un d'autre a modifié la donnée entre-temps.
-    if (data !== null && data !== undefined) setKnownRemoteHash(key, await sha256Hex(JSON.stringify(data)));
+    if (data !== null && data !== undefined) {
+      setKnownRemoteHash(key, await sha256Hex(JSON.stringify(data)));
+      // v9.3.0 — voir setKnownRemoteFp() : base commune servant à l'arbitrage.
+      setKnownRemoteFp(key, await valueFingerprint(data));
+    }
     return { data, version };
   } catch(e) { setLastSyncStatus(false); return { data: undefined, version: null }; }
 }
@@ -684,8 +856,7 @@ function getPlainText(html) { return (html||'').replace(/<br\s*\/?>/gi,'\n').rep
 const save = async () => {
   if (!_currentProfileId || !_dataKey || !_currentDocumentId) return;
   const payload = { ...db }; delete payload.cloudToken;
-  const cipher = await Crypto.encrypt(JSON.stringify(payload), _dataKey);
-  await persistData(docDataKey(_currentProfileId, _currentDocumentId), { _enc:true, data:cipher });
+  await persistData(docDataKey(_currentProfileId, _currentDocumentId), await makeEncryptedEnvelope(JSON.stringify(payload)));
   await touchDocumentMeta();
   flashSave(); updateDailyStats();
   _unsavedChanges = false;

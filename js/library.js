@@ -178,15 +178,91 @@ async function syncPushEntireLibrary() {
     if (idx) await persistData('profiles', idx);
   } catch(e) { /* meilleure tentative uniquement */ }
   try {
-    await mutateDocList(() => {}); // relit puis réenregistre à l'identique (déclenche syncPush), sans risque d'écraser une modification concurrente entre-temps
+    // v9.3.0 — Cette boucle repoussait auparavant TOUTE la bibliothèque locale
+    // à chaque connexion, y compris depuis un appareil resté en arrière : sa
+    // copie périmée écrasait alors le travail fait ailleurs (cause principale
+    // du bug rapporté le 29/07/2026 — un manuscrit qui revenait sans cesse à
+    // une version plus courte). On réconcilie désormais dans le bon sens :
+    // on récupère d'abord ce que détient le serveur, on adopte ce qui est plus
+    // récent, et on ne pousse que ce qui est réellement en attente localement
+    // (file d'attente, voir retryPendingSyncs dans router.js).
+    await syncReconcileKey(docListKey(_currentProfileId));
     const list = await loadDocList();
     for (const entry of list.documents) {
-      try {
-        const raw = await loadData(docDataKey(_currentProfileId, entry.id));
-        if (raw) await persistData(docDataKey(_currentProfileId, entry.id), raw);
-      } catch(e) { /* ce document sera retenté à sa prochaine modification, on continue avec les suivants */ }
+      try { await syncReconcileKey(docDataKey(_currentProfileId, entry.id)); }
+      catch(e) { /* ce manuscrit sera réconcilié plus tard, on continue */ }
     }
   } catch(e) { /* meilleure tentative uniquement */ }
+  try { retryPendingSyncs(); } catch(e) { /* meilleure tentative uniquement */ }
+}
+
+// v9.3.0 — Réconciliation explicite d'une clé : récupère la version du
+// serveur et décide quoi en faire, SANS jamais repousser aveuglément la copie
+// locale. Utilisé à la connexion (ci-dessus), là où l'ancien code se
+// contentait de tout réécrire.
+//
+// Volontairement silencieux dans tous les cas sauf le conflit réel : c'est le
+// chemin normal, il ne doit rien afficher.
+async function syncReconcileKey(key) {
+  if (!getSyncKey()) return;
+  if (isConflictPaused(key)) return; // en attente d'arbitrage : on n'y touche pas
+  // Voir syncPush() : l'empreinte de la base commune se lit AVANT syncPull(),
+  // qui la remplace par celle de ce qu'il vient de recevoir.
+  const baseFp = getKnownRemoteFp(key);
+  const { data: remote, version } = await syncPull(key);
+  if (version === null || remote === null || remote === undefined) return;
+  const local = await readLocalOnly(key);
+  if (local === null || local === undefined) {
+    // Rien en local (nouvel appareil, ou manuscrit encore jamais ouvert ici) :
+    // la version du serveur est la seule qui existe.
+    await writeLocalOnly(key, remote);
+    setSyncVersion(key, version);
+    return;
+  }
+  if (key === 'profiles' || isDocListKey(key)) {
+    const merged = key === 'profiles' ? mergeProfilesIndex(local, remote) : mergeDocList(local, remote);
+    await writeLocalOnly(key, merged);
+    setSyncVersion(key, version);
+    // La fusion apporte-t-elle quelque chose que le serveur n'a pas ? Si oui,
+    // on le lui renvoie ; sinon on n'écrit rien (pas de version inutile).
+    if (JSON.stringify(merged) !== JSON.stringify(remote)) queueSyncPush(key, merged);
+    return;
+  }
+  const verdict = await classifySyncDivergence(local, remote, baseFp);
+  if (verdict === 'identical' || verdict === 'remote-only') {
+    // Rien de neuf chez nous : on adopte la version du serveur.
+    await writeLocalOnly(key, remote);
+    setSyncVersion(key, version);
+    setKnownRemoteHash(key, await sha256Hex(JSON.stringify(remote)));
+    setKnownRemoteFp(key, await valueFingerprint(remote));
+    return;
+  }
+  if (verdict === 'local-only') {
+    // Nos modifications sont les seules nouvelles : on les envoie.
+    setSyncVersion(key, version);
+    queueSyncPush(key, local);
+    return;
+  }
+  // Vrai conflit : on sauvegarde la version distante, on met cette clé en
+  // pause, et l'utilisateur arbitre quand il veut (aucune donnée n'est
+  // écrasée d'ici là, ni ici ni sur l'autre appareil).
+  setSyncVersion(key, version);
+  await persistConflictBackup(key, remote);
+  addConflictPausedKey(key);
+  if (typeof toast === 'function') toast("Synchro : un manuscrit a été modifié sur les deux appareils. Ouvrez « Système » pour comparer et choisir.", 'error');
+}
+
+// v9.3.0 — Points d'accroche appelés par router.js pour rafraîchir l'écran
+// quand la synchronisation a changé quelque chose en arrière-plan.
+async function onRemoteVersionAdopted() {
+  try {
+    if (document.getElementById('library-screen') && !document.getElementById('library-screen').classList.contains('u-d-none')) {
+      await renderLibraryScreen();
+    }
+  } catch(e) { /* rafraîchissement cosmétique : ne doit jamais faire échouer la synchro */ }
+}
+async function onSyncConflictDetected() {
+  try { await renderLibrarySyncBadge(); } catch(e) { /* idem */ }
 }
 
 async function loadDocList() {
@@ -437,6 +513,7 @@ function wireLibraryStaticUI() {
   // ── Panneau Système : bibliothèque entière (v7.13.0, Lot 10) ─────────
   document.getElementById('library-system-btn').addEventListener('click', () => openLibrarySystemPanel());
   document.getElementById('library-system-close-btn').addEventListener('click', closeLibrarySystemPanel);
+  document.getElementById('conflict-diff-close-btn').addEventListener('click', closeConflictDiff);
   document.getElementById('lib-conflict-delete-all').addEventListener('click', deleteAllConflictBackups);
   document.getElementById('lib-gh-token').addEventListener('change', e => { _cloudToken = e.target.value.trim(); saveLibSettings(); scheduleLibraryAutoBackup(); });
   document.getElementById('lib-verify-token-btn').addEventListener('click', async () => {
@@ -559,7 +636,7 @@ async function migrateLegacyDocumentIfNeeded() {
         title = parsed.title;
       } else {
         parsed.title = title;
-        storedBlob = { _enc:true, data: await Crypto.encrypt(JSON.stringify(parsed), _dataKey) };
+        storedBlob = await makeEncryptedEnvelope(JSON.stringify(parsed));
       }
     }
   } catch(e) { /* migration au mieux : on garde les valeurs par défaut ci-dessus */ }
@@ -759,8 +836,7 @@ async function createNewDocument() {
   const dbData = DEFAULT_DB();
   dbData.title = 'Nouveau manuscrit';
   if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) dbData.darkMode = true;
-  const cipher = await Crypto.encrypt(JSON.stringify(dbData), _dataKey);
-  await persistData(docDataKey(_currentProfileId, docId), { _enc:true, data:cipher });
+  await persistData(docDataKey(_currentProfileId, docId), await makeEncryptedEnvelope(JSON.stringify(dbData)));
   await mutateDocList(list => {
     list.documents.push({ id:docId, title:dbData.title, lastModified:Date.now(), chapterCount:1, wordCount:0, wordGoal:0, cover:'auto' });
   });
@@ -899,8 +975,7 @@ async function loadManuscriptData(docId) {
   return migrateDb(JSON.parse(dec));
 }
 async function persistManuscriptData(docId, mData) {
-  const cipher = await Crypto.encrypt(JSON.stringify(mData), _dataKey);
-  await persistData(docDataKey(_currentProfileId, docId), { _enc:true, data:cipher });
+  await persistData(docDataKey(_currentProfileId, docId), await makeEncryptedEnvelope(JSON.stringify(mData)));
 }
 async function touchDocListEntry(docId, mData) {
   await mutateDocList(list => {
@@ -1137,50 +1212,34 @@ async function removeConflictBackup(key) {
   if (idbStore) await idbStore.delete('data', key);
   else localStorage.removeItem('plume_' + key);
 }
-async function getRemoteHashForDoc(docId) {
-  const key = docDataKey(_currentProfileId, docId);
-  const { data, version } = await syncPull(key);
-  if (data === undefined || data === null || version === null) return null;
-  return await sha256Hex(JSON.stringify(data));
-}
-
-// v9.2.4 — Demande explicite de l'utilisateur : une sauvegarde de conflit
-// confirmée "remplacée" (contenu différent de ce qui est actuellement sur le
-// serveur — donc déjà résolue, ailleurs ou par un envoi suivant) n'a plus
-// aucune utilité. La conserver la faisait compter comme anomalie pendant
-// 7 jours dans le badge de la bibliothèque, alors que rien ne nécessite plus
-// d'action. Elle est désormais supprimée dès qu'elle est détectée comme
-// telle, au lieu d'être simplement étiquetée "remplacée".
+// v9.3.0 — Remplace la purge automatique introduite en v9.2.4, qui était
+// FAUSSE et supprimait en réalité toutes les sauvegardes : après une
+// réconciliation, c'est toujours la version locale qui finissait sur le
+// serveur, donc la version distante sauvegardée ne correspondait jamais au
+// serveur et était considérée à tort comme « déjà résolue ». Résultat : le
+// message d'alerte s'affichait, mais la liste était vide et le badge vert.
+//
+// Le nettoyage repose désormais sur un critère sûr : une sauvegarde n'est
+// supprimée que si son contenu est identique au contenu local actuel — elle
+// n'apporte alors réellement plus rien. Tout le reste est conservé (rétention
+// 7 jours) et reste arbitrable.
 async function getActiveConflictBackups() {
   const backups = await listConflictBackups();
   if (!backups.length) return [];
-  const byDoc = {};
-  backups.forEach(b => { (byDoc[b.docId] = byDoc[b.docId] || []).push(b); });
-  const remoteHashByDoc = {};
-  await Promise.all(Object.keys(byDoc).map(async docId => {
-    try { remoteHashByDoc[docId] = await getRemoteHashForDoc(docId); }
-    catch(e) { remoteHashByDoc[docId] = null; }
-  }));
   const kept = [];
-  for (const docId of Object.keys(byDoc)) {
-    const remoteHash = remoteHashByDoc[docId];
-    for (const b of byDoc[docId]) {
-      let isActive = false;
-      if (remoteHash) {
-        try {
-          const payload = await getConflictBackupPayload(b.key);
-          isActive = (await sha256Hex(JSON.stringify(payload))) === remoteHash;
-        } catch(e) {}
-      }
-      const verified = !!remoteHash;
-      if (verified && !isActive) {
-        // Résolue ailleurs (ou par notre propre envoi suivant) : plus rien à
-        // signaler, on la retire silencieusement au lieu de la conserver.
-        await removeConflictBackup(b.key);
-        continue;
-      }
-      kept.push({ ...b, isActive, verified });
-    }
+  for (const b of backups) {
+    let payload;
+    try { payload = await getConflictBackupPayload(b.key); } catch(e) { payload = undefined; }
+    if (payload === undefined) continue;
+    let redundant = false;
+    try {
+      const local = await readLocalOnly(docDataKey(_currentProfileId, b.docId));
+      const backupFp = await valueFingerprint(payload);
+      const localFp = await valueFingerprint(local);
+      redundant = !!(backupFp && localFp && backupFp === localFp);
+    } catch(e) { redundant = false; }
+    if (redundant) { await removeConflictBackup(b.key); continue; }
+    kept.push({ ...b, awaiting: isConflictPaused(docDataKey(_currentProfileId, b.docId)) });
   }
   return kept;
 }
@@ -1201,59 +1260,122 @@ async function renderConflictBackups() {
 
   cont.innerHTML = rows.map(b => `
     <div class="u-d-flex u-ai-center u-gap-8px u-p-10px u-br-8px u-bd-1px-solid-v-border"
-         style="${b.isActive ? 'border:2px solid var(--border-accent);' : ''}">
+         style="${b.awaiting ? 'border:2px solid var(--border-accent);' : ''}">
       <div class="u-flex-1 u-minw-0">
         <p class="u-fs-_8rem u-m-0">${DOMPurify.sanitize(b.title || 'Sans titre')}
-          ${b.isActive ? '<span class="mp-badge" style="background:var(--bg-accent);color:var(--text-accent);margin-left:6px;">Version actuelle autre appareil</span>' : ''}
+          ${b.awaiting ? '<span class="mp-badge" style="background:var(--bg-accent);color:var(--text-accent);margin-left:6px;">En attente de votre choix</span>' : ''}
         </p>
         <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-0">Détectée le ${new Date(b.ts).toLocaleString('fr')}</p>
-        ${!b.verified ? '<p class="u-fs-_66rem u-c-v-text-muted u-m-2px-0-0">⚠️ Serveur injoignable : impossible de confirmer, comparez manuellement.</p>' : ''}
+        ${b.awaiting ? '<p class="u-fs-_66rem u-c-v-text-muted u-m-2px-0-0">Synchro de ce manuscrit en pause jusqu\'à votre décision.</p>' : ''}
       </div>
-      <button class="action-btn btn-sm" data-conflict-compare="${b.key}" data-conflict-docid="${b.docId}" title="Comparer avec la version actuelle sur cet appareil">🔍 Comparer</button>
-      <button class="action-btn btn-sm" data-conflict-restore="${b.key}" data-conflict-docid="${b.docId}" title="Remplacer la version actuelle par celle-ci">♻️ Restaurer</button>
-      <button class="action-btn btn-sm u-bg-hc0392b" data-conflict-delete="${b.key}" title="Supprimer cette sauvegarde">🗑️</button>
+      <button class="action-btn btn-sm" data-conflict-compare="${b.key}" data-conflict-docid="${b.docId}" title="Comparer les deux versions avant de choisir">🔍 Comparer</button>
+      <button class="action-btn btn-sm u-bg-hc0392b" data-conflict-delete="${b.key}" data-conflict-docid="${b.docId}" title="Supprimer cette sauvegarde">🗑️</button>
     </div>`).join('');
-  cont.querySelectorAll('[data-conflict-restore]').forEach(btn => {
-    btn.addEventListener('click', () => restoreConflictBackup(btn.dataset.conflictRestore, btn.dataset.conflictDocid));
-  });
   cont.querySelectorAll('[data-conflict-delete]').forEach(btn => {
-    btn.addEventListener('click', () => deleteConflictBackup(btn.dataset.conflictDelete));
+    btn.addEventListener('click', () => deleteConflictBackup(btn.dataset.conflictDelete, btn.dataset.conflictDocid));
   });
   cont.querySelectorAll('[data-conflict-compare]').forEach(btn => {
     btn.addEventListener('click', () => compareConflictBackup(btn.dataset.conflictCompare, btn.dataset.conflictDocid));
   });
 }
 
+// v9.3.0 — Déchiffre une enveloppe de manuscrit pour l'inspecter (comparaison
+// de conflit). Correction d'un bug de la v9.2.0 : la comparaison lisait
+// directement `.chapters` sur l'enveloppe CHIFFRÉE, où ce champ n'existe pas —
+// les deux textes comparés étaient donc toujours vides, d'où le « 0 mot
+// ajouté » affiché même après avoir écrit des pages (remonté le 29/07/2026).
+async function decryptEnvelopeForCompare(env) {
+  if (!env) return null;
+  if (!env._enc) return env; // ancien format en clair
+  if (!_dataKey || !env.data) return null;
+  try {
+    const plain = await Crypto.decrypt(env.data, _dataKey);
+    return plain === null ? null : JSON.parse(plain);
+  } catch(e) { return null; }
+}
+function manuscriptPlainText(data) {
+  return ((data && data.chapters) || []).map(c => getPlainText(c.content)).join('\n');
+}
+function manuscriptWordCount(data) {
+  return ((data && data.chapters) || []).reduce((s, c) => s + getWordCount(c.content), 0);
+}
+
 async function compareConflictBackup(key, docId) {
-  const backupPayload = await getConflictBackupPayload(key);
-  if (backupPayload === undefined) { toast('Sauvegarde introuvable.', 'error'); return; }
-  const currentPayload = await loadData(docDataKey(_currentProfileId, docId));
-  const oldText = ((currentPayload && currentPayload.chapters) || []).map(c => getPlainText(c.content)).join('\n');
-  const newText = ((backupPayload && backupPayload.chapters) || []).map(c => getPlainText(c.content)).join('\n');
-  document.getElementById('conflict-diff-content').innerHTML = computeDiff(oldText, newText);
-  document.getElementById('conflict-diff-keep-local-btn').onclick = () => {
-    document.getElementById('conflict-diff-overlay').classList.remove('active');
-  };
-  document.getElementById('conflict-diff-keep-backup-btn').onclick = () => {
-    document.getElementById('conflict-diff-overlay').classList.remove('active');
-    restoreConflictBackup(key, docId);
-  };
+  const backupEnv = await getConflictBackupPayload(key);
+  if (backupEnv === undefined) { toast('Sauvegarde introuvable.', 'error'); return; }
+  const localEnv = await readLocalOnly(docDataKey(_currentProfileId, docId));
+  const backupData = await decryptEnvelopeForCompare(backupEnv);
+  const localData = await decryptEnvelopeForCompare(localEnv);
+  if (!backupData || !localData) {
+    toast('Impossible de lire ces versions (profil différent ?).', 'error');
+    return;
+  }
+
+  const fmt = ts => ts ? new Date(ts).toLocaleString('fr') : 'date inconnue';
+  document.getElementById('conflict-diff-local-words').textContent = manuscriptWordCount(localData) + ' mots';
+  document.getElementById('conflict-diff-local-date').textContent = fmt(localEnv && localEnv._ts);
+  document.getElementById('conflict-diff-remote-words').textContent = manuscriptWordCount(backupData) + ' mots';
+  document.getElementById('conflict-diff-remote-date').textContent = fmt(backupEnv && backupEnv._ts);
+  document.getElementById('conflict-diff-title').textContent = localData.title || backupData.title || 'Ce manuscrit';
+  document.getElementById('conflict-diff-content').innerHTML =
+    computeDiff(manuscriptPlainText(localData), manuscriptPlainText(backupData));
+
+  document.getElementById('conflict-diff-keep-local-btn').onclick = () => resolveConflictKeepLocal(key, docId);
+  document.getElementById('conflict-diff-keep-backup-btn').onclick = () => resolveConflictKeepBackup(key, docId);
   document.getElementById('conflict-diff-overlay').classList.add('active');
 }
-async function restoreConflictBackup(key, docId) {
-  const payload = await getConflictBackupPayload(key);
-  if (payload === undefined) { toast('Sauvegarde introuvable (déjà supprimée ?).', 'error'); await renderConflictBackups(); return; }
-  if (!confirm('Remplacer la version actuelle de ce manuscrit par cette sauvegarde de conflit ? La version actuelle sur cet appareil sera écrasée (mais synchronisée à nouveau ensuite).')) return;
-  await persistData(docDataKey(_currentProfileId, docId), payload);
-  const siblings = (await listConflictBackups()).filter(b => b.docId === docId);
-  for (const s of siblings) await removeConflictBackup(s.key);
+
+// v9.3.0 — Fermeture sans trancher : demande explicite de l'utilisateur.
+// La synchro de ce manuscrit reste en pause et la sauvegarde est conservée :
+// on peut y revenir plus tard sans que rien n'ait été écrasé entre-temps.
+function closeConflictDiff() {
+  document.getElementById('conflict-diff-overlay').classList.remove('active');
+}
+
+// ── Résolution : on garde la version de CET appareil ──
+async function resolveConflictKeepLocal(key, docId) {
+  const dataKey = docDataKey(_currentProfileId, docId);
+  await removeConflictBackup(key);
+  removeConflictPausedKey(dataKey);
+  // La version locale devient la référence : on la renvoie au serveur, qui
+  // l'imposera à l'autre appareil à sa prochaine synchronisation.
+  const local = await readLocalOnly(dataKey);
+  if (local) queueSyncPush(dataKey, local);
+  closeConflictDiff();
   await renderConflictBackups();
   await renderLibrarySyncBadge();
-  toast('Sauvegarde restaurée.', 'success');
+  toast('Version de cet appareil conservée et synchronisée.', 'success');
 }
-async function deleteConflictBackup(key) {
-  if (!confirm('Supprimer définitivement cette sauvegarde de conflit ?')) return;
+
+// ── Résolution : on garde la version de l'autre appareil ──
+async function resolveConflictKeepBackup(key, docId) {
+  const dataKey = docDataKey(_currentProfileId, docId);
+  const payload = await getConflictBackupPayload(key);
+  if (payload === undefined) { toast('Sauvegarde introuvable (déjà supprimée ?).', 'error'); await renderConflictBackups(); return; }
+  await writeLocalOnly(dataKey, payload);
+  setKnownRemoteFp(dataKey, await valueFingerprint(payload));
+  setKnownRemoteHash(dataKey, await sha256Hex(JSON.stringify(payload)));
   await removeConflictBackup(key);
+  removeConflictPausedKey(dataKey);
+  closeConflictDiff();
+  await renderConflictBackups();
+  await renderLibrarySyncBadge();
+  await renderLibraryScreen();
+  toast('Version de l\'autre appareil adoptée.', 'success');
+}
+
+async function deleteConflictBackup(key, docId) {
+  if (!confirm('Supprimer définitivement cette sauvegarde de conflit ? La version de cet appareil sera conservée et synchronisée.')) return;
+  await removeConflictBackup(key);
+  // v9.3.0 — Supprimer la sauvegarde revient à trancher en faveur de cet
+  // appareil : la synchro de ce manuscrit doit donc reprendre, sinon elle
+  // resterait bloquée en attente d'un arbitrage devenu sans objet.
+  if (docId) {
+    const dataKey = docDataKey(_currentProfileId, docId);
+    removeConflictPausedKey(dataKey);
+    const local = await readLocalOnly(dataKey);
+    if (local) queueSyncPush(dataKey, local);
+  }
   await renderConflictBackups();
   await renderLibrarySyncBadge();
   toast('Sauvegarde supprimée.', 'success');
@@ -1270,7 +1392,15 @@ async function deleteAllConflictBackups() {
     danger: true
   });
   if (!ok) return;
-  for (const b of backups) await removeConflictBackup(b.key);
+  for (const b of backups) {
+    await removeConflictBackup(b.key);
+    // v9.3.0 — Idem deleteConflictBackup() : lever la pause, sinon la synchro
+    // de ces manuscrits resterait bloquée indéfiniment.
+    const dataKey = docDataKey(_currentProfileId, b.docId);
+    removeConflictPausedKey(dataKey);
+    const local = await readLocalOnly(dataKey);
+    if (local) queueSyncPush(dataKey, local);
+  }
   await renderConflictBackups();
   await renderLibrarySyncBadge();
   toast('Sauvegardes de conflit supprimées.', 'success');

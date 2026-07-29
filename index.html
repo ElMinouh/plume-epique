@@ -1056,15 +1056,36 @@
 
 <!-- v9.2.0 — Modale de comparaison avant restauration d'une sauvegarde de
      conflit (voir compareConflictBackup() dans library.js). -->
-<div id="conflict-diff-overlay" role="dialog" aria-modal="true" aria-label="Comparer la sauvegarde de conflit">
+<div id="conflict-diff-overlay" role="dialog" aria-modal="true" aria-label="Comparer les deux versions">
   <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-480px-92vw u-maxh-85vh u-ovy-auto">
-    <strong>🔍 Comparer les versions</strong>
-    <p class="u-fs-_68rem u-c-v-text-muted u-m-8px-0-0">Rouge = uniquement dans votre version actuelle (perdu si vous gardez la sauvegarde). Vert = uniquement dans la sauvegarde (perdu si vous gardez votre version actuelle).</p>
-    <div id="conflict-diff-content" class="u-fs-_82rem u-mt-10px u-mb-14px"></div>
-    <div class="u-d-flex u-gap-8px">
-      <button class="action-btn" id="conflict-diff-keep-local-btn">Garder cet appareil</button>
-      <button class="action-btn u-bg-h2980b9" id="conflict-diff-keep-backup-btn">Garder cette sauvegarde</button>
+    <div class="u-d-flex u-jc-space-between u-ai-center u-gap-8px">
+      <strong>🔍 Modifié sur les deux appareils — <span id="conflict-diff-title"></span></strong>
+      <!-- v9.3.0 — Demande explicite de l'utilisateur : pouvoir refermer pour
+           y réfléchir et y revenir. Rien n'est écrasé entre-temps, la synchro
+           de ce manuscrit reste en pause jusqu'à la décision. -->
+      <button class="action-btn btn-sm" id="conflict-diff-close-btn" title="Fermer sans choisir — vous pourrez y revenir" aria-label="Fermer sans choisir">✕</button>
     </div>
+
+    <div class="u-d-flex u-gap-10px u-fw-wrap u-mt-12px">
+      <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-12px u-bd-1px-solid-v-border">
+        <p class="u-fs-_72rem u-c-v-text-muted u-m-0">💻 Cet appareil</p>
+        <p class="u-fs-_9rem u-fwt-700 u-m-4px-0-2px" id="conflict-diff-local-words"></p>
+        <p class="u-fs-_68rem u-c-v-text-muted u-m-0" id="conflict-diff-local-date"></p>
+      </div>
+      <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-12px u-bd-1px-solid-v-border">
+        <p class="u-fs-_72rem u-c-v-text-muted u-m-0">📱 Autre appareil</p>
+        <p class="u-fs-_9rem u-fwt-700 u-m-4px-0-2px" id="conflict-diff-remote-words"></p>
+        <p class="u-fs-_68rem u-c-v-text-muted u-m-0" id="conflict-diff-remote-date"></p>
+      </div>
+    </div>
+
+    <p class="u-fs-_68rem u-c-v-text-muted u-m-12px-0-0">Rouge = présent uniquement sur cet appareil. Vert = présent uniquement sur l'autre appareil.</p>
+    <div id="conflict-diff-content" class="u-fs-_82rem u-mt-8px u-mb-14px"></div>
+    <div class="u-d-flex u-gap-8px u-fw-wrap">
+      <button class="action-btn" id="conflict-diff-keep-local-btn" title="Conserver la version de cet appareil et l'envoyer à l'autre">💻 Garder cet appareil</button>
+      <button class="action-btn u-bg-h2980b9" id="conflict-diff-keep-backup-btn" title="Adopter la version de l'autre appareil">📱 Garder l'autre appareil</button>
+    </div>
+    <p class="u-fs-_66rem u-c-v-text-muted u-m-10px-0-0">Fermer sans choisir ne perd rien : la synchronisation de ce manuscrit reste en pause jusqu'à votre décision.</p>
   </div>
 </div>
 
