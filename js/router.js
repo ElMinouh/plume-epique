@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.2.1';
+const APP_VERSION = '9.2.2';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -334,6 +334,33 @@ async function syncPush(key, payload, attempt = 0) {
         if (key === 'profiles') {
           reconciled = mergeProfilesIndex(payload, pulled.data);
         } else {
+          // v9.2.2 — Correction d'un second bug (remontée utilisateur du
+          // 29/07/2026) : pour un manuscrit, `payload`/`pulled.data` sont des
+          // enveloppes chiffrées ({_enc:true,data:<cipher>}). Or Crypto.encrypt()
+          // tire un sel et un IV ALÉATOIRES à chaque appel — chiffrer deux fois
+          // le même texte produit donc deux chiffrés totalement différents.
+          // Comparer directement le hash du chiffré (comme avant) déclarait donc
+          // un "conflit" à CHAQUE sauvegarde automatique, même sans la moindre
+          // modification réelle : le texte était identique, seul son emballage
+          // chiffré changeait. On déchiffre désormais les deux côtés (avec la
+          // clé du profil ouvert) pour comparer le contenu réel avant de
+          // conclure à un vrai conflit.
+          let sameContent = false;
+          if (payload && payload._enc && pulled.data && pulled.data._enc && _dataKey) {
+            try {
+              const localPlain = await Crypto.decrypt(payload.data, _dataKey);
+              const remotePlain = await Crypto.decrypt(pulled.data.data, _dataKey);
+              if (localPlain !== null && remotePlain !== null) sameContent = (localPlain === remotePlain);
+            } catch(e) { sameContent = false; }
+          }
+          if (sameContent) {
+            // Contenu réellement identique : rien à réconcilier ni à signaler,
+            // on adopte simplement la version distante (même texte, chiffré
+            // différemment) pour se resynchroniser sur le bon numéro de version.
+            await writeLocalOnly(key, pulled.data);
+            setKnownRemoteHash(key, await sha256Hex(JSON.stringify(pulled.data)));
+            return;
+          }
           const remoteHash = await sha256Hex(JSON.stringify(pulled.data));
           if (remoteHash !== newHash) {
             await persistConflictBackup(key, pulled.data);
