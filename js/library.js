@@ -264,7 +264,7 @@ async function renderLibrarySyncBadge() {
   const icon = document.getElementById('library-sync-status-icon');
   const text = document.getElementById('library-sync-status-text');
   let count = 0;
-  try { count = (await listConflictBackups()).length; } catch(e) { count = 0; }
+  try { count = (await getActiveConflictBackups()).length; } catch(e) { count = 0; }
   if (count > 0) {
     badge.classList.add('sync-warn');
     icon.textContent = '⚠️';
@@ -1144,30 +1144,24 @@ async function getRemoteHashForDoc(docId) {
   return await sha256Hex(JSON.stringify(data));
 }
 
-async function renderConflictBackups() {
-  const cont = document.getElementById('lib-conflict-list');
-  const badge = document.getElementById('lib-conflict-count');
-  if (!cont || !badge) return;
+// v9.2.4 — Demande explicite de l'utilisateur : une sauvegarde de conflit
+// confirmée "remplacée" (contenu différent de ce qui est actuellement sur le
+// serveur — donc déjà résolue, ailleurs ou par un envoi suivant) n'a plus
+// aucune utilité. La conserver la faisait compter comme anomalie pendant
+// 7 jours dans le badge de la bibliothèque, alors que rien ne nécessite plus
+// d'action. Elle est désormais supprimée dès qu'elle est détectée comme
+// telle, au lieu d'être simplement étiquetée "remplacée".
+async function getActiveConflictBackups() {
   const backups = await listConflictBackups();
-  badge.textContent = String(backups.length);
-  badge.classList.toggle('u-d-none', backups.length === 0);
-  const deleteAllBtn = document.getElementById('lib-conflict-delete-all');
-  if (deleteAllBtn) deleteAllBtn.classList.toggle('u-d-none', backups.length === 0);
-  if (!backups.length) {
-    cont.innerHTML = `<p class="u-fs-_68rem u-c-v-text-muted u-m-0">Aucune sauvegarde de conflit en attente.</p>`;
-    return;
-  }
-
+  if (!backups.length) return [];
   const byDoc = {};
   backups.forEach(b => { (byDoc[b.docId] = byDoc[b.docId] || []).push(b); });
-
   const remoteHashByDoc = {};
   await Promise.all(Object.keys(byDoc).map(async docId => {
     try { remoteHashByDoc[docId] = await getRemoteHashForDoc(docId); }
     catch(e) { remoteHashByDoc[docId] = null; }
   }));
-
-  const rows = [];
+  const kept = [];
   for (const docId of Object.keys(byDoc)) {
     const remoteHash = remoteHashByDoc[docId];
     for (const b of byDoc[docId]) {
@@ -1178,18 +1172,41 @@ async function renderConflictBackups() {
           isActive = (await sha256Hex(JSON.stringify(payload))) === remoteHash;
         } catch(e) {}
       }
-      rows.push({ ...b, isActive, verified: !!remoteHash });
+      const verified = !!remoteHash;
+      if (verified && !isActive) {
+        // Résolue ailleurs (ou par notre propre envoi suivant) : plus rien à
+        // signaler, on la retire silencieusement au lieu de la conserver.
+        await removeConflictBackup(b.key);
+        continue;
+      }
+      kept.push({ ...b, isActive, verified });
     }
+  }
+  return kept;
+}
+
+async function renderConflictBackups() {
+  const cont = document.getElementById('lib-conflict-list');
+  const badge = document.getElementById('lib-conflict-count');
+  if (!cont || !badge) return;
+  const rows = await getActiveConflictBackups();
+  badge.textContent = String(rows.length);
+  badge.classList.toggle('u-d-none', rows.length === 0);
+  const deleteAllBtn = document.getElementById('lib-conflict-delete-all');
+  if (deleteAllBtn) deleteAllBtn.classList.toggle('u-d-none', rows.length === 0);
+  if (!rows.length) {
+    cont.innerHTML = `<p class="u-fs-_68rem u-c-v-text-muted u-m-0">Aucune sauvegarde de conflit en attente.</p>`;
+    return;
   }
 
   cont.innerHTML = rows.map(b => `
     <div class="u-d-flex u-ai-center u-gap-8px u-p-10px u-br-8px u-bd-1px-solid-v-border"
-         style="${b.isActive ? 'border:2px solid var(--border-accent);' : 'opacity:.6;'}">
+         style="${b.isActive ? 'border:2px solid var(--border-accent);' : ''}">
       <div class="u-flex-1 u-minw-0">
         <p class="u-fs-_8rem u-m-0">${DOMPurify.sanitize(b.title || 'Sans titre')}
           ${b.isActive ? '<span class="mp-badge" style="background:var(--bg-accent);color:var(--text-accent);margin-left:6px;">Version actuelle autre appareil</span>' : ''}
         </p>
-        <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-0">Détectée le ${new Date(b.ts).toLocaleString('fr')}${b.verified && !b.isActive ? ' · remplacée' : ''}</p>
+        <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-0">Détectée le ${new Date(b.ts).toLocaleString('fr')}</p>
         ${!b.verified ? '<p class="u-fs-_66rem u-c-v-text-muted u-m-2px-0-0">⚠️ Serveur injoignable : impossible de confirmer, comparez manuellement.</p>' : ''}
       </div>
       <button class="action-btn btn-sm" data-conflict-compare="${b.key}" data-conflict-docid="${b.docId}" title="Comparer avec la version actuelle sur cet appareil">🔍 Comparer</button>
