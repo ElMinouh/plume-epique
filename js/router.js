@@ -750,6 +750,13 @@ function scheduleSyncPush(key, payload) {
   // pas à chaque frappe) : les espacer n'apporterait rien et retarderait des
   // opérations que l'utilisateur attend instantanées (créer un profil, etc.).
   if (!key.startsWith('doc_')) { queueSyncPush(key, payload); return; }
+  // v9.3.2 — Une clé en pause de conflit (voir isConflictPaused) ne doit
+  // JAMAIS faire progresser le compteur d'espacement : sinon, écrire pendant
+  // qu'un conflit attend l'arbitrage de l'utilisateur retarderait ensuite,
+  // sans raison, l'envoi de la RÉSOLUTION une fois le choix fait — puisque
+  // syncPush() bloque de toute façon ces tentatives (rien n'est perdu), il
+  // n'y a ici rien de réel à espacer.
+  if (isConflictPaused(key)) { queueSyncPush(key, payload); return; }
   const now = Date.now();
   const elapsed = now - (_lastPushAt[key] || 0);
   if (_pushDebounceTimers[key]) clearTimeout(_pushDebounceTimers[key]);
@@ -759,7 +766,9 @@ function scheduleSyncPush(key, payload) {
   } else {
     _pushDebounceTimers[key] = setTimeout(() => {
       delete _pushDebounceTimers[key];
-      _lastPushAt[key] = Date.now();
+      // Une pause a pu démarrer PENDANT l'attente : dans ce cas, ne pas
+      // marquer d'envoi réel non plus (même raisonnement que ci-dessus).
+      if (!isConflictPaused(key)) _lastPushAt[key] = Date.now();
       queueSyncPush(key, payload);
     }, SYNC_PUSH_MIN_INTERVAL_MS - elapsed);
   }
