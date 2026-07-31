@@ -114,9 +114,19 @@ const manuscrit = texte => ({
 });
 
 // Écrit un manuscrit comme le ferait l'application (chiffrement + envoi).
+// v9.3.1 — Depuis le plafonnement du débit d'envoi (SYNC_PUSH_MIN_INTERVAL_MS,
+// router.js), persistData() sur une clé de manuscrit ('doc_*') n'envoie plus
+// forcément tout de suite : au-delà du premier envoi, les suivants sont
+// différés de 20s pour éviter d'épuiser le quota gratuit Cloudflare KV (voir
+// incident du 31/07/2026). Chaque appel à ecrire() représente ici une
+// édition COMPLÈTE et isolée (pas une frappe continue) : on force donc
+// l'envoi immédiat après coup, exactement comme le ferait l'application
+// quand l'utilisateur change de manuscrit ou perd le focus de l'onglet (voir
+// flushPendingSyncPushes(), appelée à ces mêmes moments dans le vrai code).
 async function ecrire(ctx, texte) {
   const env = await ctx.makeEncryptedEnvelope(JSON.stringify(manuscrit(texte)));
   await ctx.persistData(DOC_KEY, env);
+  ctx.flushPendingSyncPushes();
   await settle();
 }
 

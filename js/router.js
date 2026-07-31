@@ -713,6 +713,73 @@ window.addEventListener('online', () => {
 });
 
 
+// ═══════════════════════════════════════════════════════
+// PLAFONNEMENT DU DÉBIT D'ENVOI RÉSEAU (v9.3.1)
+//
+// Problème rapporté le 31/07/2026 : chaque frappe déclenche, 600ms après la
+// pause de frappe, un persistData() — donc un envoi réseau réel vers le
+// Worker (une écriture KV Cloudflare) À CHAQUE PAUSE, même de quelques
+// secondes seulement. Pendant une session d'écriture active, cela représente
+// une écriture toutes les quelques secondes, en continu — largement de quoi
+// épuiser le quota gratuit (1000 écritures/24h) en un peu plus d'une heure,
+// comme mesuré dans le tableau de bord Cloudflare.
+//
+// La sauvegarde LOCALE (IndexedDB, à 600ms) reste inchangée — rien n'est
+// perdu ni ralenti à l'écran, le texte est toujours enregistré aussi vite
+// qu'avant. Seul l'ENVOI RÉSEAU est désormais espacé d'au moins
+// SYNC_PUSH_MIN_INTERVAL_MS par clé : si le délai n'est pas encore écoulé,
+// l'envoi est reporté (avec le contenu le PLUS RÉCENT, jamais un instantané
+// périmé) plutôt qu'annulé. Un envoi qui arrive après une pause plus longue
+// que ce délai part immédiatement, sans attendre inutilement.
+//
+// Sécurité et fonctionnalités intactes : même chiffrement, même contenu,
+// même mécanisme de conflit — seule la FRÉQUENCE des envois change. La
+// fenêtre où un autre appareil pourrait ne pas encore voir la toute
+// dernière frappe passe de ~600ms à, au pire, SYNC_PUSH_MIN_INTERVAL_MS —
+// et les moments qui comptent (on quitte l'onglet, on change de manuscrit,
+// on ferme la page) forcent un envoi immédiat via flushPendingSyncPushes(),
+// qui ne laisse donc jamais rien en suspens plus longtemps que nécessaire.
+const SYNC_PUSH_MIN_INTERVAL_MS = 20000; // 20s : ~180 écritures/h même en frappe continue sur un seul document, très en-deçà du quota gratuit
+let _lastPushAt = {};        // clé → date du dernier envoi réseau réellement déclenché
+let _pushDebounceTimers = {}; // clé → minuteur en attente (au plus un par clé)
+function scheduleSyncPush(key, payload) {
+  // v9.3.1 — Seules les clés de manuscrit ('doc_<profil>_<id>') sont concernées :
+  // ce sont elles qui reçoivent un envoi à chaque frappe (autosave 600ms), donc
+  // la source réelle de l'explosion d'écritures. L'index des profils et celui
+  // de la bibliothèque ('doclist_<profil>') changent rarement (CRUD explicite,
+  // pas à chaque frappe) : les espacer n'apporterait rien et retarderait des
+  // opérations que l'utilisateur attend instantanées (créer un profil, etc.).
+  if (!key.startsWith('doc_')) { queueSyncPush(key, payload); return; }
+  const now = Date.now();
+  const elapsed = now - (_lastPushAt[key] || 0);
+  if (_pushDebounceTimers[key]) clearTimeout(_pushDebounceTimers[key]);
+  if (elapsed >= SYNC_PUSH_MIN_INTERVAL_MS) {
+    _lastPushAt[key] = now;
+    queueSyncPush(key, payload);
+  } else {
+    _pushDebounceTimers[key] = setTimeout(() => {
+      delete _pushDebounceTimers[key];
+      _lastPushAt[key] = Date.now();
+      queueSyncPush(key, payload);
+    }, SYNC_PUSH_MIN_INTERVAL_MS - elapsed);
+  }
+}
+// Envoie immédiatement tout ce qui est en attente d'espacement — appelé aux
+// moments où il ne faut RIEN laisser en suspens : perte de focus, fermeture
+// de l'onglet, changement de manuscrit (voir les 3 points d'appel plus bas).
+function flushPendingSyncPushes() {
+  for (const key of Object.keys(_pushDebounceTimers)) {
+    clearTimeout(_pushDebounceTimers[key]);
+    delete _pushDebounceTimers[key];
+    _lastPushAt[key] = Date.now();
+    // On relit la copie locale plutôt que de garder le payload capturé à la
+    // planification : persistData() a de toute façon déjà écrit en local
+    // avant de programmer ce minuteur, donc cette lecture est à jour et
+    // évite tout risque de repousser un contenu périmé.
+    readLocalOnly(key).then(payload => { if (payload !== null && payload !== undefined) queueSyncPush(key, payload); });
+  }
+}
+
 async function persistData(key, payload) {
   _localWriteVersion[key] = (_localWriteVersion[key] || 0) + 1;
   if (idbStore) await idbStore.put('data', payload, key);
@@ -720,7 +787,7 @@ async function persistData(key, payload) {
     if (payload === null) localStorage.removeItem('plume_' + key);
     else localStorage.setItem('plume_' + key, JSON.stringify(payload));
   }
-  queueSyncPush(key, payload);
+  scheduleSyncPush(key, payload);
 }
 async function loadData(key) {
   let local;
@@ -1093,7 +1160,7 @@ function wireAppEventListenersOnce(){
 
   document.addEventListener('keydown',e=>{
     if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openGlobalSearch();}
-    if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();flushCurrentChapter();save();}
+    if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();flushCurrentChapter();save();flushPendingSyncPushes();}
     // v7.6.0 : Annuler/Rétablir — exclu des autres champs de saisie (voir
     // isTypingTarget dans editor.js) pour ne pas gêner le undo natif ailleurs
     // (ex. mode Focus, titres) ni un vrai Ctrl+Z dans un champ de recherche.
@@ -1166,6 +1233,10 @@ function wireAppEventListenersOnce(){
   // v7.5.0 : confirmation avant de fermer/recharger l'onglet s'il reste des
   // modifications non encore persistées (frappe des 600 dernières ms).
   window.addEventListener('beforeunload', e => {
+    // v9.3.1 — Idem visibilitychange : ne rien laisser en suspens à la
+    // fermeture (best-effort, sans attendre — le navigateur ne garantit
+    // pas qu'une requête réseau ait le temps de se terminer ici).
+    flushPendingSyncPushes();
     if (_unsavedChanges) { e.preventDefault(); e.returnValue = ''; }
   });
 
@@ -1274,8 +1345,11 @@ function initToolbarDropdowns(){
 // longtemps après avoir perdu le focus pour que l'envoi se termine.
 // ═══════════════════════════════════════════════════════
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden' && typeof syncAllLibraryManuscripts === 'function') {
-    syncAllLibraryManuscripts('focus-loss');
+  if (document.visibilityState === 'hidden') {
+    // v9.3.1 — Rien ne doit rester en suspens plus longtemps que nécessaire
+    // quand l'onglet passe en arrière-plan (voir SYNC_PUSH_MIN_INTERVAL_MS).
+    flushPendingSyncPushes();
+    if (typeof syncAllLibraryManuscripts === 'function') syncAllLibraryManuscripts('focus-loss');
   }
 });
 

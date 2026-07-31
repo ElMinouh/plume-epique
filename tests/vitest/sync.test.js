@@ -203,3 +203,91 @@ describe('Synchro réelle (router.js) — fetch mocké', () => {
   });
 
 });
+
+// ═══════════════════════════════════════════════════════
+// PLAFONNEMENT DU DÉBIT D'ENVOI — incident rapporté le 31/07/2026 : le quota
+// gratuit Cloudflare KV (1000 écritures/24h) était épuisé en un peu plus
+// d'une heure d'utilisation active, chaque pause de frappe (600ms) déclenchant
+// un envoi réseau réel. Voir SYNC_PUSH_MIN_INTERVAL_MS/scheduleSyncPush()/
+// flushPendingSyncPushes() dans router.js.
+// ═══════════════════════════════════════════════════════
+describe('Plafonnement du débit d’envoi réseau (persistData → clés de manuscrit)', () => {
+  it('plusieurs sauvegardes rapprochées sur le même manuscrit ne produisent qu’un seul envoi réseau', async () => {
+    let puts = 0;
+    const fetchMock = vi.fn(async (url, opts) => {
+      if (opts && opts.method === 'PUT') puts++;
+      return new Response(JSON.stringify({ ok: true, version: puts }), {
+        status: 200, headers: { 'Content-Type': 'application/json', 'X-Plume-Version': String(puts) }
+      });
+    });
+    const ctx = makeRouterContext(fetchMock);
+    ctx.setSyncKey('cle-test');
+
+    // Simule 5 pauses de frappe rapprochées (autosave 600ms) sur le même
+    // manuscrit : AVANT ce correctif, chacune partait immédiatement sur le
+    // réseau (5 écritures KV). Après, une seule doit réellement partir tout
+    // de suite ; les 4 suivantes doivent être coalescées en une seule
+    // écriture différée (jamais 5, jamais perdues).
+    for (let i = 1; i <= 5; i++) {
+      await ctx.persistData('doc_1', { titre: 'Version ' + i });
+    }
+    await new Promise(r => setTimeout(r, 20));
+    expect(puts).toBe(1); // le premier envoi part immédiatement (aucune attente pour une clé neuve)
+
+    // Le contenu le plus RÉCENT doit être celui programmé pour l'envoi
+    // différé, pas le premier instantané périmé.
+    ctx.flushPendingSyncPushes();
+    await new Promise(r => setTimeout(r, 20));
+    expect(puts).toBe(2);
+    const derniereRequete = fetchMock.mock.calls.filter(c => c[1] && c[1].method === 'PUT').pop();
+    expect(JSON.parse(derniereRequete[1].body)).toEqual({ titre: 'Version 5' });
+  });
+
+  it('un envoi qui arrive après le délai d’espacement part immédiatement (pas de retard inutile)', async () => {
+    let puts = 0;
+    const fetchMock = vi.fn(async (url, opts) => {
+      if (opts && opts.method === 'PUT') puts++;
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200, headers: { 'Content-Type': 'application/json', 'X-Plume-Version': String(puts) }
+      });
+    });
+    const ctx = makeRouterContext(fetchMock);
+    ctx.setSyncKey('cle-test');
+
+    await ctx.persistData('doc_1', { titre: 'Premier' });
+    await new Promise(r => setTimeout(r, 20));
+    expect(puts).toBe(1);
+
+    // Force l'horloge interne à considérer le délai d'espacement comme écoulé,
+    // sans attendre réellement 20 secondes dans ce test. `_lastPushAt` est
+    // déclarée avec `let` dans router.js : une liaison lexicale du contexte,
+    // invisible comme propriété directe de `ctx` — on l'affecte donc DANS
+    // le contexte (même principe que `_dataKey` ailleurs dans ce fichier).
+    vm.runInContext("_lastPushAt['doc_1'] = Date.now() - 21000;", ctx);
+    await ctx.persistData('doc_1', { titre: 'Bien plus tard' });
+    await new Promise(r => setTimeout(r, 20));
+    expect(puts).toBe(2); // reparti tout de suite, sans passer par le délai différé
+  });
+
+  it('les clés hors manuscrit (profils, index bibliothèque) ne sont jamais espacées', async () => {
+    // v9.3.1 — Seules les clés 'doc_*' sont concernées : le profil et l'index
+    // de bibliothèque changent rarement (actions explicites, pas à chaque
+    // frappe) et l'utilisateur attend un effet immédiat (créer un profil...).
+    let puts = 0;
+    const fetchMock = vi.fn(async (url, opts) => {
+      if (opts && opts.method === 'PUT') puts++;
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200, headers: { 'Content-Type': 'application/json', 'X-Plume-Version': String(puts) }
+      });
+    });
+    const ctx = makeRouterContext(fetchMock);
+    ctx.setSyncKey('cle-test');
+
+    await ctx.persistData('profiles', { profiles: [{ id: 'p1' }] });
+    await ctx.persistData('profiles', { profiles: [{ id: 'p1' }, { id: 'p2' }] });
+    await ctx.persistData('doclist_p1', { documents: [{ id: 'm1' }] });
+    await new Promise(r => setTimeout(r, 20));
+
+    expect(puts).toBe(3); // les trois partent tout de suite, aucune n'est différée
+  });
+});

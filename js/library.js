@@ -893,6 +893,9 @@ async function deleteDocument(docId) {
 async function backToLibrary() {
   flushCurrentChapter();
   await save();
+  // v9.3.1 — Ne pas attendre le prochain espacement (SYNC_PUSH_MIN_INTERVAL_MS,
+  // router.js) pour ce manuscrit qu'on quitte : on force l'envoi tout de suite.
+  if (typeof flushPendingSyncPushes === 'function') flushPendingSyncPushes();
   await renderLibraryScreen();
   showLibraryScreen();
   // v7.13.0 (Lot 10) : déclencheur "changement de manuscrit / retour à la
