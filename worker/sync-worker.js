@@ -151,7 +151,23 @@ export default {
       }
 
       const next = current + 1;
-      await env.PLUME_SYNC.put(key, body, { metadata: { v: next } });
+      // v9.3.3 — Sans ce filet, une écriture refusée par Cloudflare (quota
+      // KV du compte gratuit épuisé, ou toute autre panne du binding) faisait
+      // planter tout le handler : le client recevait une erreur 500/1101
+      // opaque, indiscernable d'un simple problème réseau. On distingue
+      // désormais clairement ce cas par un 503 explicite avec Retry-After,
+      // que le client utilise pour ralentir TOUS ses envois (voir
+      // le repli global dans router.js) plutôt que de continuer à insister
+      // sans effet pendant que le quota reste épuisé.
+      try {
+        await env.PLUME_SYNC.put(key, body, { metadata: { v: next } });
+      } catch (e) {
+        return new Response(JSON.stringify({
+          error: { message: "Écriture momentanément indisponible (quota ou panne passagère)." }
+        }), {
+          status: 503, headers: { ...cors, 'Content-Type': 'application/json', 'Retry-After': '900' }
+        });
+      }
       return new Response(JSON.stringify({ ok: true, version: next }), {
         headers: { ...cors, 'Content-Type': 'application/json', 'X-Plume-Version': String(next) }
       });

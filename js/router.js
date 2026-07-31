@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.3.0';
+const APP_VERSION = '9.3.3';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -555,6 +555,14 @@ async function syncPush(key, payload, attempt = 0) {
       // sur cette même clé (voir file d'attente ci-dessous / ADR-4).
       addPendingSyncKey(key);
       scheduleSyncRetry();
+      // v9.3.3 — Le quota d'écriture KV est partagé par tout le compte, donc
+      // par tous les utilisateurs : une panne d'écriture ici (503 explicite
+      // du Worker, voir sync-worker.js) est par nature un signal commun,
+      // pas propre à cette clé ni à cet appareil. On ralentit donc TOUS les
+      // envois de CET appareil pendant SYNC_GLOBAL_BACKOFF_MS plutôt que
+      // d'insister sans effet — chaque appareil qui écrit pendant la panne
+      // recevra la même réponse et fera de même, sans coordination requise.
+      if (key.startsWith('doc_')) setGlobalBackoffUntil(Date.now() + SYNC_GLOBAL_BACKOFF_MS);
     }
   } catch(e) {
     setLastSyncStatus(false);
@@ -714,34 +722,74 @@ window.addEventListener('online', () => {
 
 
 // ═══════════════════════════════════════════════════════
-// PLAFONNEMENT DU DÉBIT D'ENVOI RÉSEAU (v9.3.1)
+// PLAFONNEMENT ADAPTATIF DU DÉBIT D'ENVOI (v9.3.1 → v9.3.3)
 //
-// Problème rapporté le 31/07/2026 : chaque frappe déclenche, 600ms après la
-// pause de frappe, un persistData() — donc un envoi réseau réel vers le
-// Worker (une écriture KV Cloudflare) À CHAQUE PAUSE, même de quelques
-// secondes seulement. Pendant une session d'écriture active, cela représente
-// une écriture toutes les quelques secondes, en continu — largement de quoi
-// épuiser le quota gratuit (1000 écritures/24h) en un peu plus d'une heure,
-// comme mesuré dans le tableau de bord Cloudflare.
+// v9.3.1 : problème rapporté le 31/07/2026 — chaque frappe déclenche, 600ms
+// après la pause de frappe, un persistData() → un envoi réseau réel (une
+// écriture KV Cloudflare) à CHAQUE pause. De quoi épuiser le quota gratuit
+// (1000 écritures/24h) en un peu plus d'une heure, comme mesuré au tableau
+// de bord Cloudflare.
 //
-// La sauvegarde LOCALE (IndexedDB, à 600ms) reste inchangée — rien n'est
-// perdu ni ralenti à l'écran, le texte est toujours enregistré aussi vite
-// qu'avant. Seul l'ENVOI RÉSEAU est désormais espacé d'au moins
-// SYNC_PUSH_MIN_INTERVAL_MS par clé : si le délai n'est pas encore écoulé,
-// l'envoi est reporté (avec le contenu le PLUS RÉCENT, jamais un instantané
-// périmé) plutôt qu'annulé. Un envoi qui arrive après une pause plus longue
-// que ce délai part immédiatement, sans attendre inutilement.
+// v9.3.3 : le logiciel pouvant servir à plusieurs personnes en même temps,
+// un plafond fixe ne suffit plus (5 sessions actives en continu peuvent, à
+// elles seules, approcher le quota en une heure). Deux mécanismes
+// supplémentaires, cumulables :
 //
-// Sécurité et fonctionnalités intactes : même chiffrement, même contenu,
-// même mécanisme de conflit — seule la FRÉQUENCE des envois change. La
-// fenêtre où un autre appareil pourrait ne pas encore voir la toute
-// dernière frappe passe de ~600ms à, au pire, SYNC_PUSH_MIN_INTERVAL_MS —
-// et les moments qui comptent (on quitte l'onglet, on change de manuscrit,
-// on ferme la page) forcent un envoi immédiat via flushPendingSyncPushes(),
-// qui ne laisse donc jamais rien en suspens plus longtemps que nécessaire.
-const SYNC_PUSH_MIN_INTERVAL_MS = 20000; // 20s : ~180 écritures/h même en frappe continue sur un seul document, très en-deçà du quota gratuit
-let _lastPushAt = {};        // clé → date du dernier envoi réseau réellement déclenché
-let _pushDebounceTimers = {}; // clé → minuteur en attente (au plus un par clé)
+//  • ESPACEMENT ADAPTATIF PAR CLÉ — l'intervalle s'allonge tant qu'un même
+//    manuscrit reste écrit sans interruption : 20s au début d'une session
+//    d'écriture, 45s après 3 minutes continues, 90s après 10 minutes. Il
+//    revient à 20s dès qu'une vraie pause (90s sans la moindre frappe) a eu
+//    lieu. Une session d'écriture courante et normale n'est donc jamais
+//    ralentie ; seules les sessions très longues et ininterrompues le sont
+//    davantage, précisément celles qui pesaient le plus sur le quota.
+//
+//  • REPLI GLOBAL PARTAGÉ — le quota KV est unique pour TOUT le compte,
+//    partagé entre tous les utilisateurs : impossible de le mesurer
+//    précisément depuis le navigateur sans consommer des requêtes
+//    supplémentaires rien que pour le vérifier (contre-productif). En
+//    revanche, si le Worker signale une vraie panne d'écriture (quota
+//    épuisé ou autre — voir le 503 explicite ajouté dans sync-worker.js),
+//    CE signal est par nature commun à tout le monde : le quota étant
+//    partagé, n'importe quel appareil qui écrit à ce moment-là recevra
+//    exactement la même réponse. Chaque appareil qui la reçoit ralentit
+//    alors ELLE-MÊME ses envois pour tous ses manuscrits pendant
+//    SYNC_GLOBAL_BACKOFF_MS, sans throttle prédictif : c'est la réaction
+//    coordonnée d'un signal déjà partagé, pas une invention de coordination.
+//
+// La sauvegarde LOCALE (IndexedDB, à 600ms) n'est touchée par rien de tout
+// ceci — toujours aussi rapide, rien n'est jamais perdu. Seule la fréquence
+// des envois RÉSEAU change. Les moments qui comptent (perte de focus,
+// fermeture de l'onglet, changement de manuscrit, Ctrl+S) continuent de
+// forcer un envoi immédiat via flushPendingSyncPushes(), qui ignore
+// volontairement ces délais : ce sont des actions explicites et rares,
+// jamais la source du problème.
+const SYNC_PUSH_BASE_INTERVAL_MS = 20000;         // 20s — début de session d'écriture
+const SYNC_PUSH_TIER2_AFTER_MS = 3 * 60 * 1000;   // au-delà de 3 min d'écriture continue…
+const SYNC_PUSH_TIER2_INTERVAL_MS = 45000;        // …45s d'espacement
+const SYNC_PUSH_TIER3_AFTER_MS = 10 * 60 * 1000;  // au-delà de 10 min d'écriture continue…
+const SYNC_PUSH_TIER3_INTERVAL_MS = 90000;        // …90s d'espacement
+const SYNC_PUSH_STREAK_RESET_MS = 90000;          // 90s sans la moindre frappe = vraie pause : retour à 20s
+const SYNC_GLOBAL_BACKOFF_MS = 15 * 60 * 1000;    // 15 min de répit après une panne d'écriture confirmée par le serveur
+
+let _lastPushAt = {};          // clé → date du dernier envoi réseau réellement déclenché
+let _pushDebounceTimers = {};  // clé → minuteur en attente (au plus un par clé)
+let _streakStartedAt = {};     // clé → début de la rafale d'écriture continue en cours
+let _lastPushAttemptAt = {};   // clé → date du dernier appel (déclenché ou différé), pour détecter une vraie pause
+
+function getGlobalBackoffUntil() { return Number(localStorage.getItem('plume_sync_global_backoff_until') || 0); }
+function setGlobalBackoffUntil(ts) { localStorage.setItem('plume_sync_global_backoff_until', String(ts)); }
+
+function currentAdaptiveInterval(key, now) {
+  if (!_streakStartedAt[key] || (now - (_lastPushAttemptAt[key] || 0)) >= SYNC_PUSH_STREAK_RESET_MS) {
+    _streakStartedAt[key] = now; // nouvelle rafale d'écriture (première fois, ou après une vraie pause)
+  }
+  _lastPushAttemptAt[key] = now;
+  const streakDuration = now - _streakStartedAt[key];
+  if (streakDuration >= SYNC_PUSH_TIER3_AFTER_MS) return SYNC_PUSH_TIER3_INTERVAL_MS;
+  if (streakDuration >= SYNC_PUSH_TIER2_AFTER_MS) return SYNC_PUSH_TIER2_INTERVAL_MS;
+  return SYNC_PUSH_BASE_INTERVAL_MS;
+}
+
 function scheduleSyncPush(key, payload) {
   // v9.3.1 — Seules les clés de manuscrit ('doc_<profil>_<id>') sont concernées :
   // ce sont elles qui reçoivent un envoi à chaque frappe (autosave 600ms), donc
@@ -757,10 +805,26 @@ function scheduleSyncPush(key, payload) {
   // syncPush() bloque de toute façon ces tentatives (rien n'est perdu), il
   // n'y a ici rien de réel à espacer.
   if (isConflictPaused(key)) { queueSyncPush(key, payload); return; }
+
   const now = Date.now();
-  const elapsed = now - (_lastPushAt[key] || 0);
   if (_pushDebounceTimers[key]) clearTimeout(_pushDebounceTimers[key]);
-  if (elapsed >= SYNC_PUSH_MIN_INTERVAL_MS) {
+
+  // v9.3.3 — Repli global : une panne d'écriture vient d'être confirmée par
+  // le serveur (voir le traitement du 503 dans syncPush) — on n'aggrave pas
+  // la situation en insistant, on attend la fin du répit commun.
+  const backoffUntil = getGlobalBackoffUntil();
+  if (backoffUntil > now) {
+    _pushDebounceTimers[key] = setTimeout(() => {
+      delete _pushDebounceTimers[key];
+      if (!isConflictPaused(key)) _lastPushAt[key] = Date.now();
+      queueSyncPush(key, payload);
+    }, backoffUntil - now);
+    return;
+  }
+
+  const interval = currentAdaptiveInterval(key, now);
+  const elapsed = now - (_lastPushAt[key] || 0);
+  if (elapsed >= interval) {
     _lastPushAt[key] = now;
     queueSyncPush(key, payload);
   } else {
@@ -770,12 +834,14 @@ function scheduleSyncPush(key, payload) {
       // marquer d'envoi réel non plus (même raisonnement que ci-dessus).
       if (!isConflictPaused(key)) _lastPushAt[key] = Date.now();
       queueSyncPush(key, payload);
-    }, SYNC_PUSH_MIN_INTERVAL_MS - elapsed);
+    }, interval - elapsed);
   }
 }
 // Envoie immédiatement tout ce qui est en attente d'espacement — appelé aux
 // moments où il ne faut RIEN laisser en suspens : perte de focus, fermeture
 // de l'onglet, changement de manuscrit (voir les 3 points d'appel plus bas).
+// Bypass volontaire de tout espacement (adaptatif ou repli global) : ce sont
+// des actions explicites et rares, jamais la source du problème de quota.
 function flushPendingSyncPushes() {
   for (const key of Object.keys(_pushDebounceTimers)) {
     clearTimeout(_pushDebounceTimers[key]);
