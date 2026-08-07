@@ -1035,7 +1035,16 @@ function initApp(){
   setChapterViewMode('list');
   // v7.36.0 (ergonomie) — même principe pour la vue Personnages/Lieux.
   setUniverseViewMode('list');
-  renderTabs();renderChapterList();loadChapter(0);updateDailyStats();
+  // v9.4.0 — Reprise à la dernière position d'écriture : on ouvre le
+  // manuscrit sur le chapitre où on a tapé pour la dernière fois (au lieu
+  // du chapitre 1 systématiquement). db.lastPosition est sauvegardé à
+  // chaque frappe par saveCursorForResume() (editor.js).
+  if (db.lastPosition && db.lastPosition.chapterId) {
+    const lastIdx = db.chapters.findIndex(c => c.id === db.lastPosition.chapterId);
+    if (lastIdx !== -1) cur = lastIdx;
+  }
+  renderTabs();renderChapterList();loadChapter(cur);updateDailyStats();
+  restoreLastCursorPosition();
   renderLibrary('chars');renderLibrary('places');renderQuests();renderWeakWords();initGoalUI();
   resumeSprintIfNeeded();
   purgeOldTrash();

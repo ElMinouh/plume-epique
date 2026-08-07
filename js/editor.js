@@ -133,9 +133,74 @@ function updateChapterWordGoalProgress() {
 function liveCounter() {
   if (_switching) return;
   db.chapters[cur].content = document.getElementById('writer').innerHTML;
+  saveCursorForResume();
   updateDailyStats(); debouncedSave();
   updateChapterWordGoalProgress();
   scheduleUndoSnapshot();
+}
+
+// ═══════════════════════════════════════════════════════
+// REPRISE À LA DERNIÈRE POSITION D'ÉCRITURE (nouveau v9.4.0)
+// À chaque frappe, on mémorise (dans db.lastPosition, sauvegardé avec le
+// reste du manuscrit) le chapitre et la position exacte du curseur — un
+// simple décompte de caractères de texte depuis le début du chapitre,
+// insensible à la mise en forme (gras/italique/etc.). À la prochaine
+// ouverture de ce manuscrit, restoreLastCursorPosition() (appelée depuis
+// initApp(), router.js) rouvre directement ce chapitre et fait défiler
+// jusqu'à cet endroit — sans donner le focus au clavier (choix explicite :
+// on ne veut pas faire apparaître le clavier mobile tout seul à l'ouverture).
+// ═══════════════════════════════════════════════════════
+function getCaretCharacterOffsetWithin(element) {
+  let caretOffset = 0;
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount > 0) {
+    const range = sel.getRangeAt(0);
+    if (element.contains(range.startContainer)) {
+      const preRange = range.cloneRange();
+      preRange.selectNodeContents(element);
+      preRange.setEnd(range.startContainer, range.startOffset);
+      caretOffset = preRange.toString().length;
+    }
+  }
+  return caretOffset;
+}
+function saveCursorForResume() {
+  const ch = db.chapters[cur];
+  if (!ch) return;
+  const writer = document.getElementById('writer');
+  if (!writer) return;
+  db.lastPosition = { chapterId: ch.id, offset: getCaretCharacterOffsetWithin(writer) };
+}
+// Place le curseur au bon endroit dans #writer (sans lui donner le focus,
+// voir note ci-dessus) et fait défiler la vue jusqu'à cet endroit. Appelée
+// une seule fois, juste après le loadChapter() initial d'initApp().
+function restoreLastCursorPosition() {
+  const pos = db.lastPosition;
+  const ch = db.chapters[cur];
+  if (!pos || !ch || pos.chapterId !== ch.id) return;
+  const writer = document.getElementById('writer');
+  if (!writer) return;
+  const walker = document.createTreeWalker(writer, NodeFilter.SHOW_TEXT, null);
+  let node, remaining = pos.offset, targetNode = null, targetOffset = 0;
+  while ((node = walker.nextNode())) {
+    const len = node.textContent.length;
+    if (remaining <= len) { targetNode = node; targetOffset = remaining; break; }
+    remaining -= len;
+  }
+  try {
+    const range = document.createRange();
+    if (targetNode) range.setStart(targetNode, targetOffset);
+    else { range.selectNodeContents(writer); range.collapse(false); }
+    range.collapse(true);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    const anchor = (targetNode ? targetNode.parentElement : writer);
+    if (anchor && anchor.scrollIntoView) anchor.scrollIntoView({ block: 'center' });
+    // On retire aussitôt la sélection : on voulait juste faire défiler
+    // jusqu'au bon endroit, pas y placer le curseur actif (voir note ci-dessus).
+    sel.removeAllRanges();
+  } catch(e) { /* DOM inattendu : on renonce simplement à faire défiler */ }
 }
 const CH_STATUS_META = {
   draft: { color:'#7f8c8d', label:'Brouillon' },
