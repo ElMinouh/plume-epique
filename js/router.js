@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.5.0';
+const APP_VERSION = '9.5.1';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1103,6 +1103,7 @@ function wireAppEventListenersOnce(){
   // index.html) : même fonction que #back-to-library-btn, pas de nouvelle
   // logique.
   document.getElementById('chapter-quick-library-btn').addEventListener('click',backToLibrary);
+  document.getElementById('toolbar-library-btn').addEventListener('click',backToLibrary);
   // v7.42.1 — Tiroir repliable du panneau chapitres (mobile uniquement,
   // voir style.css) : n'a aucun effet visuel sur desktop, où ce bouton est
   // masqué (u-d-none) et #chapter-sidebar-body toujours visible.

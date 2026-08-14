@@ -823,6 +823,17 @@
   </aside>
   <div id="editor-wrapper">
     <div class="toolbar" role="toolbar">
+      <!-- v9.5.0 — Accès rapide à la bibliothèque directement depuis la
+           barre d'outils, sur mobile uniquement (u-d-none + affiché par la
+           media query 768px, ci-dessous). Sur PC, le bouton équivalent
+           (#back-to-library-btn) reste dans le panneau chapitres, toujours
+           visible : pas besoin de doublon ici. Contrairement à
+           #chapter-quick-library-btn (déjà existant, dans l'en-tête du
+           panneau chapitres, masqué quand on écrit), celui-ci reste
+           accessible en un tap même en plein milieu d'un long chapitre,
+           puisque toute cette barre est désormais collante au défilement. -->
+      <button class="u-d-none" id="toolbar-library-btn" title="Retour à la bibliothèque" aria-label="Retour à la bibliothèque">📚</button>
+      <span class="u-w-1px u-h-20px u-bg-v-border u-m-0-4px u-d-none" id="toolbar-library-sep"></span>
       <!-- Mise en forme riche (nouveau V56) -->
       <button class="action-btn btn-sm u-bg-h34495e" id="fmt-bold-btn" title="Gras (Ctrl+B)"><b>G</b></button>
       <button class="action-btn btn-sm u-bg-h34495e" id="fmt-italic-btn" title="Italique (Ctrl+I)"><i>I</i></button>

@@ -153,14 +153,14 @@ main{flex-grow:1;width:98%;max-width:1500px;margin:0 auto 6px;
   border-radius:10px;margin-bottom:10px;align-items:center;flex-wrap:wrap;
   position:sticky;top:0;z-index:30;box-shadow:0 2px 6px rgba(0,0,0,.08);}
 /* v9.5.0 — Demande explicite : garder cette barre visible pendant qu'on
-   écrit un chapitre long, sans avoir à remonter tout en haut. #editor-wrapper
-   n'a pas de hauteur fixe (il grandit avec le texte, c'est la PAGE qui
-   défile — voir #writer overflow-y:auto qui, faute de hauteur contrainte,
-   ne s'active jamais en pratique) : position:sticky se cale donc bien sur
-   le défilement réel de la page, identique sur PC et sur mobile (Android
-   inclus), sans media query supplémentaire. Le fond opaque (--item-bg,
+   écrit un chapitre long, sans avoir à remonter tout en haut. Sur mobile
+   (main{height:auto}, voir media query 768px), #editor-wrapper grandit avec
+   le texte et c'est la PAGE qui défile : sticky se cale sur ce défilement.
+   Sur PC (main{height:76vh}), #editor-wrapper est déjà borné et #writer
+   défile en interne (overflow-y:auto ci-dessous) : la barre n'a jamais
+   besoin de bouger, sticky y est inoffensif. Le fond opaque (--item-bg,
    déjà présent) et l'ombre légère évitent que le texte ne défile "à
-   travers" la barre une fois collée en haut.
+   travers" la barre une fois collée en haut. */
 #writer{width:100%;flex-grow:1;outline:none;font-family:'Palatino Linotype',Georgia,serif;
   font-size:1.1rem;line-height:1.85;overflow-y:auto;padding:8px 12px;color:var(--text);
   border-radius:var(--radius-sm);}
@@ -712,6 +712,9 @@ body.library-mode #library-screen{display:block;}
   #chapter-quick-library-btn{display:inline-flex;align-items:center;justify-content:center;
     min-width:44px;min-height:44px;font-size:1.2rem;background:none;border:1px solid var(--border);
     border-radius:var(--radius-sm);color:inherit;cursor:pointer;flex-shrink:0;}
+  /* v9.5.0 — Bouton bibliothèque dans la toolbar (mobile uniquement) : voir
+     le commentaire au-dessus de #toolbar-library-btn dans index.html. */
+  #toolbar-library-btn,#toolbar-library-sep{display:inline-flex;}
   #chapter-sidebar-body{display:none;margin-top:8px;}
   #chapter-sidebar-body.open{display:flex;max-height:60vh;overflow-y:auto;}
   /* Filet de sécurité (bug rapporté, capture d'écran à l'appui) : le panneau
