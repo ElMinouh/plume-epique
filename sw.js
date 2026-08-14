@@ -1,7 +1,7 @@
 'use strict';
 // Changez ce numéro de version à chaque mise à jour majeure des fichiers
 // pour forcer les navigateurs à récupérer la nouvelle version.
-const CACHE = 'plume-epique-v9.5.3';
+const CACHE = 'plume-epique-v9.5.4';
 
 const CORE_ASSETS = [
   './',

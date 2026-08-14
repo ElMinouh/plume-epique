@@ -822,6 +822,14 @@
     </div>
   </aside>
   <div id="editor-wrapper">
+    <!-- v9.5.4 — Sentinelle invisible (hauteur nulle) placée exactement à
+         l'emplacement naturel de la barre. Un IntersectionObserver
+         (initToolbarPin(), router.js) surveille sa sortie/entrée d'écran
+         pour épingler/désépingler .toolbar en JavaScript — voir le
+         commentaire détaillé dans router.js pour la raison de cette
+         approche (position:sticky s'est révélé peu fiable dans cette mise
+         en page). -->
+    <div id="toolbar-sentinel" aria-hidden="true"></div>
     <div class="toolbar" role="toolbar">
       <!-- v9.5.0 — Accès rapide à la bibliothèque directement depuis la
            barre d'outils, sur mobile uniquement (u-d-none + affiché par la

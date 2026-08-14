@@ -151,16 +151,12 @@ main{flex-grow:1;width:98%;max-width:1500px;margin:0 auto 6px;
   position:relative;box-shadow:var(--shadow);overflow:hidden;}
 .toolbar{display:flex;gap:5px;background:var(--item-bg);padding:7px 10px;
   border-radius:10px;margin-bottom:10px;align-items:center;flex-wrap:wrap;
-  position:sticky;top:0;z-index:30;box-shadow:0 2px 6px rgba(0,0,0,.08);}
-/* v9.5.0 — Demande explicite : garder cette barre visible pendant qu'on
-   écrit un chapitre long, sans avoir à remonter tout en haut. Sur mobile
-   (main{height:auto}, voir media query 768px), #editor-wrapper grandit avec
-   le texte et c'est la PAGE qui défile : sticky se cale sur ce défilement.
-   Sur PC (main{height:76vh}), #editor-wrapper est déjà borné et #writer
-   défile en interne (overflow-y:auto ci-dessous) : la barre n'a jamais
-   besoin de bouger, sticky y est inoffensif. Le fond opaque (--item-bg,
-   déjà présent) et l'ombre légère évitent que le texte ne défile "à
-   travers" la barre une fois collée en haut. */
+  box-shadow:0 2px 6px rgba(0,0,0,.08);}
+/* v9.5.4 — Sur PC (main{height:76vh}), #editor-wrapper est déjà borné et
+   #writer défile en interne (overflow-y:auto ci-dessous) : la barre n'a
+   jamais besoin de bouger, aucune règle spéciale requise ici. Sur mobile,
+   voir .toolbar-fixed (classe ajoutée/retirée en JavaScript par
+   initToolbarPin(), router.js) dans la media query 768px plus bas. */
 #writer{width:100%;flex-grow:1;outline:none;font-family:'Palatino Linotype',Georgia,serif;
   font-size:1.1rem;line-height:1.85;overflow-y:auto;padding:8px 12px;color:var(--text);
   border-radius:var(--radius-sm);}
@@ -686,22 +682,23 @@ body.library-mode #library-screen{display:block;}
 .subtab-content.active{display:flex;}
 @media(max-width:768px){
   main{grid-template-columns:1fr;height:auto;align-content:start;}
-  /* v9.5.3 — position:sticky retiré : sur ce site, body a overflow-x:hidden
-     sans overflow-y explicite, ce qui force silencieusement overflow-y:auto
-     sur body (règle de calcul CSS standard : si un seul des deux axes est
-     'visible', il devient 'auto') — body devient alors l'ancêtre défilant
-     réel, différent de ce à quoi #editor-wrapper (overflow:hidden, voir
-     tentative précédente) laissait penser. Deux causes possibles, un seul
-     comportement observé : sticky ne s'accrochait toujours pas à l'écran,
-     malgré la correction précédente. Plutôt que traquer une 3e cause
-     potentielle, on change de technique : position:fixed, sans aucune
-     ambiguïté d'ancêtre possible — exactement la méthode déjà utilisée et
-     qui fonctionne pour le bandeau du bas (#mode-bar, voir plus bas dans ce
-     même bloc). #editor-wrapper compense avec un padding-top, comme il le
-     fait déjà avec padding-bottom pour #mode-bar. */
-  .toolbar{position:fixed;top:0;left:1%;right:1%;z-index:200;
+  /* v9.5.4 — position:fixed inconditionnel retiré (il couvrait en permanence
+     le bandeau Univers/IA & Mémoire/... — bug rapporté). Ce que demande
+     précisément l'utilisateur ("normale en haut de l'écran, se fixe UNE FOIS
+     qu'on défile en dessous, se défixe en remontant") est le comportement
+     natif de position:sticky — sauf que sticky s'est révélé peu fiable dans
+     cette mise en page (grid + flex imbriqués, cause exacte non isolée avec
+     certitude sans navigateur réel). Solution robuste : ce comportement est
+     désormais recréé en JavaScript (initToolbarPin(), router.js), qui
+     ajoute/retire ces deux classes selon la position réelle à l'écran d'une
+     sentinelle invisible (#toolbar-sentinel, juste avant la barre) — fiable
+     quelle que soit la structure d'ancêtres, puisque basé sur la position
+     réelle à l'écran et non sur une règle CSS ambiguë. */
+  #toolbar-sentinel{height:0;}
+  .toolbar.toolbar-fixed{position:fixed;top:0;left:1%;right:1%;z-index:200;
     margin-bottom:0;border-radius:0 0 10px 10px;box-shadow:0 2px 10px rgba(0,0,0,.25);}
-  #editor-wrapper{overflow:visible;padding-top:64px;}
+  #editor-wrapper.toolbar-fixed-active{padding-top:64px;}
+  #editor-wrapper{overflow:visible;}
   /* v7.41.1 — Chantier Responsive Mobile, écran 3/N (page d'écriture).
      Remplace l'ancien `#chapter-sidebar{max-height:200px}` : le contenu fixe
      (titre, boutons, bascule Liste/Fiches, stats) dépassait déjà à lui seul

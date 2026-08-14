@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.5.3';
+const APP_VERSION = '9.5.4';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1354,6 +1354,7 @@ function wireAppEventListenersOnce(){
   // Menus déroulants de la toolbar + sous-navigation des onglets groupés (v7.4.0)
   relocateLexToolsForMobile();
   initToolbarDropdowns();
+  initToolbarPin();
   initSubtabNavs();
 }
 
@@ -1391,6 +1392,33 @@ function insertDateTimeAtCursor() {
   insertWordAtCursor(formatted);
 }
 
+// v9.5.4 — Épinglage de la barre d'outils au défilement (mobile uniquement,
+// voir .toolbar-fixed dans style.css). Demande précise : la barre reste à
+// sa place normale tant qu'on est en haut de l'écran ; dès qu'on défile
+// assez pour qu'elle sortirait de l'écran, elle se fixe en haut pour rester
+// accessible ; en remontant jusqu'à son emplacement d'origine, elle
+// redevient normale — exactement le comportement de position:sticky, mais
+// recréé ici en JavaScript car sticky s'est révélé peu fiable dans cette
+// mise en page (grid + flex imbriqués). #toolbar-sentinel (index.html) est
+// un repère invisible placé exactement à l'emplacement naturel de la barre :
+// IntersectionObserver nous dit en temps réel, et sans la moindre ambiguïté
+// d'ancêtre CSS, quand ce repère quitte l'écran par le haut (son
+// boundingClientRect.top devient négatif) — c'est le seul signal fiable
+// utilisé ici. threshold:0 suffit, on n'a besoin de savoir que "visible ou
+// pas", pas d'un pourcentage de visibilité.
+function initToolbarPin(){
+  const sentinel = document.getElementById('toolbar-sentinel');
+  const toolbar = document.querySelector('.toolbar');
+  const wrapper = document.getElementById('editor-wrapper');
+  if (!sentinel || !toolbar || !wrapper || typeof IntersectionObserver === 'undefined') return;
+  new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      const pinned = entry.boundingClientRect.top < 0;
+      toolbar.classList.toggle('toolbar-fixed', pinned);
+      wrapper.classList.toggle('toolbar-fixed-active', pinned);
+    });
+  }, { threshold: 0 }).observe(sentinel);
+}
 function initToolbarDropdowns(){
   document.querySelectorAll('.toolbar-dropdown').forEach(dd=>{
     const trigger=dd.querySelector('.toolbar-dropdown-btn');
