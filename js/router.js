@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.4.1';
+const APP_VERSION = '9.4.2';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -997,11 +997,24 @@ function getPlainText(html) { return (html||'').replace(/<br\s*\/?>/gi,'\n').rep
 
 const save = async () => {
   if (!_currentProfileId || !_dataKey || !_currentDocumentId) return;
-  const payload = { ...db }; delete payload.cloudToken;
-  await persistData(docDataKey(_currentProfileId, _currentDocumentId), await makeEncryptedEnvelope(JSON.stringify(payload)));
-  await touchDocumentMeta();
-  flashSave(); updateDailyStats();
-  _unsavedChanges = false;
+  // v9.4.2 — Incident du 14/08/2026 : une erreur ici (persistData,
+  // makeEncryptedEnvelope, JSON.stringify...) restait invisible et
+  // empêchait silencieusement toute sauvegarde ultérieure sur le manuscrit
+  // concerné — ET bloquait "Ma bibliothèque" (backToLibrary, library.js,
+  // fait "await save()" avant de naviguer : une erreur ici l'arrêtait net).
+  // On affiche désormais l'erreur réelle et on laisse la fonction se
+  // terminer normalement, pour ne plus jamais bloquer l'interface — même si
+  // la sauvegarde, elle, a échoué.
+  try {
+    const payload = { ...db }; delete payload.cloudToken;
+    await persistData(docDataKey(_currentProfileId, _currentDocumentId), await makeEncryptedEnvelope(JSON.stringify(payload)));
+    await touchDocumentMeta();
+    flashSave(); updateDailyStats();
+    _unsavedChanges = false;
+  } catch(e) {
+    console.error('Échec de sauvegarde :', e);
+    if (typeof toast === 'function') toast('⚠️ Échec de la sauvegarde : ' + (e && e.message ? e.message : e) + '. Vos derniers mots ne sont peut-être pas enregistrés — copiez votre texte par précaution.', 'error');
+  }
 };
 // v7.5.0 : debouncedSave marque _unsavedChanges=true immédiatement (avant les
 // 600ms d'attente), pour que la confirmation de fermeture d'onglet sache
