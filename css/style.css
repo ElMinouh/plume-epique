@@ -150,13 +150,47 @@ main{flex-grow:1;width:98%;max-width:1500px;margin:0 auto 6px;
   display:flex;flex-direction:column;border:1px solid var(--border);
   position:relative;box-shadow:var(--shadow);overflow:hidden;}
 .toolbar{display:flex;gap:5px;background:var(--item-bg);padding:7px 10px;
-  border-radius:10px;margin-bottom:10px;align-items:center;flex-wrap:wrap;}
+  border-radius:10px;margin-bottom:10px;align-items:center;flex-wrap:wrap;
+  position:sticky;top:0;z-index:30;box-shadow:0 2px 6px rgba(0,0,0,.08);}
+/* v9.5.0 — Demande explicite : garder cette barre visible pendant qu'on
+   écrit un chapitre long, sans avoir à remonter tout en haut. #editor-wrapper
+   n'a pas de hauteur fixe (il grandit avec le texte, c'est la PAGE qui
+   défile — voir #writer overflow-y:auto qui, faute de hauteur contrainte,
+   ne s'active jamais en pratique) : position:sticky se cale donc bien sur
+   le défilement réel de la page, identique sur PC et sur mobile (Android
+   inclus), sans media query supplémentaire. Le fond opaque (--item-bg,
+   déjà présent) et l'ombre légère évitent que le texte ne défile "à
+   travers" la barre une fois collée en haut.
 #writer{width:100%;flex-grow:1;outline:none;font-family:'Palatino Linotype',Georgia,serif;
   font-size:1.1rem;line-height:1.85;overflow-y:auto;padding:8px 12px;color:var(--text);
   border-radius:var(--radius-sm);}
 #writer:focus{background:rgba(0,0,0,.02);}
 body.dark-mode #writer:focus{background:rgba(255,255,255,.02);}
 mark{background-color:rgba(192,57,43,.22);color:var(--text);border-radius:3px;}
+/* v9.5.0 — Surlignage manuel (8 couleurs), voir le bouton 🖍️ Surligner de la
+   toolbar. Classes distinctes de <mark> (mots faibles) ci-dessus : les deux
+   fonctions ne s'interfèrent jamais, "Nettoyer les surlignages" ne retire
+   que les <mark>. Semi-transparent (.32) pour rester lisible sur fond
+   sombre comme sur fond clair/papier, sans avoir à dédoubler les couleurs
+   par thème. IMPORTANT : ce sont des classes CSS, jamais des styles en
+   ligne — la Content-Security-Policy de cette app (style-src 'self', voir
+   _headers) bloque silencieusement tout style="..." ou element.style.xxx=...,
+   qu'il vienne du HTML sauvegardé ou de JavaScript. */
+.hl-rouge{background:rgba(192,57,43,.32);border-radius:2px;}
+.hl-orange{background:rgba(211,84,0,.32);border-radius:2px;}
+.hl-jaune{background:rgba(243,156,18,.32);border-radius:2px;}
+.hl-vert{background:rgba(39,174,96,.32);border-radius:2px;}
+.hl-sarcelle{background:rgba(22,160,133,.32);border-radius:2px;}
+.hl-bleu{background:rgba(41,128,185,.32);border-radius:2px;}
+.hl-violet{background:rgba(142,68,173,.32);border-radius:2px;}
+.hl-rose{background:rgba(194,24,91,.32);border-radius:2px;}
+/* Menu du bouton Surligner : grille de pastilles plutôt que la liste
+   verticale par défaut de .toolbar-menu (les autres menus de la toolbar
+   restent inchangés, cette règle ne cible que celui-ci via .hl-menu). */
+.toolbar-menu.open.hl-menu{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;min-width:0;width:120px;padding:8px;}
+.hl-swatch{width:28px;height:28px;padding:0;border-radius:6px;border:1px solid var(--border);cursor:pointer;}
+.hl-swatch:hover{filter:brightness(1.15);transform:scale(1.06);}
+.hl-swatch-none{background:var(--item-bg);color:var(--text-muted);font-size:var(--fs-sm);line-height:26px;}
 #writer h3,#focus-writer h3{color:var(--accent);font-size:1.2rem;margin:.6em 0 .3em;}
 .action-btn{background:var(--accent);color:#fff;border:none;padding:7px 12px;
   border-radius:var(--radius-sm);cursor:pointer;font-size:var(--fs-sm);font-weight:700;

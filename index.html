@@ -827,6 +827,27 @@
       <button class="action-btn btn-sm u-bg-h34495e" id="fmt-bold-btn" title="Gras (Ctrl+B)"><b>G</b></button>
       <button class="action-btn btn-sm u-bg-h34495e" id="fmt-italic-btn" title="Italique (Ctrl+I)"><i>I</i></button>
       <button class="action-btn btn-sm u-bg-h34495e" id="fmt-underline-btn" title="Souligné (Ctrl+U)"><u>S</u></button>
+      <!-- v9.5.0 — Surlignage manuel du texte (8 couleurs), à ne pas confondre
+           avec le surlignage automatique des mots faibles (🔍 Analyser le
+           style, dans le menu 🛠️ Outils) : classes CSS distinctes (hl-* vs
+           <mark>), "Nettoyer les surlignages" ne touche donc jamais à celui-ci.
+           Réutilise le système .toolbar-dropdown/.toolbar-menu existant : sur
+           mobile, ce menu profite automatiquement de la feuille fixée en bas
+           d'écran déjà en place pour tous les autres menus de cette barre. -->
+      <div class="toolbar-dropdown">
+        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h34495e" title="Surligner le texte sélectionné">🖍️<span class="tb-label"> Surligner</span> ▾</button>
+        <div class="toolbar-menu hl-menu" role="menu">
+          <button class="hl-swatch hl-swatch-none" data-hl="none" title="Retirer le surlignage" aria-label="Retirer le surlignage">✕</button>
+          <button class="hl-swatch u-bg-hc0392b" data-hl="rouge" title="Rouge" aria-label="Surligner en rouge"></button>
+          <button class="hl-swatch u-bg-hd35400" data-hl="orange" title="Orange" aria-label="Surligner en orange"></button>
+          <button class="hl-swatch u-bg-hf39c12" data-hl="jaune" title="Jaune" aria-label="Surligner en jaune"></button>
+          <button class="hl-swatch u-bg-h27ae60" data-hl="vert" title="Vert" aria-label="Surligner en vert"></button>
+          <button class="hl-swatch u-bg-h16a085" data-hl="sarcelle" title="Sarcelle" aria-label="Surligner en sarcelle"></button>
+          <button class="hl-swatch u-bg-h2980b9" data-hl="bleu" title="Bleu" aria-label="Surligner en bleu"></button>
+          <button class="hl-swatch u-bg-h8e44ad" data-hl="violet" title="Violet" aria-label="Surligner en violet"></button>
+          <button class="hl-swatch u-bg-hc2185b" data-hl="rose" title="Rose" aria-label="Surligner en rose"></button>
+        </div>
+      </div>
       <button class="action-btn btn-sm u-bg-h34495e" id="undo-btn" title="Annuler (Ctrl+Z)" disabled>↶</button>
       <button class="action-btn btn-sm u-bg-h34495e" id="redo-btn" title="Rétablir (Ctrl+Y)" disabled>↷</button>
       <span class="u-w-1px u-h-20px u-bg-v-border u-m-0-4px"></span>

@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.4.3';
+const APP_VERSION = '9.5.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1126,6 +1126,15 @@ function wireAppEventListenersOnce(){
   document.getElementById('redo-btn').addEventListener('click',redoEdit);
   document.getElementById('fmt-title-btn').addEventListener('click',()=>formatParagraph('h3'));
   document.getElementById('fmt-para-btn').addEventListener('click',()=>formatParagraph('p'));
+  // v9.5.0 — Surlignage manuel (8 couleurs + "Aucun" pour retirer). Les
+  // fonctions highlightSelection()/removeHighlight() sont définies dans
+  // editor.js, juste après formatParagraph().
+  document.querySelectorAll('.hl-swatch').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const color = btn.dataset.hl;
+      if (color === 'none') removeHighlight(); else highlightSelection(color);
+    });
+  });
   document.getElementById('analyze-btn').addEventListener('click',analyzeStyle);
   document.getElementById('clear-btn').addEventListener('click',clearStyle);
   document.getElementById('search-btn').addEventListener('click', handleSearch);

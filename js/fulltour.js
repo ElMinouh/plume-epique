@@ -46,7 +46,7 @@ function isMobileDevice() { return window.innerWidth <= 768; }
 
 const FULL_TOUR_TOOLBAR_STEPS_COMMON = [
   { target:'.toolbar', title:'🛠️ La barre d\'outils',
-    text:"Juste au-dessus de votre texte : les boutons G (gras), I (italique) et S (souligné) mettent en forme la sélection en cours, et les flèches courbes annulent ou rétablissent votre dernière action. Les menus déroulants à droite en couvrent bien plus — on les découvre juste après." },
+    text:"Juste au-dessus de votre texte, et qui vous suit désormais au défilement : les boutons G (gras), I (italique) et S (souligné) mettent en forme la sélection en cours, 🖍️ Surligner colore le passage sélectionné (8 couleurs au choix), et les flèches courbes annulent ou rétablissent votre dernière action. Les menus déroulants à droite en couvrent bien plus — on les découvre juste après." },
   { clickFirst:'.toolbar-dropdown-btn.u-bg-h34495e', target:'.toolbar-dropdown-btn.u-bg-h34495e', title:'¶ Paragraphe',
     text:"Ce menu transforme la ligne où se trouve votre curseur : « Titre » pour un sous-titre de section, « Paragraphe normal » pour revenir à du texte simple." },
   { clickFirst:'.toolbar-dropdown-btn.u-bg-hc0392b', target:'.toolbar-dropdown-btn.u-bg-hc0392b', title:'🛠️ Outils d\'écriture',

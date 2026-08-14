@@ -575,6 +575,66 @@ function formatParagraph(tag) {
 }
 
 // ═══════════════════════════════════════════════════════
+// SURLIGNAGE MANUEL (nouveau v9.5.0) — bouton 🖍️ Surligner, 8 couleurs
+// N'utilise JAMAIS document.execCommand('hiliteColor', ...) : cette
+// commande écrit un style="background-color:..." en ligne dans le HTML du
+// chapitre, or la Content-Security-Policy de cette app (style-src 'self',
+// voir _headers) bloque silencieusement tout style en ligne — la couleur
+// ne s'appliquerait tout simplement jamais. On enveloppe donc soi-même la
+// sélection dans un <span class="hl-xxx"> (classes définies dans style.css),
+// une approche déjà utilisée ailleurs dans ce projet pour la même raison
+// (voir les classes utilitaires u-bg-* de style.css).
+function highlightSelection(colorName) {
+  const writer = document.getElementById('writer');
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed || !writer.contains(sel.anchorNode)) {
+    toast('Sélectionnez d\'abord le texte à surligner.', 'error');
+    return;
+  }
+  checkpointNow();
+  const range = sel.getRangeAt(0);
+  const span = document.createElement('span');
+  span.className = 'hl-' + colorName;
+  try {
+    // Cas simple : la sélection ne traverse qu'un seul niveau d'éléments.
+    range.surroundContents(span);
+  } catch(e) {
+    // La sélection traverse plusieurs paragraphes/éléments : surroundContents()
+    // refuse dans ce cas (contenu partiellement inclus) — on extrait le
+    // contenu sélectionné puis on le réinsère à l'intérieur du span.
+    const frag = range.extractContents();
+    span.appendChild(frag);
+    range.insertNode(span);
+  }
+  sel.removeAllRanges();
+  liveCounter();
+  checkpointNow();
+}
+// Retire le(s) surlignage(s) présents dans la sélection actuelle (bouton ✕
+// du menu). Ne touche jamais aux <mark> de l'analyse de style (mots
+// faibles) : seules les classes hl-* sont concernées.
+function removeHighlight() {
+  const writer = document.getElementById('writer');
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed || !writer.contains(sel.anchorNode)) {
+    toast('Sélectionnez d\'abord un passage surligné.', 'error');
+    return;
+  }
+  checkpointNow();
+  const range = sel.getRangeAt(0);
+  writer.querySelectorAll('span[class*="hl-"]').forEach(span => {
+    if (!range.intersectsNode(span)) return;
+    const parent = span.parentNode;
+    while (span.firstChild) parent.insertBefore(span.firstChild, span);
+    parent.removeChild(span);
+    parent.normalize();
+  });
+  sel.removeAllRanges();
+  liveCounter();
+  checkpointNow();
+}
+
+// ═══════════════════════════════════════════════════════
 // STYLE ANALYSIS (mots faibles surlignés)
 // ═══════════════════════════════════════════════════════
 function analyzeStyle() {
