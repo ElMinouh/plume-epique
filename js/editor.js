@@ -133,7 +133,11 @@ function updateChapterWordGoalProgress() {
 function liveCounter() {
   if (_switching) return;
   db.chapters[cur].content = document.getElementById('writer').innerHTML;
-  saveCursorForResume();
+  // v9.4.1 — saveCursorForResume() ne doit JAMAIS pouvoir empêcher
+  // updateDailyStats()/debouncedSave() de s'exécuter : si elle échouait pour
+  // une raison quelconque sur un manuscrit particulier, plus rien ne serait
+  // enregistré à partir de cette frappe (incident rapporté le 14/08/2026).
+  try { saveCursorForResume(); } catch(e) { console.warn('saveCursorForResume a échoué (sans conséquence sur la sauvegarde) :', e); }
   updateDailyStats(); debouncedSave();
   updateChapterWordGoalProgress();
   scheduleUndoSnapshot();
