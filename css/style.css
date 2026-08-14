@@ -686,6 +686,22 @@ body.library-mode #library-screen{display:block;}
 .subtab-content.active{display:flex;}
 @media(max-width:768px){
   main{grid-template-columns:1fr;height:auto;align-content:start;}
+  /* v9.5.2 — BUG RÉEL, cause du signalement répété "la barre ne reste pas
+     fixe sur mobile" : #editor-wrapper a overflow:hidden (règle de base,
+     ligne ~151, nécessaire sur PC pour rogner les menus déroulants qui
+     dépasseraient). Sur mobile, #editor-wrapper n'a PAS de hauteur bornée
+     (min-height seulement, voir plus bas) : son overflow:hidden en fait
+     malgré tout, au sens strict de la spec CSS, "l'ancêtre défilant le plus
+     proche" pour position:sticky (.toolbar) — sauf que CET ancêtre ne
+     défile jamais lui-même indépendamment (il grandit avec son contenu,
+     c'est la vraie page qui défile). Résultat : sticky s'accroche à un
+     conteneur qui ne bouge jamais par rapport à son contenu, donc ne colle
+     JAMAIS à l'écran — alors qu'il n'y avait pourtant aucune erreur, le
+     sticky "fonctionnait" juste sur la mauvaise référence. Seul overflow
+     change ici ; les menus déroulants restent protégés par leur propre
+     position:fixed (voir .toolbar-dropdown .toolbar-menu plus bas), donc
+     rien ne dépend plus de ce overflow:hidden sur mobile. */
+  #editor-wrapper{overflow:visible;}
   /* v7.41.1 — Chantier Responsive Mobile, écran 3/N (page d'écriture).
      Remplace l'ancien `#chapter-sidebar{max-height:200px}` : le contenu fixe
      (titre, boutons, bascule Liste/Fiches, stats) dépassait déjà à lui seul
