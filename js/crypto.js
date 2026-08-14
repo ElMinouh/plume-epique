@@ -1,5 +1,21 @@
 'use strict';
 // Chiffrement AES-GCM + PBKDF2 (310 000 itérations, recommandation OWASP).
+// v9.4.3 — Incident du 14/08/2026 : String.fromCharCode(...buf) fait planter
+// le moteur JS ("RangeError: Maximum call stack size exceeded") dès que
+// `buf` dépasse environ 65 000 octets (chaque octet devient un argument de
+// fonction séparé — limite du moteur, pas de la mémoire). Un manuscrit assez
+// volumineux (texte chiffré + IV/sel) suffit à dépasser ce seuil : la
+// sauvegarde échouait alors silencieusement, quelle que soit la taille du
+// reste de l'app. bytesToBase64() traite désormais les octets par blocs de
+// 32 768, bien en dessous de la limite, quelle que soit la taille du texte.
+function bytesToBase64(bytes) {
+  let binary = '';
+  const chunkSize = 0x8000; // 32768
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
 const Crypto = {
   async deriveKey(password, salt) {
     const enc = new TextEncoder();
@@ -12,7 +28,7 @@ const Crypto = {
     const ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, new TextEncoder().encode(plaintext));
     const buf = new Uint8Array(16 + 12 + ct.byteLength);
     buf.set(salt); buf.set(iv, 16); buf.set(new Uint8Array(ct), 28);
-    return btoa(String.fromCharCode(...buf));
+    return bytesToBase64(buf);
   },
   async decrypt(b64, password) {
     try {
@@ -32,7 +48,7 @@ const Crypto = {
   // stocker en clair.
   genDataKey() {
     const bytes = crypto.getRandomValues(new Uint8Array(32));
-    return btoa(String.fromCharCode(...bytes));
+    return bytesToBase64(bytes);
   },
 
   // Code de récupération lisible : 6 groupes de 4 caractères, sans les
