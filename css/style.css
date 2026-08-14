@@ -686,22 +686,22 @@ body.library-mode #library-screen{display:block;}
 .subtab-content.active{display:flex;}
 @media(max-width:768px){
   main{grid-template-columns:1fr;height:auto;align-content:start;}
-  /* v9.5.2 — BUG RÉEL, cause du signalement répété "la barre ne reste pas
-     fixe sur mobile" : #editor-wrapper a overflow:hidden (règle de base,
-     ligne ~151, nécessaire sur PC pour rogner les menus déroulants qui
-     dépasseraient). Sur mobile, #editor-wrapper n'a PAS de hauteur bornée
-     (min-height seulement, voir plus bas) : son overflow:hidden en fait
-     malgré tout, au sens strict de la spec CSS, "l'ancêtre défilant le plus
-     proche" pour position:sticky (.toolbar) — sauf que CET ancêtre ne
-     défile jamais lui-même indépendamment (il grandit avec son contenu,
-     c'est la vraie page qui défile). Résultat : sticky s'accroche à un
-     conteneur qui ne bouge jamais par rapport à son contenu, donc ne colle
-     JAMAIS à l'écran — alors qu'il n'y avait pourtant aucune erreur, le
-     sticky "fonctionnait" juste sur la mauvaise référence. Seul overflow
-     change ici ; les menus déroulants restent protégés par leur propre
-     position:fixed (voir .toolbar-dropdown .toolbar-menu plus bas), donc
-     rien ne dépend plus de ce overflow:hidden sur mobile. */
-  #editor-wrapper{overflow:visible;}
+  /* v9.5.3 — position:sticky retiré : sur ce site, body a overflow-x:hidden
+     sans overflow-y explicite, ce qui force silencieusement overflow-y:auto
+     sur body (règle de calcul CSS standard : si un seul des deux axes est
+     'visible', il devient 'auto') — body devient alors l'ancêtre défilant
+     réel, différent de ce à quoi #editor-wrapper (overflow:hidden, voir
+     tentative précédente) laissait penser. Deux causes possibles, un seul
+     comportement observé : sticky ne s'accrochait toujours pas à l'écran,
+     malgré la correction précédente. Plutôt que traquer une 3e cause
+     potentielle, on change de technique : position:fixed, sans aucune
+     ambiguïté d'ancêtre possible — exactement la méthode déjà utilisée et
+     qui fonctionne pour le bandeau du bas (#mode-bar, voir plus bas dans ce
+     même bloc). #editor-wrapper compense avec un padding-top, comme il le
+     fait déjà avec padding-bottom pour #mode-bar. */
+  .toolbar{position:fixed;top:0;left:1%;right:1%;z-index:200;
+    margin-bottom:0;border-radius:0 0 10px 10px;box-shadow:0 2px 10px rgba(0,0,0,.25);}
+  #editor-wrapper{overflow:visible;padding-top:64px;}
   /* v7.41.1 — Chantier Responsive Mobile, écran 3/N (page d'écriture).
      Remplace l'ancien `#chapter-sidebar{max-height:200px}` : le contenu fixe
      (titre, boutons, bascule Liste/Fiches, stats) dépassait déjà à lui seul
