@@ -17,7 +17,7 @@ function takeSnapshot(chIdx, label) {
   if (db.history[key].length > MAX_SNAPSHOTS) db.history[key] = db.history[key].slice(0, MAX_SNAPSHOTS);
 }
 setInterval(() => {
-  if (db.chapters[cur]) { flushCurrentChapter(); takeSnapshot(cur); debouncedSave(); }
+  if (db.chapters && db.chapters[cur]) { flushCurrentChapter(); takeSnapshot(cur); debouncedSave(); }
 }, 5 * 60 * 1000);
 
 // Construit le contenu (hors câblage des clics) d'une ligne de la liste des

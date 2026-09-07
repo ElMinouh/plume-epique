@@ -34,6 +34,17 @@ let _gnPreviewGabarit = null;
 let _gnSnapGrid = true;
 let _gnDrag = null; // { mode:'move'|'resize', elId, startX, startY, origX, origY, origW, origH }
 
+// Annuler/Rétablir (Lot 4, audit #9) : un seul point d'accroche (voir
+// gnCommitUndoSnapshot, appelé depuis saveGraphicNovel ci-dessous) plutôt que
+// d'instrumenter chacun des ~20 sites de mutation du fichier — toute action
+// finit de toute façon par passer par saveGraphicNovel(). Pile en mémoire
+// uniquement (jamais persistée, comme _undoStacks dans editor.js), état
+// complet des pages (JSON.stringify(db.pages)) à chaque étape plutôt qu'un
+// diff — plus simple, et la pile reste petite (pas d'images en base64 dans
+// db.pages, seulement des imageId).
+const GN_UNDO_LIMIT = 100; // même limite que UNDO_LIMIT (editor.js)
+let _gnUndoStack = { stack: [], index: -1 };
+
 // ─────────────────────────────────────────────────────────
 // ÉCRAN — affichage / masquage (même principe que showLibraryScreen, v.
 // library.js : une classe sur <body> qui bascule ce qui est visible)
@@ -43,6 +54,12 @@ function hideGraphicNovelScreen() { document.body.classList.remove('graphicnovel
 
 function openGraphicNovelScreen() {
   ensureGraphicNovelScreen();
+  // Lot 4 (v9.13.0) : sans cet appel, un manuscrit roman graphique ouvert
+  // sans jamais être passé par l'éditeur texte (initApp, router.js) n'a
+  // JAMAIS ses raccourcis clavier globaux câblés (Ctrl+Z/Y compris) — la
+  // fonction est protégée par son propre indicateur _appWired, donc sans
+  // risque à rappeler ici.
+  if (typeof wireAppEventListenersOnce === 'function') wireAppEventListenersOnce();
   showGraphicNovelScreen();
   if (db.darkMode) document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');
   document.body.classList.toggle('paper-mode', !!db.paperMode);
@@ -52,6 +69,9 @@ function openGraphicNovelScreen() {
   // Corbeille (Lot 3) : purge les entrées expirées à chaque ouverture, jamais
   // en cours d'édition — voir gnPurgeOldTrash().
   gnPurgeOldTrash();
+  // Annuler/Rétablir (Lot 4) : pile remise à zéro à chaque ouverture d'un
+  // manuscrit — on ne propose jamais d'annuler au-delà de la session en cours.
+  gnResetUndoStack();
   renderGraphicNovelScreen();
   gnRenderTrashBadge();
 }
@@ -89,6 +109,10 @@ async function saveGraphicNovel(immediate) {
         entry.wordCount = gnCountWords();
         entry.wordGoal = 0;
       });
+      // Annuler/Rétablir (Lot 4) : point d'accroche unique — n'importe quelle
+      // mutation (glisser, propriétés, ajout/suppression, corbeille…) passe
+      // par ici une fois réellement sauvegardée.
+      gnCommitUndoSnapshot();
       if (typeof flashSave === 'function') flashSave();
     } catch(e) {
       console.error('Échec de sauvegarde (roman graphique) :', e);
@@ -100,6 +124,50 @@ async function saveGraphicNovel(immediate) {
   _gnSaveTimer = setTimeout(doSave, 600);
 }
 let _gnSaveTimer = null;
+
+// ─────────────────────────────────────────────────────────
+// ANNULER / RÉTABLIR (Lot 4, audit #9)
+// ─────────────────────────────────────────────────────────
+function gnResetUndoStack() {
+  _gnUndoStack = { stack: [JSON.stringify(db.pages)], index: 0 };
+  gnUpdateUndoRedoButtons();
+}
+function gnCommitUndoSnapshot() {
+  const snap = JSON.stringify(db.pages);
+  if (_gnUndoStack.stack[_gnUndoStack.index] === snap) { gnUpdateUndoRedoButtons(); return; }
+  _gnUndoStack.stack = _gnUndoStack.stack.slice(0, _gnUndoStack.index + 1);
+  _gnUndoStack.stack.push(snap);
+  _gnUndoStack.index = _gnUndoStack.stack.length - 1;
+  if (_gnUndoStack.stack.length > GN_UNDO_LIMIT) { _gnUndoStack.stack.shift(); _gnUndoStack.index--; }
+  gnUpdateUndoRedoButtons();
+}
+function gnUndo() {
+  if (_gnUndoStack.index <= 0) { toast('Rien à annuler.', 'info'); return; }
+  _gnUndoStack.index--;
+  gnApplyUndoState();
+}
+function gnRedo() {
+  if (_gnUndoStack.index >= _gnUndoStack.stack.length - 1) { toast('Rien à rétablir.', 'info'); return; }
+  _gnUndoStack.index++;
+  gnApplyUndoState();
+}
+function gnApplyUndoState() {
+  db.pages = JSON.parse(_gnUndoStack.stack[_gnUndoStack.index]);
+  _gnSelectedElId = null; _gnPreviewGabarit = null;
+  if (_gnActivePage >= db.pages.length) _gnActivePage = db.pages.length - 1;
+  renderGraphicNovelScreen();
+  gnRenderTrashBadge();
+  // saveGraphicNovel() re-déclenche gnCommitUndoSnapshot(), mais l'état
+  // rejoué est déjà identique au sommet de pile visé : la comparaison au
+  // début de gnCommitUndoSnapshot évite toute duplication.
+  saveGraphicNovel();
+  gnUpdateUndoRedoButtons();
+}
+function gnUpdateUndoRedoButtons() {
+  const ub = document.getElementById('gn-undo-btn'), rb = document.getElementById('gn-redo-btn');
+  if (ub) ub.disabled = _gnUndoStack.index <= 0;
+  if (rb) rb.disabled = _gnUndoStack.index >= _gnUndoStack.stack.length - 1;
+}
 
 function updateGraphicNovelTitle(t) {
   db.title = (t || '').trim();
@@ -206,6 +274,8 @@ function ensureGraphicNovelScreen() {
         <button id="gn-page-next" title="Page suivante" aria-label="Page suivante">›</button>
       </div>
       <div class="gn-tb-tools">
+        <button class="gn-icon-btn" id="gn-undo-btn" title="Annuler (Ctrl+Z)" disabled>↶</button>
+        <button class="gn-icon-btn" id="gn-redo-btn" title="Rétablir (Ctrl+Y)" disabled>↷</button>
         <button class="gn-icon-btn" id="gn-add-image-btn" title="Ajouter une image libre sur la page">🖼️+</button>
         <button class="gn-icon-btn" id="gn-add-text-btn" title="Ajouter un bloc de texte libre sur la page">🔤+</button>
         <button class="gn-icon-btn gn-active" id="gn-grid-toggle" title="Grille magnétique (alignement précis)">▦</button>
@@ -251,6 +321,8 @@ function gnWireEvents() {
   document.getElementById('gn-page-prev').addEventListener('click', () => gnSetActivePage((_gnActivePage - 1 + db.pages.length) % db.pages.length));
   document.getElementById('gn-page-next').addEventListener('click', () => gnSetActivePage((_gnActivePage + 1) % db.pages.length));
   document.getElementById('gn-page-add').addEventListener('click', gnAddPage);
+  document.getElementById('gn-undo-btn').addEventListener('click', gnUndo);
+  document.getElementById('gn-redo-btn').addEventListener('click', gnRedo);
   document.getElementById('gn-grid-toggle').addEventListener('click', e => {
     _gnSnapGrid = !_gnSnapGrid;
     e.currentTarget.classList.toggle('gn-active', _gnSnapGrid);
@@ -316,7 +388,8 @@ function gnRenderPageProps() {
   const box = document.getElementById('gn-pageprops');
   if (!box) return;
   const page = db.pages[_gnActivePage];
-  box.innerHTML = `<label class="gn-color-lbl">Fond <input type="color" id="gn-page-bg-picker" value="${page.background || '#f4ecd8'}"></label>`;
+  box.innerHTML = `<label class="gn-color-lbl">Fond <input type="color" id="gn-page-bg-picker" value="${page.background || '#f4ecd8'}"></label>
+    <button class="action-btn btn-sm gn-mt-sm" id="gn-page-history-btn" title="Versions précédentes de cette page (instantané automatique toutes les 5 minutes)">🕓 Historique de la page</button>`;
   document.getElementById('gn-page-bg-picker').addEventListener('input', e => {
     page.background = e.target.value;
     const canvas = document.getElementById('gn-canvas');
@@ -324,6 +397,7 @@ function gnRenderPageProps() {
     saveGraphicNovel();
     gnRenderPagesSidebar(); // reflète la couleur sur la vignette de la page dans la liste
   });
+  document.getElementById('gn-page-history-btn').addEventListener('click', gnOpenPageHistoryModal);
 }
 
 function gnMiniIconHtml(elements) {
@@ -1334,4 +1408,100 @@ function gnPurgeTrashEntry(i) {
   saveGraphicNovel();
   gnRenderTrashList();
   gnRenderTrashBadge();
+}
+
+// ─────────────────────────────────────────────────────────
+// HISTORIQUE DE PAGE (Lot 4, audit #13)
+// Réutilise db.history (déjà présent dans le schéma, jamais utilisé pour un
+// roman graphique jusqu'ici), même principe que snapshots.js mais indexé par
+// page.id au lieu de chapitre — un instantané automatique toutes les 5
+// minutes de la page active, sans vue de comparaison (une mise en page
+// visuelle ne se compare pas comme du texte) : juste une liste, restauration
+// directe avec confirmation.
+// ─────────────────────────────────────────────────────────
+const GN_MAX_SNAPSHOTS = 30; // même limite que MAX_SNAPSHOTS (snapshots.js)
+
+function gnTakeSnapshot(pageIdx, label) {
+  const page = db.pages[pageIdx];
+  if (!page || !page.id) return;
+  if (!db.history) db.history = {};
+  if (!db.history[page.id]) db.history[page.id] = [];
+  const content = JSON.stringify({ elements: page.elements, background: page.background });
+  const last = db.history[page.id][0];
+  if (last && last.content === content) return; // rien changé depuis le dernier instantané
+  db.history[page.id].unshift({ ts: Date.now(), label: label || new Date().toLocaleString('fr'), content });
+  if (db.history[page.id].length > GN_MAX_SNAPSHOTS) db.history[page.id] = db.history[page.id].slice(0, GN_MAX_SNAPSHOTS);
+}
+
+// Gardé par docType ET par la classe sur <body> : ce minuteur tourne en
+// permanence (défini au chargement du script), mais ne doit agir que quand
+// un roman graphique est réellement ouvert à l'écran — sinon _gnActivePage
+// pointerait sur les pages d'un manuscrit qui n'est plus le document actif.
+setInterval(() => {
+  if (db.docType === 'roman_graphique' && document.body.classList.contains('graphicnovel-mode') && db.pages && db.pages[_gnActivePage]) {
+    gnTakeSnapshot(_gnActivePage);
+    saveGraphicNovel();
+  }
+}, 5 * 60 * 1000);
+
+function gnOpenPageHistoryModal() {
+  gnClosePageHistoryModal();
+  const overlay = document.createElement('div');
+  overlay.id = 'gn-history-overlay';
+  overlay.className = 'gn-modal-overlay';
+  overlay.innerHTML = `
+    <div class="gn-modal" role="dialog" aria-modal="true" aria-label="Historique de la page">
+      <h3>Historique de la page ${_gnActivePage + 1}</h3>
+      <p class="gn-modal-sub">Instantané automatique toutes les 5 minutes. Pas de comparaison visuelle : la restauration remplace directement le contenu de la page.</p>
+      <div class="gn-trash-list" id="gn-history-list"></div>
+      <div class="gn-modal-actions">
+        <button class="action-btn u-bg-h7f8c8d" id="gn-history-close-btn" type="button">Fermer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) gnClosePageHistoryModal(); });
+  document.getElementById('gn-history-close-btn').addEventListener('click', gnClosePageHistoryModal);
+  gnRenderPageHistoryList();
+}
+function gnClosePageHistoryModal() {
+  const el = document.getElementById('gn-history-overlay');
+  if (el) el.remove();
+}
+function gnRenderPageHistoryList() {
+  const list = document.getElementById('gn-history-list');
+  if (!list) return;
+  const page = db.pages[_gnActivePage];
+  const snaps = (page && page.id && db.history && db.history[page.id]) || [];
+  if (!snaps.length) {
+    list.innerHTML = '<div class="u-op-_5 u-p-16px u-ta-center u-fs-_82rem">Aucun historique pour cette page.</div>';
+    return;
+  }
+  list.innerHTML = snaps.map((snap, i) => `
+    <div class="history-item u-cur-default">
+      <span>${DOMPurify.sanitize(snap.label)}</span>
+      <span class="u-d-flex u-gap-4px u-fsh-0">
+        <button class="action-btn btn-sm" data-restore-hist="${i}">↩ Restaurer</button>
+      </span>
+    </div>`).join('');
+  list.querySelectorAll('[data-restore-hist]').forEach(btn => btn.addEventListener('click', () => gnRestorePageSnapshot(parseInt(btn.dataset.restoreHist))));
+}
+function gnRestorePageSnapshot(i) {
+  const page = db.pages[_gnActivePage];
+  const snaps = (page && page.id && db.history && db.history[page.id]) || [];
+  const snap = snaps[i];
+  if (!snap) return;
+  if (!confirm('Restaurer cette version de la page ? Le contenu actuel de la page sera remplacé.')) return;
+  // Même principe que restoreSnapshot() dans snapshots.js : un point
+  // d'annulation avant ET après la restauration (celui d'après vient de
+  // saveGraphicNovel(true) plus bas), pour pouvoir faire Ctrl+Z si la
+  // restauration ne convient pas finalement.
+  gnCommitUndoSnapshot();
+  const data = JSON.parse(snap.content);
+  page.elements = data.elements;
+  page.background = data.background;
+  _gnSelectedElId = null;
+  saveGraphicNovel(true);
+  renderGraphicNovelScreen();
+  gnClosePageHistoryModal();
+  toast('Page restaurée depuis l\'historique.', 'success');
 }

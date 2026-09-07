@@ -95,7 +95,10 @@ function isTypingTarget(el) {
 // ═══════════════════════════════════════════════════════
 function flushCurrentChapter() {
   const w = document.getElementById('writer'), t = document.getElementById('chapter-title'), st = document.getElementById('chapter-status-sel');
-  if (!w || !db.chapters[cur]) return;
+  // Garde db.chapters (v9.13.0) : undefined pour un roman graphique
+  // (db.chapters[cur] plantait alors) — flushCurrentChapter est appelée
+  // sans condition par le raccourci global Ctrl+S.
+  if (!w || !db.chapters || !db.chapters[cur]) return;
   db.chapters[cur].content = w.innerHTML;
   if (t) db.chapters[cur].title = t.innerText.trim() || db.chapters[cur].title;
   if (st) db.chapters[cur].status = st.value;

@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.12.0';
+const APP_VERSION = '9.13.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1267,15 +1267,31 @@ function wireAppEventListenersOnce(){
 
   document.addEventListener('keydown',e=>{
     if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openGlobalSearch();}
-    if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();flushCurrentChapter();save();flushPendingSyncPushes();}
+    // Bug corrigé (v9.13.0, testé en conditions réelles) : save()/touchDocumentMeta()
+    // lisent db.chapters.length sans garde — plantage garanti sur Ctrl+S dans
+    // l'écran roman graphique (db.chapters n'existe pas pour ce docType).
+    // saveGraphicNovel(true) est le chemin de sauvegarde dédié à ce docType.
+    if((e.ctrlKey||e.metaKey)&&e.key==='s'){
+      e.preventDefault();
+      if(db.docType==='roman_graphique'){ saveGraphicNovel(true); }
+      else { flushCurrentChapter(); save(); }
+      flushPendingSyncPushes();
+    }
     // v7.6.0 : Annuler/Rétablir — exclu des autres champs de saisie (voir
     // isTypingTarget dans editor.js) pour ne pas gêner le undo natif ailleurs
     // (ex. mode Focus, titres) ni un vrai Ctrl+Z dans un champ de recherche.
+    // Lot 4 (v9.13.0) : ce raccourci global appelait toujours undoEdit/redoEdit
+    // (spécifiques aux chapitres, db.chapters[cur]) — plantage garanti à
+    // Ctrl+Z/Ctrl+Y sur l'écran roman graphique (db.chapters n'existe pas
+    // pour ce docType). Bascule maintenant vers gnUndo/gnRedo dans ce cas.
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!isTypingTarget(e.target)&&!document.getElementById('focus-overlay').classList.contains('active')){
-      e.preventDefault(); if(e.shiftKey) redoEdit(); else undoEdit();
+      e.preventDefault();
+      if(db.docType==='roman_graphique'){ if(e.shiftKey) gnRedo(); else gnUndo(); }
+      else { if(e.shiftKey) redoEdit(); else undoEdit(); }
     }
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'&&!isTypingTarget(e.target)&&!document.getElementById('focus-overlay').classList.contains('active')){
-      e.preventDefault(); redoEdit();
+      e.preventDefault();
+      if(db.docType==='roman_graphique') gnRedo(); else redoEdit();
     }
     // v7.5.0 : "?" ouvre l'aide-mémoire, sauf si l'utilisateur est en train de
     // taper (sinon impossible d'écrire un vrai "?" dans le texte du roman).
