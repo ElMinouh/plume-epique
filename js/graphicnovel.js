@@ -223,6 +223,10 @@ function ensureGraphicNovelScreen() {
           <div class="gn-side-label">Image sélectionnée</div>
           <div class="gn-imgprops" id="gn-imgprops"></div>
         </div>
+        <div id="gn-txtprops-block" hidden>
+          <div class="gn-side-label">Texte sélectionné</div>
+          <div class="gn-txtprops" id="gn-txtprops"></div>
+        </div>
         <div class="gn-side-label gn-mt">Gabarits</div>
         <div class="gn-gabarits" id="gn-gabarits"></div>
         <div class="gn-side-label gn-mt">Calques — page active</div>
@@ -373,11 +377,20 @@ async function gnRenderCanvas() {
       } else {
         zone.contentEditable = 'true';
         zone.spellcheck = false;
-        zone.style.textAlign = el.align || 'left';
-        if (el.fontSize) zone.style.fontSize = el.fontSize + 'px';
         zone.textContent = el.content || '';
         zone.dataset.placeholder = 'Texte…';
-        zone.addEventListener('input', () => { el.content = zone.textContent; saveGraphicNovel(); });
+        gnApplyTextStyle(zone, el);
+        // Bug corrigé (tests réels) : la poignée ✥ et la mini-barre 🗑 sont
+        // des ENFANTS de cette même zone contenteditable (contentEditable
+        //="false" empêche seulement leur édition, pas leur présence dans
+        // zone.textContent) — sans ce filtre, taper dans le texte incorpore
+        // silencieusement leurs glyphes au contenu sauvegardé.
+        zone.addEventListener('input', () => {
+          const clone = zone.cloneNode(true);
+          clone.querySelectorAll('.gn-mini-toolbar, .gn-move-handle, .gn-handle').forEach(n => n.remove());
+          el.content = clone.textContent;
+          saveGraphicNovel();
+        });
         zone.addEventListener('pointerdown', e => e.stopPropagation());
       }
     }
@@ -398,6 +411,19 @@ async function gnRenderCanvas() {
           gnMakeResizable(h, zone, el, pos);
           zone.appendChild(h);
         });
+        // Le texte, lui, est directement éditable (contenteditable) : un
+        // clic-glisse dans la zone place le curseur, il ne peut donc pas
+        // aussi servir à déplacer le bloc. Poignée dédiée ✥ au-dessus,
+        // exclue de l'édition (contenteditable="false").
+        if (el.type === 'text' && gnIsDesktop()) {
+          const mh = document.createElement('div');
+          mh.className = 'gn-move-handle';
+          mh.contentEditable = 'false';
+          mh.title = 'Déplacer ce bloc de texte';
+          mh.textContent = '✥';
+          gnMakeMovableViaHandle(mh, zone, el);
+          zone.appendChild(mh);
+        }
         const mt = document.createElement('div'); mt.className = 'gn-mini-toolbar';
         mt.innerHTML = (el.type==='image' && el.imageId ? `<button data-act="recadrer" title="Recadrer (déplacer l'image dans le cadre)" class="${_gnPanMode ? 'gn-active' : ''}">✥</button>` : '') +
           (el.type==='image' ? '<button data-act="change" title="Changer l\'image">🔁</button>' : '') +
@@ -427,6 +453,7 @@ async function gnRenderCanvas() {
   }
   canvas.onclick = gnDeselectOnBackdrop;
   gnRenderImageProps();
+  gnRenderTextProps();
 }
 function gnDeselectOnBackdrop(e) {
   if (e.target.id === 'gn-canvas' || e.target.classList.contains('gn-zone-wrap')) gnSelectElement(null);
@@ -506,6 +533,108 @@ function gnRenderImageProps() {
       gnRenderCanvas();
     });
   });
+}
+
+// ─────────────────────────────────────────────────────────
+// PANNEAU "TEXTE SÉLECTIONNÉ" — mise en forme professionnelle
+// ─────────────────────────────────────────────────────────
+// Clés stables (voir schema.js/makeTextElement) → police CSS réelle.
+const GN_TEXT_FONTS = {
+  palatino:   { label:'Classique (Palatino)',  css:"'Palatino Linotype',Georgia,serif" },
+  georgia:    { label:'Roman (Georgia)',        css:"Georgia,'Palatino Linotype',serif" },
+  sansserif:  { label:'Moderne (sans-serif)',   css:"-apple-system,'Segoe UI',Roboto,sans-serif" },
+  manuscrite: { label:'Manuscrite / dialogue',  css:"'Comic Sans MS','Comic Neue',cursive" },
+  machine:    { label:'Machine à écrire',       css:"'Courier New',monospace" }
+};
+const GN_TEXT_EFFECTS = [
+  { key:'none',    label:'Aucun' },
+  { key:'shadow',  label:'Ombre' },
+  { key:'outline', label:'Liseré' }
+];
+// Applique tous les réglages de mise en forme d'un bloc de texte à sa zone
+// DOM — appelé au rendu et après chaque changement dans le panneau, sans
+// reconstruire le contenu (pour ne pas perdre le curseur pendant la frappe).
+function gnApplyTextStyle(zone, el) {
+  zone.style.fontFamily = (GN_TEXT_FONTS[el.fontFamily] || GN_TEXT_FONTS.palatino).css;
+  zone.style.fontSize = (el.fontSize || 16) + 'px';
+  zone.style.textAlign = el.align || 'left';
+  zone.style.fontWeight = el.bold ? '700' : '400';
+  zone.style.fontStyle = el.italic ? 'italic' : 'normal';
+  zone.style.lineHeight = String(el.lineHeight || 1.5);
+  zone.style.letterSpacing = (el.letterSpacing || 0) + 'px';
+  zone.style.color = el.color || '';
+  const op = (el.bgOpacity || 0) / 100;
+  if (el.background && op > 0) {
+    const r = parseInt(el.background.slice(1,3),16), g = parseInt(el.background.slice(3,5),16), b = parseInt(el.background.slice(5,7),16);
+    zone.style.background = `rgba(${r},${g},${b},${op})`;
+  } else {
+    zone.style.background = '';
+  }
+  zone.style.textShadow = el.textEffect === 'shadow' ? '0 1px 3px rgba(0,0,0,.55)' : (el.textEffect === 'outline' ? '0 1px 2px rgba(0,0,0,.4)' : '');
+  zone.style.webkitTextStroke = el.textEffect === 'outline' ? '.4px rgba(255,255,255,.7)' : '';
+}
+function gnCurrentSelectedTextEl() {
+  if (!_gnSelectedElId) return null;
+  const el = (db.pages[_gnActivePage].elements || []).find(e => e.id === _gnSelectedElId);
+  return (el && el.type === 'text') ? el : null;
+}
+function gnRenderTextProps() {
+  const block = document.getElementById('gn-txtprops-block');
+  const box = document.getElementById('gn-txtprops');
+  const el = gnCurrentSelectedTextEl();
+  if (!el) { block.hidden = true; box.innerHTML = ''; return; }
+  block.hidden = false;
+  box.innerHTML = `
+    <select id="gn-font-sel">
+      ${Object.entries(GN_TEXT_FONTS).map(([k,f]) => `<option value="${k}"${el.fontFamily===k?' selected':''}>${f.label}</option>`).join('')}
+    </select>
+    <div class="gn-toggle-row gn-mt-sm">
+      <button class="gn-toggle-btn${el.bold?' gn-active':''}" id="gn-bold-btn" title="Gras"><b>G</b></button>
+      <button class="gn-toggle-btn${el.italic?' gn-active':''}" id="gn-italic-btn" title="Italique"><i>I</i></button>
+      <button class="gn-toggle-btn${el.align==='left'?' gn-active':''}" data-align="left" title="Aligné à gauche">⟸</button>
+      <button class="gn-toggle-btn${el.align==='center'?' gn-active':''}" data-align="center" title="Centré">⟺</button>
+      <button class="gn-toggle-btn${el.align==='right'?' gn-active':''}" data-align="right" title="Aligné à droite">⟹</button>
+    </div>
+    <div class="gn-prop-label gn-mt-sm"><span>Taille</span><span class="gn-prop-val" id="gn-fs-val">${el.fontSize}px</span></div>
+    <input type="range" id="gn-fs-slider" min="10" max="42" value="${el.fontSize}">
+    <div class="gn-prop-label gn-mt-sm"><span>Interligne</span><span class="gn-prop-val" id="gn-lh-val">${el.lineHeight}</span></div>
+    <input type="range" id="gn-lh-slider" min="1" max="2.4" step="0.1" value="${el.lineHeight}">
+    <div class="gn-prop-label gn-mt-sm"><span>Espacement lettres</span><span class="gn-prop-val" id="gn-ls-val">${el.letterSpacing}px</span></div>
+    <input type="range" id="gn-ls-slider" min="-1" max="6" step="0.5" value="${el.letterSpacing}">
+    <div class="gn-side-label gn-mt-sm">Couleur & fond</div>
+    <div class="gn-color-row">
+      <label class="gn-color-lbl">Texte <input type="color" id="gn-color-picker" value="${el.color || '#3b2f1e'}"></label>
+      <label class="gn-color-lbl">Fond <input type="color" id="gn-bg-picker" value="${el.background || '#f4ecd8'}"></label>
+    </div>
+    <div class="gn-prop-label gn-mt-sm"><span>Opacité du fond</span><span class="gn-prop-val" id="gn-bgop-val">${el.bgOpacity}%</span></div>
+    <input type="range" id="gn-bgop-slider" min="0" max="100" value="${el.bgOpacity}">
+    <div class="gn-side-label gn-mt-sm">Lisibilité</div>
+    <div class="gn-toggle-row">
+      ${GN_TEXT_EFFECTS.map(fx => `<button class="gn-toggle-btn${el.textEffect===fx.key?' gn-active':''}" data-effect="${fx.key}">${fx.label}</button>`).join('')}
+    </div>`;
+  const zoneEl = document.querySelector(`.gn-zone[data-el-id="${el.id}"]`);
+  const reapply = () => { if (zoneEl) gnApplyTextStyle(zoneEl, el); saveGraphicNovel(); };
+  document.getElementById('gn-font-sel').addEventListener('change', e => { el.fontFamily = e.target.value; reapply(); });
+  document.getElementById('gn-bold-btn').addEventListener('click', e => { el.bold = !el.bold; e.currentTarget.classList.toggle('gn-active', el.bold); reapply(); });
+  document.getElementById('gn-italic-btn').addEventListener('click', e => { el.italic = !el.italic; e.currentTarget.classList.toggle('gn-active', el.italic); reapply(); });
+  box.querySelectorAll('[data-align]').forEach(btn => btn.addEventListener('click', () => {
+    el.align = btn.dataset.align;
+    box.querySelectorAll('[data-align]').forEach(b => b.classList.remove('gn-active'));
+    btn.classList.add('gn-active');
+    reapply();
+  }));
+  document.getElementById('gn-fs-slider').addEventListener('input', e => { el.fontSize = +e.target.value; document.getElementById('gn-fs-val').textContent = el.fontSize+'px'; reapply(); });
+  document.getElementById('gn-lh-slider').addEventListener('input', e => { el.lineHeight = +e.target.value; document.getElementById('gn-lh-val').textContent = el.lineHeight; reapply(); });
+  document.getElementById('gn-ls-slider').addEventListener('input', e => { el.letterSpacing = +e.target.value; document.getElementById('gn-ls-val').textContent = el.letterSpacing+'px'; reapply(); });
+  document.getElementById('gn-color-picker').addEventListener('input', e => { el.color = e.target.value; reapply(); });
+  document.getElementById('gn-bg-picker').addEventListener('input', e => { el.background = e.target.value; reapply(); });
+  document.getElementById('gn-bgop-slider').addEventListener('input', e => { el.bgOpacity = +e.target.value; document.getElementById('gn-bgop-val').textContent = el.bgOpacity+'%'; reapply(); });
+  box.querySelectorAll('[data-effect]').forEach(btn => btn.addEventListener('click', () => {
+    el.textEffect = btn.dataset.effect;
+    box.querySelectorAll('[data-effect]').forEach(b => b.classList.remove('gn-active'));
+    btn.classList.add('gn-active');
+    reapply();
+  }));
 }
 
 // ─────────────────────────────────────────────────────────
@@ -597,13 +726,27 @@ function gnClamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 function gnMakeDraggable(zoneEl, el) {
   zoneEl.addEventListener('pointerdown', e => {
     if (e.target.closest('.gn-handle') || e.target.closest('.gn-mini-toolbar')) return;
-    if (el.type === 'text') return; // le texte se déplace par ses coins (poignées), pas par un clic dans le texte
+    if (el.type === 'text') return; // le texte est contenteditable : un clic-glisse dans la zone doit placer le curseur, pas déplacer le bloc — voir la poignée ✥ dédiée (gnMakeMovableViaHandle)
     const canvasRect = document.getElementById('gn-canvas').getBoundingClientRect();
     _gnDrag = { mode:'move', el, zoneEl, startX:e.clientX, startY:e.clientY, origX:el.x, origY:el.y, canvasRect, moved:false };
     zoneEl.setPointerCapture(e.pointerId);
   });
   zoneEl.addEventListener('pointermove', gnOnPointerMove);
   zoneEl.addEventListener('pointerup', gnOnPointerUp);
+}
+// Déplace un bloc de texte via sa poignée ✥ dédiée — même logique que le
+// glisser habituel (mode 'move' de gnOnPointerMove/Up), simplement
+// déclenchée depuis la poignée au lieu de toute la zone (qui doit rester
+// disponible pour placer le curseur d'édition).
+function gnMakeMovableViaHandle(handleEl, zoneEl, el) {
+  handleEl.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    const canvasRect = document.getElementById('gn-canvas').getBoundingClientRect();
+    _gnDrag = { mode:'move', el, zoneEl, startX:e.clientX, startY:e.clientY, origX:el.x, origY:el.y, canvasRect, moved:false };
+    handleEl.setPointerCapture(e.pointerId);
+  });
+  handleEl.addEventListener('pointermove', gnOnPointerMove);
+  handleEl.addEventListener('pointerup', gnOnPointerUp);
 }
 function gnMakeResizable(handleEl, zoneEl, el, pos) {
   handleEl.addEventListener('pointerdown', e => {

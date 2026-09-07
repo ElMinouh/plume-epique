@@ -5,7 +5,7 @@
 // pour pouvoir être testé indépendamment de l'application
 // (voir tests/test-runner.html).
 // ═══════════════════════════════════════════════════════
-const SCHEMA_VERSION = 16;
+const SCHEMA_VERSION = 17;
 
 // Type de projet (nouveau v7.36.0, ergonomie) : adapte simplement le
 // vocabulaire de l'app selon le genre du manuscrit — la structure de
@@ -48,9 +48,12 @@ function makeImageElement(x, y, w, h) {
   return { id: genElementId(), type:'image', x, y, w, h, rotation:0,
     imageId:null, imageW:0, imageH:0, fit:'cover', focusX:50, focusY:50, zoom:100, frameShape:'rect', alt:'' };
 }
+// GN_TEXT_FONTS : clés stables (jamais renommées, seul le libellé peut
+// changer) — voir graphicnovel.js pour le mappage clé → police CSS.
 function makeTextElement(x, y, w, h, extra) {
   return Object.assign({ id: genElementId(), type:'text', x, y, w, h, rotation:0,
-    content:'', fontFamily:'palatino', fontSize:16, align:'left', color:'', background:'' }, extra||{});
+    content:'', fontFamily:'palatino', fontSize:16, align:'left', bold:false, italic:false,
+    lineHeight:1.5, letterSpacing:0, color:'', background:'', bgOpacity:0, textEffect:'none' }, extra||{});
 }
 
 // Gabarits de départ : positions/tailles en % de la page. Chaque gabarit
@@ -244,6 +247,22 @@ function migrateDb(data) {
         if (typeof el.zoom !== 'number') el.zoom = 100;
         if (typeof el.frameShape !== 'string') el.frameShape = 'rect';
         if (typeof el.rotation !== 'number') el.rotation = 0;
+      });
+    });
+  }
+  if (v < 17) {
+    // Mise en forme professionnelle du texte + déplacement libre : les
+    // blocs de texte créés avant cette version n'ont pas ces champs —
+    // valeurs neutres pour ne rien changer visuellement à l'ouverture.
+    (data.pages||[]).forEach(pg => {
+      (pg.elements||[]).forEach(el => {
+        if (el.type !== 'text') return;
+        if (typeof el.bold !== 'boolean') el.bold = false;
+        if (typeof el.italic !== 'boolean') el.italic = false;
+        if (typeof el.lineHeight !== 'number') el.lineHeight = 1.5;
+        if (typeof el.letterSpacing !== 'number') el.letterSpacing = 0;
+        if (typeof el.bgOpacity !== 'number') el.bgOpacity = 0;
+        if (typeof el.textEffect !== 'string') el.textEffect = 'none';
       });
     });
   }
