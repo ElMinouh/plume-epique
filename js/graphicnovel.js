@@ -49,7 +49,11 @@ function openGraphicNovelScreen() {
   _gnActivePage = 0; _gnSelectedElId = null; _gnPreviewGabarit = null;
   const titleEl = document.getElementById('gn-doc-title');
   if (titleEl) titleEl.textContent = db.title || 'Sans titre';
+  // Corbeille (Lot 3) : purge les entrées expirées à chaque ouverture, jamais
+  // en cours d'édition — voir gnPurgeOldTrash().
+  gnPurgeOldTrash();
   renderGraphicNovelScreen();
+  gnRenderTrashBadge();
 }
 
 async function backToLibraryFromGraphicNovel() {
@@ -205,6 +209,7 @@ function ensureGraphicNovelScreen() {
         <button class="gn-icon-btn" id="gn-add-image-btn" title="Ajouter une image libre sur la page">🖼️+</button>
         <button class="gn-icon-btn" id="gn-add-text-btn" title="Ajouter un bloc de texte libre sur la page">🔤+</button>
         <button class="gn-icon-btn gn-active" id="gn-grid-toggle" title="Grille magnétique (alignement précis)">▦</button>
+        <button class="gn-icon-btn gn-trash-btn" id="gn-trash-btn" title="Corbeille (pages et éléments supprimés, récupérables 30 jours)">🗑️<span class="trash-badge" id="gn-trash-badge"></span></button>
       </div>
       <button class="action-btn" id="gn-export-btn" title="Exporter le livre en PDF qualité impression (choix du format, de la résolution et du fond perdu à l'étape suivante)">Exporter le PDF</button>
     </div>
@@ -253,6 +258,7 @@ function gnWireEvents() {
   document.getElementById('gn-add-image-btn').addEventListener('click', () => gnAddFreeElement('image'));
   document.getElementById('gn-add-text-btn').addEventListener('click', () => gnAddFreeElement('text'));
   document.getElementById('gn-export-btn').addEventListener('click', gnOpenExportOptionsModal);
+  document.getElementById('gn-trash-btn').addEventListener('click', gnOpenTrashModal);
 
   // Délégation d'événements sur les listes reconstruites souvent (évite
   // d'empiler des écouteurs à chaque rendu — même principe que
@@ -772,12 +778,18 @@ function gnAddPage() {
 }
 async function gnDeletePage(i) {
   if (db.pages.length <= 1) { toast('Le manuscrit doit garder au moins une page.', 'error'); return; }
-  const ok = await showConfirmModal({ title:'Supprimer cette page ?', message:'Ses images et son texte seront perdus.', confirmLabel:'Supprimer', danger:true });
+  const ok = await showConfirmModal({ title:'Supprimer cette page ?', message:'Déplacée vers la corbeille — récupérable pendant 30 jours.', confirmLabel:'Supprimer', danger:true });
   if (!ok) return;
   const [removed] = db.pages.splice(i, 1);
-  (removed.elements || []).forEach(el => { if (el.type === 'image' && el.imageId) deleteGraphicImage(el.imageId); });
+  // Corbeille (Lot 3, audit #11) : la page part dans db.trash, images
+  // comprises — rien n'est détruit pour de bon avant la purge à 30 jours
+  // (gnPurgeOldTrash) ou une suppression définitive manuelle.
+  if (!db.trash) db.trash = [];
+  db.trash.push({ kind:'gn-page', page: JSON.parse(JSON.stringify(removed)), deletedAt: Date.now() });
   saveGraphicNovel();
   gnSetActivePage(Math.min(_gnActivePage, db.pages.length - 1));
+  gnRenderTrashBadge();
+  toast('Page déplacée vers la corbeille.', 'success');
 }
 function gnAddFreeElement(type) {
   const page = db.pages[_gnActivePage];
@@ -795,11 +807,17 @@ function gnAddFreeElement(type) {
 function gnDeleteElement(id) {
   const page = db.pages[_gnActivePage];
   const el = page.elements.find(e => e.id === id);
-  if (el && el.type === 'image' && el.imageId) deleteGraphicImage(el.imageId);
+  if (!el) return;
+  // Corbeille (Lot 3, audit #10) : même principe que gnDeletePage ci-dessus.
+  // pageId gardé pour restaurer sur la bonne page si elle existe encore.
+  if (!db.trash) db.trash = [];
+  db.trash.push({ kind:'gn-element', pageId: page.id, element: JSON.parse(JSON.stringify(el)), deletedAt: Date.now() });
   page.elements = page.elements.filter(e => e.id !== id);
   _gnSelectedElId = null;
   saveGraphicNovel();
   renderGraphicNovelScreen();
+  gnRenderTrashBadge();
+  toast('Élément déplacé vers la corbeille.', 'success');
 }
 function gnSelectElement(id) {
   _gnSelectedElId = id;
@@ -1195,4 +1213,125 @@ function gnOpenExportOptionsModal() {
 function gnCloseExportOptionsModal() {
   const el = document.getElementById('gn-export-opts-overlay');
   if (el) el.remove();
+}
+
+// ─────────────────────────────────────────────────────────
+// CORBEILLE — pages et éléments supprimés (Lot 3, audit #10/#11)
+// Même principe que la corbeille des chapitres (editor.js/db.trash, purge à
+// 30 jours) : un manuscrit roman graphique a son propre db.trash (jamais
+// utilisé jusqu'ici), partagé entre deux types d'entrées distingués par
+// `kind` — un manuscrit n'ayant jamais à la fois des chapitres et des pages
+// illustrées, aucun risque de mélange.
+// ─────────────────────────────────────────────────────────
+const GN_TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // même délai que editor.js
+
+// Purge les entrées expirées et libère leurs images — à appeler à
+// l'ouverture de l'écran (voir openGraphicNovelScreen), jamais pendant
+// l'édition (une image encore affichée ne doit jamais disparaître sous les
+// pieds de l'utilisateur).
+function gnPurgeOldTrash() {
+  const now = Date.now();
+  const kept = [];
+  (db.trash || []).forEach(t => {
+    if (t.kind !== 'gn-page' && t.kind !== 'gn-element') { kept.push(t); return; }
+    if (now - t.deletedAt < GN_TRASH_RETENTION_MS) { kept.push(t); return; }
+    if (t.kind === 'gn-element' && t.element.type === 'image' && t.element.imageId) deleteGraphicImage(t.element.imageId);
+    if (t.kind === 'gn-page') (t.page.elements || []).forEach(el => { if (el.type === 'image' && el.imageId) deleteGraphicImage(el.imageId); });
+  });
+  db.trash = kept;
+}
+
+function gnRenderTrashBadge() {
+  const b = document.getElementById('gn-trash-badge');
+  if (!b) return;
+  const n = (db.trash || []).filter(t => t.kind === 'gn-page' || t.kind === 'gn-element').length;
+  b.textContent = n > 99 ? '99+' : (n || '');
+  b.style.display = n > 0 ? 'flex' : 'none';
+}
+
+function gnOpenTrashModal() {
+  gnCloseTrashModal();
+  const overlay = document.createElement('div');
+  overlay.id = 'gn-trash-overlay';
+  overlay.className = 'gn-modal-overlay';
+  overlay.innerHTML = `
+    <div class="gn-modal" role="dialog" aria-modal="true" aria-label="Corbeille">
+      <h3>Corbeille</h3>
+      <p class="gn-modal-sub">Pages et éléments supprimés, récupérables pendant 30 jours.</p>
+      <div class="gn-trash-list" id="gn-trash-list"></div>
+      <div class="gn-modal-actions">
+        <button class="action-btn u-bg-h7f8c8d" id="gn-trash-close-btn" type="button">Fermer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) gnCloseTrashModal(); });
+  document.getElementById('gn-trash-close-btn').addEventListener('click', gnCloseTrashModal);
+  gnRenderTrashList();
+}
+function gnCloseTrashModal() {
+  const el = document.getElementById('gn-trash-overlay');
+  if (el) el.remove();
+}
+function gnTrashEntryLabel(t) {
+  if (t.kind === 'gn-page') {
+    const n = (t.page.elements || []).length;
+    return 'Page (' + n + ' élément' + (n > 1 ? 's' : '') + ')';
+  }
+  return t.element.type === 'image' ? 'Image' : 'Bloc de texte' + (t.element.content ? ' — « ' + t.element.content.slice(0, 24) + ' »' : ' (vide)');
+}
+function gnRenderTrashList() {
+  const list = document.getElementById('gn-trash-list');
+  if (!list) return;
+  const entries = (db.trash || []).map((t, i) => ({ t, i })).filter(e => e.t.kind === 'gn-page' || e.t.kind === 'gn-element');
+  if (!entries.length) {
+    list.innerHTML = '<div class="u-op-_5 u-p-16px u-ta-center u-fs-_82rem">La corbeille est vide.</div>';
+    return;
+  }
+  list.innerHTML = entries.slice().reverse().map(({ t, i }) => {
+    const daysLeft = Math.max(0, 30 - Math.floor((Date.now() - t.deletedAt) / 86400000));
+    return `<div class="history-item u-cur-default">
+      <span>${gnTrashEntryLabel(t)}<br><span class="u-op-_5 u-fs-_68rem">Supprimé le ${new Date(t.deletedAt).toLocaleDateString('fr')} — purge auto dans ${daysLeft}j</span></span>
+      <span class="u-d-flex u-gap-4px u-fsh-0">
+        <button class="action-btn btn-sm" data-restore="${i}">↩ Restaurer</button>
+        <button class="action-btn btn-sm u-bg-v-danger" data-purge="${i}">✕ Définitif</button>
+      </span>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('[data-restore]').forEach(btn => btn.addEventListener('click', () => gnRestoreFromTrash(parseInt(btn.dataset.restore))));
+  list.querySelectorAll('[data-purge]').forEach(btn => btn.addEventListener('click', () => gnPurgeTrashEntry(parseInt(btn.dataset.purge))));
+}
+function gnRestoreFromTrash(i) {
+  const item = db.trash[i];
+  if (!item) return;
+  if (item.kind === 'gn-page') {
+    db.pages.push(item.page);
+    toast('Page restaurée.', 'success');
+  } else {
+    // Sur sa page d'origine si elle existe encore, sinon sur la page active
+    // (avec message clair — mieux qu'une restauration silencieuse ailleurs).
+    const target = db.pages.find(p => p.id === item.pageId);
+    if (target) {
+      target.elements.push(item.element);
+      toast('Élément restauré sur sa page d\'origine.', 'success');
+    } else {
+      db.pages[_gnActivePage].elements.push(item.element);
+      toast('Page d\'origine introuvable — élément restauré sur la page active.', 'success');
+    }
+  }
+  db.trash.splice(i, 1);
+  saveGraphicNovel();
+  renderGraphicNovelScreen();
+  gnRenderTrashList();
+  gnRenderTrashBadge();
+}
+function gnPurgeTrashEntry(i) {
+  const item = db.trash[i];
+  if (!item) return;
+  if (!confirm('Supprimer définitivement ? Cette action est irréversible.')) return;
+  if (item.kind === 'gn-element' && item.element.type === 'image' && item.element.imageId) deleteGraphicImage(item.element.imageId);
+  if (item.kind === 'gn-page') (item.page.elements || []).forEach(el => { if (el.type === 'image' && el.imageId) deleteGraphicImage(el.imageId); });
+  db.trash.splice(i, 1);
+  saveGraphicNovel();
+  gnRenderTrashList();
+  gnRenderTrashBadge();
 }

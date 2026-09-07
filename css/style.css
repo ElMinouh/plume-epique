@@ -1524,6 +1524,11 @@ body.graphicnovel-mode #graphicnovel-screen{display:flex;flex-direction:column;h
 /* Boîte de dialogue "options d'export" (Lot 2, audit #8). */
 .gn-export-opts select{width:100%;padding:7px 8px;margin:4px 0 12px;border:1.5px solid var(--border);
   background:var(--item-bg);border-radius:var(--radius-sm);color:var(--text);font-size:var(--fs-sm);}
+/* Corbeille (Lot 3, audit #10/#11) — lignes en .history-item, déjà stylées
+   ailleurs (historique des versions, corbeille des chapitres) ; seule la
+   liste elle-même (défilement + espacement) est propre à cette boîte. */
+.gn-trash-list{max-height:min(50vh,420px);overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:6px;}
+.gn-trash-btn{position:relative;}
 .gn-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
 .gn-type-card{position:relative;border:1.5px solid var(--border);border-radius:var(--radius-sm);
   padding:16px 12px 14px;text-align:center;cursor:pointer;background:var(--item-bg);}
