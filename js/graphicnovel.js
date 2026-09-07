@@ -321,19 +321,37 @@ function gnRenderPageProps() {
 }
 
 function gnMiniIconHtml(elements) {
+  // Pas de style="" en ligne (interdit par la CSP style-src 'self') : les
+  // coordonnées passent par des attributs data-*, appliquées ensuite en JS
+  // via gnApplyMiniIconStyles().
   return elements.map(z =>
-    `<div class="gn-icon-z ${z.type==='image'?'gn-icon-i':'gn-icon-t'}" style="left:${z.x}%;top:${z.y}%;width:${z.w}%;height:${z.h}%;"></div>`
+    `<div class="gn-icon-z ${z.type==='image'?'gn-icon-i':'gn-icon-t'}" data-x="${z.x}" data-y="${z.y}" data-w="${z.w}" data-h="${z.h}"></div>`
   ).join('');
+}
+
+function gnApplyMiniIconStyles(container) {
+  container.querySelectorAll('.gn-icon-z').forEach(el => {
+    el.style.left = el.dataset.x + '%';
+    el.style.top = el.dataset.y + '%';
+    el.style.width = el.dataset.w + '%';
+    el.style.height = el.dataset.h + '%';
+  });
 }
 
 function gnRenderPagesSidebar() {
   const box = document.getElementById('gn-pages-list');
   box.innerHTML = db.pages.map((p, i) => `
-    <div class="gn-pg-thumb${i===_gnActivePage?' gn-active':''}" data-idx="${i}" title="Page ${i+1}" style="background:${p.background || '#f4ecd8'}">
+    <div class="gn-pg-thumb${i===_gnActivePage?' gn-active':''}" data-idx="${i}" title="Page ${i+1}">
       ${gnMiniIconHtml(p.elements)}
       <span class="gn-pg-num">${i+1}</span>
       <button class="gn-pg-del" data-idx="${i}" title="Supprimer la page ${i+1}" aria-label="Supprimer la page ${i+1}">✕</button>
     </div>`).join('');
+  // Fond de vignette : propriété JS .style.backgroundColor, jamais l'attribut
+  // style="" (voir note CSP ci-dessus).
+  box.querySelectorAll('.gn-pg-thumb').forEach((el, i) => {
+    el.style.backgroundColor = db.pages[i].background || '#f4ecd8';
+  });
+  gnApplyMiniIconStyles(box);
 }
 
 function gnRenderGabaritsPanel() {
@@ -343,6 +361,7 @@ function gnRenderGabaritsPanel() {
       <div class="gn-icon">${gnMiniIconHtml(GRAPHIC_GABARITS[key].build())}</div>
       <span class="gn-gab-lbl">${GRAPHIC_GABARITS[key].label}</span>
     </div>`).join('');
+  gnApplyMiniIconStyles(box);
 }
 
 // exportMode (voir gnExportGraphicNovelPDF, section EXPORT PDF plus bas) :
