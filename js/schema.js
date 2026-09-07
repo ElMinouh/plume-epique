@@ -5,7 +5,7 @@
 // pour pouvoir être testé indépendamment de l'application
 // (voir tests/test-runner.html).
 // ═══════════════════════════════════════════════════════
-const SCHEMA_VERSION = 14;
+const SCHEMA_VERSION = 15;
 
 // Type de projet (nouveau v7.36.0, ergonomie) : adapte simplement le
 // vocabulaire de l'app selon le genre du manuscrit — la structure de
@@ -22,6 +22,82 @@ function questsLabelFor(projectType) {
 
 function genChapterId() {
   return (crypto.randomUUID ? crypto.randomUUID() : 'ch_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
+}
+
+// ═══════════════════════════════════════════════════════
+// ROMAN GRAPHIQUE / LIVRE ILLUSTRÉ (nouveau, module pages illustrées)
+// Un manuscrit "roman graphique" (db.docType === 'roman_graphique') utilise
+// db.pages au lieu de db.chapters : chaque page est une mise en page libre
+// d'images et de blocs de texte (voir GRAPHIC_GABARITS ci-dessous pour les
+// gabarits de départ). Les images elles-mêmes ne sont JAMAIS stockées ici
+// (voir js/images.js) — seule une référence (imageId) l'est, pour ne pas
+// alourdir le document synchronisé (localStorage + API Gist).
+// ═══════════════════════════════════════════════════════
+function genPageId() {
+  return (crypto.randomUUID ? crypto.randomUUID() : 'pg_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
+}
+function genElementId() {
+  return (crypto.randomUUID ? crypto.randomUUID() : 'el_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
+}
+
+function makeImageElement(x, y, w, h) {
+  return { id: genElementId(), type:'image', x, y, w, h, rotation:0,
+    imageId:null, imageW:0, imageH:0, fit:'cover', focusX:50, focusY:50, alt:'' };
+}
+function makeTextElement(x, y, w, h, extra) {
+  return Object.assign({ id: genElementId(), type:'text', x, y, w, h, rotation:0,
+    content:'', fontFamily:'palatino', fontSize:16, align:'left', color:'', background:'' }, extra||{});
+}
+
+// Gabarits de départ : positions/tailles en % de la page. Chaque gabarit
+// instancie de vrais éléments (via makeImageElement/makeTextElement) — une
+// fois posés, ils restent librement déplaçables/redimensionnables, le
+// gabarit n'est qu'un point de départ, pas une contrainte figée.
+const GRAPHIC_GABARITS = {
+  plein: { label:'Pleine page', build: () => [
+    makeImageElement(0, 0, 100, 76),
+    makeTextElement(6, 80, 88, 16)
+  ]},
+  split: { label:'Image + texte', build: () => [
+    makeImageElement(0, 0, 54, 100),
+    makeTextElement(60, 10, 36, 80)
+  ]},
+  duo: { label:'Duo, texte sous chacune', build: () => [
+    makeImageElement(0, 0, 47, 58), makeTextElement(0, 60, 47, 15),
+    makeImageElement(53, 0, 47, 58), makeTextElement(53, 60, 47, 15)
+  ]},
+  duoEmpile: { label:'Duo empilé + texte', build: () => [
+    makeImageElement(0, 0, 56, 44), makeImageElement(0, 48, 56, 44),
+    makeTextElement(60, 4, 36, 92)
+  ]},
+  quatuor: { label:'Quatre images, texte sous chacune', build: () => [
+    makeImageElement(2, 2, 46, 34), makeTextElement(2, 37, 46, 9),
+    makeImageElement(52, 2, 46, 34), makeTextElement(52, 37, 46, 9),
+    makeImageElement(2, 50, 46, 34), makeTextElement(2, 85, 46, 9),
+    makeImageElement(52, 50, 46, 34), makeTextElement(52, 85, 46, 9)
+  ]},
+  texteSeul: { label:'Texte seul', build: () => [
+    makeTextElement(14, 32, 72, 36, { fontSize:26, align:'center' })
+  ]}
+};
+const GRAPHIC_GABARIT_ORDER = ['plein','split','duo','duoEmpile','quatuor','texteSeul'];
+
+function defaultGraphicPage(gabaritKey) {
+  const key = GRAPHIC_GABARITS[gabaritKey] ? gabaritKey : 'plein';
+  return { id: genPageId(), background:'#f4ecd8', elements: GRAPHIC_GABARITS[key].build() };
+}
+
+function DEFAULT_DB_GRAPHIC() {
+  return {
+    _schemaVersion: SCHEMA_VERSION,
+    docType: 'roman_graphique',
+    title: '',
+    pages: [ defaultGraphicPage('texteSeul') ],
+    trash: [], history:{}, plugins:{},
+    darkMode:true, gistId:'', sessionStats:{},
+    accentPalette:'rouge-violet', paperMode:false,
+    projectType:'fantasy'
+  };
 }
 
 function migrateDb(data) {
@@ -141,12 +217,24 @@ function migrateDb(data) {
       if (typeof ch.researchNotes !== 'string') ch.researchNotes = '';
     });
   }
+  if (v < 15) {
+    // Module Roman graphique / livre illustré (nouveau) : tout document
+    // existant est un document "texte" classique — db.pages n'existe que
+    // pour les nouveaux manuscrits créés en roman graphique (voir
+    // DEFAULT_DB_GRAPHIC ci-dessus). Champ ajouté ici uniquement pour que
+    // le reste du code puisse toujours lire data.docType sans vérifier
+    // s'il existe.
+    if (typeof data.docType !== 'string') data.docType = 'texte';
+    if (!Array.isArray(data.pages)) data.pages = [];
+  }
   data._schemaVersion = SCHEMA_VERSION;
   return data;
 }
 
 const DEFAULT_DB = () => ({
   _schemaVersion: SCHEMA_VERSION,
+  docType: 'texte',
+  pages: [],
   title: '',
   chapters: [{ id: genChapterId(), title:'Chapitre 1', content:'', tension:20, summary:'', status:'draft', tags:[], wordGoal:0, researchNotes:'' }],
   chars:[], places:[], quests:[], timeline:[], history:{}, plugins:{},

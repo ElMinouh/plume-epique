@@ -22,7 +22,7 @@
 
 const LIBRARY_TOUR_STEPS = [
   { target:'#library-new-btn, #library-new-btn-shelf', title:'📚 Vos manuscrits',
-    text:"Chaque roman que vous écrivez est un « manuscrit » séparé : ses propres chapitres, personnages et réglages, indépendants des autres. Ce bouton en crée un tout nouveau, vierge. Les manuscrits déjà commencés apparaissent juste en dessous sous forme de couvertures — un clic dessus les rouvre là où vous les avez laissés." },
+    text:"Chaque roman que vous écrivez est un « manuscrit » séparé : ses propres chapitres, personnages et réglages, indépendants des autres. Ce bouton en crée un tout nouveau, vierge — texte seul ou roman graphique illustré, au choix. Les manuscrits déjà commencés apparaissent juste en dessous sous forme de couvertures — un clic dessus les rouvre là où vous les avez laissés." },
   // v9.0.0 — Bug rapporté : sur mobile, ces boutons sont cachés derrière le
   // menu "⋯" (chantier Responsive Mobile, écran 2/N) — la cible était donc
   // invisible, l'étape sautée, et de même pour l'étape suivante, ce qui

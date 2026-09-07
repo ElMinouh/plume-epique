@@ -1,0 +1,529 @@
+'use strict';
+// ═══════════════════════════════════════════════════════
+// MODULE ROMAN GRAPHIQUE / LIVRE ILLUSTRÉ (nouveau)
+// Écran d'édition dédié aux manuscrits db.docType === 'roman_graphique'.
+// Entièrement isolé du reste de l'app : construit son propre écran
+// (#graphicnovel-screen, injecté dans <body> au premier besoin) et sa
+// propre sauvegarde (saveGraphicNovel), pour ne rien risquer sur
+// l'éditeur chapitre par chapitre existant (router.js/editor.js). Réutilise
+// les mêmes globales que le reste de l'app (db, cur, _currentDocumentId,
+// _currentProfileId, _dataKey) et les mêmes utilitaires (persistData,
+// docDataKey, makeEncryptedEnvelope, mutateDocList, getWordCount, toast,
+// showLibraryScreen/hideLibraryScreen) — définis dans router.js/library.js,
+// chargés avant ce fichier.
+//
+// Limites assumées de cette première version (à faire évoluer) :
+//   - pas de rotation d'élément (le champ existe dans le modèle, pas encore
+//     exposé dans l'interface) ;
+//   - pas d'export PDF (bouton visible mais désactivé) ;
+//   - édition libre (glisser/redimensionner) réservée au PC — sur mobile,
+//     on choisit un gabarit et on remplace les images, sans positionnement
+//     libre (décision prise avec l'utilisateur lors de la maquette).
+// ═══════════════════════════════════════════════════════
+
+const GN_DESKTOP_BREAKPOINT = 900;
+function gnIsDesktop() { return window.innerWidth > GN_DESKTOP_BREAKPOINT; }
+
+let _gnBuilt = false;
+let _gnActivePage = 0;
+let _gnSelectedElId = null;
+let _gnPreviewGabarit = null;
+let _gnSnapGrid = true;
+let _gnDrag = null; // { mode:'move'|'resize', elId, startX, startY, origX, origY, origW, origH }
+
+// ─────────────────────────────────────────────────────────
+// ÉCRAN — affichage / masquage (même principe que showLibraryScreen, v.
+// library.js : une classe sur <body> qui bascule ce qui est visible)
+// ─────────────────────────────────────────────────────────
+function showGraphicNovelScreen() { document.body.classList.add('graphicnovel-mode'); }
+function hideGraphicNovelScreen() { document.body.classList.remove('graphicnovel-mode'); }
+
+function openGraphicNovelScreen() {
+  ensureGraphicNovelScreen();
+  showGraphicNovelScreen();
+  if (db.darkMode) document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');
+  document.body.classList.toggle('paper-mode', !!db.paperMode);
+  _gnActivePage = 0; _gnSelectedElId = null; _gnPreviewGabarit = null;
+  const titleEl = document.getElementById('gn-doc-title');
+  if (titleEl) titleEl.textContent = db.title || 'Sans titre';
+  renderGraphicNovelScreen();
+}
+
+async function backToLibraryFromGraphicNovel() {
+  await saveGraphicNovel(true);
+  hideGraphicNovelScreen();
+  await renderLibraryScreen();
+  showLibraryScreen();
+}
+
+// ─────────────────────────────────────────────────────────
+// SAUVEGARDE — dédiée, ne touche jamais à db.chapters (voir en-tête)
+// ─────────────────────────────────────────────────────────
+function gnCountWords() {
+  let n = 0;
+  (db.pages || []).forEach(p => (p.elements || []).forEach(el => {
+    if (el.type === 'text') n += getWordCount(el.content);
+  }));
+  return n;
+}
+async function saveGraphicNovel(immediate) {
+  if (!_currentProfileId || !_dataKey || !_currentDocumentId) return;
+  const doSave = async () => {
+    try {
+      const payload = { ...db };
+      await persistData(docDataKey(_currentProfileId, _currentDocumentId), await makeEncryptedEnvelope(JSON.stringify(payload)));
+      await mutateDocList(list => {
+        const entry = list.documents.find(d => d.id === _currentDocumentId);
+        if (!entry) return;
+        entry.title = db.title || 'Sans titre';
+        entry.docType = 'roman_graphique';
+        entry.lastModified = Date.now();
+        entry.chapterCount = (db.pages || []).length;
+        entry.wordCount = gnCountWords();
+        entry.wordGoal = 0;
+      });
+      if (typeof flashSave === 'function') flashSave();
+    } catch(e) {
+      console.error('Échec de sauvegarde (roman graphique) :', e);
+      if (typeof toast === 'function') toast('⚠️ Échec de la sauvegarde : ' + (e && e.message ? e.message : e), 'error');
+    }
+  };
+  if (immediate) { clearTimeout(_gnSaveTimer); await doSave(); return; }
+  clearTimeout(_gnSaveTimer);
+  _gnSaveTimer = setTimeout(doSave, 600);
+}
+let _gnSaveTimer = null;
+
+function updateGraphicNovelTitle(t) {
+  db.title = (t || '').trim();
+  saveGraphicNovel();
+}
+
+// ─────────────────────────────────────────────────────────
+// CRÉATION — depuis la fenêtre de choix de type
+// ─────────────────────────────────────────────────────────
+async function createNewGraphicNovel() {
+  const docId = genChapterId();
+  const dbData = DEFAULT_DB_GRAPHIC();
+  dbData.title = 'Nouveau roman graphique';
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) dbData.darkMode = true;
+  await persistData(docDataKey(_currentProfileId, docId), await makeEncryptedEnvelope(JSON.stringify(dbData)));
+  await mutateDocList(list => {
+    list.documents.push({ id:docId, title:dbData.title, docType:'roman_graphique', lastModified:Date.now(), chapterCount:1, wordCount:0, wordGoal:0, cover:'auto' });
+  });
+  db = dbData;
+  _currentDocumentId = docId;
+  cur = 0;
+  hideLibraryScreen();
+  openGraphicNovelScreen();
+}
+
+// ─────────────────────────────────────────────────────────
+// FENÊTRE "NOUVEAU PROJET" — choix du type de document
+// ─────────────────────────────────────────────────────────
+function openNewDocumentTypeModal() {
+  closeNewDocumentTypeModal();
+  const overlay = document.createElement('div');
+  overlay.id = 'gn-type-modal-overlay';
+  overlay.className = 'gn-modal-overlay';
+  overlay.innerHTML = `
+    <div class="gn-modal" role="dialog" aria-modal="true" aria-label="Nouveau projet">
+      <h3>Nouveau projet</h3>
+      <p class="gn-modal-sub">Quel type d'ouvrage veux-tu écrire ? Ce choix détermine l'éditeur qui s'ouvrira.</p>
+      <div class="gn-type-grid">
+        <div class="gn-type-card" data-type="texte" role="button" tabindex="0">
+          <div class="gn-type-glyph">📖</div>
+          <h4>Texte seul</h4>
+          <p>Roman, essai, nouvelle. L'éditeur chapitre par chapitre habituel.</p>
+        </div>
+        <div class="gn-type-card" data-type="roman_graphique" role="button" tabindex="0">
+          <div class="gn-type-glyph">🎨</div>
+          <h4>Roman graphique</h4>
+          <p>Livre illustré : images et texte composés page par page.</p>
+        </div>
+        <div class="gn-type-card gn-disabled" data-type="bd" role="button" tabindex="0" aria-disabled="true">
+          <span class="gn-soon-badge">Bientôt</span>
+          <div class="gn-type-glyph">🖼️</div>
+          <h4>Bande dessinée</h4>
+          <p>Cases et bulles. Arrive dans une prochaine étape.</p>
+        </div>
+      </div>
+      <div class="gn-modal-actions">
+        <button class="action-btn u-bg-h7f8c8d" id="gn-type-cancel" type="button">Annuler</button>
+        <button class="action-btn" id="gn-type-continue" type="button" disabled>Continuer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  let chosen = null;
+  overlay.querySelectorAll('.gn-type-card:not(.gn-disabled)').forEach(card => {
+    const pick = () => {
+      overlay.querySelectorAll('.gn-type-card').forEach(c => c.classList.remove('gn-selected'));
+      card.classList.add('gn-selected');
+      chosen = card.dataset.type;
+      document.getElementById('gn-type-continue').disabled = false;
+    };
+    card.addEventListener('click', pick);
+    card.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); pick(); } });
+  });
+  document.getElementById('gn-type-cancel').addEventListener('click', closeNewDocumentTypeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeNewDocumentTypeModal(); });
+  document.getElementById('gn-type-continue').addEventListener('click', () => {
+    closeNewDocumentTypeModal();
+    if (chosen === 'roman_graphique') createNewGraphicNovel();
+    else if (chosen === 'texte') createNewTextDocument();
+  });
+}
+function closeNewDocumentTypeModal() {
+  const el = document.getElementById('gn-type-modal-overlay');
+  if (el) el.remove();
+}
+
+// ─────────────────────────────────────────────────────────
+// CONSTRUCTION DE L'ÉCRAN (une seule fois, injectée dans <body>)
+// ─────────────────────────────────────────────────────────
+function ensureGraphicNovelScreen() {
+  if (_gnBuilt) return;
+  _gnBuilt = true;
+  const el = document.createElement('div');
+  el.id = 'graphicnovel-screen';
+  el.innerHTML = `
+    <div class="gn-toolbar">
+      <button class="gn-icon-btn" id="gn-back-btn" title="Retour à la bibliothèque" aria-label="Retour à la bibliothèque">←</button>
+      <div class="gn-title-block">
+        <div class="gn-doc-name" id="gn-doc-title" contenteditable="true" spellcheck="false" title="Cliquer pour renommer"></div>
+        <div class="gn-doc-kind">Roman graphique</div>
+      </div>
+      <div class="gn-pager">
+        <button id="gn-page-prev" title="Page précédente" aria-label="Page précédente">‹</button>
+        <span id="gn-page-label"></span>
+        <button id="gn-page-next" title="Page suivante" aria-label="Page suivante">›</button>
+      </div>
+      <div class="gn-tb-tools">
+        <button class="gn-icon-btn" id="gn-add-image-btn" title="Ajouter une image libre sur la page">🖼️+</button>
+        <button class="gn-icon-btn" id="gn-add-text-btn" title="Ajouter un bloc de texte libre sur la page">🔤+</button>
+        <button class="gn-icon-btn gn-active" id="gn-grid-toggle" title="Grille magnétique (alignement précis)">▦</button>
+        <span class="gn-zoom-tag">100%</span>
+      </div>
+      <button class="action-btn" id="gn-export-btn" disabled title="Export PDF — bientôt disponible">Exporter le PDF</button>
+    </div>
+    <div class="gn-body">
+      <div class="gn-side-pages">
+        <div class="gn-side-label">Pages</div>
+        <div class="gn-pages-list" id="gn-pages-list"></div>
+        <button class="gn-pg-add" id="gn-page-add" title="Ajouter une page">+</button>
+      </div>
+      <div class="gn-canvas-wrap">
+        <div class="gn-page-canvas" id="gn-canvas"></div>
+      </div>
+      <div class="gn-side-right">
+        <div class="gn-side-label">Gabarits</div>
+        <div class="gn-gabarits" id="gn-gabarits"></div>
+        <div class="gn-side-label gn-mt">Calques — page active</div>
+        <div class="gn-layers" id="gn-layers"></div>
+      </div>
+    </div>
+    <p class="gn-mobile-note">Sur téléphone : choisis un gabarit et remplace les images. Le positionnement libre précis se fait sur ordinateur.</p>`;
+  document.body.appendChild(el);
+  gnWireEvents();
+}
+
+function gnWireEvents() {
+  document.getElementById('gn-back-btn').addEventListener('click', backToLibraryFromGraphicNovel);
+  document.getElementById('gn-doc-title').addEventListener('blur', e => updateGraphicNovelTitle(e.target.textContent));
+  document.getElementById('gn-doc-title').addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); e.target.blur(); } });
+  document.getElementById('gn-page-prev').addEventListener('click', () => gnSetActivePage((_gnActivePage - 1 + db.pages.length) % db.pages.length));
+  document.getElementById('gn-page-next').addEventListener('click', () => gnSetActivePage((_gnActivePage + 1) % db.pages.length));
+  document.getElementById('gn-page-add').addEventListener('click', gnAddPage);
+  document.getElementById('gn-grid-toggle').addEventListener('click', e => {
+    _gnSnapGrid = !_gnSnapGrid;
+    e.currentTarget.classList.toggle('gn-active', _gnSnapGrid);
+  });
+  document.getElementById('gn-add-image-btn').addEventListener('click', () => gnAddFreeElement('image'));
+  document.getElementById('gn-add-text-btn').addEventListener('click', () => gnAddFreeElement('text'));
+
+  // Délégation d'événements sur les listes reconstruites souvent (évite
+  // d'empiler des écouteurs à chaque rendu — même principe que
+  // wireAppEventListenersOnce dans router.js).
+  document.getElementById('gn-pages-list').addEventListener('click', e => {
+    const del = e.target.closest('.gn-pg-del');
+    if (del) { e.stopPropagation(); gnDeletePage(Number(del.dataset.idx)); return; }
+    const thumb = e.target.closest('.gn-pg-thumb'); if (!thumb) return;
+    gnSetActivePage(Number(thumb.dataset.idx));
+  });
+  document.getElementById('gn-gabarits').addEventListener('click', e => {
+    const g = e.target.closest('.gn-gab'); if (!g) return;
+    gnPreviewGabarit(g.dataset.key);
+  });
+  document.getElementById('gn-layers').addEventListener('click', e => {
+    const row = e.target.closest('.gn-layer-row'); if (!row) return;
+    gnSelectElement(row.dataset.elId);
+  });
+}
+
+// ─────────────────────────────────────────────────────────
+// RENDU
+// ─────────────────────────────────────────────────────────
+function renderGraphicNovelScreen() {
+  gnRenderPagesSidebar();
+  gnRenderGabaritsPanel();
+  gnRenderCanvas();
+  gnRenderLayers();
+  const label = document.getElementById('gn-page-label');
+  if (label) label.textContent = 'Page ' + (_gnActivePage + 1) + ' / ' + db.pages.length;
+}
+
+function gnMiniIconHtml(elements) {
+  return elements.map(z =>
+    `<div class="gn-icon-z ${z.type==='image'?'gn-icon-i':'gn-icon-t'}" style="left:${z.x}%;top:${z.y}%;width:${z.w}%;height:${z.h}%;"></div>`
+  ).join('');
+}
+
+function gnRenderPagesSidebar() {
+  const box = document.getElementById('gn-pages-list');
+  box.innerHTML = db.pages.map((p, i) => `
+    <div class="gn-pg-thumb${i===_gnActivePage?' gn-active':''}" data-idx="${i}" title="Page ${i+1}">
+      ${gnMiniIconHtml(p.elements)}
+      <span class="gn-pg-num">${i+1}</span>
+      <button class="gn-pg-del" data-idx="${i}" title="Supprimer la page ${i+1}" aria-label="Supprimer la page ${i+1}">✕</button>
+    </div>`).join('');
+}
+
+function gnRenderGabaritsPanel() {
+  const box = document.getElementById('gn-gabarits');
+  box.innerHTML = GRAPHIC_GABARIT_ORDER.map(key => `
+    <div class="gn-gab${_gnPreviewGabarit===key?' gn-active':''}" data-key="${key}">
+      <div class="gn-icon">${gnMiniIconHtml(GRAPHIC_GABARITS[key].build())}</div>
+      <span class="gn-gab-lbl">${GRAPHIC_GABARITS[key].label}</span>
+    </div>`).join('');
+}
+
+async function gnRenderCanvas() {
+  const canvas = document.getElementById('gn-canvas');
+  canvas.innerHTML = '';
+  const preview = !!_gnPreviewGabarit;
+  let elements;
+  if (preview) {
+    const banner = document.createElement('div');
+    banner.className = 'gn-preview-banner';
+    banner.innerHTML = `<span>Aperçu du gabarit « ${GRAPHIC_GABARITS[_gnPreviewGabarit].label} » — non appliqué</span><button id="gn-apply-gab">Appliquer à cette page</button>`;
+    canvas.appendChild(banner);
+    banner.querySelector('#gn-apply-gab').addEventListener('click', gnApplyPreviewGabarit);
+    elements = GRAPHIC_GABARITS[_gnPreviewGabarit].build();
+  } else {
+    elements = db.pages[_gnActivePage].elements;
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'gn-zone-wrap';
+  if (preview) wrap.classList.add('gn-zone-wrap-preview');
+  canvas.appendChild(wrap);
+  for (const el of elements) {
+    const zone = document.createElement('div');
+    zone.className = 'gn-zone ' + (el.type === 'image' ? 'gn-zone-img' : 'gn-zone-txt');
+    zone.style.left = el.x + '%'; zone.style.top = el.y + '%';
+    zone.style.width = el.w + '%'; zone.style.height = el.h + '%';
+    zone.dataset.elId = el.id || '';
+    if (!preview && el.id === _gnSelectedElId) zone.classList.add('gn-selected');
+    if (el.type === 'image') {
+      if (el.imageId) {
+        const url = await graphicImageUrl(el.imageId);
+        if (url) { zone.style.backgroundImage = `url("${url}")`; zone.style.backgroundSize = el.fit === 'contain' ? 'contain' : 'cover'; zone.style.backgroundPosition = 'center'; }
+        const lowRes = Math.max(el.imageW||0, el.imageH||0) < 1200;
+        zone.innerHTML = lowRes ? `<span class="gn-dpi-warn" title="Résolution basse pour une impression nette">⚠ basse résolution</span>` : '';
+      } else if (!preview) {
+        zone.classList.add('gn-zone-empty');
+        zone.innerHTML = `<span class="gn-empty-plus">+</span><span class="gn-empty-label">Ajouter une image</span>`;
+        // Zone vide : un clic ouvre directement le sélecteur de fichier —
+        // pas besoin de la sélectionner d'abord.
+        zone.addEventListener('click', e => { e.stopPropagation(); gnPickImageFor(el); });
+      }
+    } else {
+      if (preview) {
+        zone.classList.add(el.align === 'center' ? 'gn-zone-title' : '');
+        zone.innerHTML = `<div class="gn-zt-body">${el.align==='center' ? 'Titre de la page' : 'Texte…'}</div>`;
+      } else {
+        zone.contentEditable = 'true';
+        zone.spellcheck = false;
+        zone.style.textAlign = el.align || 'left';
+        if (el.fontSize) zone.style.fontSize = el.fontSize + 'px';
+        zone.textContent = el.content || '';
+        zone.dataset.placeholder = 'Texte…';
+        zone.addEventListener('input', () => { el.content = zone.textContent; saveGraphicNovel(); });
+        zone.addEventListener('pointerdown', e => e.stopPropagation());
+      }
+    }
+    if (!preview) {
+      // Sélectionner (fait apparaître poignées + mini-barre) — pour une
+      // image déjà remplie, remplacer se fait via 🔁 dans la mini-barre,
+      // pas en recliquant dessus (sinon le sélecteur de fichier se
+      // rouvrirait à chaque clic, y compris pour juste déplacer l'image).
+      zone.addEventListener('click', e => { if (el.type!=='text') { e.stopPropagation(); gnSelectElement(el.id); } });
+      if (gnIsDesktop()) gnMakeDraggable(zone, el);
+      if (el.id === _gnSelectedElId) {
+        // Poignées de redimensionnement : PC uniquement (glisser précis).
+        // Sur mobile, seuls "changer l'image" / "supprimer" restent
+        // disponibles (décision prise avec l'utilisateur sur la maquette).
+        if (gnIsDesktop()) ['nw','ne','sw','se'].forEach(pos => {
+          const h = document.createElement('div');
+          h.className = 'gn-handle gn-handle-' + pos;
+          gnMakeResizable(h, zone, el, pos);
+          zone.appendChild(h);
+        });
+        const mt = document.createElement('div'); mt.className = 'gn-mini-toolbar';
+        mt.innerHTML = (el.type==='image' ? '<button data-act="change" title="Changer l\'image">🔁</button>' : '') +
+          '<button data-act="delete" title="Supprimer cet élément">🗑</button>';
+        mt.addEventListener('pointerdown', e => e.stopPropagation());
+        mt.addEventListener('click', e => {
+          const act = e.target.closest('button')?.dataset.act;
+          if (act === 'delete') gnDeleteElement(el.id);
+          if (act === 'change') gnPickImageFor(el);
+        });
+        zone.appendChild(mt);
+      }
+    }
+    wrap.appendChild(zone);
+  }
+  canvas.onclick = gnDeselectOnBackdrop;
+}
+function gnDeselectOnBackdrop(e) {
+  if (e.target.id === 'gn-canvas' || e.target.classList.contains('gn-zone-wrap')) gnSelectElement(null);
+}
+
+function gnRenderLayers() {
+  const box = document.getElementById('gn-layers');
+  const elements = db.pages[_gnActivePage].elements;
+  box.innerHTML = elements.map(el => `
+    <div class="gn-layer-row${el.id===_gnSelectedElId?' gn-sel':''}" data-el-id="${el.id}">
+      <span class="gn-lg">${el.type==='image'?'🖼️':'🔤'}</span>
+      <span class="gn-lname">${el.type==='image' ? (el.imageId ? 'Image' : 'Image (vide)') : (el.content ? el.content.slice(0,28) : 'Bloc de texte vide')}</span>
+    </div>`).join('') || '<p class="gn-layers-empty">Page vide — choisis un gabarit ou ajoute un élément.</p>';
+}
+
+// ─────────────────────────────────────────────────────────
+// ACTIONS
+// ─────────────────────────────────────────────────────────
+function gnSetActivePage(i) {
+  _gnActivePage = i; _gnSelectedElId = null; _gnPreviewGabarit = null;
+  renderGraphicNovelScreen();
+}
+function gnPreviewGabarit(key) { _gnPreviewGabarit = key; gnRenderGabaritsPanel(); gnRenderCanvas(); }
+function gnApplyPreviewGabarit() {
+  if (!_gnPreviewGabarit) return;
+  db.pages[_gnActivePage].elements = GRAPHIC_GABARITS[_gnPreviewGabarit].build();
+  _gnPreviewGabarit = null;
+  saveGraphicNovel();
+  renderGraphicNovelScreen();
+}
+function gnAddPage() {
+  db.pages.push(defaultGraphicPage('texteSeul'));
+  saveGraphicNovel();
+  gnSetActivePage(db.pages.length - 1);
+}
+async function gnDeletePage(i) {
+  if (db.pages.length <= 1) { toast('Le manuscrit doit garder au moins une page.', 'error'); return; }
+  const ok = await showConfirmModal({ title:'Supprimer cette page ?', message:'Ses images et son texte seront perdus.', confirmLabel:'Supprimer', danger:true });
+  if (!ok) return;
+  const [removed] = db.pages.splice(i, 1);
+  (removed.elements || []).forEach(el => { if (el.type === 'image' && el.imageId) deleteGraphicImage(el.imageId); });
+  saveGraphicNovel();
+  gnSetActivePage(Math.min(_gnActivePage, db.pages.length - 1));
+}
+function gnAddFreeElement(type) {
+  const page = db.pages[_gnActivePage];
+  const el = type === 'image' ? makeImageElement(28, 28, 44, 34) : makeTextElement(28, 65, 44, 15);
+  page.elements.push(el);
+  saveGraphicNovel();
+  gnSelectElement(el.id);
+}
+function gnDeleteElement(id) {
+  const page = db.pages[_gnActivePage];
+  const el = page.elements.find(e => e.id === id);
+  if (el && el.type === 'image' && el.imageId) deleteGraphicImage(el.imageId);
+  page.elements = page.elements.filter(e => e.id !== id);
+  _gnSelectedElId = null;
+  saveGraphicNovel();
+  renderGraphicNovelScreen();
+}
+function gnSelectElement(id) {
+  _gnSelectedElId = id;
+  gnRenderCanvas();
+  gnRenderLayers();
+}
+function gnPickImageFor(el) {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.className = 'u-d-none'; // certains navigateurs exigent l'input dans le DOM pour ouvrir le sélecteur
+  input.addEventListener('change', async () => {
+    const file = input.files && input.files[0];
+    input.remove();
+    if (!file) return;
+    toast('Import de l\'image…', 'info');
+    try {
+      const ref = await storeGraphicImage(file, _currentDocumentId);
+      el.imageId = ref.imageId; el.imageW = ref.imageW; el.imageH = ref.imageH;
+      saveGraphicNovel();
+      renderGraphicNovelScreen();
+    } catch(e) {
+      toast('Impossible d\'importer cette image.', 'error');
+    }
+  });
+  document.body.appendChild(input);
+  input.click();
+}
+
+// ─────────────────────────────────────────────────────────
+// GLISSER / REDIMENSIONNER (PC uniquement — voir gnIsDesktop)
+// Positions/tailles en % de la page ; accrochage à 2% si _gnSnapGrid actif.
+// ─────────────────────────────────────────────────────────
+function gnSnap(v) { return _gnSnapGrid ? Math.round(v / 2) * 2 : Math.round(v * 10) / 10; }
+function gnClamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+function gnMakeDraggable(zoneEl, el) {
+  zoneEl.addEventListener('pointerdown', e => {
+    if (e.target.closest('.gn-handle') || e.target.closest('.gn-mini-toolbar')) return;
+    if (el.type === 'text') return; // le texte se déplace par ses coins (poignées), pas par un clic dans le texte
+    e.preventDefault();
+    const canvasRect = document.getElementById('gn-canvas').getBoundingClientRect();
+    _gnDrag = { mode:'move', el, zoneEl, startX:e.clientX, startY:e.clientY, origX:el.x, origY:el.y, canvasRect };
+    zoneEl.setPointerCapture(e.pointerId);
+  });
+  zoneEl.addEventListener('pointermove', gnOnPointerMove);
+  zoneEl.addEventListener('pointerup', gnOnPointerUp);
+}
+function gnMakeResizable(handleEl, zoneEl, el, pos) {
+  handleEl.addEventListener('pointerdown', e => {
+    e.preventDefault(); e.stopPropagation();
+    const canvasRect = document.getElementById('gn-canvas').getBoundingClientRect();
+    _gnDrag = { mode:'resize', pos, el, zoneEl, startX:e.clientX, startY:e.clientY, origX:el.x, origY:el.y, origW:el.w, origH:el.h, canvasRect };
+    handleEl.setPointerCapture(e.pointerId);
+  });
+  handleEl.addEventListener('pointermove', gnOnPointerMove);
+  handleEl.addEventListener('pointerup', gnOnPointerUp);
+}
+function gnOnPointerMove(e) {
+  if (!_gnDrag) return;
+  const { mode, el, zoneEl, startX, startY, canvasRect } = _gnDrag;
+  const dxPct = (e.clientX - startX) / canvasRect.width * 100;
+  const dyPct = (e.clientY - startY) / canvasRect.height * 100;
+  if (mode === 'move') {
+    el.x = gnClamp(gnSnap(_gnDrag.origX + dxPct), 0, 100 - el.w);
+    el.y = gnClamp(gnSnap(_gnDrag.origY + dyPct), 0, 100 - el.h);
+  } else {
+    const { pos, origX, origY, origW, origH } = _gnDrag;
+    if (pos.includes('e')) el.w = gnClamp(gnSnap(origW + dxPct), 6, 100 - origX);
+    if (pos.includes('s')) el.h = gnClamp(gnSnap(origH + dyPct), 6, 100 - origY);
+    if (pos.includes('w')) { const nw = gnClamp(gnSnap(origW - dxPct), 6, origX + origW); el.x = origX + origW - nw; el.w = nw; }
+    if (pos.includes('n')) { const nh = gnClamp(gnSnap(origH - dyPct), 6, origY + origH); el.y = origY + origH - nh; el.h = nh; }
+  }
+  // Important : ne PAS appeler gnRenderCanvas() ici — ça remplacerait
+  // zoneEl (qui détient la capture du pointeur) en plein glisser et
+  // couperait le geste net. On met juste à jour le style, en direct.
+  zoneEl.style.left = el.x + '%'; zoneEl.style.top = el.y + '%';
+  zoneEl.style.width = el.w + '%'; zoneEl.style.height = el.h + '%';
+}
+function gnOnPointerUp() {
+  if (!_gnDrag) return;
+  _gnDrag = null;
+  saveGraphicNovel();
+  gnRenderCanvas();
+  gnRenderPagesSidebar();
+}

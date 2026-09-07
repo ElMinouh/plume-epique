@@ -668,13 +668,16 @@ async function renderLibraryScreen() {
       // v9.1.0 — Cartes compactées en 3 colonnes sur mobile (voir style.css) :
       // le texte complet "X chapitre(s) · Y mots" ne tient plus dans la
       // largeur restante, abrégé en "X ch · Y mots" en dessous de 480px.
-      const metaText = window.innerWidth <= 480
-        ? `${d.chapterCount||0} ch · ${d.wordCount||0} mots`
-        : `${d.chapterCount||0} chapitre(s) · ${d.wordCount||0} mots`;
+      const isGraphic = d.docType === 'roman_graphique';
+      const metaText = isGraphic
+        ? `${d.chapterCount||0} page(s) · ${d.wordCount||0} mots`
+        : (window.innerWidth <= 480
+          ? `${d.chapterCount||0} ch · ${d.wordCount||0} mots`
+          : `${d.chapterCount||0} chapitre(s) · ${d.wordCount||0} mots`);
       return `
     <div class="library-card" data-doc-id="${d.id}" role="button" tabindex="0" title="Ouvrir « ${DOMPurify.sanitize(d.title || 'Sans titre')} »">
       <button class="library-kebab-btn" data-kebab-doc="${d.id}" title="Actions du manuscrit" aria-label="Actions du manuscrit">⋮</button>
-      <div class="library-cover${coverClass}">📖</div>
+      <div class="library-cover${coverClass}">${isGraphic ? '🎨' : '📖'}</div>
       <div class="library-card-body">
         <p class="library-card-title">${DOMPurify.sanitize(d.title || 'Sans titre')}</p>
         <p class="library-card-meta">${metaText}</p>
@@ -828,17 +831,25 @@ async function openDocument(docId) {
   _currentDocumentId = docId;
   cur = 0;
   hideLibraryScreen();
+  // Module Roman graphique (nouveau) : éditeur dédié, distinct de l'éditeur
+  // chapitre par chapitre (db.pages au lieu de db.chapters — voir schema.js).
+  if (db.docType === 'roman_graphique') { openGraphicNovelScreen(); return; }
   initApp();
 }
 
-async function createNewDocument() {
+// Au clic sur "Nouveau projet" : fenêtre de choix du type de document
+// (texte seul / roman graphique / bande dessinée à venir — voir
+// js/graphicnovel.js), plutôt qu'une création directe.
+function createNewDocument() { openNewDocumentTypeModal(); }
+
+async function createNewTextDocument() {
   const docId = genChapterId();
   const dbData = DEFAULT_DB();
   dbData.title = 'Nouveau manuscrit';
   if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) dbData.darkMode = true;
   await persistData(docDataKey(_currentProfileId, docId), await makeEncryptedEnvelope(JSON.stringify(dbData)));
   await mutateDocList(list => {
-    list.documents.push({ id:docId, title:dbData.title, lastModified:Date.now(), chapterCount:1, wordCount:0, wordGoal:0, cover:'auto' });
+    list.documents.push({ id:docId, title:dbData.title, docType:'texte', lastModified:Date.now(), chapterCount:1, wordCount:0, wordGoal:0, cover:'auto' });
   });
   db = dbData;
   _currentDocumentId = docId;
@@ -857,6 +868,10 @@ async function createNewDocument() {
 // blobs chiffrés orphelins s'accumuler indéfiniment. Nettoyage explicite ici.
 async function cleanupDocumentSideData(profileId, docId) {
   try { await persistData(aiChatDataKey(profileId, docId), null); } catch(e) { /* best effort */ }
+  // Module Roman graphique : les images (IndexedDB séparée, voir images.js)
+  // ne sont jamais nettoyées automatiquement ailleurs — sans appel ici, un
+  // manuscrit illustré supprimé laisserait ses images orphelines.
+  try { await deleteAllGraphicImagesForDocument(docId); } catch(e) { /* best effort */ }
   try {
     const prefix = 'conflict_doc_' + profileId + '_' + docId + '_';
     let keys = [];

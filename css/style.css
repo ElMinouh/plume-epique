@@ -1323,3 +1323,168 @@ body.library-mode #library-screen{display:block;}
 .u-m-8px-0-0{margin:8px 0 0}
 .u-m-10px-0-0{margin:10px 0 0}
 .u-m-12px-0-0{margin:12px 0 0}
+
+/* ═══════════════════════════════════════════════════════
+   MODULE ROMAN GRAPHIQUE / LIVRE ILLUSTRÉ (nouveau)
+   Écran dédié construit dynamiquement par js/graphicnovel.js (voir ce
+   fichier) — même principe d'affichage que #library-screen ci-dessus :
+   une classe sur <body> bascule ce qui est visible.
+   Les couleurs de la PAGE (#gn-canvas et ses zones) restent volontairement
+   indépendantes du thème sombre/clair de l'app : la page représente le
+   PAPIER imprimé, elle garde toujours le même rendu, comme le mode
+   "papier" déjà existant (--glass:#f4ecd8 en body.paper-mode plus haut).
+   ═══════════════════════════════════════════════════════ */
+#graphicnovel-screen{display:none;}
+body.graphicnovel-mode header,body.graphicnovel-mode main{display:none;}
+body.graphicnovel-mode #library-screen{display:none;}
+body.graphicnovel-mode #graphicnovel-screen{display:flex;flex-direction:column;height:100vh;}
+
+.gn-toolbar{display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid var(--border);
+  background:var(--glass);flex:none;}
+.gn-icon-btn{width:32px;height:32px;border-radius:var(--radius-sm);border:1px solid var(--border);
+  background:var(--item-bg);color:var(--text);font-size:.85rem;cursor:pointer;display:flex;
+  align-items:center;justify-content:center;font-family:inherit;}
+.gn-icon-btn:hover{background:rgba(192,57,43,.1);border-color:var(--accent);}
+.gn-icon-btn.gn-active{background:rgba(192,57,43,.14);border-color:var(--accent);color:var(--accent);}
+.gn-title-block{margin-right:auto;display:flex;flex-direction:column;gap:1px;min-width:0;}
+.gn-doc-name{font-family:'Palatino Linotype',Georgia,serif;font-weight:700;font-size:1rem;
+  color:var(--accent);outline:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:38vw;}
+.gn-doc-kind{font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;}
+.gn-pager{display:flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--text-muted);
+  background:var(--item-bg);border-radius:var(--radius-pill);padding:4px 6px;}
+.gn-pager button{width:22px;height:22px;border-radius:50%;border:none;background:transparent;
+  color:var(--text);cursor:pointer;font-size:.85rem;}
+.gn-pager button:hover{background:rgba(192,57,43,.12);}
+.gn-pager span{min-width:76px;text-align:center;font-variant-numeric:tabular-nums;}
+.gn-tb-tools{display:flex;align-items:center;gap:6px;}
+.gn-zoom-tag{font-size:var(--fs-xs);color:var(--text-muted);background:var(--item-bg);
+  padding:3px 9px;border-radius:var(--radius-pill);}
+
+.gn-body{flex:1;display:grid;grid-template-columns:150px 1fr 270px;min-height:0;}
+.gn-side-pages{border-right:1px solid var(--border);padding:10px;display:flex;flex-direction:column;
+  gap:8px;overflow-y:auto;}
+.gn-side-label{font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.07em;
+  color:var(--text-muted);font-weight:700;padding:0 2px;}
+.gn-side-label.gn-mt{margin-top:8px;}
+.gn-pages-list{display:flex;flex-direction:column;gap:8px;}
+.gn-pg-thumb{position:relative;aspect-ratio:4/5;border-radius:6px;background:#f4ecd8;
+  border:2px solid transparent;cursor:pointer;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.18);}
+.gn-pg-thumb:hover{border-color:rgba(142,68,173,.4);}
+.gn-pg-thumb.gn-active{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(142,68,173,.2);}
+.gn-icon-z{position:absolute;border-radius:1px;}
+.gn-icon-z.gn-icon-i{background:var(--accent2);opacity:.5;}
+.gn-icon-z.gn-icon-t{background:#3b2f1e;opacity:.25;}
+.gn-pg-num{position:absolute;bottom:2px;right:4px;font-size:.55rem;color:#8a7a5c;font-weight:700;}
+.gn-pg-del{position:absolute;top:2px;right:2px;width:16px;height:16px;border:none;border-radius:50%;
+  background:rgba(0,0,0,.45);color:#fff;font-size:.55rem;line-height:16px;padding:0;cursor:pointer;
+  opacity:0;transition:.15s;}
+.gn-pg-thumb:hover .gn-pg-del{opacity:1;}
+.gn-pg-add{aspect-ratio:4/5;border-radius:6px;border:1.5px dashed var(--border);background:none;
+  color:var(--text-muted);cursor:pointer;font-size:1.1rem;}
+.gn-pg-add:hover{border-color:var(--accent2);color:var(--accent2);}
+
+.gn-canvas-wrap{display:flex;align-items:center;justify-content:center;padding:24px;overflow:auto;}
+.gn-page-canvas{position:relative;width:min(440px,90%);aspect-ratio:4/5;background:#f4ecd8;
+  border-radius:4px;box-shadow:0 16px 36px rgba(0,0,0,.3),0 0 0 1px rgba(59,47,30,.2);
+  background-image:radial-gradient(circle,rgba(59,47,30,.12) 1px,transparent 1px);background-size:20px 20px;}
+.gn-zone-wrap{position:absolute;inset:0;}
+.gn-zone-wrap-preview{top:32px;height:calc(100% - 32px);}
+.gn-preview-banner{position:absolute;top:0;left:0;right:0;z-index:5;
+  background:linear-gradient(100deg,var(--accent),var(--accent2));color:#fff;font-size:.7rem;
+  font-weight:600;padding:7px 10px;display:flex;align-items:center;justify-content:space-between;
+  gap:8px;border-radius:4px 4px 0 0;}
+.gn-preview-banner button{font-family:inherit;font-size:.66rem;font-weight:700;
+  background:rgba(255,255,255,.22);border:none;color:#fff;padding:4px 9px;border-radius:var(--radius-pill);
+  cursor:pointer;flex:none;}
+
+.gn-zone{position:absolute;border-radius:3px;overflow:hidden;background-color:rgba(59,47,30,.04);
+  background-repeat:no-repeat;}
+.gn-zone-img{background-color:#c9bfa3;}
+.gn-zone-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  border:1.5px dashed rgba(59,47,30,.35);cursor:pointer;color:#7a6c52;}
+.gn-zone-empty:hover{border-color:var(--accent2);color:var(--accent2);}
+.gn-empty-plus{font-size:1.3rem;line-height:1;}
+.gn-empty-label{font-size:.62rem;}
+.gn-dpi-warn{position:absolute;top:4px;right:4px;font-size:.55rem;font-weight:700;color:#3b1f00;
+  background:#f0b84d;padding:2px 5px;border-radius:3px;}
+.gn-zone-txt{padding:6px 8px;color:#3b2f1e;font-family:'Palatino Linotype',Georgia,serif;
+  outline:none;cursor:text;font-size:.85rem;line-height:1.4;overflow:hidden;}
+.gn-zone-txt:empty::before{content:attr(data-placeholder);color:#8a7a5c;}
+.gn-zone-title .gn-zt-body,.gn-zone-txt.gn-zone-title{display:flex;align-items:center;justify-content:center;
+  text-align:center;font-weight:700;}
+.gn-zone.gn-selected{outline:1.5px dashed var(--accent2);outline-offset:2px;}
+.gn-handle{position:absolute;width:9px;height:9px;background:var(--accent2);border:1px solid #fff;
+  border-radius:1px;z-index:3;touch-action:none;}
+.gn-handle-nw{top:-5px;left:-5px;cursor:nwse-resize;}
+.gn-handle-ne{top:-5px;right:-5px;cursor:nesw-resize;}
+.gn-handle-sw{bottom:-5px;left:-5px;cursor:nesw-resize;}
+.gn-handle-se{bottom:-5px;right:-5px;cursor:nwse-resize;}
+.gn-mini-toolbar{position:absolute;top:-34px;left:0;z-index:4;display:flex;gap:3px;background:var(--glass);
+  border:1px solid var(--border);border-radius:var(--radius-pill);padding:3px;box-shadow:var(--shadow);}
+.gn-mini-toolbar button{width:24px;height:24px;border-radius:50%;border:none;background:transparent;
+  color:var(--text);font-size:.72rem;cursor:pointer;}
+.gn-mini-toolbar button:hover{background:rgba(192,57,43,.12);}
+
+.gn-side-right{border-left:1px solid var(--border);padding:12px;overflow-y:auto;}
+.gn-gabarits{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px;}
+.gn-gab{border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--item-bg);
+  cursor:pointer;padding:7px 5px 6px;display:flex;flex-direction:column;align-items:center;gap:5px;}
+.gn-gab:hover{border-color:rgba(142,68,173,.5);}
+.gn-gab.gn-active{border-color:var(--accent2);background:rgba(142,68,173,.12);}
+.gn-icon{position:relative;width:42px;height:52px;background:#f4ecd8;border-radius:3px;overflow:hidden;
+  box-shadow:0 1px 3px rgba(0,0,0,.25);}
+.gn-gab-lbl{font-size:.62rem;color:var(--text-muted);text-align:center;line-height:1.25;}
+.gn-layers{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
+.gn-layer-row{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:var(--radius-sm);
+  background:var(--item-bg);font-size:var(--fs-sm);cursor:pointer;}
+.gn-layer-row:hover{background:rgba(142,68,173,.1);}
+.gn-layer-row.gn-sel{background:rgba(142,68,173,.16);outline:1px solid var(--accent2);}
+.gn-lg{font-size:.85rem;flex:none;}
+.gn-lname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.gn-layers-empty{font-size:var(--fs-sm);color:var(--text-muted);margin-top:8px;}
+
+.gn-mobile-note{display:none;margin:0;padding:7px 14px;font-size:var(--fs-xs);color:var(--text-muted);
+  text-align:center;border-top:1px solid var(--border);background:var(--glass);}
+
+/* Modale "Nouveau projet" — choix du type de document (texte / roman
+   graphique / bande dessinée à venir), avant toute création. */
+.gn-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:8600;display:flex;
+  align-items:center;justify-content:center;padding:20px;}
+.gn-modal{width:min(680px,100%);background:var(--glass);border:1px solid var(--border);
+  border-radius:var(--radius);box-shadow:var(--shadow);padding:26px 28px 22px;}
+.gn-modal h3{font-family:'Palatino Linotype',Georgia,serif;font-size:1.25rem;margin:0 0 4px;color:var(--text);}
+.gn-modal-sub{color:var(--text-muted);font-size:var(--fs-base);margin:0 0 18px;}
+.gn-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.gn-type-card{position:relative;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  padding:16px 12px 14px;text-align:center;cursor:pointer;background:var(--item-bg);}
+.gn-type-card:hover{border-color:var(--accent2);}
+.gn-type-glyph{width:42px;height:42px;margin:0 auto 10px;border-radius:10px;display:flex;
+  align-items:center;justify-content:center;font-size:1.25rem;background:rgba(192,57,43,.12);}
+.gn-type-card h4{font-size:var(--fs-md);margin:0 0 3px;font-weight:700;color:var(--text);}
+.gn-type-card p{font-size:var(--fs-xs);color:var(--text-muted);margin:0;line-height:1.45;}
+.gn-type-card.gn-selected{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(142,68,173,.18);}
+.gn-type-card.gn-selected::after{content:"✓";position:absolute;top:8px;right:9px;width:17px;height:17px;
+  border-radius:50%;background:var(--accent2);color:#fff;font-size:.6rem;display:flex;
+  align-items:center;justify-content:center;font-weight:700;}
+.gn-type-card.gn-disabled{cursor:not-allowed;opacity:.55;}
+.gn-soon-badge{position:absolute;top:8px;right:9px;font-size:.58rem;letter-spacing:.03em;
+  background:var(--item-bg);color:var(--text-muted);padding:2px 7px;border-radius:var(--radius-pill);
+  text-transform:uppercase;font-weight:700;}
+.gn-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px;}
+
+/* Édition simplifiée sur mobile (décision validée avec l'utilisateur) : le
+   positionnement libre précis (glisser/redimensionner) reste réservé au
+   PC — gnIsDesktop() dans graphicnovel.js n'attache déjà pas les
+   écouteurs de glisser sous ce seuil ; ici on ajoute juste le rappel
+   visuel et un empilement à une colonne. */
+@media (max-width:900px){
+  .gn-body{grid-template-columns:1fr;grid-template-rows:auto 1fr auto;}
+  .gn-side-pages{border-right:none;border-bottom:1px solid var(--border);flex-direction:row;
+    flex-wrap:wrap;max-height:120px;}
+  .gn-side-pages .gn-pages-list{flex-direction:row;flex-wrap:wrap;}
+  .gn-pg-thumb{width:64px;flex:none;}
+  .gn-side-right{border-left:none;border-top:1px solid var(--border);}
+  .gn-mobile-note{display:block;}
+  .gn-type-grid{grid-template-columns:1fr;}
+  .gn-doc-name{max-width:32vw;}
+}
