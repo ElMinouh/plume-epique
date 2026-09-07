@@ -205,7 +205,6 @@ function ensureGraphicNovelScreen() {
         <button class="gn-icon-btn" id="gn-add-image-btn" title="Ajouter une image libre sur la page">🖼️+</button>
         <button class="gn-icon-btn" id="gn-add-text-btn" title="Ajouter un bloc de texte libre sur la page">🔤+</button>
         <button class="gn-icon-btn gn-active" id="gn-grid-toggle" title="Grille magnétique (alignement précis)">▦</button>
-        <span class="gn-zoom-tag">100%</span>
       </div>
       <button class="action-btn" id="gn-export-btn" title="Exporter le livre en PDF qualité impression (300 DPI, fond perdu 3 mm)">Exporter le PDF</button>
     </div>
@@ -227,6 +226,8 @@ function ensureGraphicNovelScreen() {
           <div class="gn-side-label">Texte sélectionné</div>
           <div class="gn-txtprops" id="gn-txtprops"></div>
         </div>
+        <div class="gn-side-label">Page</div>
+        <div class="gn-pageprops" id="gn-pageprops"></div>
         <div class="gn-side-label gn-mt">Gabarits</div>
         <div class="gn-gabarits" id="gn-gabarits"></div>
         <div class="gn-side-label gn-mt">Calques — page active</div>
@@ -297,8 +298,26 @@ function renderGraphicNovelScreen() {
   gnRenderGabaritsPanel();
   gnRenderCanvas();
   gnRenderLayers();
+  gnRenderPageProps();
   const label = document.getElementById('gn-page-label');
   if (label) label.textContent = 'Page ' + (_gnActivePage + 1) + ' / ' + db.pages.length;
+}
+
+// Fond de la page active (Lot 1) : champ db.pages[i].background, présent
+// dans le schéma depuis la toute première version du module mais jamais
+// exposé jusqu'ici — la page affichait toujours #f4ecd8 en dur.
+function gnRenderPageProps() {
+  const box = document.getElementById('gn-pageprops');
+  if (!box) return;
+  const page = db.pages[_gnActivePage];
+  box.innerHTML = `<label class="gn-color-lbl">Fond <input type="color" id="gn-page-bg-picker" value="${page.background || '#f4ecd8'}"></label>`;
+  document.getElementById('gn-page-bg-picker').addEventListener('input', e => {
+    page.background = e.target.value;
+    const canvas = document.getElementById('gn-canvas');
+    if (canvas) canvas.style.backgroundColor = page.background;
+    saveGraphicNovel();
+    gnRenderPagesSidebar(); // reflète la couleur sur la vignette de la page dans la liste
+  });
 }
 
 function gnMiniIconHtml(elements) {
@@ -310,7 +329,7 @@ function gnMiniIconHtml(elements) {
 function gnRenderPagesSidebar() {
   const box = document.getElementById('gn-pages-list');
   box.innerHTML = db.pages.map((p, i) => `
-    <div class="gn-pg-thumb${i===_gnActivePage?' gn-active':''}" data-idx="${i}" title="Page ${i+1}">
+    <div class="gn-pg-thumb${i===_gnActivePage?' gn-active':''}" data-idx="${i}" title="Page ${i+1}" style="background:${p.background || '#f4ecd8'}">
       ${gnMiniIconHtml(p.elements)}
       <span class="gn-pg-num">${i+1}</span>
       <button class="gn-pg-del" data-idx="${i}" title="Supprimer la page ${i+1}" aria-label="Supprimer la page ${i+1}">✕</button>
@@ -333,6 +352,10 @@ function gnRenderGabaritsPanel() {
 async function gnRenderCanvas(exportMode) {
   const canvas = document.getElementById('gn-canvas');
   canvas.innerHTML = '';
+  // Fond de page (Lot 1) : longhand backgroundColor, jamais le raccourci
+  // "background" — sinon ça écraserait aussi background-image (la grille
+  // pointillée d'édition, posée par la classe CSS .gn-page-canvas).
+  canvas.style.backgroundColor = (db.pages[_gnActivePage] && db.pages[_gnActivePage].background) || '';
   const preview = !!_gnPreviewGabarit && !exportMode;
   let elements;
   if (preview) {
@@ -514,7 +537,12 @@ function gnRenderImageProps() {
   if (!el) { block.hidden = true; box.innerHTML = ''; return; }
   block.hidden = false;
   box.innerHTML = `
-    <div class="gn-prop-label"><span>Zoom</span><span class="gn-prop-val" id="gn-zoom-val">${Math.round(el.zoom)}%</span></div>
+    <div class="gn-side-label">Ajustement</div>
+    <div class="gn-shape-row">
+      <button class="gn-shape-btn${el.fit!=='contain'?' gn-active':''}" data-fit="cover" title="Remplit tout le cadre (recadre l'image si besoin)">▣</button>
+      <button class="gn-shape-btn${el.fit==='contain'?' gn-active':''}" data-fit="contain" title="Image entière visible (peut laisser des marges dans le cadre)">▢</button>
+    </div>
+    <div class="gn-prop-label gn-mt-sm"><span>Zoom</span><span class="gn-prop-val" id="gn-zoom-val">${Math.round(el.zoom)}%</span></div>
     <input type="range" id="gn-zoom-slider" min="100" max="300" value="${el.zoom}">
     <div class="gn-prop-label gn-mt-sm"><span>Rotation</span><span class="gn-prop-val" id="gn-rot-val">${Math.round(el.rotation)}°</span></div>
     <input type="range" id="gn-rot-slider" min="-180" max="180" value="${el.rotation}">
@@ -522,8 +550,24 @@ function gnRenderImageProps() {
     <div class="gn-side-label gn-mt-sm">Forme du cadre</div>
     <div class="gn-shape-row">
       ${GN_FRAME_SHAPES.map(s => `<button class="gn-shape-btn${el.frameShape===s.key?' gn-active':''}" data-shape="${s.key}" title="${s.title}">${s.glyph}</button>`).join('')}
-    </div>`;
+    </div>
+    <div class="gn-side-label gn-mt-sm">Texte alternatif</div>
+    <input type="text" id="gn-alt-input" class="gn-alt-input" placeholder="Décrit l'image (accessibilité)" title="Texte alternatif : décrit l'image pour les lecteurs d'écran (non visible à l'impression)">`;
+  // Affecté après coup via .value (jamais interpolé dans le template ci-dessus)
+  // : el.alt est du texte libre saisi par l'utilisateur, contrairement aux
+  // autres champs de ce panneau qui sont tous des valeurs contrôlées
+  // (couleurs, nombres, clés fixes) — même précaution que pour el.content.
+  document.getElementById('gn-alt-input').value = el.alt || '';
   const zoneEl = document.querySelector(`.gn-zone[data-el-id="${el.id}"]`);
+  box.querySelectorAll('[data-fit]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      el.fit = btn.dataset.fit;
+      box.querySelectorAll('[data-fit]').forEach(b => b.classList.remove('gn-active'));
+      btn.classList.add('gn-active');
+      if (zoneEl) gnApplyImageTransform(zoneEl, el);
+      saveGraphicNovel();
+    });
+  });
   document.getElementById('gn-zoom-slider').addEventListener('input', e => {
     el.zoom = +e.target.value;
     document.getElementById('gn-zoom-val').textContent = el.zoom + '%';
@@ -536,12 +580,17 @@ function gnRenderImageProps() {
     if (zoneEl) gnApplyImageTransform(zoneEl, el);
     saveGraphicNovel();
   });
-  box.querySelectorAll('.gn-shape-btn').forEach(btn => {
+  box.querySelectorAll('[data-shape]').forEach(btn => {
     btn.addEventListener('click', () => {
       el.frameShape = btn.dataset.shape;
       saveGraphicNovel();
       gnRenderCanvas();
     });
+  });
+  document.getElementById('gn-alt-input').addEventListener('input', e => {
+    el.alt = e.target.value;
+    if (zoneEl) { const img = zoneEl.querySelector('img'); if (img) img.alt = el.alt; }
+    saveGraphicNovel();
   });
 }
 
@@ -678,7 +727,13 @@ async function gnDeletePage(i) {
 }
 function gnAddFreeElement(type) {
   const page = db.pages[_gnActivePage];
-  const el = type === 'image' ? makeImageElement(28, 28, 44, 34) : makeTextElement(28, 65, 44, 15);
+  // Décalage en cascade (audit Lot 1) : sans ça, chaque nouvel élément
+  // libre atterrissait exactement à la même position que le précédent, pile
+  // empilé dessus — repart à 0 tous les 6 éléments pour rester dans la page.
+  const offset = (page.elements.length % 6) * 4;
+  const el = type === 'image'
+    ? makeImageElement(gnClamp(28 + offset, 0, 56), gnClamp(28 + offset, 0, 66), 44, 34)
+    : makeTextElement(gnClamp(28 + offset, 0, 56), gnClamp(65 + offset, 0, 85), 44, 15);
   page.elements.push(el);
   saveGraphicNovel();
   gnSelectElement(el.id);
@@ -787,11 +842,13 @@ function gnMakePannable(frameEl, el) {
   frameEl.addEventListener('pointermove', gnOnPointerMove);
   frameEl.addEventListener('pointerup', gnOnPointerUp);
 }
-// Calcule et applique le cadrage (pan/zoom/rotation) d'une image dans son
-// cadre : l'image couvre toujours le cadre au minimum (recadrage type
-// "cover"), zoom au-delà agrandit, focusX/focusY déplacent la portion
-// visible. La rotation s'applique au cadre-fenêtre (.gn-frame-fill), qui
-// reste découpé à la taille du cadre — l'image tourne avec lui.
+// Calcule et applique le cadrage (pan/zoom/rotation/ajustement) d'une image
+// dans son cadre. el.fit==='contain' (nouveau) : l'image entière reste
+// visible (peut laisser des marges) — sinon (défaut 'cover') elle couvre
+// tout le cadre, quitte à être recadrée. zoom au-delà de 100% agrandit dans
+// les deux cas, focusX/focusY déplacent la portion visible quand l'image
+// déborde du cadre. La rotation s'applique au cadre-fenêtre (.gn-frame-fill),
+// qui reste découpé à la taille du cadre — l'image tourne avec lui.
 function gnApplyImageTransform(zoneEl, el) {
   const frameEl = zoneEl && zoneEl.querySelector('.gn-frame-fill');
   const img = frameEl && frameEl.querySelector('img');
@@ -800,12 +857,15 @@ function gnApplyImageTransform(zoneEl, el) {
   if (!frameW || !frameH) return;
   frameEl.style.transform = el.rotation ? `rotate(${el.rotation}deg)` : '';
   const iw = el.imageW || frameW, ih = el.imageH || frameH;
-  const baseScale = Math.max(frameW / iw, frameH / ih);
+  const baseScale = el.fit === 'contain' ? Math.min(frameW / iw, frameH / ih) : Math.max(frameW / iw, frameH / ih);
   const scale = baseScale * ((el.zoom || 100) / 100);
   const imgW = iw * scale, imgH = ih * scale;
   const maxX = Math.max(0, imgW - frameW), maxY = Math.max(0, imgH - frameH);
-  const tx = -((el.focusX ?? 50) / 100) * maxX;
-  const ty = -((el.focusY ?? 50) / 100) * maxY;
+  // Bug évité : quand l'image est plus petite qu'un axe du cadre (fit
+  // "contain"), maxX/maxY vaut 0 — sans ce cas à part, l'image restait
+  // plaquée en haut à gauche au lieu d'être centrée dans la marge.
+  const tx = maxX > 0 ? -((el.focusX ?? 50) / 100) * maxX : (frameW - imgW) / 2;
+  const ty = maxY > 0 ? -((el.focusY ?? 50) / 100) * maxY : (frameH - imgH) / 2;
   img.style.width = imgW + 'px'; img.style.height = imgH + 'px';
   img.style.transform = `translate(${tx}px,${ty}px)`;
 }

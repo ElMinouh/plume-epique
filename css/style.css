@@ -1357,8 +1357,6 @@ body.graphicnovel-mode #graphicnovel-screen{display:flex;flex-direction:column;h
 .gn-pager button:hover{background:rgba(192,57,43,.12);}
 .gn-pager span{min-width:76px;text-align:center;font-variant-numeric:tabular-nums;}
 .gn-tb-tools{display:flex;align-items:center;gap:6px;}
-.gn-zoom-tag{font-size:var(--fs-xs);color:var(--text-muted);background:var(--item-bg);
-  padding:3px 9px;border-radius:var(--radius-pill);}
 
 .gn-body{flex:1;display:grid;grid-template-columns:150px 1fr 270px;min-height:0;}
 .gn-side-pages{border-right:1px solid var(--border);padding:10px;display:flex;flex-direction:column;
@@ -1478,6 +1476,8 @@ body.graphicnovel-mode #graphicnovel-screen{display:flex;flex-direction:column;h
   border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;
   color:var(--text-muted);font-size:1rem;}
 .gn-shape-btn.gn-active{border-color:var(--accent2);color:var(--accent2);background:rgba(142,68,173,.12);}
+.gn-alt-input{width:100%;margin-top:6px;padding:7px 8px;border:1.5px solid var(--border);
+  background:var(--item-bg);border-radius:var(--radius-sm);color:var(--text);font-size:var(--fs-sm);}
 
 /* ── Texte déplaçable + mise en forme professionnelle — maquette validée,
    voir "Texte avancé" ── */
