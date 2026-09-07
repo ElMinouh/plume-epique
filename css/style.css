@@ -1387,6 +1387,11 @@ body.graphicnovel-mode #graphicnovel-screen{display:flex;flex-direction:column;h
 .gn-page-canvas{position:relative;width:min(440px,90%);aspect-ratio:4/5;background:#f4ecd8;
   border-radius:4px;box-shadow:0 16px 36px rgba(0,0,0,.3),0 0 0 1px rgba(59,47,30,.2);
   background-image:radial-gradient(circle,rgba(59,47,30,.12) 1px,transparent 1px);background-size:20px 20px;}
+/* Export PDF qualité impression : neutralise le décor purement éditeur
+   (grille magnétique, ombre portée, coins arrondis) pendant la capture
+   html2canvas de la page — voir gnExportGraphicNovelPDF (graphicnovel.js).
+   Le fond de page reste, lui, bien réel : il fait partie du visuel imprimé. */
+.gn-page-canvas.gn-export-mode{background-image:none;box-shadow:none;border-radius:0;}
 .gn-zone-wrap{position:absolute;inset:0;}
 .gn-zone-wrap-preview{top:32px;height:calc(100% - 32px);}
 .gn-preview-banner{position:absolute;top:0;left:0;right:0;z-index:5;

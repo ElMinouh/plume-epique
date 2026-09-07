@@ -207,7 +207,7 @@ function ensureGraphicNovelScreen() {
         <button class="gn-icon-btn gn-active" id="gn-grid-toggle" title="Grille magnétique (alignement précis)">▦</button>
         <span class="gn-zoom-tag">100%</span>
       </div>
-      <button class="action-btn" id="gn-export-btn" disabled title="Export PDF — bientôt disponible">Exporter le PDF</button>
+      <button class="action-btn" id="gn-export-btn" title="Exporter le livre en PDF qualité impression (300 DPI, fond perdu 3 mm)">Exporter le PDF</button>
     </div>
     <div class="gn-body">
       <div class="gn-side-pages">
@@ -251,6 +251,7 @@ function gnWireEvents() {
   });
   document.getElementById('gn-add-image-btn').addEventListener('click', () => gnAddFreeElement('image'));
   document.getElementById('gn-add-text-btn').addEventListener('click', () => gnAddFreeElement('text'));
+  document.getElementById('gn-export-btn').addEventListener('click', gnExportGraphicNovelPDF);
 
   // Délégation d'événements sur les listes reconstruites souvent (évite
   // d'empiler des écouteurs à chaque rendu — même principe que
@@ -325,10 +326,14 @@ function gnRenderGabaritsPanel() {
     </div>`).join('');
 }
 
-async function gnRenderCanvas() {
+// exportMode (voir gnExportGraphicNovelPDF, section EXPORT PDF plus bas) :
+// rendu "propre" pour la capture haute résolution — aucune poignée/mini-
+// barre/grille, et les éléments vides (image sans imageId, texte sans
+// contenu) ne sont pas dessinés du tout (page de fond visible à la place).
+async function gnRenderCanvas(exportMode) {
   const canvas = document.getElementById('gn-canvas');
   canvas.innerHTML = '';
-  const preview = !!_gnPreviewGabarit;
+  const preview = !!_gnPreviewGabarit && !exportMode;
   let elements;
   if (preview) {
     const banner = document.createElement('div');
@@ -345,6 +350,10 @@ async function gnRenderCanvas() {
   if (preview) wrap.classList.add('gn-zone-wrap-preview');
   canvas.appendChild(wrap);
   for (const el of elements) {
+    // Export : un élément vide ne laisse aucune trace visuelle dans le PDF
+    // (ni cadre pointillé "Ajouter une image", ni espace de saisie "Texte…").
+    if (exportMode && el.type === 'image' && !el.imageId) continue;
+    if (exportMode && el.type === 'text' && !(el.content || '').trim()) continue;
     const zone = document.createElement('div');
     zone.className = 'gn-zone ' + (el.type === 'image' ? 'gn-zone-img' : 'gn-zone-txt');
     zone.style.left = el.x + '%'; zone.style.top = el.y + '%';
@@ -357,9 +366,9 @@ async function gnRenderCanvas() {
         const url = await graphicImageUrl(el.imageId);
         const lowRes = Math.max(el.imageW||0, el.imageH||0) < 1200;
         zone.innerHTML = `<div class="gn-frame-fill"><img class="gn-pannable" draggable="false" src="${url||''}" alt=""></div>` +
-          (lowRes ? `<span class="gn-dpi-warn" title="Résolution basse pour une impression nette">⚠ basse résolution</span>` : '');
-        if (!preview) gnMakePannable(zone.querySelector('.gn-frame-fill'), el);
-      } else if (!preview) {
+          (lowRes && !exportMode ? `<span class="gn-dpi-warn" title="Résolution basse pour une impression nette">⚠ basse résolution</span>` : '');
+        if (!preview && !exportMode) gnMakePannable(zone.querySelector('.gn-frame-fill'), el);
+      } else if (!preview && !exportMode) {
         zone.classList.add('gn-zone-empty');
         zone.innerHTML = `<span class="gn-empty-plus">+</span><span class="gn-empty-label">Ajouter une image</span>`;
         // Zone vide : un clic ouvre directement le sélecteur de fichier —
@@ -375,26 +384,28 @@ async function gnRenderCanvas() {
         if (el.align === 'center') zone.classList.add('gn-zone-title');
         zone.innerHTML = `<div class="gn-zt-body">${el.align==='center' ? 'Titre de la page' : 'Texte…'}</div>`;
       } else {
-        zone.contentEditable = 'true';
+        zone.contentEditable = exportMode ? 'false' : 'true';
         zone.spellcheck = false;
         zone.textContent = el.content || '';
         zone.dataset.placeholder = 'Texte…';
         gnApplyTextStyle(zone, el);
-        // Bug corrigé (tests réels) : la poignée ✥ et la mini-barre 🗑 sont
-        // des ENFANTS de cette même zone contenteditable (contentEditable
-        //="false" empêche seulement leur édition, pas leur présence dans
-        // zone.textContent) — sans ce filtre, taper dans le texte incorpore
-        // silencieusement leurs glyphes au contenu sauvegardé.
-        zone.addEventListener('input', () => {
-          const clone = zone.cloneNode(true);
-          clone.querySelectorAll('.gn-mini-toolbar, .gn-move-handle, .gn-handle').forEach(n => n.remove());
-          el.content = clone.textContent;
-          saveGraphicNovel();
-        });
-        zone.addEventListener('pointerdown', e => e.stopPropagation());
+        if (!exportMode) {
+          // Bug corrigé (tests réels) : la poignée ✥ et la mini-barre 🗑 sont
+          // des ENFANTS de cette même zone contenteditable (contentEditable
+          //="false" empêche seulement leur édition, pas leur présence dans
+          // zone.textContent) — sans ce filtre, taper dans le texte incorpore
+          // silencieusement leurs glyphes au contenu sauvegardé.
+          zone.addEventListener('input', () => {
+            const clone = zone.cloneNode(true);
+            clone.querySelectorAll('.gn-mini-toolbar, .gn-move-handle, .gn-handle').forEach(n => n.remove());
+            el.content = clone.textContent;
+            saveGraphicNovel();
+          });
+          zone.addEventListener('pointerdown', e => e.stopPropagation());
+        }
       }
     }
-    if (!preview) {
+    if (!preview && !exportMode) {
       // Sélectionner (fait apparaître poignées + mini-barre) — pour une
       // image déjà remplie, remplacer se fait via 🔁 dans la mini-barre,
       // pas en recliquant dessus (sinon le sélecteur de fichier se
@@ -452,8 +463,7 @@ async function gnRenderCanvas() {
     if (el.type === 'image' && el.imageId && !preview) gnApplyImageTransform(zone, el);
   }
   canvas.onclick = gnDeselectOnBackdrop;
-  gnRenderImageProps();
-  gnRenderTextProps();
+  if (!exportMode) { gnRenderImageProps(); gnRenderTextProps(); }
 }
 function gnDeselectOnBackdrop(e) {
   if (e.target.id === 'gn-canvas' || e.target.classList.contains('gn-zone-wrap')) gnSelectElement(null);
@@ -851,4 +861,124 @@ function gnOnPointerUp() {
   saveGraphicNovel();
   gnRenderCanvas();
   gnRenderPagesSidebar();
+}
+
+// ─────────────────────────────────────────────────────────
+// EXPORT PDF QUALITÉ IMPRESSION
+// Choix validés avec l'utilisateur (AskUserQuestion) : format 20×25 cm
+// (ratio 4:5, identique à l'éditeur), 300 DPI, fond perdu 3 mm.
+//
+// Principe : plutôt que de reconstruire le rendu en vectoriel avec jsPDF
+// (police par police, forme de cadre par forme de cadre, rotation par
+// rotation — bien trop de rendu spécifique à dupliquer fidèlement), on
+// capture chaque page telle qu'affichée réellement dans l'éditeur
+// (html2canvas), à haute résolution. gnRenderCanvas(true) produit un
+// rendu "propre" (sans poignées ni grille) de la page active ; le fond
+// perdu est simulé par un léger agrandissement centré de cette capture
+// (tout élément touchant un bord de page se prolonge donc naturellement
+// dans la marge de massicotage, sans bande blanche).
+// ─────────────────────────────────────────────────────────
+const GN_PDF_TRIM_MM = { w: 200, h: 250 }; // 20 × 25 cm — conserve le ratio 4:5 de l'éditeur
+const GN_PDF_BLEED_MM = 3;                  // fond perdu standard imprimeur
+const GN_PDF_DPI = 300;                     // qualité impression professionnelle
+// Largeur CSS de référence de .gn-page-canvas (voir css/style.css,
+// width:min(440px,90%)) — sert à calculer le facteur d'agrandissement
+// (html2canvas scale) pour atteindre la résolution cible.
+const GN_EDITOR_REF_PX = 440;
+
+function gnMmToPx(mm) { return Math.round(mm / 25.4 * GN_PDF_DPI); }
+
+// Attend que toutes les images <img> de la page à exporter soient
+// effectivement décodées avant la capture — sans ça, html2canvas peut
+// photographier une image encore vide sur un premier rendu.
+function gnWaitImagesReady(container) {
+  const imgs = Array.from(container.querySelectorAll('img'));
+  return Promise.all(imgs.map(img => {
+    if (img.complete && img.naturalWidth) return Promise.resolve();
+    return new Promise(res => { img.addEventListener('load', res, { once:true }); img.addEventListener('error', res, { once:true }); });
+  }));
+}
+
+// Petite fenêtre de progression pendant l'export (peut prendre plusieurs
+// secondes par page en haute résolution) — réutilise le style des modales
+// existantes (.gn-modal-overlay/.gn-modal) et de l'indicateur "IA en train
+// d'écrire" (.ai-loader/.ai-dot) pour rester cohérent visuellement.
+function gnExportProgress(show, label) {
+  let el = document.getElementById('gn-export-modal');
+  if (!show) { if (el) el.remove(); return; }
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'gn-export-modal';
+    el.className = 'gn-modal-overlay';
+    el.innerHTML = `<div class="gn-modal" style="text-align:center;">
+      <h3>Génération du PDF</h3>
+      <div class="ai-loader"><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span></div>
+      <p class="gn-modal-sub" id="gn-export-label"></p>
+    </div>`;
+    document.body.appendChild(el);
+  }
+  document.getElementById('gn-export-label').textContent = label || '';
+}
+
+async function gnExportGraphicNovelPDF() {
+  if (typeof html2canvas !== 'function' || !window.jspdf) {
+    toast('⚠️ Les librairies d\'export PDF n\'ont pas pu se charger (connexion hors-ligne ?).', 'error');
+    return;
+  }
+  const pages = db.pages || [];
+  if (!pages.length) { toast('Aucune page à exporter.', 'error'); return; }
+  const btn = document.getElementById('gn-export-btn');
+  if (btn) btn.disabled = true;
+  const savedPage = _gnActivePage, savedSel = _gnSelectedElId, savedPan = _gnPanMode;
+  _gnSelectedElId = null; _gnPanMode = false;
+  const pageEl = document.getElementById('gn-canvas');
+  pageEl.classList.add('gn-export-mode');
+  pageEl.style.width = GN_EDITOR_REF_PX + 'px';
+  gnExportProgress(true, 'Préparation…');
+  try {
+    const trimWpx = gnMmToPx(GN_PDF_TRIM_MM.w), trimHpx = gnMmToPx(GN_PDF_TRIM_MM.h);
+    const bleedPx = gnMmToPx(GN_PDF_BLEED_MM);
+    const fullWpx = trimWpx + bleedPx * 2, fullHpx = trimHpx + bleedPx * 2;
+    const fullWmm = GN_PDF_TRIM_MM.w + GN_PDF_BLEED_MM * 2, fullHmm = GN_PDF_TRIM_MM.h + GN_PDF_BLEED_MM * 2;
+    const scale = trimWpx / GN_EDITOR_REF_PX;
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit:'mm', format:[fullWmm, fullHmm], orientation:'portrait', compress:true });
+    for (let i = 0; i < pages.length; i++) {
+      gnExportProgress(true, `Page ${i + 1} / ${pages.length}…`);
+      _gnActivePage = i;
+      await gnRenderCanvas(true);
+      await gnWaitImagesReady(pageEl);
+      // Laisse le navigateur peindre le rendu avant de le capturer.
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const trimCanvas = await html2canvas(pageEl, {
+        scale, backgroundColor: getComputedStyle(pageEl).backgroundColor || '#f4ecd8', useCORS:true, logging:false
+      });
+      // Fond perdu : léger agrandissement centré de la page capturée — tout
+      // élément touchant un bord se prolonge donc dans la marge de
+      // massicotage au lieu de laisser une bande blanche.
+      const bleedCanvas = document.createElement('canvas');
+      bleedCanvas.width = fullWpx; bleedCanvas.height = fullHpx;
+      const ctx = bleedCanvas.getContext('2d');
+      const bScale = fullWpx / trimCanvas.width;
+      const dw = trimCanvas.width * bScale, dh = trimCanvas.height * bScale;
+      ctx.drawImage(trimCanvas, (fullWpx - dw) / 2, (fullHpx - dh) / 2, dw, dh);
+      const jpeg = bleedCanvas.toDataURL('image/jpeg', 0.92);
+      if (i > 0) pdf.addPage([fullWmm, fullHmm], 'portrait');
+      pdf.addImage(jpeg, 'JPEG', 0, 0, fullWmm, fullHmm, undefined, 'FAST');
+    }
+    const filename = (db.title || 'roman-graphique').trim().replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80) || 'roman-graphique';
+    pdf.save(filename + '.pdf');
+    toast('✅ PDF qualité impression généré (' + pages.length + ' page' + (pages.length > 1 ? 's' : '') + ').', 'success');
+  } catch (e) {
+    console.error('Échec export PDF (roman graphique) :', e);
+    toast('⚠️ Échec de l\'export PDF : ' + (e && e.message ? e.message : e), 'error');
+  } finally {
+    pageEl.classList.remove('gn-export-mode');
+    pageEl.style.width = '';
+    _gnActivePage = savedPage; _gnSelectedElId = savedSel; _gnPanMode = savedPan;
+    await gnRenderCanvas();
+    gnRenderPagesSidebar();
+    gnExportProgress(false);
+    if (btn) btn.disabled = false;
+  }
 }
