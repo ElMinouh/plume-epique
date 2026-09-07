@@ -111,7 +111,11 @@
   assert(_currentProfileId === p1.id, 'connexion réussie : profil courant mis à jour');
 
   group('library.js — création et ouverture d\'un manuscrit');
-  await createNewDocument();
+  // createNewDocument() n'ouvre plus qu'une fenêtre de choix du type de
+  // document (texte / roman graphique, voir graphicnovel.js) — plus rien de
+  // synchrone à tester sans simuler un clic dans cette fenêtre. La création
+  // réelle d'un manuscrit texte, elle, est inchangée : createNewTextDocument().
+  await createNewTextDocument();
   assert(!!_currentDocumentId, 'un document est créé et devient le document courant');
   assert(!!db && Array.isArray(db.chapters) && db.chapters.length === 1, 'le nouveau manuscrit a un chapitre par défaut');
   const createdDocId = _currentDocumentId;
