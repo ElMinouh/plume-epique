@@ -1412,7 +1412,13 @@ body.graphicnovel-mode #graphicnovel-screen{display:flex;flex-direction:column;h
 .gn-zone-txt:empty::before{content:attr(data-placeholder);color:#8a7a5c;}
 .gn-zone-title .gn-zt-body,.gn-zone-txt.gn-zone-title{display:flex;align-items:center;justify-content:center;
   text-align:center;font-weight:700;}
-.gn-zone.gn-selected{outline:1.5px dashed var(--accent2);outline-offset:2px;}
+.gn-zone.gn-selected{outline:1.5px dashed var(--accent2);outline-offset:2px;
+  /* Bug corrigé (tests réels) : overflow:hidden sur .gn-zone masquait ET
+     désactivait le clic de la mini-barre 🗑/🔁 (positionnée 34px au-dessus
+     de la zone) et pouvait aussi gêner les poignées de redimensionnement.
+     On rétablit overflow:visible uniquement pour la zone sélectionnée —
+     les zones non sélectionnées gardent leur recadrage normal. */
+  overflow:visible;}
 .gn-handle{position:absolute;width:9px;height:9px;background:var(--accent2);border:1px solid #fff;
   border-radius:1px;z-index:3;touch-action:none;}
 .gn-handle-nw{top:-5px;left:-5px;cursor:nwse-resize;}

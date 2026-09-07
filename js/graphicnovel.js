@@ -258,6 +258,21 @@ function gnWireEvents() {
     const row = e.target.closest('.gn-layer-row'); if (!row) return;
     gnSelectElement(row.dataset.elId);
   });
+
+  // Suppression au clavier (Suppr / Retour arrière) de l'élément
+  // sélectionné — en plus du 🗑 de la mini-barre. Ignoré pendant la
+  // frappe (titre du document, texte d'une page, tout champ éditable) :
+  // sinon Retour arrière en train d'écrire supprimerait l'image ou le
+  // bloc sélectionné au lieu d'effacer un caractère.
+  document.addEventListener('keydown', e => {
+    if (!document.body.classList.contains('graphicnovel-mode')) return;
+    if (!_gnSelectedElId) return;
+    if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+    const ae = document.activeElement;
+    if (ae && (ae.isContentEditable || ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
+    e.preventDefault();
+    gnDeleteElement(_gnSelectedElId);
+  });
 }
 
 // ─────────────────────────────────────────────────────────
@@ -374,7 +389,7 @@ async function gnRenderCanvas() {
         });
         const mt = document.createElement('div'); mt.className = 'gn-mini-toolbar';
         mt.innerHTML = (el.type==='image' ? '<button data-act="change" title="Changer l\'image">🔁</button>' : '') +
-          '<button data-act="delete" title="Supprimer cet élément">🗑</button>';
+          '<button data-act="delete" title="Supprimer cet élément (ou touche Suppr)">🗑</button>';
         mt.addEventListener('pointerdown', e => e.stopPropagation());
         mt.addEventListener('click', e => {
           const act = e.target.closest('button')?.dataset.act;
