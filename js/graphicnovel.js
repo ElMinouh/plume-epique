@@ -206,7 +206,7 @@ function ensureGraphicNovelScreen() {
         <button class="gn-icon-btn" id="gn-add-text-btn" title="Ajouter un bloc de texte libre sur la page">🔤+</button>
         <button class="gn-icon-btn gn-active" id="gn-grid-toggle" title="Grille magnétique (alignement précis)">▦</button>
       </div>
-      <button class="action-btn" id="gn-export-btn" title="Exporter le livre en PDF qualité impression (300 DPI, fond perdu 3 mm)">Exporter le PDF</button>
+      <button class="action-btn" id="gn-export-btn" title="Exporter le livre en PDF qualité impression (choix du format, de la résolution et du fond perdu à l'étape suivante)">Exporter le PDF</button>
     </div>
     <div class="gn-body">
       <div class="gn-side-pages">
@@ -252,7 +252,7 @@ function gnWireEvents() {
   });
   document.getElementById('gn-add-image-btn').addEventListener('click', () => gnAddFreeElement('image'));
   document.getElementById('gn-add-text-btn').addEventListener('click', () => gnAddFreeElement('text'));
-  document.getElementById('gn-export-btn').addEventListener('click', gnExportGraphicNovelPDF);
+  document.getElementById('gn-export-btn').addEventListener('click', gnOpenExportOptionsModal);
 
   // Délégation d'événements sur les listes reconstruites souvent (évite
   // d'empiler des écouteurs à chaque rendu — même principe que
@@ -436,12 +436,14 @@ async function gnRenderCanvas(exportMode) {
           // des ENFANTS de cette même zone contenteditable (contentEditable
           //="false" empêche seulement leur édition, pas leur présence dans
           // zone.textContent) — sans ce filtre, taper dans le texte incorpore
-          // silencieusement leurs glyphes au contenu sauvegardé.
+          // silencieusement leurs glyphes au contenu sauvegardé. Même
+          // principe pour le badge de débordement (Lot 2, audit #2).
           zone.addEventListener('input', () => {
             const clone = zone.cloneNode(true);
-            clone.querySelectorAll('.gn-mini-toolbar, .gn-move-handle, .gn-handle').forEach(n => n.remove());
+            clone.querySelectorAll('.gn-mini-toolbar, .gn-move-handle, .gn-handle, .gn-overflow-warn').forEach(n => n.remove());
             el.content = clone.textContent;
             saveGraphicNovel();
+            gnCheckTextOverflow(zone);
           });
           zone.addEventListener('pointerdown', e => e.stopPropagation());
         }
@@ -503,9 +505,42 @@ async function gnRenderCanvas(exportMode) {
     }
     wrap.appendChild(zone);
     if (el.type === 'image' && el.imageId && !preview) gnApplyImageTransform(zone, el);
+    if (el.type === 'text' && !preview && !exportMode) gnCheckTextOverflow(zone);
+  }
+  // Repère de zone de sécurité (Lot 2, audit #6) : liseré indicatif en
+  // retrait du bord de page, pour ne pas placer d'élément important trop
+  // près de la coupe. Approximatif par nature (le format réel n'est choisi
+  // qu'à l'export, voir #8) — basé sur le format standard, en pourcentage
+  // donc valable quel que soit le format choisi ensuite. Décoratif, jamais
+  // dans l'export (exportMode).
+  if (!exportMode) {
+    const safe = document.createElement('div');
+    safe.className = 'gn-safe-zone';
+    safe.style.left = GN_SAFE_MARGIN_PCT_W + '%';
+    safe.style.right = GN_SAFE_MARGIN_PCT_W + '%';
+    safe.style.top = GN_SAFE_MARGIN_PCT_H + '%';
+    safe.style.bottom = GN_SAFE_MARGIN_PCT_H + '%';
+    canvas.appendChild(safe);
   }
   canvas.onclick = gnDeselectOnBackdrop;
   if (!exportMode) { gnRenderImageProps(); gnRenderTextProps(); }
+}
+
+// Débordement de texte (Lot 2, audit #2) : un texte trop long est rogné en
+// silence par overflow:hidden sur .gn-zone-txt, y compris dans le PDF final.
+// Signale-le par un badge, même principe que le badge "basse résolution"
+// des images. Retire d'abord tout badge existant avant de mesurer, pour ne
+// pas fausser scrollHeight avec le badge du rendu précédent.
+function gnCheckTextOverflow(zone) {
+  const existing = zone.querySelector('.gn-overflow-warn');
+  if (existing) existing.remove();
+  if (zone.scrollHeight - 1 <= zone.clientHeight) return;
+  const badge = document.createElement('span');
+  badge.className = 'gn-overflow-warn';
+  badge.contentEditable = 'false';
+  badge.title = 'Texte tronqué : dépasse le cadre, sera coupé à l\'impression';
+  badge.textContent = '⚠ texte tronqué';
+  zone.appendChild(badge);
 }
 function gnDeselectOnBackdrop(e) {
   if (e.target.id === 'gn-canvas' || e.target.classList.contains('gn-zone-wrap')) gnSelectElement(null);
@@ -965,7 +1000,34 @@ const GN_PDF_DPI = 300;                     // qualité impression professionnel
 // (html2canvas scale) pour atteindre la résolution cible.
 const GN_EDITOR_REF_PX = 440;
 
-function gnMmToPx(mm) { return Math.round(mm / 25.4 * GN_PDF_DPI); }
+// Choix avant export (Lot 2, audit #8). Tous les formats gardent le ratio
+// 4:5 de l'éditeur (aspect-ratio fixe en CSS) — changer ce ratio demanderait
+// de repenser toute la mise en page de l'éditeur, hors scope ici. DPI et
+// fond perdu, eux, n'ont pas cette contrainte.
+const GN_PRINT_FORMATS = [
+  { key: 'compact',  label: '16 × 20 cm (compact)',     w: 160, h: 200 },
+  { key: 'standard', label: '20 × 25 cm (standard)',    w: 200, h: 250 },
+  { key: 'grand',    label: '24 × 30 cm (grand format)', w: 240, h: 300 }
+];
+const GN_PRINT_DPIS = [
+  { key: 150, label: '150 DPI (aperçu rapide)' },
+  { key: 300, label: '300 DPI (qualité impression)' }
+];
+const GN_PRINT_BLEEDS = [
+  { key: 0, label: 'Aucun (0 mm)' },
+  { key: 3, label: 'Standard imprimeur (3 mm)' },
+  { key: 5, label: 'Renforcé (5 mm)' }
+];
+
+// Zone de sécurité (Lot 2, audit #6) : marge indicative en retrait du bord,
+// en pourcentage du format standard (choisi par défaut à l'export — voir
+// #8 ci-dessus). Reste une valeur approximative puisque le format réel
+// n'est décidé qu'au moment d'exporter.
+const GN_SAFE_MARGIN_MM = 5;
+const GN_SAFE_MARGIN_PCT_W = (GN_SAFE_MARGIN_MM / GN_PDF_TRIM_MM.w * 100).toFixed(2);
+const GN_SAFE_MARGIN_PCT_H = (GN_SAFE_MARGIN_MM / GN_PDF_TRIM_MM.h * 100).toFixed(2);
+
+function gnMmToPx(mm, dpi) { return Math.round(mm / 25.4 * (dpi || GN_PDF_DPI)); }
 
 // Attend que toutes les images <img> de la page à exporter soient
 // effectivement décodées avant la capture — sans ça, html2canvas peut
@@ -982,30 +1044,45 @@ function gnWaitImagesReady(container) {
 // secondes par page en haute résolution) — réutilise le style des modales
 // existantes (.gn-modal-overlay/.gn-modal) et de l'indicateur "IA en train
 // d'écrire" (.ai-loader/.ai-dot) pour rester cohérent visuellement.
-function gnExportProgress(show, label) {
+function gnExportProgress(show, label, onCancel) {
   let el = document.getElementById('gn-export-modal');
   if (!show) { if (el) el.remove(); return; }
   if (!el) {
     el = document.createElement('div');
     el.id = 'gn-export-modal';
     el.className = 'gn-modal-overlay';
-    el.innerHTML = `<div class="gn-modal" style="text-align:center;">
+    // "text-align:center" en classe CSS (.gn-modal-center), jamais en
+    // style="" — bug CSP découvert et corrigé au passage (Lot 2), même
+    // règle style-src que le reste du module (voir v9.10.1).
+    el.innerHTML = `<div class="gn-modal gn-modal-center">
       <h3>Génération du PDF</h3>
       <div class="ai-loader"><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span></div>
       <p class="gn-modal-sub" id="gn-export-label"></p>
+      <button class="action-btn u-bg-h7f8c8d" id="gn-export-cancel-btn" type="button" title="Interrompt l'export en cours, aucun fichier ne sera généré">Annuler</button>
     </div>`;
     document.body.appendChild(el);
   }
   document.getElementById('gn-export-label').textContent = label || '';
+  const cancelBtn = document.getElementById('gn-export-cancel-btn');
+  if (cancelBtn) cancelBtn.onclick = onCancel || null; // onclick plutôt qu'addEventListener : évite d'empiler un écouteur par page pendant l'export.
 }
 
-async function gnExportGraphicNovelPDF() {
+let _gnExportCancelled = false;
+
+// opts (Lot 2, audit #8) : { trimW, trimH, dpi, bleedMm } — voir
+// gnOpenExportOptionsModal(). Retombe sur les constantes par défaut
+// (format standard 20×25cm/300 DPI/3mm) si appelée sans argument.
+async function gnExportGraphicNovelPDF(opts) {
   if (typeof html2canvas !== 'function' || !window.jspdf) {
     toast('⚠️ Les librairies d\'export PDF n\'ont pas pu se charger (connexion hors-ligne ?).', 'error');
     return;
   }
   const pages = db.pages || [];
   if (!pages.length) { toast('Aucune page à exporter.', 'error'); return; }
+  const trimMmW = (opts && opts.trimW) || GN_PDF_TRIM_MM.w;
+  const trimMmH = (opts && opts.trimH) || GN_PDF_TRIM_MM.h;
+  const dpi = (opts && opts.dpi) || GN_PDF_DPI;
+  const bleedMm = (opts && opts.bleedMm != null) ? opts.bleedMm : GN_PDF_BLEED_MM;
   const btn = document.getElementById('gn-export-btn');
   if (btn) btn.disabled = true;
   const savedPage = _gnActivePage, savedSel = _gnSelectedElId, savedPan = _gnPanMode;
@@ -1013,22 +1090,27 @@ async function gnExportGraphicNovelPDF() {
   const pageEl = document.getElementById('gn-canvas');
   pageEl.classList.add('gn-export-mode');
   pageEl.style.width = GN_EDITOR_REF_PX + 'px';
-  gnExportProgress(true, 'Préparation…');
+  _gnExportCancelled = false;
+  const cancelHandler = () => { _gnExportCancelled = true; gnExportProgress(true, 'Annulation…'); };
+  gnExportProgress(true, 'Préparation…', cancelHandler);
   try {
-    const trimWpx = gnMmToPx(GN_PDF_TRIM_MM.w), trimHpx = gnMmToPx(GN_PDF_TRIM_MM.h);
-    const bleedPx = gnMmToPx(GN_PDF_BLEED_MM);
+    const trimWpx = gnMmToPx(trimMmW, dpi), trimHpx = gnMmToPx(trimMmH, dpi);
+    const bleedPx = gnMmToPx(bleedMm, dpi);
     const fullWpx = trimWpx + bleedPx * 2, fullHpx = trimHpx + bleedPx * 2;
-    const fullWmm = GN_PDF_TRIM_MM.w + GN_PDF_BLEED_MM * 2, fullHmm = GN_PDF_TRIM_MM.h + GN_PDF_BLEED_MM * 2;
+    const fullWmm = trimMmW + bleedMm * 2, fullHmm = trimMmH + bleedMm * 2;
     const scale = trimWpx / GN_EDITOR_REF_PX;
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ unit:'mm', format:[fullWmm, fullHmm], orientation:'portrait', compress:true });
+    let cancelled = false;
     for (let i = 0; i < pages.length; i++) {
-      gnExportProgress(true, `Page ${i + 1} / ${pages.length}…`);
+      if (_gnExportCancelled) { cancelled = true; break; }
+      gnExportProgress(true, `Page ${i + 1} / ${pages.length}…`, cancelHandler);
       _gnActivePage = i;
       await gnRenderCanvas(true);
       await gnWaitImagesReady(pageEl);
       // Laisse le navigateur peindre le rendu avant de le capturer.
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      if (_gnExportCancelled) { cancelled = true; break; }
       const trimCanvas = await html2canvas(pageEl, {
         scale, backgroundColor: getComputedStyle(pageEl).backgroundColor || '#f4ecd8', useCORS:true, logging:false
       });
@@ -1045,9 +1127,13 @@ async function gnExportGraphicNovelPDF() {
       if (i > 0) pdf.addPage([fullWmm, fullHmm], 'portrait');
       pdf.addImage(jpeg, 'JPEG', 0, 0, fullWmm, fullHmm, undefined, 'FAST');
     }
-    const filename = (db.title || 'roman-graphique').trim().replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80) || 'roman-graphique';
-    pdf.save(filename + '.pdf');
-    toast('✅ PDF qualité impression généré (' + pages.length + ' page' + (pages.length > 1 ? 's' : '') + ').', 'success');
+    if (cancelled) {
+      toast('Export annulé.');
+    } else {
+      const filename = (db.title || 'roman-graphique').trim().replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80) || 'roman-graphique';
+      pdf.save(filename + '.pdf');
+      toast('✅ PDF qualité impression généré (' + pages.length + ' page' + (pages.length > 1 ? 's' : '') + ').', 'success');
+    }
   } catch (e) {
     console.error('Échec export PDF (roman graphique) :', e);
     toast('⚠️ Échec de l\'export PDF : ' + (e && e.message ? e.message : e), 'error');
@@ -1060,4 +1146,53 @@ async function gnExportGraphicNovelPDF() {
     gnExportProgress(false);
     if (btn) btn.disabled = false;
   }
+}
+
+// Boîte de dialogue avant export (Lot 2, audit #8) : format/DPI/fond perdu
+// choisis ici plutôt que figés en constantes. Valeurs par défaut = anciennes
+// constantes, donc "Générer" sans rien changer reproduit exactement le
+// comportement d'avant.
+function gnOpenExportOptionsModal() {
+  gnCloseExportOptionsModal();
+  const overlay = document.createElement('div');
+  overlay.id = 'gn-export-opts-overlay';
+  overlay.className = 'gn-modal-overlay';
+  overlay.innerHTML = `
+    <div class="gn-modal" role="dialog" aria-modal="true" aria-label="Options d'export PDF">
+      <h3>Export PDF qualité impression</h3>
+      <p class="gn-modal-sub">Choisis le format et la qualité avant de générer le fichier.</p>
+      <div class="gn-export-opts">
+        <label class="gn-side-label" for="gn-export-format">Format</label>
+        <select id="gn-export-format" title="Le ratio 4:5 de l'éditeur est conservé pour tous les formats — seule la taille change">
+          ${GN_PRINT_FORMATS.map(f => `<option value="${f.key}"${f.key==='standard'?' selected':''}>${f.label}</option>`).join('')}
+        </select>
+        <label class="gn-side-label" for="gn-export-dpi">Résolution</label>
+        <select id="gn-export-dpi" title="300 DPI recommandé pour l'impression, 150 DPI pour un aperçu rapide">
+          ${GN_PRINT_DPIS.map(d => `<option value="${d.key}"${d.key===300?' selected':''}>${d.label}</option>`).join('')}
+        </select>
+        <label class="gn-side-label" for="gn-export-bleed">Fond perdu</label>
+        <select id="gn-export-bleed" title="Marge supplémentaire massicotée par l'imprimeur — 3 mm est le standard, à confirmer avec ton imprimeur">
+          ${GN_PRINT_BLEEDS.map(b => `<option value="${b.key}"${b.key===3?' selected':''}>${b.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="gn-modal-actions">
+        <button class="action-btn u-bg-h7f8c8d" id="gn-export-opts-cancel" type="button">Annuler</button>
+        <button class="action-btn" id="gn-export-opts-go" type="button">Générer le PDF</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('gn-export-opts-cancel').addEventListener('click', gnCloseExportOptionsModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) gnCloseExportOptionsModal(); });
+  document.getElementById('gn-export-opts-go').addEventListener('click', () => {
+    const formatKey = document.getElementById('gn-export-format').value;
+    const format = GN_PRINT_FORMATS.find(f => f.key === formatKey) || GN_PRINT_FORMATS[1];
+    const dpi = Number(document.getElementById('gn-export-dpi').value) || GN_PDF_DPI;
+    const bleedMm = Number(document.getElementById('gn-export-bleed').value);
+    gnCloseExportOptionsModal();
+    gnExportGraphicNovelPDF({ trimW: format.w, trimH: format.h, dpi, bleedMm });
+  });
+}
+function gnCloseExportOptionsModal() {
+  const el = document.getElementById('gn-export-opts-overlay');
+  if (el) el.remove();
 }

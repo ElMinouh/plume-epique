@@ -10,7 +10,12 @@
 // index.html) — il peut être testé/relu isolément.
 // ═══════════════════════════════════════════════════════
 const PLUME_IMAGES_DB = 'plume_epique_images';
-const PLUME_IMAGES_MAX_DIMENSION = 2000; // px, côté le plus long
+// 2600px (Lot 2, audit #1) : le format d'export 20×25cm + 3mm de fond perdu
+// à 300 DPI demande jusqu'à ~2432px pour une image plein cadre plein page
+// (voir GN_PDF_TRIM_MM/GN_PDF_BLEED_MM/GN_PDF_DPI dans graphicnovel.js) —
+// 2600px laisse une marge de sécurité sans exploser le poids de stockage
+// local (cette base n'est ni synchronisée ni chiffrée, donc coût local seul).
+const PLUME_IMAGES_MAX_DIMENSION = 2600; // px, côté le plus long
 const PLUME_IMAGES_QUALITY = 0.85;
 
 let _plumeImagesDb = null;
