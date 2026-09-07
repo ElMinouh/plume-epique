@@ -338,7 +338,11 @@ async function gnRenderCanvas() {
       }
     } else {
       if (preview) {
-        zone.classList.add(el.align === 'center' ? 'gn-zone-title' : '');
+        // Bug corrigé (tests) : classList.add('') lève une exception — la
+        // plupart des gabarits (tous sauf "Texte seul") ont des zones de
+        // texte sans el.align==='center', ce qui coupait le rendu de
+        // l'aperçu en plein milieu à chaque fois.
+        if (el.align === 'center') zone.classList.add('gn-zone-title');
         zone.innerHTML = `<div class="gn-zt-body">${el.align==='center' ? 'Titre de la page' : 'Texte…'}</div>`;
       } else {
         zone.contentEditable = 'true';
@@ -451,7 +455,10 @@ function gnSelectElement(id) {
 function gnPickImageFor(el) {
   const input = document.createElement('input');
   input.type = 'file'; input.accept = 'image/*';
-  input.className = 'u-d-none'; // certains navigateurs exigent l'input dans le DOM pour ouvrir le sélecteur
+  // Masqué mais toujours "rendu" (display:none seul est parfois refusé par le
+  // navigateur pour ouvrir le sélecteur de fichier) — hors écran plutôt
+  // qu'invisible.
+  input.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;opacity:0;';
   input.addEventListener('change', async () => {
     const file = input.files && input.files[0];
     input.remove();
@@ -481,9 +488,8 @@ function gnMakeDraggable(zoneEl, el) {
   zoneEl.addEventListener('pointerdown', e => {
     if (e.target.closest('.gn-handle') || e.target.closest('.gn-mini-toolbar')) return;
     if (el.type === 'text') return; // le texte se déplace par ses coins (poignées), pas par un clic dans le texte
-    e.preventDefault();
     const canvasRect = document.getElementById('gn-canvas').getBoundingClientRect();
-    _gnDrag = { mode:'move', el, zoneEl, startX:e.clientX, startY:e.clientY, origX:el.x, origY:el.y, canvasRect };
+    _gnDrag = { mode:'move', el, zoneEl, startX:e.clientX, startY:e.clientY, origX:el.x, origY:el.y, canvasRect, moved:false };
     zoneEl.setPointerCapture(e.pointerId);
   });
   zoneEl.addEventListener('pointermove', gnOnPointerMove);
@@ -491,17 +497,29 @@ function gnMakeDraggable(zoneEl, el) {
 }
 function gnMakeResizable(handleEl, zoneEl, el, pos) {
   handleEl.addEventListener('pointerdown', e => {
-    e.preventDefault(); e.stopPropagation();
+    e.stopPropagation();
     const canvasRect = document.getElementById('gn-canvas').getBoundingClientRect();
-    _gnDrag = { mode:'resize', pos, el, zoneEl, startX:e.clientX, startY:e.clientY, origX:el.x, origY:el.y, origW:el.w, origH:el.h, canvasRect };
+    _gnDrag = { mode:'resize', pos, el, zoneEl, startX:e.clientX, startY:e.clientY, origX:el.x, origY:el.y, origW:el.w, origH:el.h, canvasRect, moved:false };
     handleEl.setPointerCapture(e.pointerId);
   });
   handleEl.addEventListener('pointermove', gnOnPointerMove);
   handleEl.addEventListener('pointerup', gnOnPointerUp);
 }
+// Bug corrigé (tests réels) : un simple clic (aucun déplacement) déclenchait
+// quand même pointerdown → pointerup → sauvegarde + reconstruction complète
+// du canvas, ce qui détruisait la zone cliquée AVANT que l'événement "click"
+// (sélection, voir gnRenderCanvas) ne l'atteigne — la sélection au clic ne
+// fonctionnait donc jamais. On ne considère maintenant que c'est un
+// glisser/redimensionnement qu'après quelques pixels de mouvement réel ;
+// en dessous, on ne touche à rien et le clic normal fait son travail.
+const GN_DRAG_THRESHOLD_PX = 3;
 function gnOnPointerMove(e) {
   if (!_gnDrag) return;
   const { mode, el, zoneEl, startX, startY, canvasRect } = _gnDrag;
+  if (!_gnDrag.moved) {
+    if (Math.abs(e.clientX - startX) < GN_DRAG_THRESHOLD_PX && Math.abs(e.clientY - startY) < GN_DRAG_THRESHOLD_PX) return;
+    _gnDrag.moved = true;
+  }
   const dxPct = (e.clientX - startX) / canvasRect.width * 100;
   const dyPct = (e.clientY - startY) / canvasRect.height * 100;
   if (mode === 'move') {
@@ -522,7 +540,9 @@ function gnOnPointerMove(e) {
 }
 function gnOnPointerUp() {
   if (!_gnDrag) return;
+  const moved = _gnDrag.moved;
   _gnDrag = null;
+  if (!moved) return; // clic simple : rien à sauvegarder, laisser l'événement "click" gérer la sélection
   saveGraphicNovel();
   gnRenderCanvas();
   gnRenderPagesSidebar();
