@@ -5,7 +5,7 @@
 // pour pouvoir être testé indépendamment de l'application
 // (voir tests/test-runner.html).
 // ═══════════════════════════════════════════════════════
-const SCHEMA_VERSION = 15;
+const SCHEMA_VERSION = 16;
 
 // Type de projet (nouveau v7.36.0, ergonomie) : adapte simplement le
 // vocabulaire de l'app selon le genre du manuscrit — la structure de
@@ -41,8 +41,12 @@ function genElementId() {
 }
 
 function makeImageElement(x, y, w, h) {
+  // focusX/focusY : position du pan à l'intérieur du cadre (0-100, 50=centré).
+  // zoom : 100 = l'image couvre juste le cadre (recadrage minimal), >100 rapproche.
+  // frameShape : forme du cadre visible ('rect' | 'rounded' | 'oval') — l'image
+  // reste rectangulaire, seul le cadre qui la découpe change de forme.
   return { id: genElementId(), type:'image', x, y, w, h, rotation:0,
-    imageId:null, imageW:0, imageH:0, fit:'cover', focusX:50, focusY:50, alt:'' };
+    imageId:null, imageW:0, imageH:0, fit:'cover', focusX:50, focusY:50, zoom:100, frameShape:'rect', alt:'' };
 }
 function makeTextElement(x, y, w, h, extra) {
   return Object.assign({ id: genElementId(), type:'text', x, y, w, h, rotation:0,
@@ -226,6 +230,22 @@ function migrateDb(data) {
     // s'il existe.
     if (typeof data.docType !== 'string') data.docType = 'texte';
     if (!Array.isArray(data.pages)) data.pages = [];
+  }
+  if (v < 16) {
+    // Cadrage avancé des images (pan/zoom/rotation/forme du cadre) : les
+    // roman graphiques créés avant cette version ont des images sans ces
+    // champs — on les complète avec des valeurs neutres (cadrage inchangé,
+    // cadre rectangulaire) pour ne rien déplacer visuellement à l'ouverture.
+    (data.pages||[]).forEach(pg => {
+      (pg.elements||[]).forEach(el => {
+        if (el.type !== 'image') return;
+        if (typeof el.focusX !== 'number') el.focusX = 50;
+        if (typeof el.focusY !== 'number') el.focusY = 50;
+        if (typeof el.zoom !== 'number') el.zoom = 100;
+        if (typeof el.frameShape !== 'string') el.frameShape = 'rect';
+        if (typeof el.rotation !== 'number') el.rotation = 0;
+      });
+    });
   }
   data._schemaVersion = SCHEMA_VERSION;
   return data;

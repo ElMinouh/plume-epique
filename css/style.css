@@ -1448,6 +1448,31 @@ body.graphicnovel-mode #graphicnovel-screen{display:flex;flex-direction:column;h
 .gn-lg{font-size:.85rem;flex:none;}
 .gn-lname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .gn-layers-empty{font-size:var(--fs-sm);color:var(--text-muted);margin-top:8px;}
+.gn-lz{display:flex;gap:1px;flex:none;}
+.gn-lz button{width:20px;height:20px;border:none;background:none;color:var(--text-muted);
+  cursor:pointer;font-size:.65rem;border-radius:4px;padding:0;}
+.gn-lz button:hover:not(:disabled){background:rgba(0,0,0,.08);color:var(--text);}
+.gn-lz button:disabled{opacity:.25;cursor:default;}
+
+/* ── Cadrage avancé de l'image (pan/zoom/rotation/forme) — maquette
+   validée par l'utilisateur, voir "Cadrage avancé" ── */
+.gn-frame-fill{position:absolute;inset:0;overflow:hidden;border-radius:inherit;}
+.gn-pannable{position:absolute;top:0;left:0;user-select:none;pointer-events:none;}
+.gn-zone.gn-shape-oval{border-radius:50%;}
+.gn-zone.gn-shape-rounded{border-radius:22px;}
+.gn-mini-toolbar button.gn-active{background:var(--accent2);color:#fff;}
+.gn-imgprops{margin-top:8px;}
+.gn-prop-label{display:flex;justify-content:space-between;align-items:center;
+  font-size:var(--fs-xs);color:var(--text-muted);margin-bottom:5px;}
+.gn-prop-val{font-variant-numeric:tabular-nums;color:var(--text);font-weight:700;}
+.gn-imgprops input[type=range]{width:100%;accent-color:var(--accent2);}
+.gn-mt-sm{margin-top:10px;}
+.gn-imgprops-hint{font-size:var(--fs-xs);color:var(--text-muted);line-height:1.5;margin-top:8px;}
+.gn-shape-row{display:flex;gap:6px;margin-top:6px;}
+.gn-shape-btn{flex:1;aspect-ratio:1;border:1.5px solid var(--border);background:var(--item-bg);
+  border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--text-muted);font-size:1rem;}
+.gn-shape-btn.gn-active{border-color:var(--accent2);color:var(--accent2);background:rgba(142,68,173,.12);}
 
 .gn-mobile-note{display:none;margin:0;padding:7px 14px;font-size:var(--fs-xs);color:var(--text-muted);
   text-align:center;border-top:1px solid var(--border);background:var(--glass);}

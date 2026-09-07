@@ -13,8 +13,6 @@
 // chargés avant ce fichier.
 //
 // Limites assumées de cette première version (à faire évoluer) :
-//   - pas de rotation d'élément (le champ existe dans le modèle, pas encore
-//     exposé dans l'interface) ;
 //   - pas d'export PDF (bouton visible mais désactivé) ;
 //   - édition libre (glisser/redimensionner) réservée au PC — sur mobile,
 //     on choisit un gabarit et on remplace les images, sans positionnement
@@ -27,6 +25,11 @@ function gnIsDesktop() { return window.innerWidth > GN_DESKTOP_BREAKPOINT; }
 let _gnBuilt = false;
 let _gnActivePage = 0;
 let _gnSelectedElId = null;
+// Mode "recadrer" (togglé via ✥ dans la mini-barre) : tant qu'il est actif,
+// glisser DANS le cadre de l'image sélectionnée déplace l'image à
+// l'intérieur (pan) au lieu de déplacer le cadre sur la page — évite tout
+// conflit avec le glisser habituel qui repositionne l'élément.
+let _gnPanMode = false;
 let _gnPreviewGabarit = null;
 let _gnSnapGrid = true;
 let _gnDrag = null; // { mode:'move'|'resize', elId, startX, startY, origX, origY, origW, origH }
@@ -216,7 +219,11 @@ function ensureGraphicNovelScreen() {
         <div class="gn-page-canvas" id="gn-canvas"></div>
       </div>
       <div class="gn-side-right">
-        <div class="gn-side-label">Gabarits</div>
+        <div id="gn-imgprops-block" hidden>
+          <div class="gn-side-label">Image sélectionnée</div>
+          <div class="gn-imgprops" id="gn-imgprops"></div>
+        </div>
+        <div class="gn-side-label gn-mt">Gabarits</div>
         <div class="gn-gabarits" id="gn-gabarits"></div>
         <div class="gn-side-label gn-mt">Calques — page active</div>
         <div class="gn-layers" id="gn-layers"></div>
@@ -255,6 +262,8 @@ function gnWireEvents() {
     gnPreviewGabarit(g.dataset.key);
   });
   document.getElementById('gn-layers').addEventListener('click', e => {
+    const lz = e.target.closest('.gn-lz button');
+    if (lz) { e.stopPropagation(); if (!lz.disabled) gnMoveLayer(Number(lz.dataset.idx), lz.dataset.dir); return; }
     const row = e.target.closest('.gn-layer-row'); if (!row) return;
     gnSelectElement(row.dataset.elId);
   });
@@ -339,11 +348,13 @@ async function gnRenderCanvas() {
     zone.dataset.elId = el.id || '';
     if (!preview && el.id === _gnSelectedElId) zone.classList.add('gn-selected');
     if (el.type === 'image') {
+      if (el.type === 'image' && el.frameShape && el.frameShape !== 'rect') zone.classList.add('gn-shape-' + el.frameShape);
       if (el.imageId) {
         const url = await graphicImageUrl(el.imageId);
-        if (url) { zone.style.backgroundImage = `url("${url}")`; zone.style.backgroundSize = el.fit === 'contain' ? 'contain' : 'cover'; zone.style.backgroundPosition = 'center'; }
         const lowRes = Math.max(el.imageW||0, el.imageH||0) < 1200;
-        zone.innerHTML = lowRes ? `<span class="gn-dpi-warn" title="Résolution basse pour une impression nette">⚠ basse résolution</span>` : '';
+        zone.innerHTML = `<div class="gn-frame-fill"><img class="gn-pannable" draggable="false" src="${url||''}" alt=""></div>` +
+          (lowRes ? `<span class="gn-dpi-warn" title="Résolution basse pour une impression nette">⚠ basse résolution</span>` : '');
+        if (!preview) gnMakePannable(zone.querySelector('.gn-frame-fill'), el);
       } else if (!preview) {
         zone.classList.add('gn-zone-empty');
         zone.innerHTML = `<span class="gn-empty-plus">+</span><span class="gn-empty-label">Ajouter une image</span>`;
@@ -388,20 +399,34 @@ async function gnRenderCanvas() {
           zone.appendChild(h);
         });
         const mt = document.createElement('div'); mt.className = 'gn-mini-toolbar';
-        mt.innerHTML = (el.type==='image' ? '<button data-act="change" title="Changer l\'image">🔁</button>' : '') +
+        mt.innerHTML = (el.type==='image' && el.imageId ? `<button data-act="recadrer" title="Recadrer (déplacer l'image dans le cadre)" class="${_gnPanMode ? 'gn-active' : ''}">✥</button>` : '') +
+          (el.type==='image' ? '<button data-act="change" title="Changer l\'image">🔁</button>' : '') +
+          (el.type==='image' && el.imageId ? '<button data-act="reset" title="Réinitialiser le cadrage">↺</button>' : '') +
           '<button data-act="delete" title="Supprimer cet élément (ou touche Suppr)">🗑</button>';
         mt.addEventListener('pointerdown', e => e.stopPropagation());
         mt.addEventListener('click', e => {
+          // Bug corrigé (tests réels) : sans ceci, le clic remontait jusqu'au
+          // gestionnaire de sélection de la zone (gnSelectElement), qui
+          // réinitialise _gnPanMode juste après que ✥ vienne de l'activer —
+          // le bouton "Recadrer" semblait alors ne jamais réagir.
+          e.stopPropagation();
           const act = e.target.closest('button')?.dataset.act;
           if (act === 'delete') gnDeleteElement(el.id);
           if (act === 'change') gnPickImageFor(el);
+          if (act === 'reset') { el.focusX=50; el.focusY=50; el.zoom=100; el.rotation=0; saveGraphicNovel(); gnRenderCanvas(); }
+          if (act === 'recadrer') {
+            _gnPanMode = !_gnPanMode;
+            e.currentTarget.querySelector('[data-act="recadrer"]').classList.toggle('gn-active', _gnPanMode);
+          }
         });
         zone.appendChild(mt);
       }
     }
     wrap.appendChild(zone);
+    if (el.type === 'image' && el.imageId && !preview) gnApplyImageTransform(zone, el);
   }
   canvas.onclick = gnDeselectOnBackdrop;
+  gnRenderImageProps();
 }
 function gnDeselectOnBackdrop(e) {
   if (e.target.id === 'gn-canvas' || e.target.classList.contains('gn-zone-wrap')) gnSelectElement(null);
@@ -410,11 +435,77 @@ function gnDeselectOnBackdrop(e) {
 function gnRenderLayers() {
   const box = document.getElementById('gn-layers');
   const elements = db.pages[_gnActivePage].elements;
-  box.innerHTML = elements.map(el => `
+  box.innerHTML = elements.map((el, i) => `
     <div class="gn-layer-row${el.id===_gnSelectedElId?' gn-sel':''}" data-el-id="${el.id}">
       <span class="gn-lg">${el.type==='image'?'🖼️':'🔤'}</span>
       <span class="gn-lname">${el.type==='image' ? (el.imageId ? 'Image' : 'Image (vide)') : (el.content ? el.content.slice(0,28) : 'Bloc de texte vide')}</span>
+      <span class="gn-lz">
+        <button data-dir="up" data-idx="${i}" title="Passer au premier plan" ${i===elements.length-1?'disabled':''}>▲</button>
+        <button data-dir="down" data-idx="${i}" title="Passer à l'arrière-plan" ${i===0?'disabled':''}>▼</button>
+      </span>
     </div>`).join('') || '<p class="gn-layers-empty">Page vide — choisis un gabarit ou ajoute un élément.</p>';
+}
+// Ordre du tableau elements = ordre d'empilement (le dernier est dessiné
+// au premier plan) — "monter/descendre" échange l'élément avec son voisin.
+function gnMoveLayer(idx, dir) {
+  const elements = db.pages[_gnActivePage].elements;
+  const j = dir === 'up' ? idx + 1 : idx - 1;
+  if (j < 0 || j >= elements.length) return;
+  [elements[idx], elements[j]] = [elements[j], elements[idx]];
+  saveGraphicNovel();
+  gnRenderCanvas();
+  gnRenderLayers();
+}
+
+// ─────────────────────────────────────────────────────────
+// PANNEAU "IMAGE SÉLECTIONNÉE" — cadrage avancé (zoom, rotation, forme)
+// ─────────────────────────────────────────────────────────
+const GN_FRAME_SHAPES = [
+  { key:'rect',    glyph:'▭', title:'Rectangle' },
+  { key:'rounded', glyph:'▢', title:'Coins arrondis' },
+  { key:'oval',    glyph:'⬭', title:'Ovale / cercle' }
+];
+function gnCurrentSelectedImageEl() {
+  if (!_gnSelectedElId) return null;
+  const el = (db.pages[_gnActivePage].elements || []).find(e => e.id === _gnSelectedElId);
+  return (el && el.type === 'image' && el.imageId) ? el : null;
+}
+function gnRenderImageProps() {
+  const block = document.getElementById('gn-imgprops-block');
+  const box = document.getElementById('gn-imgprops');
+  const el = gnCurrentSelectedImageEl();
+  if (!el) { block.hidden = true; box.innerHTML = ''; return; }
+  block.hidden = false;
+  box.innerHTML = `
+    <div class="gn-prop-label"><span>Zoom</span><span class="gn-prop-val" id="gn-zoom-val">${Math.round(el.zoom)}%</span></div>
+    <input type="range" id="gn-zoom-slider" min="100" max="300" value="${el.zoom}">
+    <div class="gn-prop-label gn-mt-sm"><span>Rotation</span><span class="gn-prop-val" id="gn-rot-val">${Math.round(el.rotation)}°</span></div>
+    <input type="range" id="gn-rot-slider" min="-180" max="180" value="${el.rotation}">
+    <div class="gn-imgprops-hint">En mode ✥ Recadrer (mini-barre sur l'image), glisse dans le cadre pour repositionner l'image.</div>
+    <div class="gn-side-label gn-mt-sm">Forme du cadre</div>
+    <div class="gn-shape-row">
+      ${GN_FRAME_SHAPES.map(s => `<button class="gn-shape-btn${el.frameShape===s.key?' gn-active':''}" data-shape="${s.key}" title="${s.title}">${s.glyph}</button>`).join('')}
+    </div>`;
+  const zoneEl = document.querySelector(`.gn-zone[data-el-id="${el.id}"]`);
+  document.getElementById('gn-zoom-slider').addEventListener('input', e => {
+    el.zoom = +e.target.value;
+    document.getElementById('gn-zoom-val').textContent = el.zoom + '%';
+    if (zoneEl) gnApplyImageTransform(zoneEl, el);
+    saveGraphicNovel();
+  });
+  document.getElementById('gn-rot-slider').addEventListener('input', e => {
+    el.rotation = +e.target.value;
+    document.getElementById('gn-rot-val').textContent = el.rotation + '°';
+    if (zoneEl) gnApplyImageTransform(zoneEl, el);
+    saveGraphicNovel();
+  });
+  box.querySelectorAll('.gn-shape-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      el.frameShape = btn.dataset.shape;
+      saveGraphicNovel();
+      gnRenderCanvas();
+    });
+  });
 }
 
 // ─────────────────────────────────────────────────────────
@@ -464,6 +555,7 @@ function gnDeleteElement(id) {
 }
 function gnSelectElement(id) {
   _gnSelectedElId = id;
+  _gnPanMode = false;
   gnRenderCanvas();
   gnRenderLayers();
 }
@@ -482,6 +574,9 @@ function gnPickImageFor(el) {
     try {
       const ref = await storeGraphicImage(file, _currentDocumentId);
       el.imageId = ref.imageId; el.imageW = ref.imageW; el.imageH = ref.imageH;
+      // Nouvelle image : le cadrage précédent (pan/zoom) n'a plus de sens,
+      // on repart d'un cadrage neutre (image centrée, cadre plein).
+      el.focusX = 50; el.focusY = 50; el.zoom = 100;
       saveGraphicNovel();
       renderGraphicNovelScreen();
     } catch(e) {
@@ -520,6 +615,47 @@ function gnMakeResizable(handleEl, zoneEl, el, pos) {
   handleEl.addEventListener('pointermove', gnOnPointerMove);
   handleEl.addEventListener('pointerup', gnOnPointerUp);
 }
+// Glisser l'image À L'INTÉRIEUR de son cadre (pan) — actif seulement en mode
+// "recadrer" (_gnPanMode, togglé via ✥). Hors de ce mode, glisser sur
+// l'image déplace le cadre entier sur la page (comportement habituel,
+// géré par gnMakeDraggable ci-dessus) : les deux gestes ne peuvent pas
+// cohabiter sur le même mouvement de souris, d'où le bouton dédié.
+function gnMakePannable(frameEl, el) {
+  frameEl.addEventListener('pointerdown', e => {
+    if (!_gnPanMode) return;
+    e.stopPropagation();
+    _gnDrag = {
+      mode:'pan', el, frameEl, startX:e.clientX, startY:e.clientY,
+      startFocusX: el.focusX, startFocusY: el.focusY,
+      frameW: frameEl.clientWidth, frameH: frameEl.clientHeight, moved:false
+    };
+    frameEl.setPointerCapture(e.pointerId);
+  });
+  frameEl.addEventListener('pointermove', gnOnPointerMove);
+  frameEl.addEventListener('pointerup', gnOnPointerUp);
+}
+// Calcule et applique le cadrage (pan/zoom/rotation) d'une image dans son
+// cadre : l'image couvre toujours le cadre au minimum (recadrage type
+// "cover"), zoom au-delà agrandit, focusX/focusY déplacent la portion
+// visible. La rotation s'applique au cadre-fenêtre (.gn-frame-fill), qui
+// reste découpé à la taille du cadre — l'image tourne avec lui.
+function gnApplyImageTransform(zoneEl, el) {
+  const frameEl = zoneEl && zoneEl.querySelector('.gn-frame-fill');
+  const img = frameEl && frameEl.querySelector('img');
+  if (!frameEl || !img) return;
+  const frameW = frameEl.clientWidth, frameH = frameEl.clientHeight;
+  if (!frameW || !frameH) return;
+  frameEl.style.transform = el.rotation ? `rotate(${el.rotation}deg)` : '';
+  const iw = el.imageW || frameW, ih = el.imageH || frameH;
+  const baseScale = Math.max(frameW / iw, frameH / ih);
+  const scale = baseScale * ((el.zoom || 100) / 100);
+  const imgW = iw * scale, imgH = ih * scale;
+  const maxX = Math.max(0, imgW - frameW), maxY = Math.max(0, imgH - frameH);
+  const tx = -((el.focusX ?? 50) / 100) * maxX;
+  const ty = -((el.focusY ?? 50) / 100) * maxY;
+  img.style.width = imgW + 'px'; img.style.height = imgH + 'px';
+  img.style.transform = `translate(${tx}px,${ty}px)`;
+}
 // Bug corrigé (tests réels) : un simple clic (aucun déplacement) déclenchait
 // quand même pointerdown → pointerup → sauvegarde + reconstruction complète
 // du canvas, ce qui détruisait la zone cliquée AVANT que l'événement "click"
@@ -534,6 +670,17 @@ function gnOnPointerMove(e) {
   if (!_gnDrag.moved) {
     if (Math.abs(e.clientX - startX) < GN_DRAG_THRESHOLD_PX && Math.abs(e.clientY - startY) < GN_DRAG_THRESHOLD_PX) return;
     _gnDrag.moved = true;
+  }
+  if (mode === 'pan') {
+    const { frameEl, startFocusX, startFocusY, frameW, frameH } = _gnDrag;
+    const iw = el.imageW || frameW, ih = el.imageH || frameH;
+    const baseScale = Math.max(frameW / iw, frameH / ih);
+    const scale = baseScale * ((el.zoom || 100) / 100);
+    const maxX = Math.max(1, iw * scale - frameW), maxY = Math.max(1, ih * scale - frameH);
+    el.focusX = gnClamp(startFocusX - (e.clientX - startX) / maxX * 100, 0, 100);
+    el.focusY = gnClamp(startFocusY - (e.clientY - startY) / maxY * 100, 0, 100);
+    gnApplyImageTransform(frameEl.closest('.gn-zone'), el);
+    return;
   }
   const dxPct = (e.clientX - startX) / canvasRect.width * 100;
   const dyPct = (e.clientY - startY) / canvasRect.height * 100;
