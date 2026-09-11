@@ -336,12 +336,17 @@ function gnWireEvents() {
   // d'empiler des écouteurs à chaque rendu — même principe que
   // wireAppEventListenersOnce dans router.js).
   document.getElementById('gn-pages-list').addEventListener('click', e => {
+    const dup = e.target.closest('.gn-pg-dup');
+    if (dup) { e.stopPropagation(); gnDuplicatePage(Number(dup.dataset.idx)); return; }
     const del = e.target.closest('.gn-pg-del');
     if (del) { e.stopPropagation(); gnDeletePage(Number(del.dataset.idx)); return; }
     const thumb = e.target.closest('.gn-pg-thumb'); if (!thumb) return;
     gnSetActivePage(Number(thumb.dataset.idx));
   });
+  gnWirePageDragReorder();
   document.getElementById('gn-gabarits').addEventListener('click', e => {
+    const del = e.target.closest('.gn-gab-del');
+    if (del) { e.stopPropagation(); gnDeleteCustomGabarit(del.dataset.id); return; }
     const g = e.target.closest('.gn-gab'); if (!g) return;
     gnPreviewGabarit(g.dataset.key);
   });
@@ -360,11 +365,29 @@ function gnWireEvents() {
   document.addEventListener('keydown', e => {
     if (!document.body.classList.contains('graphicnovel-mode')) return;
     if (!_gnSelectedElId) return;
-    if (e.key !== 'Delete' && e.key !== 'Backspace') return;
     const ae = document.activeElement;
     if (ae && (ae.isContentEditable || ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
-    e.preventDefault();
-    gnDeleteElement(_gnSelectedElId);
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      gnDeleteElement(_gnSelectedElId);
+      return;
+    }
+    // Déplacement au clavier (Lot 5, audit #17) : 1% par appui, 5% avec Maj
+    // — mêmes unités et mêmes bornes que le glisser à la souris (gnClamp).
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const page = db.pages[_gnActivePage];
+      const el = page.elements.find(x => x.id === _gnSelectedElId);
+      if (!el) return;
+      e.preventDefault();
+      const step = e.shiftKey ? 5 : 1;
+      if (e.key === 'ArrowUp') el.y = gnClamp(el.y - step, 0, 100 - el.h);
+      if (e.key === 'ArrowDown') el.y = gnClamp(el.y + step, 0, 100 - el.h);
+      if (e.key === 'ArrowLeft') el.x = gnClamp(el.x - step, 0, 100 - el.w);
+      if (e.key === 'ArrowRight') el.x = gnClamp(el.x + step, 0, 100 - el.w);
+      saveGraphicNovel();
+      gnRenderCanvas();
+      gnRenderPagesSidebar();
+    }
   });
 }
 
@@ -389,7 +412,8 @@ function gnRenderPageProps() {
   if (!box) return;
   const page = db.pages[_gnActivePage];
   box.innerHTML = `<label class="gn-color-lbl">Fond <input type="color" id="gn-page-bg-picker" value="${page.background || '#f4ecd8'}"></label>
-    <button class="action-btn btn-sm gn-mt-sm" id="gn-page-history-btn" title="Versions précédentes de cette page (instantané automatique toutes les 5 minutes)">🕓 Historique de la page</button>`;
+    <button class="action-btn btn-sm gn-mt-sm" id="gn-page-history-btn" title="Versions précédentes de cette page (instantané automatique toutes les 5 minutes)">🕓 Historique de la page</button>
+    <button class="action-btn btn-sm gn-mt-sm" id="gn-save-gabarit-btn" title="Enregistrer la disposition de cette page (positions et styles, sans le contenu ni les images) comme gabarit réutilisable">💾 Enregistrer comme gabarit</button>`;
   document.getElementById('gn-page-bg-picker').addEventListener('input', e => {
     page.background = e.target.value;
     const canvas = document.getElementById('gn-canvas');
@@ -398,6 +422,7 @@ function gnRenderPageProps() {
     gnRenderPagesSidebar(); // reflète la couleur sur la vignette de la page dans la liste
   });
   document.getElementById('gn-page-history-btn').addEventListener('click', gnOpenPageHistoryModal);
+  document.getElementById('gn-save-gabarit-btn').addEventListener('click', gnSaveAsCustomGabarit);
 }
 
 function gnMiniIconHtml(elements) {
@@ -420,10 +445,14 @@ function gnApplyMiniIconStyles(container) {
 
 function gnRenderPagesSidebar() {
   const box = document.getElementById('gn-pages-list');
+  // Lot 5 (audit #16) : draggable="true" pour la réorganisation par glisser
+  // (voir gnWirePageDragReorder) — PC uniquement, comme le reste de l'édition
+  // libre du module (gnIsDesktop).
   box.innerHTML = db.pages.map((p, i) => `
-    <div class="gn-pg-thumb${i===_gnActivePage?' gn-active':''}" data-idx="${i}" title="Page ${i+1}">
+    <div class="gn-pg-thumb${i===_gnActivePage?' gn-active':''}" data-idx="${i}" title="Page ${i+1}"${gnIsDesktop()?' draggable="true"':''}>
       ${gnMiniIconHtml(p.elements)}
       <span class="gn-pg-num">${i+1}</span>
+      <button class="gn-pg-dup" data-idx="${i}" title="Dupliquer la page ${i+1}" aria-label="Dupliquer la page ${i+1}">⧉</button>
       <button class="gn-pg-del" data-idx="${i}" title="Supprimer la page ${i+1}" aria-label="Supprimer la page ${i+1}">✕</button>
     </div>`).join('');
   // Fond de vignette : propriété JS .style.backgroundColor, jamais l'attribut
@@ -434,13 +463,48 @@ function gnRenderPagesSidebar() {
   gnApplyMiniIconStyles(box);
 }
 
+// Gabarits personnalisés (Lot 5, audit #20) : même « forme » {label, build()}
+// que les gabarits fournis (GRAPHIC_GABARITS, schema.js), pour que tout le
+// reste du module (aperçu, application, mini-icônes) n'ait pas à distinguer
+// les deux origines — seule cette fonction sait qu'une clé "custom:<id>"
+// pointe vers db.customGabarits plutôt que vers GRAPHIC_GABARITS.
+function gnResolveGabarit(key) {
+  if (!key) return null;
+  if (key.startsWith('custom:')) {
+    const cg = (db.customGabarits || []).find(g => g.id === key.slice(7));
+    if (!cg) return null;
+    return {
+      label: cg.label,
+      build: () => cg.elements.map(e => {
+        if (e.type === 'image') {
+          const el = makeImageElement(e.x, e.y, e.w, e.h);
+          el.fit = e.fit; el.frameShape = e.frameShape;
+          return el;
+        }
+        return makeTextElement(e.x, e.y, e.w, e.h, {
+          fontFamily: e.fontFamily, fontSize: e.fontSize, align: e.align, bold: e.bold, italic: e.italic,
+          lineHeight: e.lineHeight, letterSpacing: e.letterSpacing, color: e.color, background: e.background,
+          bgOpacity: e.bgOpacity, textEffect: e.textEffect
+        });
+      })
+    };
+  }
+  return GRAPHIC_GABARITS[key] || null;
+}
 function gnRenderGabaritsPanel() {
   const box = document.getElementById('gn-gabarits');
-  box.innerHTML = GRAPHIC_GABARIT_ORDER.map(key => `
+  const builtin = GRAPHIC_GABARIT_ORDER.map(key => `
     <div class="gn-gab${_gnPreviewGabarit===key?' gn-active':''}" data-key="${key}">
       <div class="gn-icon">${gnMiniIconHtml(GRAPHIC_GABARITS[key].build())}</div>
       <span class="gn-gab-lbl">${GRAPHIC_GABARITS[key].label}</span>
     </div>`).join('');
+  const custom = (db.customGabarits || []).map(cg => `
+    <div class="gn-gab${_gnPreviewGabarit==='custom:'+cg.id?' gn-active':''}" data-key="custom:${cg.id}">
+      <button class="gn-gab-del" data-id="${cg.id}" title="Supprimer ce gabarit personnalisé" aria-label="Supprimer ce gabarit personnalisé">✕</button>
+      <div class="gn-icon">${gnMiniIconHtml(cg.elements)}</div>
+      <span class="gn-gab-lbl">${DOMPurify.sanitize(cg.label)}</span>
+    </div>`).join('');
+  box.innerHTML = builtin + custom;
   gnApplyMiniIconStyles(box);
 }
 
@@ -460,10 +524,11 @@ async function gnRenderCanvas(exportMode) {
   if (preview) {
     const banner = document.createElement('div');
     banner.className = 'gn-preview-banner';
-    banner.innerHTML = `<span>Aperçu du gabarit « ${GRAPHIC_GABARITS[_gnPreviewGabarit].label} » — non appliqué</span><button id="gn-apply-gab">Appliquer à cette page</button>`;
+    const gab = gnResolveGabarit(_gnPreviewGabarit);
+    banner.innerHTML = `<span>Aperçu du gabarit « ${gab ? DOMPurify.sanitize(gab.label) : ''} » — non appliqué</span><button id="gn-apply-gab">Appliquer à cette page</button>`;
     canvas.appendChild(banner);
     banner.querySelector('#gn-apply-gab').addEventListener('click', gnApplyPreviewGabarit);
-    elements = GRAPHIC_GABARITS[_gnPreviewGabarit].build();
+    elements = gab ? gab.build() : [];
   } else {
     elements = db.pages[_gnActivePage].elements;
   }
@@ -838,9 +903,38 @@ function gnSetActivePage(i) {
   renderGraphicNovelScreen();
 }
 function gnPreviewGabarit(key) { _gnPreviewGabarit = key; gnRenderGabaritsPanel(); gnRenderCanvas(); }
+// Enregistrer la page active comme gabarit réutilisable (Lot 5, audit #20) :
+// uniquement la disposition (positions/tailles/types/mise en forme du
+// texte) — jamais le contenu ni les images, pour rester un vrai gabarit
+// vide comme les modèles fournis. Nommage immédiat automatique (même
+// principe que addItem() dans database.js : un seul clic suffit), pas de
+// fenêtre de saisie.
+function gnSaveAsCustomGabarit() {
+  const page = db.pages[_gnActivePage];
+  if (!page.elements.length) { toast('Page vide — rien à enregistrer comme gabarit.', 'error'); return; }
+  if (!db.customGabarits) db.customGabarits = [];
+  const elements = page.elements.map(el => el.type === 'image'
+    ? { type:'image', x:el.x, y:el.y, w:el.w, h:el.h, fit:el.fit, frameShape:el.frameShape }
+    : { type:'text', x:el.x, y:el.y, w:el.w, h:el.h, fontFamily:el.fontFamily, fontSize:el.fontSize,
+        align:el.align, bold:el.bold, italic:el.italic, lineHeight:el.lineHeight, letterSpacing:el.letterSpacing,
+        color:el.color, background:el.background, bgOpacity:el.bgOpacity, textEffect:el.textEffect });
+  db.customGabarits.push({ id: genPageId(), label: 'Mon gabarit ' + (db.customGabarits.length + 1), elements });
+  saveGraphicNovel();
+  gnRenderGabaritsPanel();
+  toast('Gabarit personnalisé enregistré.', 'success');
+}
+function gnDeleteCustomGabarit(id) {
+  if (!db.customGabarits) return;
+  db.customGabarits = db.customGabarits.filter(g => g.id !== id);
+  if (_gnPreviewGabarit === 'custom:' + id) _gnPreviewGabarit = null;
+  saveGraphicNovel();
+  gnRenderGabaritsPanel();
+  gnRenderCanvas();
+}
 function gnApplyPreviewGabarit() {
-  if (!_gnPreviewGabarit) return;
-  db.pages[_gnActivePage].elements = GRAPHIC_GABARITS[_gnPreviewGabarit].build();
+  const gab = gnResolveGabarit(_gnPreviewGabarit);
+  if (!gab) return;
+  db.pages[_gnActivePage].elements = gab.build();
   _gnPreviewGabarit = null;
   saveGraphicNovel();
   renderGraphicNovelScreen();
@@ -864,6 +958,78 @@ async function gnDeletePage(i) {
   gnSetActivePage(Math.min(_gnActivePage, db.pages.length - 1));
   gnRenderTrashBadge();
   toast('Page déplacée vers la corbeille.', 'success');
+}
+// Duplication de page (Lot 5, audit #15) : chaque image est recopiée en
+// IndexedDB (voir duplicateGraphicImage, images.js) plutôt que partagée par
+// référence — la copie et l'originale restent totalement indépendantes.
+async function gnDuplicatePage(i) {
+  const src = db.pages[i];
+  if (!src) return;
+  toast('Duplication…', 'info');
+  const elements = [];
+  for (const el of src.elements) {
+    const clone = JSON.parse(JSON.stringify(el));
+    clone.id = genElementId();
+    if (clone.type === 'image' && clone.imageId) {
+      const ref = await duplicateGraphicImage(clone.imageId, _currentDocumentId);
+      if (ref) { clone.imageId = ref.imageId; clone.imageW = ref.imageW; clone.imageH = ref.imageH; }
+      else { clone.imageId = null; clone.imageW = 0; clone.imageH = 0; }
+    }
+    elements.push(clone);
+  }
+  const copy = { id: genPageId(), background: src.background, elements };
+  db.pages.splice(i + 1, 0, copy);
+  saveGraphicNovel();
+  gnSetActivePage(i + 1);
+  toast('Page dupliquée.', 'success');
+}
+// Réorganisation des pages par glisser (Lot 5, audit #16) — drag & drop HTML5
+// natif, PC uniquement (comme le reste de l'édition libre, voir gnIsDesktop).
+// Câblée une seule fois sur le conteneur (délégation), jamais recâblée au
+// re-rendu — même principe que les autres listes de gnWireEvents.
+let _gnDragPageIdx = null;
+function gnWirePageDragReorder() {
+  const box = document.getElementById('gn-pages-list');
+  const clearDropMarks = () => box.querySelectorAll('.gn-pg-drop-before').forEach(t => t.classList.remove('gn-pg-drop-before'));
+  box.addEventListener('dragstart', e => {
+    const thumb = e.target.closest('.gn-pg-thumb');
+    if (!thumb) return;
+    _gnDragPageIdx = Number(thumb.dataset.idx);
+    e.dataTransfer.effectAllowed = 'move';
+    thumb.classList.add('gn-pg-dragging');
+  });
+  box.addEventListener('dragend', e => {
+    const thumb = e.target.closest('.gn-pg-thumb');
+    if (thumb) thumb.classList.remove('gn-pg-dragging');
+    clearDropMarks();
+    _gnDragPageIdx = null;
+  });
+  box.addEventListener('dragover', e => {
+    if (_gnDragPageIdx === null) return;
+    const thumb = e.target.closest('.gn-pg-thumb');
+    if (!thumb) return;
+    e.preventDefault();
+    clearDropMarks();
+    thumb.classList.add('gn-pg-drop-before');
+  });
+  box.addEventListener('drop', e => {
+    const from = _gnDragPageIdx;
+    clearDropMarks();
+    _gnDragPageIdx = null;
+    if (from === null) return;
+    const thumb = e.target.closest('.gn-pg-thumb');
+    if (!thumb) return;
+    e.preventDefault();
+    const to = Number(thumb.dataset.idx);
+    if (from === to) return;
+    const [moved] = db.pages.splice(from, 1);
+    db.pages.splice(to, 0, moved);
+    if (_gnActivePage === from) _gnActivePage = to;
+    else if (from < _gnActivePage && to >= _gnActivePage) _gnActivePage--;
+    else if (from > _gnActivePage && to <= _gnActivePage) _gnActivePage++;
+    saveGraphicNovel();
+    renderGraphicNovelScreen();
+  });
 }
 function gnAddFreeElement(type) {
   const page = db.pages[_gnActivePage];
@@ -933,6 +1099,42 @@ function gnPickImageFor(el) {
 // ─────────────────────────────────────────────────────────
 function gnSnap(v) { return _gnSnapGrid ? Math.round(v / 2) * 2 : Math.round(v * 10) / 10; }
 function gnClamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+// ─────────────────────────────────────────────────────────
+// GUIDES D'ALIGNEMENT (Lot 5, audit #19)
+// Accroche sur le centre de la page et les bords/centres des AUTRES
+// éléments de la page active, en plus de la grille magnétique existante
+// (_gnSnapGrid/gnSnap, un concept différent : arrondi à 2%, pas proximité).
+// Purement visuel + positionnel pendant le geste — aucun état persistant,
+// les guides sont retirés au relâchement (gnOnPointerUp).
+// ─────────────────────────────────────────────────────────
+const GN_ALIGN_TOLERANCE = 1.2; // % de la page
+function gnAlignLines(axis, excludeId) {
+  const page = db.pages[_gnActivePage];
+  const lines = [50]; // centre de page
+  (page.elements || []).forEach(o => {
+    if (o.id === excludeId) return;
+    if (axis === 'x') lines.push(o.x, o.x + o.w / 2, o.x + o.w);
+    else lines.push(o.y, o.y + o.h / 2, o.y + o.h);
+  });
+  return lines;
+}
+function gnFindSnapLine(value, lines) {
+  let best = null, bestDist = GN_ALIGN_TOLERANCE;
+  lines.forEach(l => { const d = Math.abs(value - l); if (d <= bestDist) { bestDist = d; best = l; } });
+  return best;
+}
+function gnClearAlignGuides() {
+  document.querySelectorAll('.gn-align-guide').forEach(g => g.remove());
+}
+function gnShowAlignGuide(axis, pct) {
+  const canvas = document.getElementById('gn-canvas');
+  if (!canvas) return;
+  const g = document.createElement('div');
+  g.className = 'gn-align-guide gn-align-guide-' + axis;
+  if (axis === 'x') g.style.left = pct + '%'; else g.style.top = pct + '%';
+  canvas.appendChild(g);
+}
 
 function gnMakeDraggable(zoneEl, el) {
   zoneEl.addEventListener('pointerdown', e => {
@@ -1043,15 +1245,30 @@ function gnOnPointerMove(e) {
   }
   const dxPct = (e.clientX - startX) / canvasRect.width * 100;
   const dyPct = (e.clientY - startY) / canvasRect.height * 100;
+  gnClearAlignGuides();
   if (mode === 'move') {
     el.x = gnClamp(gnSnap(_gnDrag.origX + dxPct), 0, 100 - el.w);
     el.y = gnClamp(gnSnap(_gnDrag.origY + dyPct), 0, 100 - el.h);
+    const xLines = gnAlignLines('x', el.id), yLines = gnAlignLines('y', el.id);
+    const left = gnFindSnapLine(el.x, xLines), centerX = gnFindSnapLine(el.x + el.w / 2, xLines), right = gnFindSnapLine(el.x + el.w, xLines);
+    if (centerX !== null) { el.x = gnClamp(centerX - el.w / 2, 0, 100 - el.w); gnShowAlignGuide('x', centerX); }
+    else if (left !== null) { el.x = gnClamp(left, 0, 100 - el.w); gnShowAlignGuide('x', left); }
+    else if (right !== null) { el.x = gnClamp(right - el.w, 0, 100 - el.w); gnShowAlignGuide('x', right); }
+    const top = gnFindSnapLine(el.y, yLines), centerY = gnFindSnapLine(el.y + el.h / 2, yLines), bottom = gnFindSnapLine(el.y + el.h, yLines);
+    if (centerY !== null) { el.y = gnClamp(centerY - el.h / 2, 0, 100 - el.h); gnShowAlignGuide('y', centerY); }
+    else if (top !== null) { el.y = gnClamp(top, 0, 100 - el.h); gnShowAlignGuide('y', top); }
+    else if (bottom !== null) { el.y = gnClamp(bottom - el.h, 0, 100 - el.h); gnShowAlignGuide('y', bottom); }
   } else {
     const { pos, origX, origY, origW, origH } = _gnDrag;
     if (pos.includes('e')) el.w = gnClamp(gnSnap(origW + dxPct), 6, 100 - origX);
     if (pos.includes('s')) el.h = gnClamp(gnSnap(origH + dyPct), 6, 100 - origY);
     if (pos.includes('w')) { const nw = gnClamp(gnSnap(origW - dxPct), 6, origX + origW); el.x = origX + origW - nw; el.w = nw; }
     if (pos.includes('n')) { const nh = gnClamp(gnSnap(origH - dyPct), 6, origY + origH); el.y = origY + origH - nh; el.h = nh; }
+    const xLines = gnAlignLines('x', el.id), yLines = gnAlignLines('y', el.id);
+    if (pos.includes('e')) { const r = gnFindSnapLine(el.x + el.w, xLines); if (r !== null) { el.w = gnClamp(r - el.x, 6, 100 - el.x); gnShowAlignGuide('x', r); } }
+    if (pos.includes('w')) { const l = gnFindSnapLine(el.x, xLines); if (l !== null) { const edgeR = el.x + el.w; el.x = gnClamp(l, 0, edgeR - 6); el.w = edgeR - el.x; gnShowAlignGuide('x', l); } }
+    if (pos.includes('s')) { const b = gnFindSnapLine(el.y + el.h, yLines); if (b !== null) { el.h = gnClamp(b - el.y, 6, 100 - el.y); gnShowAlignGuide('y', b); } }
+    if (pos.includes('n')) { const t = gnFindSnapLine(el.y, yLines); if (t !== null) { const edgeB = el.y + el.h; el.y = gnClamp(t, 0, edgeB - 6); el.h = edgeB - el.y; gnShowAlignGuide('y', t); } }
   }
   // Important : ne PAS appeler gnRenderCanvas() ici — ça remplacerait
   // zoneEl (qui détient la capture du pointeur) en plein glisser et
@@ -1063,6 +1280,7 @@ function gnOnPointerUp() {
   if (!_gnDrag) return;
   const moved = _gnDrag.moved;
   _gnDrag = null;
+  gnClearAlignGuides();
   if (!moved) return; // clic simple : rien à sauvegarder, laisser l'événement "click" gérer la sélection
   saveGraphicNovel();
   gnRenderCanvas();

@@ -77,6 +77,20 @@ async function graphicImageUrl(imageId) {
   return url;
 }
 
+// Copie indépendante d'une image déjà stockée — utilisée par la duplication
+// de page (Lot 5, audit #15) : sans ça, la page originale et sa copie
+// partageraient le même imageId, et supprimer l'image sur l'une finirait
+// (après purge de la corbeille, 30 jours) par casser l'autre aussi.
+async function duplicateGraphicImage(imageId, docId) {
+  if (!imageId) return null;
+  const db = await plumeImagesDb();
+  const rec = await db.get('images', imageId);
+  if (!rec) return null;
+  const newId = genElementId();
+  await db.put('images', { id: newId, docId, blob: rec.blob, width: rec.width, height: rec.height, createdAt: Date.now() });
+  return { imageId: newId, imageW: rec.width, imageH: rec.height };
+}
+
 async function deleteGraphicImage(imageId) {
   if (!imageId) return;
   const cached = _plumeImageUrlCache.get(imageId);

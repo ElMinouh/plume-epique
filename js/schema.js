@@ -100,7 +100,7 @@ function DEFAULT_DB_GRAPHIC() {
     docType: 'roman_graphique',
     title: '',
     pages: [ defaultGraphicPage('texteSeul') ],
-    trash: [], history:{}, plugins:{},
+    trash: [], history:{}, plugins:{}, customGabarits: [],
     darkMode:true, gistId:'', sessionStats:{},
     accentPalette:'rouge-violet', paperMode:false,
     projectType:'fantasy'
