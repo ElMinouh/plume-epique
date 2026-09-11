@@ -119,6 +119,16 @@ async function getAllGraphicImagesForDocument(docId) {
   return db.getAllFromIndex('images', 'docId', docId);
 }
 
+// Poids total (octets) des images d'un document (Lot 8, audit #26) —
+// utilisé pour afficher un repère de taille et avertir avant d'approcher
+// du quota de stockage réel du navigateur (voir gnUpdateStorageInfo,
+// graphicnovel.js), plutôt que de laisser l'utilisateur découvrir le
+// problème via une erreur de quota dépassé en pleine séance.
+async function getGraphicImagesTotalSize(docId) {
+  const list = await getAllGraphicImagesForDocument(docId);
+  return list.reduce((sum, rec) => sum + (rec.blob ? rec.blob.size : 0), 0);
+}
+
 // Écrit (ou remplace) un enregistrement d'image tel quel — utilisé à la
 // restauration depuis un fichier JSON ou un Gist. Les images ne sont jamais
 // modifiées après création (seulement dupliquées avec un nouvel id, ou

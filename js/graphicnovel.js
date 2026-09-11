@@ -444,7 +444,8 @@ function gnRenderPageProps() {
   const page = db.pages[_gnActivePage];
   box.innerHTML = `<label class="gn-color-lbl">Fond <input type="color" id="gn-page-bg-picker" value="${page.background || '#f4ecd8'}"></label>
     <button class="action-btn btn-sm gn-mt-sm" id="gn-page-history-btn" title="Versions précédentes de cette page (instantané automatique toutes les 5 minutes)">🕓 Historique de la page</button>
-    <button class="action-btn btn-sm gn-mt-sm" id="gn-save-gabarit-btn" title="Enregistrer la disposition de cette page (positions et styles, sans le contenu ni les images) comme gabarit réutilisable">💾 Enregistrer comme gabarit</button>`;
+    <button class="action-btn btn-sm gn-mt-sm" id="gn-save-gabarit-btn" title="Enregistrer la disposition de cette page (positions et styles, sans le contenu ni les images) comme gabarit réutilisable">💾 Enregistrer comme gabarit</button>
+    <div class="gn-storage-info" id="gn-storage-info" aria-live="polite"></div>`;
   document.getElementById('gn-page-bg-picker').addEventListener('input', e => {
     page.background = e.target.value;
     const canvas = document.getElementById('gn-canvas');
@@ -454,6 +455,37 @@ function gnRenderPageProps() {
   });
   document.getElementById('gn-page-history-btn').addEventListener('click', gnOpenPageHistoryModal);
   document.getElementById('gn-save-gabarit-btn').addEventListener('click', gnSaveAsCustomGabarit);
+  const infoEl = document.getElementById('gn-storage-info');
+  if (infoEl) { infoEl.style.fontSize = '11px'; infoEl.style.opacity = '.6'; infoEl.style.marginTop = '6px'; }
+  gnUpdateStorageInfo();
+}
+
+// Poids des images du document + repère d'occupation du stockage (Lot 8,
+// audit #26). Asynchrone et séparé du rendu principal (ci-dessus) pour ne
+// pas rendre renderGraphicNovelScreen() lui-même asynchrone — l'affichage
+// se complète dès que le calcul (IndexedDB + navigator.storage.estimate)
+// revient, sans bloquer le reste de l'interface.
+let _gnStorageWarnShown = false; // avertissement une seule fois par session
+async function gnUpdateStorageInfo() {
+  const el = document.getElementById('gn-storage-info');
+  if (!el) return;
+  try {
+    const totalBytes = await getGraphicImagesTotalSize(_currentDocumentId);
+    const mo = totalBytes / (1024 * 1024);
+    let txt = `🖼️ Images de ce roman graphique : ${mo < 0.1 ? '< 0,1' : mo.toFixed(1)} Mo`;
+    if (navigator.storage && navigator.storage.estimate) {
+      const est = await navigator.storage.estimate();
+      if (est.quota) {
+        const pct = Math.round((est.usage / est.quota) * 100);
+        txt += ` — ${pct}% de l'espace de stockage du navigateur utilisé`;
+        if (pct >= 80 && !_gnStorageWarnShown) {
+          _gnStorageWarnShown = true;
+          toast(`⚠️ Espace de stockage bientôt plein (${pct}%). Pense à exporter/sauvegarder ce roman graphique.`, 'error');
+        }
+      }
+    }
+    if (document.getElementById('gn-storage-info')) el.textContent = txt;
+  } catch (e) { /* purement informatif, jamais bloquant */ }
 }
 
 function gnMiniIconHtml(elements) {
