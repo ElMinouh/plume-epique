@@ -46,9 +46,14 @@ export default {
           // par le plan Mistral actuel ("This model is not available in
           // your subscription tier") — toutes les fonctions IA de l'app en
           // dépendent (résumé, continuation, chat, reformulation BD...),
-          // toutes échouaient donc identiquement. mistral-small-latest est
-          // disponible sur la quasi-totalité des plans Mistral.
-          model: 'mistral-small-latest',
+          // toutes échouaient donc identiquement. mistral-small-latest a
+          // résolu ça mais a un quota bien plus bas (20 000 tokens/minute,
+          // vérifié dans les limites du compte) — vite épuisé par les
+          // prompts avec contexte (chapitre, personnages, historique),
+          // d'où un 429 "Rate limit exceeded" systématique (11/09/2026).
+          // mistral-large-2512 (version figée, pas l'alias -latest) est
+          // bien couverte par ce compte et offre 250 000 tokens/minute.
+          model: 'mistral-large-2512',
           max_tokens: maxTokens || 1000,
           messages: [{ role: 'user', content: prompt }],
           stream: true,
