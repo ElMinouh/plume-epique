@@ -86,7 +86,18 @@ export default {
             if (!payload) continue;
             try {
               const parsed = JSON.parse(payload);
-              const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+              // Correctif (11/09/2026, ter) : gemini-3.6-flash a un mode
+              // "réflexion" activé par défaut — le modèle envoie d'abord des
+              // morceaux de raisonnement interne (part.thought === true,
+              // ex: "(Wait, ...)") AVANT le texte de réponse final. On ne
+              // relaie que les morceaux qui ne sont pas marqués "thought",
+              // sinon ce raisonnement s'affichait à la place du résultat.
+              const parts = parsed.candidates?.[0]?.content?.parts || [];
+              let text = '';
+              for (const part of parts) {
+                if (part.thought) continue;
+                if (part.text) text += part.text;
+              }
               if (text) {
                 const out = JSON.stringify({ choices: [{ delta: { content: text } }] });
                 controller.enqueue(encoder.encode(`data: ${out}\n\n`));
