@@ -409,10 +409,18 @@ function gnWireEvents() {
     if (dup) { e.stopPropagation(); gnDuplicatePage(Number(dup.dataset.idx)); return; }
     const del = e.target.closest('.gn-pg-del');
     if (del) { e.stopPropagation(); gnDeletePage(Number(del.dataset.idx)); return; }
+    // Lot 9 (audit #30) : boutons monter/descendre — visibles uniquement en
+    // tactile (voir CSS, media (pointer:coarse)), alternative au glisser
+    // pour réorganiser les pages sans dépendre d'un geste.
+    const up = e.target.closest('.gn-pg-up');
+    if (up) { e.stopPropagation(); gnMovePageTo(Number(up.dataset.idx), Number(up.dataset.idx) - 1); return; }
+    const down = e.target.closest('.gn-pg-down');
+    if (down) { e.stopPropagation(); gnMovePageTo(Number(down.dataset.idx), Number(down.dataset.idx) + 1); return; }
     const thumb = e.target.closest('.gn-pg-thumb'); if (!thumb) return;
     gnSetActivePage(Number(thumb.dataset.idx));
   });
   gnWirePageDragReorder();
+  gnWirePageTouchDragReorder();
   document.getElementById('gn-gabarits').addEventListener('click', e => {
     const del = e.target.closest('.gn-gab-del');
     if (del) { e.stopPropagation(); gnDeleteCustomGabarit(del.dataset.id); return; }
@@ -567,6 +575,10 @@ function gnRenderPagesSidebar() {
       <span class="gn-pg-num">${i+1}</span>
       <button class="gn-pg-dup" data-idx="${i}" title="Dupliquer la page ${i+1}" aria-label="Dupliquer la page ${i+1}">⧉</button>
       <button class="gn-pg-del" data-idx="${i}" title="Supprimer la page ${i+1}" aria-label="Supprimer la page ${i+1}">✕</button>
+      <span class="gn-pg-move">
+        <button class="gn-pg-up" data-idx="${i}" title="Monter la page ${i+1}" aria-label="Monter la page ${i+1}"${i===0?' disabled':''}>▲</button>
+        <button class="gn-pg-down" data-idx="${i}" title="Descendre la page ${i+1}" aria-label="Descendre la page ${i+1}"${i===db.pages.length-1?' disabled':''}>▼</button>
+      </span>
     </div>`).join('');
   // Fond de vignette : propriété JS .style.backgroundColor, jamais l'attribut
   // style="" (voir note CSP ci-dessus).
@@ -1199,16 +1211,73 @@ function gnWirePageDragReorder() {
     const thumb = e.target.closest('.gn-pg-thumb');
     if (!thumb) return;
     e.preventDefault();
-    const to = Number(thumb.dataset.idx);
-    if (from === to) return;
-    const [moved] = db.pages.splice(from, 1);
-    db.pages.splice(to, 0, moved);
-    if (_gnActivePage === from) _gnActivePage = to;
-    else if (from < _gnActivePage && to >= _gnActivePage) _gnActivePage--;
-    else if (from > _gnActivePage && to <= _gnActivePage) _gnActivePage++;
-    saveGraphicNovel();
-    renderGraphicNovelScreen();
+    gnMovePageTo(from, Number(thumb.dataset.idx));
   });
+}
+// Déplace la page `from` à l'index `to` — factorisé (Lot 9, audit #30) pour
+// être partagé entre le glisser natif ci-dessus, le glisser tactile et les
+// boutons monter/descendre (gnRenderPagesSidebar) qui appellent tous cette
+// même fonction plutôt que de dupliquer la logique d'ajustement de la page
+// active.
+function gnMovePageTo(from, to) {
+  if (from === to || to < 0 || to >= db.pages.length) return;
+  const [moved] = db.pages.splice(from, 1);
+  db.pages.splice(to, 0, moved);
+  if (_gnActivePage === from) _gnActivePage = to;
+  else if (from < _gnActivePage && to >= _gnActivePage) _gnActivePage--;
+  else if (from > _gnActivePage && to <= _gnActivePage) _gnActivePage++;
+  saveGraphicNovel();
+  renderGraphicNovelScreen();
+}
+// Réorganisation des pages par glisser tactile (Lot 9, audit #30) — le
+// glisser-déposer HTML5 natif ci-dessus ne réagit pas au doigt. Appui long
+// (250 ms sans déplacement) pour armer le glisser : le défilement tactile
+// normal de la liste reste intact tant que rien n'est armé, seul un appui
+// long déclenche la réorganisation. Ne s'active que pour un pointeur
+// tactile/stylet (e.pointerType) — la souris reste sur le mécanisme natif.
+const GN_TOUCH_DRAG_HOLD_MS = 250;
+let _gnTouchDragIdx = null, _gnTouchDragTimer = null, _gnTouchDragArmed = false, _gnTouchDragThumb = null;
+function gnWirePageTouchDragReorder() {
+  const box = document.getElementById('gn-pages-list');
+  const clearDropMarks = () => box.querySelectorAll('.gn-pg-drop-before').forEach(t => t.classList.remove('gn-pg-drop-before'));
+  const cancelTouchDrag = () => {
+    clearTimeout(_gnTouchDragTimer);
+    if (_gnTouchDragThumb) { _gnTouchDragThumb.style.touchAction = ''; _gnTouchDragThumb.classList.remove('gn-pg-dragging'); }
+    _gnTouchDragIdx = null; _gnTouchDragArmed = false; _gnTouchDragThumb = null;
+    clearDropMarks();
+  };
+  box.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse') return;
+    if (e.target.closest('.gn-pg-del,.gn-pg-dup,.gn-pg-up,.gn-pg-down')) return;
+    const thumb = e.target.closest('.gn-pg-thumb');
+    if (!thumb) return;
+    _gnTouchDragIdx = Number(thumb.dataset.idx);
+    _gnTouchDragThumb = thumb;
+    _gnTouchDragTimer = setTimeout(() => {
+      _gnTouchDragArmed = true;
+      thumb.style.touchAction = 'none';
+      thumb.classList.add('gn-pg-dragging');
+    }, GN_TOUCH_DRAG_HOLD_MS);
+  });
+  box.addEventListener('pointermove', e => {
+    if (_gnTouchDragIdx === null) return;
+    if (!_gnTouchDragArmed) { clearTimeout(_gnTouchDragTimer); return; } // bougé avant l'armement : défilement normal, on abandonne
+    e.preventDefault();
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    const thumb = target && target.closest('.gn-pg-thumb');
+    clearDropMarks();
+    if (thumb) thumb.classList.add('gn-pg-drop-before');
+  });
+  box.addEventListener('pointerup', e => {
+    if (_gnTouchDragIdx === null) return;
+    const from = _gnTouchDragIdx, armed = _gnTouchDragArmed;
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    const thumb = target && target.closest('.gn-pg-thumb');
+    cancelTouchDrag();
+    if (!armed || !thumb) return;
+    gnMovePageTo(from, Number(thumb.dataset.idx));
+  });
+  box.addEventListener('pointercancel', cancelTouchDrag);
 }
 function gnAddFreeElement(type) {
   const page = db.pages[_gnActivePage];

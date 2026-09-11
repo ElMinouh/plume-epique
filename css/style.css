@@ -1402,6 +1402,16 @@ body.graphicnovel-mode #graphicnovel-screen{display:flex;flex-direction:column;h
 /* Lot 5 (audit #16) : réorganisation des pages par glisser-déposer. */
 .gn-pg-thumb.gn-pg-dragging{opacity:.4;}
 .gn-pg-thumb.gn-pg-drop-before{box-shadow:0 0 0 3px var(--accent2);}
+/* Lot 9 (audit #30) : boutons monter/descendre, alternative tactile au
+   glisser — masqués à la souris (redondants avec le glisser natif), visibles
+   uniquement quand le pointeur principal est tactile/stylet. */
+.gn-pg-move{display:none;}
+@media (pointer:coarse){
+  .gn-pg-move{display:flex;position:absolute;bottom:2px;left:2px;gap:2px;}
+  .gn-pg-up,.gn-pg-down{width:20px;height:20px;border:none;border-radius:4px;
+    background:rgba(0,0,0,.45);color:#fff;font-size:.6rem;line-height:20px;padding:0;cursor:pointer;}
+  .gn-pg-up:disabled,.gn-pg-down:disabled{opacity:.3;}
+}
 .gn-pg-add{aspect-ratio:4/5;border-radius:6px;border:1.5px dashed var(--border);background:none;
   color:var(--text-muted);cursor:pointer;font-size:1.1rem;}
 .gn-pg-add:hover{border-color:var(--accent2);color:var(--accent2);}
@@ -1467,6 +1477,17 @@ body.graphicnovel-mode #graphicnovel-screen{display:flex;flex-direction:column;h
 .gn-handle-ne{top:-5px;right:-5px;cursor:nesw-resize;}
 .gn-handle-sw{bottom:-5px;left:-5px;cursor:nesw-resize;}
 .gn-handle-se{bottom:-5px;right:-5px;cursor:nwse-resize;}
+/* Lot 9 (audit #30) : poignées agrandies pour une cible tactile correcte
+   (~34px, proche des 44px recommandés avec la marge du cadre) — uniquement
+   quand le pointeur principal est tactile/stylet ; taille inchangée à la
+   souris. */
+@media (pointer:coarse){
+  .gn-handle{width:34px;height:34px;}
+  .gn-handle-nw{top:-18px;left:-18px;}
+  .gn-handle-ne{top:-18px;right:-18px;}
+  .gn-handle-sw{bottom:-18px;left:-18px;}
+  .gn-handle-se{bottom:-18px;right:-18px;}
+}
 .gn-mini-toolbar{position:absolute;top:-34px;left:0;z-index:4;display:flex;gap:3px;background:var(--glass);
   border:1px solid var(--border);border-radius:var(--radius-pill);padding:3px;box-shadow:var(--shadow);}
 .gn-mini-toolbar button{width:24px;height:24px;border-radius:50%;border:none;background:transparent;
@@ -1529,7 +1550,11 @@ body.graphicnovel-mode #graphicnovel-screen{display:flex;flex-direction:column;h
 .gn-move-handle{position:absolute;top:-30px;left:0;width:24px;height:24px;border-radius:50%;
   background:var(--glass);border:1.5px solid var(--accent2);cursor:move;z-index:5;
   display:flex;align-items:center;justify-content:center;font-size:.78rem;
-  box-shadow:0 2px 6px rgba(0,0,0,.18);color:var(--accent2);user-select:none;}
+  box-shadow:0 2px 6px rgba(0,0,0,.18);color:var(--accent2);user-select:none;touch-action:none;}
+/* Lot 9 (audit #30) : même agrandissement tactile que .gn-handle ci-dessus. */
+@media (pointer:coarse){
+  .gn-move-handle{width:34px;height:34px;top:-38px;}
+}
 .gn-txtprops{margin-top:8px;}
 .gn-txtprops select{width:100%;padding:7px 8px;border:1.5px solid var(--border);background:var(--item-bg);
   border-radius:var(--radius-sm);color:var(--text);font-size:var(--fs-sm);}
