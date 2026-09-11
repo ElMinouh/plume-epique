@@ -600,6 +600,12 @@ body.library-mode #library-screen{display:block;}
 .toolbar-menu button.cover-swatch:hover{border-color:var(--text);}
 .library-cover{height:70px;background:linear-gradient(135deg,var(--accent),var(--accent2));
   display:flex;align-items:center;justify-content:center;font-size:1.6rem;}
+/* Lot 6 (audit #23) : vignette schématique d'un roman graphique — mêmes
+   petits rectangles que gnMiniIconHtml (graphicnovel.js), réutilisée telle
+   quelle. Volontairement PAS une vraie image de la page : l'index de la
+   bibliothèque (doclist_<profil>) est stocké en clair (voir library.js),
+   une vraie capture y exposerait le contenu du manuscrit sans mot de passe. */
+.gn-cover-preview{position:relative;width:100%;align-self:stretch;background:transparent;overflow:hidden;}
 .library-card-body{padding:12px 14px;}
 .library-card-title{font-weight:700;font-size:var(--fs-base);margin:0 0 4px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -1374,6 +1380,16 @@ body.graphicnovel-mode #graphicnovel-screen{display:flex;flex-direction:column;h
 .gn-icon-z{position:absolute;border-radius:1px;}
 .gn-icon-z.gn-icon-i{background:var(--accent2);opacity:.5;}
 .gn-icon-z.gn-icon-t{background:#3b2f1e;opacity:.25;}
+/* Correctif (07/09/2026, retour utilisateur sur v9.16.0) : dans la
+   vignette de bibliothèque (.gn-cover-preview), les mêmes blocs posés sur
+   le fond de PAGE choisi librement par l'utilisateur (pas une palette
+   assortie) donnaient un rendu criard. Ici seulement : formes blanches
+   translucides arrondies, sur le dégradé déjà utilisé par les autres
+   cartes (voir .library-cover) — l'éditeur (.gn-pg-thumb) n'est pas
+   concerné, il garde les couleurs ci-dessus. */
+.gn-cover-preview .gn-icon-z{border-radius:3px;background:#fff;}
+.gn-cover-preview .gn-icon-z.gn-icon-i{opacity:.4;}
+.gn-cover-preview .gn-icon-z.gn-icon-t{opacity:.22;}
 .gn-pg-num{position:absolute;bottom:2px;right:4px;font-size:.55rem;color:#8a7a5c;font-weight:700;}
 .gn-pg-del{position:absolute;top:2px;right:2px;width:16px;height:16px;border:none;border-radius:50%;
   background:rgba(0,0,0,.45);color:#fff;font-size:.55rem;line-height:16px;padding:0;cursor:pointer;
@@ -1567,6 +1583,9 @@ body.graphicnovel-mode #graphicnovel-screen{display:flex;flex-direction:column;h
   background:var(--item-bg);color:var(--text-muted);padding:2px 7px;border-radius:var(--radius-pill);
   text-transform:uppercase;font-weight:700;}
 .gn-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px;}
+/* Lot 6 (audit #22) : résultat de reformulation IA dans le panneau texte. */
+.gn-ai-result{font-size:.78rem;line-height:1.45;background:var(--item-bg);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:8px 10px;max-height:180px;overflow-y:auto;}
 
 /* Édition simplifiée sur mobile (décision validée avec l'utilisateur) : le
    positionnement libre précis (glisser/redimensionner) reste réservé au

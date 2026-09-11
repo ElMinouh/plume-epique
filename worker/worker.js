@@ -42,7 +42,13 @@ export default {
           'Authorization': `Bearer ${env.MISTRAL_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'mistral-large-latest',
+          // Correctif (07/09/2026) : mistral-large-latest n'est plus couvert
+          // par le plan Mistral actuel ("This model is not available in
+          // your subscription tier") — toutes les fonctions IA de l'app en
+          // dépendent (résumé, continuation, chat, reformulation BD...),
+          // toutes échouaient donc identiquement. mistral-small-latest est
+          // disponible sur la quasi-totalité des plans Mistral.
+          model: 'mistral-small-latest',
           max_tokens: maxTokens || 1000,
           messages: [{ role: 'user', content: prompt }],
           stream: true,

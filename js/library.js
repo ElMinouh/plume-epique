@@ -684,7 +684,7 @@ async function renderLibraryScreen() {
       return `
     <div class="library-card" data-doc-id="${d.id}" role="button" tabindex="0" title="Ouvrir « ${DOMPurify.sanitize(d.title || 'Sans titre')} »">
       <button class="library-kebab-btn" data-kebab-doc="${d.id}" title="Actions du manuscrit" aria-label="Actions du manuscrit">⋮</button>
-      <div class="library-cover${coverClass}"${hasShapes ? ' data-gn-cover-bg="' + DOMPurify.sanitize(d.gnCoverBg || '') + '"' : ''}>${coverInner}</div>
+      <div class="library-cover${coverClass}">${coverInner}</div>
       <div class="library-card-body">
         <p class="library-card-title">${DOMPurify.sanitize(d.title || 'Sans titre')}</p>
         <p class="library-card-meta">${metaText}</p>
@@ -697,10 +697,6 @@ async function renderLibraryScreen() {
   // jamais style="" en ligne (interdit par la CSP style-src 'self') — même
   // fonctions que l'éditeur roman graphique (graphicnovel.js).
   if (typeof gnApplyMiniIconStyles === 'function') gnApplyMiniIconStyles(container);
-  container.querySelectorAll('.library-cover[data-gn-cover-bg]').forEach(el => {
-    const preview = el.querySelector('.gn-cover-preview');
-    if (preview) preview.style.backgroundColor = el.dataset.gnCoverBg || '#f4ecd8';
-  });
 
   const newBtn = document.getElementById('library-new-btn');
   newBtn.addEventListener('click', createNewDocument);
