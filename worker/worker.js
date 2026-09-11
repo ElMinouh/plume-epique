@@ -32,7 +32,10 @@ export default {
       // limit exceeded" systématique. Gemini offre 1 000 000 tokens/minute
       // en gratuit (15 requêtes/minute, 1500/jour), largement suffisant
       // pour un usage humain normal de l'app.
-      const model = 'gemini-2.5-flash';
+      // Correctif (11/09/2026, bis) : gemini-2.5-flash n'est plus proposé
+      // aux nouvelles clés API ("no longer available to new users") —
+      // gemini-3.6-flash est le modèle recommandé en remplacement.
+      const model = 'gemini-3.6-flash';
       const resp = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`,
         {
