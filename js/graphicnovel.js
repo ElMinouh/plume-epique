@@ -72,6 +72,10 @@ function openGraphicNovelScreen() {
   // Annuler/Rétablir (Lot 4) : pile remise à zéro à chaque ouverture d'un
   // manuscrit — on ne propose jamais d'annuler au-delà de la session en cours.
   gnResetUndoStack();
+  // Stats (Lot 6, audit #21) : mêmes globales que l'éditeur texte
+  // (router.js), pour que "mots aujourd'hui"/"mots par minute" restent
+  // justes si jamais calculés pendant que ce manuscrit est ouvert.
+  if (typeof sessionWordsStart !== 'undefined') { sessionWordsStart = gnCountWords(); sessionStartTime = Date.now(); }
   renderGraphicNovelScreen();
   gnRenderTrashBadge();
 }
@@ -93,6 +97,22 @@ function gnCountWords() {
   }));
   return n;
 }
+// Stats (Lot 6, audit #21) : équivalent de updateDailyStats() (stats.js)
+// pour ce docType — mêmes champs (db.sessionStats, db.hourlyActivity),
+// mêmes fonctions génériques réutilisées telles quelles (getTodayKey,
+// trackHourlyActivity), seule la source du total de mots change
+// (gnCountWords() au lieu de db.chapters.reduce(...)). Pas d'UI dédiée dans
+// l'écran roman graphique cette fois — juste la collecte des données, pour
+// qu'un manuscrit illustré compte dans la série d'écriture/l'heure la plus
+// productive comme un manuscrit texte.
+function gnUpdateDailyStats() {
+  if (typeof getTodayKey !== 'function' || typeof trackHourlyActivity !== 'function') return;
+  const today = getTodayKey();
+  const totalW = gnCountWords();
+  if (!db.sessionStats) db.sessionStats = {};
+  db.sessionStats[today] = totalW;
+  trackHourlyActivity(totalW);
+}
 async function saveGraphicNovel(immediate) {
   if (!_currentProfileId || !_dataKey || !_currentDocumentId) return;
   const doSave = async () => {
@@ -108,11 +128,20 @@ async function saveGraphicNovel(immediate) {
         entry.chapterCount = (db.pages || []).length;
         entry.wordCount = gnCountWords();
         entry.wordGoal = 0;
+        // Vignette bibliothèque (Lot 6, audit #23) : uniquement la géométrie
+        // des éléments de la page 1 (positions/tailles/types), jamais leur
+        // contenu (texte) ni les images elles-mêmes — l'index de la
+        // bibliothèque est stocké en clair (voir library.js), il ne doit
+        // jamais recevoir de vrai contenu de manuscrit.
+        const cover = (db.pages && db.pages[0]) || null;
+        entry.gnCoverShapes = cover ? cover.elements.map(e => ({ type: e.type, x: e.x, y: e.y, w: e.w, h: e.h })) : [];
+        entry.gnCoverBg = cover ? (cover.background || '') : '';
       });
       // Annuler/Rétablir (Lot 4) : point d'accroche unique — n'importe quelle
       // mutation (glisser, propriétés, ajout/suppression, corbeille…) passe
       // par ici une fois réellement sauvegardée.
       gnCommitUndoSnapshot();
+      gnUpdateDailyStats();
       if (typeof flashSave === 'function') flashSave();
     } catch(e) {
       console.error('Échec de sauvegarde (roman graphique) :', e);
@@ -869,7 +898,10 @@ function gnRenderTextProps() {
     <div class="gn-side-label gn-mt-sm">Lisibilité</div>
     <div class="gn-toggle-row">
       ${GN_TEXT_EFFECTS.map(fx => `<button class="gn-toggle-btn${el.textEffect===fx.key?' gn-active':''}" data-effect="${fx.key}">${fx.label}</button>`).join('')}
-    </div>`;
+    </div>
+    <div class="gn-side-label gn-mt-sm">Assistance IA</div>
+    <button class="action-btn btn-sm" id="gn-ai-rephrase-btn" title="Envoie ce texte à l'IA pour proposer une reformulation (service externe — voir la notice affichée au premier usage)">✨ Reformuler</button>
+    <div id="gn-ai-rephrase-box" class="gn-mt-sm" hidden></div>`;
   const zoneEl = document.querySelector(`.gn-zone[data-el-id="${el.id}"]`);
   const reapply = () => { if (zoneEl) gnApplyTextStyle(zoneEl, el); saveGraphicNovel(); };
   document.getElementById('gn-font-sel').addEventListener('change', e => { el.fontFamily = e.target.value; reapply(); });
@@ -893,6 +925,57 @@ function gnRenderTextProps() {
     btn.classList.add('gn-active');
     reapply();
   }));
+  document.getElementById('gn-ai-rephrase-btn').addEventListener('click', () => gnRephraseSelectedText(el.id));
+}
+// Assistance IA (Lot 6, audit #22) : reformulation du bloc de texte
+// sélectionné. Réutilise callClaude() (ai.js) telle quelle — elle ne sait
+// rien de db.chapters, un simple texte en entrée suffit — et le même avis
+// d'usage tiers que le reste de l'app (notifyThirdPartyDataUseOnce).
+// elId gardé en fermeture plutôt que relu via _gnSelectedElId au moment où
+// la réponse arrive : si l'utilisateur change de sélection pendant l'appel
+// (qui peut prendre plusieurs secondes), on n'écrase pas le panneau d'un
+// autre élément avec une réponse qui ne le concerne plus.
+async function gnRephraseSelectedText(elId) {
+  const page = db.pages[_gnActivePage];
+  const el = page && page.elements.find(e => e.id === elId);
+  if (!el) return;
+  const txt = (el.content || '').trim();
+  if (txt.length < 10) { toast('Texte trop court pour être reformulé.', 'error'); return; }
+  if (typeof notifyThirdPartyDataUseOnce === 'function') await notifyThirdPartyDataUseOnce();
+  const box = document.getElementById('gn-ai-rephrase-box');
+  if (!box || _gnSelectedElId !== elId) return;
+  box.hidden = false;
+  box.innerHTML = '<div class="ai-loader"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div>';
+  const stillCurrent = () => _gnSelectedElId === elId && document.getElementById('gn-ai-rephrase-box');
+  let result = '';
+  try {
+    result = await callClaude(
+      `Reformule ce texte en français : même sens, style plus fluide, longueur similaire. Réponds uniquement avec le texte reformulé, sans commentaire ni guillemets.\n\n${txt.substring(0, 1500)}`,
+      500,
+      partial => { const b = stillCurrent(); if (b) b.innerHTML = `<div class="gn-ai-result">${DOMPurify.sanitize(partial).replace(/\n/g,'<br>')}</div>`; }
+    );
+  } catch (e) {
+    const b = stillCurrent();
+    if (b) b.innerHTML = `<span class="u-c-v-danger">❌ ${DOMPurify.sanitize(e && e.message ? e.message : String(e))}</span>`;
+    return;
+  }
+  const b = stillCurrent();
+  if (!b) return;
+  b.innerHTML = `<div class="gn-ai-result">${DOMPurify.sanitize(result).replace(/\n/g,'<br>')}</div>
+    <div class="gn-modal-actions gn-mt-sm">
+      <button class="action-btn btn-sm u-bg-h7f8c8d" id="gn-ai-rephrase-cancel">Ignorer</button>
+      <button class="action-btn btn-sm" id="gn-ai-rephrase-apply">Appliquer</button>
+    </div>`;
+  document.getElementById('gn-ai-rephrase-cancel').addEventListener('click', () => { b.hidden = true; b.innerHTML = ''; });
+  document.getElementById('gn-ai-rephrase-apply').addEventListener('click', () => {
+    const target = page.elements.find(e => e.id === elId);
+    if (!target) return;
+    target.content = result;
+    const zoneEl = document.querySelector('.gn-zone[data-el-id="' + elId + '"]');
+    if (zoneEl) { zoneEl.textContent = result; gnCheckTextOverflow(zoneEl); }
+    saveGraphicNovel();
+    b.hidden = true; b.innerHTML = '';
+  });
 }
 
 // ─────────────────────────────────────────────────────────

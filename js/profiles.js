@@ -69,7 +69,7 @@ function readLocalSession() {
 // ═══════════════════════════════════════════════════════════════════════
 async function notifyThirdPartyDataUseOnce() {
   if (!_currentProfile || _currentProfile.seenThirdPartyNotice) return;
-  alert('ℹ️ À savoir : les fonctions IA (résumé, continuation, incohérences, noms, synonymes/antonymes, mémoire narrative) et le plugin LanguageTool envoient le texte concerné à des services externes (Mistral AI, LanguageTool.org) pour être traités. Ce texte n\'est jamais stocké en clair par Plume, mais transite en clair chez ces services le temps du traitement.\n\nCe message ne s\'affichera plus.');
+  alert('ℹ️ À savoir : les fonctions IA (résumé, continuation, incohérences, noms, synonymes/antonymes, mémoire narrative, reformulation dans le roman graphique) et le plugin LanguageTool envoient le texte concerné à des services externes (Mistral AI, LanguageTool.org) pour être traités. Ce texte n\'est jamais stocké en clair par Plume, mais transite en clair chez ces services le temps du traitement.\n\nCe message ne s\'affichera plus.');
   _currentProfile.seenThirdPartyNotice = true;
   await mutateProfilesIndex(idx => {
     const profil = idx.profiles.find(p => p.id === _currentProfileId);

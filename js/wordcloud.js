@@ -1,6 +1,8 @@
 'use strict';
 const STOP_WORDS = new Set(['le','la','les','de','du','des','un','une','et','en','à','au','aux','que','qui','pour','par','sur','dans','est','il','elle','ils','elles','se','ne','pas','je','tu','nous','vous','on','ce','ou','mais','si','car','avec','son','sa','ses','leur','leurs','mon','ma','mes','ton','ta','tes','plus','tout','très','bien','aussi','comme','même','dont','the','and','to','of','in','is','it','that','was','he','she','they','are','for','on','with','as','at','be','by','from','or','an','this','have','had','not','but','lui','nos','vos','dont','donc','puis','après','avant','sous','lors','sans','chez','quand','comment','ni','or']);
 function buildWordFreq(all) {
+  // Garde db.chapters (v9.15.0) : undefined pour un roman graphique.
+  if (!db.chapters) return [];
   const text = (all ? db.chapters.map(c=>c.content).join(' ') : db.chapters[cur].content||'').replace(/<[^>]*>/g,' ');
   const words = text.toLowerCase().match(/[a-zA-ZÀ-ÿ]{3,}/g)||[];
   const freq = {}; words.forEach(w => { if(!STOP_WORDS.has(w)) freq[w]=(freq[w]||0)+1; });

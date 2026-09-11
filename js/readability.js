@@ -22,6 +22,8 @@ function countDialogLines(text) {
 }
 function renderAnalytics() {
   flushCurrentChapter();
+  // Garde db.chapters (v9.15.0) : undefined pour un roman graphique.
+  if (!db.chapters) return;
   const allText = db.chapters.map(c=>getPlainText(c.content)).join('\n');
   const totalW = db.chapters.reduce((s,c)=>s+getWordCount(c.content),0);
   const avgWC = db.chapters.length ? Math.round(totalW/db.chapters.length) : 0;

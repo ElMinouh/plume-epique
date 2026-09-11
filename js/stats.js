@@ -1,5 +1,9 @@
 'use strict';
 function updateDailyStats() {
+  // Garde db.chapters (v9.15.0) : undefined pour un roman graphique — cette
+  // fonction est spécifique aux manuscrits texte, gnUpdateDailyStats()
+  // (graphicnovel.js) est son équivalent pour l'autre docType.
+  if (!db.chapters) return;
   const today = getTodayKey();
   const totalW = db.chapters.reduce((s,c) => s + getWordCount(c.content), 0);
   if (!db.sessionStats) db.sessionStats = {};
@@ -51,7 +55,10 @@ function getWordsInLastNDays(n, totalW) {
   return Math.max(0, totalW - baseline);
 }
 function updateGoalsUI(totalW) {
-  totalW = totalW ?? db.chapters.reduce((s,c) => s + getWordCount(c.content), 0);
+  // Garde db.chapters (v9.15.0) : appelée sans argument (tabs.js), le repli
+  // ci-dessous lisait db.chapters sans condition — undefined pour un roman
+  // graphique.
+  totalW = totalW ?? (db.chapters ? db.chapters.reduce((s,c) => s + getWordCount(c.content), 0) : 0);
   const weekW = getWordsInLastNDays(7, totalW), monthW = getWordsInLastNDays(30, totalW);
   const wGoal = db.weeklyGoal || 3000, mGoal = db.monthlyGoal || 12000;  const wPct = Math.min(100, Math.round(weekW/wGoal*100)), mPct = Math.min(100, Math.round(monthW/mGoal*100));
   const wBar = document.getElementById('week-goal-bar'); if (wBar) wBar.style.width = wPct+'%';
@@ -144,6 +151,8 @@ function computeBestWritingHour() {
 }
 
 function renderStats() {
+  // Garde db.chapters (v9.15.0) : ce panneau est spécifique aux manuscrits texte.
+  if (!db.chapters) return;
   const totalW=db.chapters.reduce((s,c)=>s+getWordCount(c.content),0);
   const todayW=Math.max(0,totalW-sessionWordsStart), elapsed=Math.round((Date.now()-sessionStartTime)/60000);
   const wpm=elapsed>0?Math.round(todayW/elapsed):0;
