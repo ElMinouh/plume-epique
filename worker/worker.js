@@ -57,8 +57,25 @@ export default {
 
       if (!resp.ok) {
         // Erreur : pas de flux à relayer, on lit le corps normalement (comme avant).
+        // Correctif (07/09/2026) : un "Rate limit exceeded" persistant (à
+        // chaque essai, pas seulement en rafale) ne colle pas avec la limite
+        // "1 requête/seconde" documentée pour le tier gratuit Mistral — pour
+        // distinguer un vrai plafond par seconde (se libère très vite) d'un
+        // quota épuisé ou d'un souci de compte, on relaie désormais le détail
+        // brut renvoyé par Mistral ainsi que les en-têtes X-RateLimit-* quand
+        // ils sont présents (documentés par Mistral pour diagnostiquer
+        // exactement ce genre de cas).
         let message = `Erreur Mistral (${resp.status})`;
-        try { const data = await resp.json(); if (data.message) message = data.message; } catch(e) {}
+        let raw = null;
+        try { raw = await resp.json(); if (raw.message) message = raw.message; else if (raw.error?.message) message = raw.error.message; } catch(e) {}
+        if (resp.status === 429) {
+          const limit = resp.headers.get('x-ratelimitbysize-limit-minute') || resp.headers.get('x-ratelimit-limit') || resp.headers.get('ratelimitbysize-limit');
+          const remaining = resp.headers.get('x-ratelimitbysize-remaining-minute') || resp.headers.get('x-ratelimit-remaining') || resp.headers.get('ratelimitbysize-remaining');
+          const reset = resp.headers.get('x-ratelimitbysize-reset') || resp.headers.get('x-ratelimit-reset') || resp.headers.get('ratelimitbysize-reset');
+          message = `Limite Mistral atteinte (429)` +
+            (limit || remaining || reset ? ` — limite:${limit ?? '?'} restant:${remaining ?? '?'} reset:${reset ?? '?'}s` : '') +
+            (raw ? ` — ${JSON.stringify(raw)}` : '');
+        }
         return new Response(JSON.stringify({ error: { message } }), {
           status: resp.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
