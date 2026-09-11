@@ -46,14 +46,18 @@ export default {
           },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            // thinkingBudget: 0 — correctif (11/09/2026, quater) : le mode
+            // Correctif (11/09/2026, quater puis quinquies) : le mode
             // "réflexion" de gemini-3.6-flash consomme une partie du budget
             // maxOutputTokens pour son raisonnement interne avant même de
             // produire la réponse visible — avec un budget serré (600
             // tokens pour "10 noms"), la réflexion épuisait presque tout,
-            // ne laissant qu'un résultat tronqué. Désactivé : Plume n'a pas
-            // besoin de ce raisonnement, seulement de la réponse finale.
-            generationConfig: { maxOutputTokens: maxTokens || 1000, thinkingConfig: { thinkingBudget: 0 } },
+            // ne laissant qu'un résultat tronqué. Première tentative avec
+            // `thinkingBudget` (paramètre Gemini 2.5) → rejetée par le
+            // modèle ("Request contains an invalid argument") : les
+            // modèles Gemini 3.x utilisent `thinkingLevel` à la place, les
+            // deux ne sont pas compatibles ensemble. "minimal" réduit la
+            // réflexion au strict minimum (Plume n'en a pas besoin).
+            generationConfig: { maxOutputTokens: maxTokens || 1000, thinkingConfig: { thinkingLevel: 'minimal' } },
           }),
         }
       );
