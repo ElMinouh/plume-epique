@@ -77,6 +77,21 @@ async function notifyThirdPartyDataUseOnce() {
   });
 }
 
+// Notice unique (Lot 7, audit #25) : jusqu'ici les images d'un roman
+// graphique restaient strictement locales. La synchro Gist les envoie
+// désormais aussi (chiffrées, vers le Gist privé du manuscrit) — un
+// changement de comportement assez sensible pour prévenir une fois, comme
+// pour l'usage de services IA externes ci-dessus.
+async function notifyGistImageSyncOnce() {
+  if (!_currentProfile || _currentProfile.seenGistImageNotice) return;
+  alert('ℹ️ À savoir : les images d\'un roman graphique restaient jusqu\'ici uniquement sur cet appareil. Désormais, la synchronisation Gist les envoie aussi (chiffrées avec la même clé que le reste de vos données) vers le Gist privé de ce manuscrit, pour qu\'elles suivent sur vos autres appareils.\n\nCe message ne s\'affichera plus.');
+  _currentProfile.seenGistImageNotice = true;
+  await mutateProfilesIndex(idx => {
+    const profil = idx.profiles.find(p => p.id === _currentProfileId);
+    if (profil) profil.seenGistImageNotice = true;
+  });
+}
+
 // ── ÉCRAN 0 : Clé de synchronisation de cet appareil (v7.22.0) ──────────
 // N'apparaît qu'une seule fois par appareil (voir needsSyncKeySetup() dans
 // router.js) — jamais par profil : cette clé déverrouille l'accès au Worker

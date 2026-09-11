@@ -1051,6 +1051,30 @@ async function libSyncManuscript(docId, opts) {
   if (!_cloudToken) { if (!opts.silent) toast('Token GitHub requis.', 'error'); return false; }
   try {
     const mData = await loadManuscriptData(docId);
+    const files = {};
+    // Images du roman graphique (Lot 7, audit #25) : chaque image devient un
+    // fichier séparé DANS LE MÊME Gist (chiffré comme le reste), jamais un
+    // seul gros blob — seules les images nouvelles depuis la dernière
+    // synchro sont envoyées (mData.gistSyncedImageIds mémorise ce qui l'a
+    // déjà été), pour ne pas retransmettre tout le lot à chaque sauvegarde.
+    let newImageIds = [];
+    if (mData.docType === 'roman_graphique' && typeof getAllGraphicImagesForDocument === 'function') {
+      const referenced = new Set();
+      (mData.pages || []).forEach(p => (p.elements || []).forEach(el => { if (el.type === 'image' && el.imageId) referenced.add(el.imageId); }));
+      const synced = new Set(mData.gistSyncedImageIds || []);
+      const localImages = await getAllGraphicImagesForDocument(docId);
+      const toUpload = localImages.filter(r => referenced.has(r.id) && !synced.has(r.id));
+      if (toUpload.length && typeof notifyGistImageSyncOnce === 'function') await notifyGistImageSyncOnce();
+      for (const rec of toUpload) {
+        try {
+          const bytes = new Uint8Array(await rec.blob.arrayBuffer());
+          const encrypted = await Crypto.encrypt(bytesToBase64(bytes), _dataKey);
+          files[`img_${rec.id}.txt`] = { content: encrypted };
+          newImageIds.push(rec.id);
+        } catch(e) { /* une image illisible localement ne doit pas bloquer la synchro du reste */ }
+      }
+      if (newImageIds.length) mData.gistSyncedImageIds = [...(mData.gistSyncedImageIds || []), ...newImageIds];
+    }
     const method = mData.gistId ? 'PATCH' : 'POST';
     const url = mData.gistId ? `https://api.github.com/gists/${mData.gistId}` : 'https://api.github.com/gists';
     // Correction (audit v7.35.0) : le contenu était jusqu'ici envoyé à GitHub
@@ -1059,11 +1083,15 @@ async function libSyncManuscript(docId, opts) {
     // local (exactement comme persistManuscriptData()) ; GitHub ne reçoit
     // désormais plus qu'un blob illisible sans le mot de passe du profil.
     const cipher = await Crypto.encrypt(JSON.stringify(mData), _dataKey);
-    const gistContent = JSON.stringify({ _enc:true, data:cipher });
-    const resp = await fetch(url, { method, headers:{'Authorization':`token ${_cloudToken}`,'Content-Type':'application/json'}, body: JSON.stringify({ public:false, files:{ "plume.json": { content: gistContent } } }) });
+    files["plume.json"] = { content: JSON.stringify({ _enc:true, data:cipher }) };
+    const resp = await fetch(url, { method, headers:{'Authorization':`token ${_cloudToken}`,'Content-Type':'application/json'}, body: JSON.stringify({ public:false, files }) });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
-    if (data.id && data.id !== mData.gistId) { mData.gistId = data.id; await persistManuscriptData(docId, mData); }
+    if (data.id && data.id !== mData.gistId) mData.gistId = data.id;
+    // Persisté à chaque appel désormais (plus seulement au premier envoi) :
+    // gistSyncedImageIds doit rester à jour localement pour éviter de
+    // renvoyer les mêmes images indéfiniment.
+    await persistManuscriptData(docId, mData);
     await mutateDocList(list => {
       const entry = list.documents.find(d => d.id === docId);
       if (entry) entry.lastGistSync = Date.now();
@@ -1085,6 +1113,31 @@ async function libLoadManuscript(docId) {
     if (!raw) throw new Error('Fichier introuvable dans ce Gist.');
     const restored = migrateDb(await decryptGistContent(raw));
     restored.gistId = mData.gistId;
+    // Images (Lot 7, audit #25) : réhydrate la base locale d'images à partir
+    // des fichiers "img_*" présents dans ce Gist — sans ça, un manuscrit
+    // restauré sur un nouvel appareil garderait des cadres vides.
+    if (restored.docType === 'roman_graphique' && typeof putGraphicImageRecord === 'function') {
+      const imageFiles = Object.keys(data.files || {}).filter(name => /^img_.+\.txt$/.test(name));
+      for (const fname of imageFiles) {
+        const imgId = fname.slice(4, -4);
+        try {
+          const file = data.files[fname];
+          let content = file.content;
+          if (file.truncated && file.raw_url) {
+            const rawResp = await fetch(file.raw_url, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
+            content = await rawResp.text();
+          }
+          const b64 = await Crypto.decrypt(content, _dataKey);
+          if (!b64) continue; // sauvegarde d'un autre profil, illisible — ignorée sans bloquer le reste
+          const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+          const blob = new Blob([bytes], { type:'image/webp' });
+          let width = 0, height = 0;
+          try { const bmp = await createImageBitmap(blob); width = bmp.width; height = bmp.height; bmp.close && bmp.close(); } catch(e) { /* dimensions non critiques */ }
+          await putGraphicImageRecord({ id: imgId, docId, blob, width, height, createdAt: Date.now() });
+        } catch(e) { /* une image corrompue ne doit pas bloquer la restauration du reste */ }
+      }
+      restored.gistSyncedImageIds = imageFiles.map(f => f.slice(4, -4));
+    }
     await persistManuscriptData(docId, restored);
     await touchDocListEntry(docId, restored);
     toast('Manuscrit restauré depuis le Gist.', 'success');

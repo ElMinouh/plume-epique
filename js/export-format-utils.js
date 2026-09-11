@@ -302,14 +302,31 @@ async function confirmDocxImport() {
 // sous sa forme chiffrée (_enc:true, data) — le fichier exporté ne contient
 // donc jamais de contenu en clair, cohérent avec le chiffrement du profil.
 // ═══════════════════════════════════════════════════════
+// v9.16.0 (Lot 7, audit #25) : les images des romans graphiques vivent dans
+// une base locale séparée (voir js/images.js), jamais dans le blob chiffré
+// ci-dessus — sans ce bloc, un manuscrit illustré restauré depuis ce fichier
+// perdrait silencieusement toutes ses images (positions conservées, cadres
+// vides). `images` regroupe, par manuscrit, chaque image en base64 —
+// `version:2` marque cet ajout ; un fichier `version:1` plus ancien n'a
+// simplement pas ce champ, l'import reste compatible.
 async function megaExportLibrary() {
   try {
     const list = await loadDocList();
     const documents = {};
+    const images = {};
     for (const entry of list.documents) {
       documents[entry.id] = await loadData(docDataKey(_currentProfileId, entry.id));
+      if (entry.docType === 'roman_graphique' && typeof getAllGraphicImagesForDocument === 'function') {
+        const recs = await getAllGraphicImagesForDocument(entry.id);
+        if (recs.length) {
+          images[entry.id] = await Promise.all(recs.map(async r => ({
+            id: r.id, width: r.width, height: r.height,
+            data: bytesToBase64(new Uint8Array(await r.blob.arrayBuffer()))
+          })));
+        }
+      }
     }
-    const payload = JSON.stringify({ _plumeLibraryExport:true, version:1, doclist:list, documents });
+    const payload = JSON.stringify({ _plumeLibraryExport:true, version:2, doclist:list, documents, images });
     saveAs(new Blob([payload], {type:'application/json'}), 'bibliotheque_plume.json');
     toast('Export de toute la bibliothèque réussi.', 'success');
   } catch(e) {
@@ -328,9 +345,45 @@ function importProjectLibrary(input) {
       for (const oldId of Object.keys(p.documents)) {
         const oldEntry = (p.doclist && p.doclist.documents || []).find(d => d.id === oldId);
         const newId = genChapterId();
+        let envelope = p.documents[oldId];
+        const imgList = (p.images && p.images[oldId]) || [];
+        // Restaure les images de ce manuscrit (Lot 7, audit #25) — avec un
+        // NOUVEL id à chaque image (comme duplicateGraphicImage() pour la
+        // duplication de page) : réutiliser l'id d'origine tel quel serait
+        // dangereux si ce fichier est un backup du MÊME profil dont les
+        // manuscrits d'origine sont encore présents localement — la base
+        // d'images étant indexée par id global (pas par manuscrit), une
+        // image réimportée sous son id d'origine "volerait" (réassignerait
+        // silencieusement) l'image existante à ce nouveau manuscrit,
+        // cassant le manuscrit d'origine. D'où le remappage des imageId
+        // DANS le contenu déchiffré avant réenregistrement.
+        if (imgList.length && typeof putGraphicImageRecord === 'function') {
+          try {
+            const decrypted = envelope && envelope._enc ? await Crypto.decrypt(envelope.data, _dataKey) : null;
+            if (decrypted) {
+              const docData = JSON.parse(decrypted);
+              const idMap = {};
+              imgList.forEach(img => { idMap[img.id] = genElementId(); });
+              (docData.pages || []).forEach(pg => (pg.elements || []).forEach(el => {
+                if (el.type === 'image' && el.imageId && idMap[el.imageId]) el.imageId = idMap[el.imageId];
+              }));
+              docData.gistSyncedImageIds = []; // nouveau manuscrit, jamais encore synchronisé
+              const cipher = await Crypto.encrypt(JSON.stringify(docData), _dataKey);
+              envelope = { _enc:true, data:cipher };
+              for (const img of imgList) {
+                const bytes = Uint8Array.from(atob(img.data), c => c.charCodeAt(0));
+                await putGraphicImageRecord({ id: idMap[img.id], docId: newId, blob: new Blob([bytes], { type:'image/webp' }), width: img.width, height: img.height, createdAt: Date.now() });
+              }
+            }
+            // decrypted === null : fichier d'un autre profil, illisible de
+            // toute façon — le message d'alerte plus bas prévient l'utilisateur.
+            // Pas de remappage possible ni nécessaire (pas de risque de
+            // collision d'id avec un fichier qu'on ne peut pas déchiffrer).
+          } catch(e) { /* la restauration d'image ne doit pas bloquer le reste de l'import */ }
+        }
         // Chaque manuscrit importé devient un NOUVEAU manuscrit (nouvel
         // identifiant) — jamais d'écrasement d'un manuscrit existant.
-        await persistData(docDataKey(_currentProfileId, newId), p.documents[oldId]);
+        await persistData(docDataKey(_currentProfileId, newId), envelope);
         newEntries.push({
           id:newId,
           title: (oldEntry && oldEntry.title) || 'Manuscrit importé',
@@ -338,7 +391,8 @@ function importProjectLibrary(input) {
           chapterCount: (oldEntry && oldEntry.chapterCount) || 0,
           wordCount: (oldEntry && oldEntry.wordCount) || 0,
           wordGoal: (oldEntry && oldEntry.wordGoal) || 0,
-          cover: (oldEntry && oldEntry.cover) || 'auto'
+          cover: (oldEntry && oldEntry.cover) || 'auto',
+          docType: (oldEntry && oldEntry.docType) || 'texte'
         });
         added++;
       }

@@ -311,6 +311,7 @@ function ensureGraphicNovelScreen() {
         <button class="gn-icon-btn gn-trash-btn" id="gn-trash-btn" title="Corbeille (pages et éléments supprimés, récupérables 30 jours)">🗑️<span class="trash-badge" id="gn-trash-badge"></span></button>
       </div>
       <button class="action-btn" id="gn-export-btn" title="Exporter le livre en PDF qualité impression (choix du format, de la résolution et du fond perdu à l'étape suivante)">Exporter le PDF</button>
+      <button class="action-btn" id="gn-export-book-btn" title="Exporter le livre en ZIP (images), DOCX, EPUB ou ODT — pour partager ou lire hors de l'application (pas pour l'impression professionnelle, voir « Exporter le PDF »)">Exporter le livre</button>
     </div>
     <div class="gn-body">
       <div class="gn-side-pages">
@@ -345,6 +346,7 @@ function ensureGraphicNovelScreen() {
 
 function gnWireEvents() {
   document.getElementById('gn-back-btn').addEventListener('click', backToLibraryFromGraphicNovel);
+  document.getElementById('gn-export-book-btn').addEventListener('click', gnOpenBookExportModal);
   document.getElementById('gn-doc-title').addEventListener('blur', e => updateGraphicNovelTitle(e.target.textContent));
   document.getElementById('gn-doc-title').addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); e.target.blur(); } });
   document.getElementById('gn-page-prev').addEventListener('click', () => gnSetActivePage((_gnActivePage - 1 + db.pages.length) % db.pages.length));
@@ -1587,6 +1589,230 @@ function gnOpenExportOptionsModal() {
 }
 function gnCloseExportOptionsModal() {
   const el = document.getElementById('gn-export-opts-overlay');
+  if (el) el.remove();
+}
+
+// ─────────────────────────────────────────────────────────
+// EXPORT "LIVRE" — ZIP / DOCX / EPUB / ODT (Lot 7, audit #24)
+// Différent du PDF ci-dessus : pas de fond perdu ni de DPI impression, juste
+// une capture propre de chaque page à une résolution raisonnable pour un
+// usage écran/partage. gnExportPagesToCanvases() factorise la seule partie
+// commune aux 4 formats (parcours des pages, capture html2canvas, état de
+// progression/annulation) — le PDF, déjà testé et livré, n'est pas touché.
+// ─────────────────────────────────────────────────────────
+const GN_BOOK_EXPORT_WIDTH_PX = 1800;
+
+function gnExportFilename() {
+  return (db.title || 'roman-graphique').trim().replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80) || 'roman-graphique';
+}
+
+// onPage(canvas, index, total) appelé pour chaque page dans l'ordre.
+// Renvoie false (et laisse le fichier non généré par l'appelant) si l'export
+// a été annulé ou si les pages/librairies nécessaires manquent.
+async function gnExportPagesToCanvases(onPage) {
+  if (typeof html2canvas !== 'function') { toast('⚠️ La bibliothèque de capture n\'a pas pu se charger (connexion hors-ligne ?).', 'error'); return false; }
+  const pages = db.pages || [];
+  if (!pages.length) { toast('Aucune page à exporter.', 'error'); return false; }
+  const pageEl = document.getElementById('gn-canvas');
+  const savedPage = _gnActivePage, savedSel = _gnSelectedElId, savedPan = _gnPanMode;
+  _gnSelectedElId = null; _gnPanMode = false;
+  pageEl.classList.add('gn-export-mode');
+  pageEl.style.width = GN_EDITOR_REF_PX + 'px';
+  _gnExportCancelled = false;
+  const cancelHandler = () => { _gnExportCancelled = true; gnExportProgress(true, 'Annulation…'); };
+  gnExportProgress(true, 'Préparation…', cancelHandler);
+  let ok = true;
+  try {
+    for (let i = 0; i < pages.length; i++) {
+      if (_gnExportCancelled) { ok = false; break; }
+      gnExportProgress(true, `Page ${i + 1} / ${pages.length}…`, cancelHandler);
+      _gnActivePage = i;
+      await gnRenderCanvas(true);
+      await gnWaitImagesReady(pageEl);
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      if (_gnExportCancelled) { ok = false; break; }
+      const scale = GN_BOOK_EXPORT_WIDTH_PX / GN_EDITOR_REF_PX;
+      const canvas = await html2canvas(pageEl, { scale, backgroundColor: getComputedStyle(pageEl).backgroundColor || '#f4ecd8', useCORS:true, logging:false });
+      const cont = await onPage(canvas, i, pages.length);
+      if (cont === false) { ok = false; break; }
+    }
+  } finally {
+    pageEl.classList.remove('gn-export-mode');
+    pageEl.style.width = '';
+    _gnActivePage = savedPage; _gnSelectedElId = savedSel; _gnPanMode = savedPan;
+    await gnRenderCanvas();
+    gnRenderPagesSidebar();
+    gnExportProgress(false);
+  }
+  return ok;
+}
+
+async function gnExportZip() {
+  if (typeof JSZip === 'undefined') { toast('Bibliothèque ZIP non chargée (vérifiez la connexion).', 'error'); return; }
+  const zip = new JSZip();
+  const ok = await gnExportPagesToCanvases(async (canvas, i) => {
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
+    zip.file(`page-${String(i + 1).padStart(2, '0')}.jpg`, blob);
+  });
+  if (!ok) { toast('Export annulé.'); return; }
+  try {
+    const zipBlob = await zip.generateAsync({ type:'blob' });
+    saveAs(zipBlob, gnExportFilename() + '-images.zip');
+    toast('✅ Export ZIP généré.', 'success');
+  } catch(e) {
+    toast('⚠️ Échec de l\'export ZIP : ' + (e && e.message ? e.message : e), 'error');
+  }
+}
+
+async function gnExportBookDocx() {
+  if (typeof docx === 'undefined') { toast('Lib DOCX non chargée (vérifiez la connexion).', 'error'); return; }
+  const { Document, Packer, Paragraph, ImageRun, PageBreak } = docx;
+  const children = [];
+  const ok = await gnExportPagesToCanvases(async (canvas, i, total) => {
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
+    const buf = await blob.arrayBuffer();
+    const w = 500, h = Math.round(w * canvas.height / canvas.width);
+    children.push(new Paragraph({ children: [new ImageRun({ data: buf, transformation: { width: w, height: h } })] }));
+    if (i < total - 1) children.push(new Paragraph({ children: [new PageBreak()] }));
+  });
+  if (!ok) { toast('Export annulé.'); return; }
+  try {
+    const blob = await Packer.toBlob(new Document({ sections: [{ children }] }));
+    saveAs(blob, gnExportFilename() + '.docx');
+    toast('✅ Export DOCX généré.', 'success');
+  } catch(e) {
+    toast('⚠️ Échec de l\'export DOCX : ' + (e && e.message ? e.message : e), 'error');
+  }
+}
+
+async function gnExportBookEpub() {
+  if (typeof JSZip === 'undefined') { toast('Bibliothèque EPUB non chargée (vérifiez la connexion).', 'error'); return; }
+  const zip = new JSZip();
+  zip.file('mimetype', 'application/epub+zip', { compression:'STORE' });
+  zip.folder('META-INF').file('container.xml',
+`<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles>
+</container>`);
+  const oebps = zip.folder('OEBPS');
+  const imagesFolder = oebps.folder('images');
+  const uid = 'urn:uuid:' + genChapterId();
+  const bookTitle = escapeXml(db.title || 'Mon Roman graphique — Plume');
+  const manifestItems = [], spineItems = [], navPoints = [];
+
+  const ok = await gnExportPagesToCanvases(async (canvas, i) => {
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
+    const num = i + 1;
+    const imgName = `page${num}.jpg`;
+    imagesFolder.file(imgName, blob);
+    const xfname = `page${num}.xhtml`;
+    oebps.file(xfname,
+`<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>Page ${num}</title><style>body{margin:0;padding:0;}img{width:100%;height:auto;display:block;}</style></head>
+<body><img src="images/${imgName}" alt="Page ${num}"/></body>
+</html>`);
+    manifestItems.push(`<item id="page${num}" href="${xfname}" media-type="application/xhtml+xml"/>`);
+    manifestItems.push(`<item id="img${num}" href="images/${imgName}" media-type="image/jpeg"/>`);
+    spineItems.push(`<itemref idref="page${num}"/>`);
+    navPoints.push(`<navPoint id="navPoint-${num}" playOrder="${num}"><navLabel><text>Page ${num}</text></navLabel><content src="${xfname}"/></navPoint>`);
+  });
+  if (!ok) { toast('Export annulé.'); return; }
+  try {
+    oebps.file('content.opf',
+`<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="2.0" unique-identifier="BookId">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title>${bookTitle}</dc:title>
+    <dc:language>fr</dc:language>
+    <dc:identifier id="BookId">${uid}</dc:identifier>
+  </metadata>
+  <manifest>
+    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+    ${manifestItems.join('\n    ')}
+  </manifest>
+  <spine toc="ncx">
+    ${spineItems.join('\n    ')}
+  </spine>
+</package>`);
+    oebps.file('toc.ncx',
+`<?xml version="1.0" encoding="UTF-8"?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+  <head><meta name="dtb:uid" content="${uid}"/></head>
+  <docTitle><text>${bookTitle}</text></docTitle>
+  <navMap>
+    ${navPoints.join('\n    ')}
+  </navMap>
+</ncx>`);
+    const blob = await zip.generateAsync({ type:'blob', mimeType:'application/epub+zip' });
+    saveAs(blob, gnExportFilename() + '.epub');
+    toast('✅ Export EPUB généré.', 'success');
+  } catch(e) {
+    toast('⚠️ Échec de l\'export EPUB : ' + (e && e.message ? e.message : e), 'error');
+  }
+}
+
+async function gnExportBookOdt() {
+  if (!window.odfKit || !window.odfKit.htmlToOdt) { toast('Bibliothèque ODT non chargée (vérifiez la connexion).', 'error'); return; }
+  let html = `<h1>${escapeXml(db.title || 'Mon Roman graphique — Plume')}</h1>`;
+  const ok = await gnExportPagesToCanvases(async canvas => {
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    html += `<p><img src="${dataUrl}" style="width:100%;"/></p>`;
+  });
+  if (!ok) { toast('Export annulé.'); return; }
+  try {
+    const bytes = await window.odfKit.htmlToOdt(html, { pageFormat:'A4' });
+    const blob = new Blob([bytes], { type:'application/vnd.oasis.opendocument.text' });
+    saveAs(blob, gnExportFilename() + '.odt');
+    toast('✅ Export ODT généré.', 'success');
+  } catch(e) {
+    toast('⚠️ Échec de l\'export ODT : ' + (e && e.message ? e.message : e), 'error');
+  }
+}
+
+function gnOpenBookExportModal() {
+  gnCloseBookExportModal();
+  const overlay = document.createElement('div');
+  overlay.id = 'gn-export-book-overlay';
+  overlay.className = 'gn-modal-overlay';
+  overlay.innerHTML = `
+    <div class="gn-modal" role="dialog" aria-modal="true" aria-label="Export du livre">
+      <h3>Exporter le livre</h3>
+      <p class="gn-modal-sub">Une image par page — pour partager ou lire hors de l'application (pas pour l'impression professionnelle, voir « Exporter le PDF »).</p>
+      <div class="gn-export-opts">
+        <label class="gn-side-label" for="gn-export-book-format">Format</label>
+        <select id="gn-export-book-format" title="ZIP : une image par page. DOCX/ODT : document avec une page illustrée par page. EPUB : livre numérique pour liseuse.">
+          <option value="zip">ZIP (une image par page)</option>
+          <option value="docx">DOCX (Word)</option>
+          <option value="epub">EPUB (liseuse)</option>
+          <option value="odt">ODT (OpenDocument)</option>
+        </select>
+      </div>
+      <div class="gn-modal-actions">
+        <button class="action-btn u-bg-h7f8c8d" id="gn-export-book-cancel" type="button">Annuler</button>
+        <button class="action-btn" id="gn-export-book-go" type="button">Générer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('gn-export-book-cancel').addEventListener('click', gnCloseBookExportModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) gnCloseBookExportModal(); });
+  document.getElementById('gn-export-book-go').addEventListener('click', async () => {
+    const format = document.getElementById('gn-export-book-format').value;
+    gnCloseBookExportModal();
+    const btn = document.getElementById('gn-export-book-btn');
+    if (btn) btn.disabled = true;
+    try {
+      if (format === 'zip') await gnExportZip();
+      else if (format === 'docx') await gnExportBookDocx();
+      else if (format === 'epub') await gnExportBookEpub();
+      else if (format === 'odt') await gnExportBookOdt();
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  });
+}
+function gnCloseBookExportModal() {
+  const el = document.getElementById('gn-export-book-overlay');
   if (el) el.remove();
 }
 

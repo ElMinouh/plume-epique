@@ -109,3 +109,22 @@ async function deleteAllGraphicImagesForDocument(docId) {
     for (const id of keys) await deleteGraphicImage(id);
   } catch(e) { /* best effort */ }
 }
+
+// Toutes les images d'un document (Lot 7, audit #25) — utilisé pour les
+// inclure dans la sauvegarde JSON et la synchronisation Gist, qui ne
+// touchaient jusqu'ici que db.pages (les images, elles, vivent uniquement
+// dans cette base locale — voir la note en tête de fichier).
+async function getAllGraphicImagesForDocument(docId) {
+  const db = await plumeImagesDb();
+  return db.getAllFromIndex('images', 'docId', docId);
+}
+
+// Écrit (ou remplace) un enregistrement d'image tel quel — utilisé à la
+// restauration depuis un fichier JSON ou un Gist. Les images ne sont jamais
+// modifiées après création (seulement dupliquées avec un nouvel id, ou
+// supprimées) : réécrire un id déjà présent avec le même contenu est donc
+// sans risque.
+async function putGraphicImageRecord(rec) {
+  const db = await plumeImagesDb();
+  await db.put('images', rec);
+}
