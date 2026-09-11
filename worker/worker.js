@@ -15,14 +15,9 @@ export default {
     }
 
     try {
-      // Correctif (dette repérée le 27/07/2026) : ai.js envoie un champ nommé
-      // `maxTokens` (camelCase) ; ce Worker lisait jusqu'ici `max_tokens`
-      // (snake_case) — un nom différent, donc toujours `undefined` côté
-      // Worker, qui retombait systématiquement sur le plafond par défaut de
-      // 1000, quelle que soit la valeur réellement demandée par chaque
-      // fonction IA (600 à 800 selon les cas). Mistral, lui, attend bien
-      // `max_tokens` (snake_case) dans SA propre requête — seul le nom lu
-      // depuis le corps envoyé par ai.js change ici, pas celui envoyé à Mistral.
+      // Correctif (27/07/2026) : ai.js envoie un champ nommé `maxTokens`
+      // (camelCase) ; le Worker doit relire ce même nom (pas `max_tokens`,
+      // c'est le nom attendu par le fournisseur d'IA plus bas qui compte).
       const { prompt, maxTokens } = await request.json();
       if (!prompt) {
         return new Response(JSON.stringify({ error: { message: 'prompt manquant' } }), {
@@ -30,66 +25,78 @@ export default {
         });
       }
 
-      // v8.0.3 — Affichage progressif : on demande désormais à Mistral une
-      // réponse en flux (Server-Sent Events, `stream:true`), et on relaie ce
-      // flux tel quel au navigateur (voir ai.js, callClaude()) au lieu
-      // d'attendre la réponse complète avant de répondre. Le texte apparaît
-      // ainsi mot par mot côté utilisateur, plutôt que d'un bloc à la fin.
-      const resp = await fetch('https://api.mistral.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${env.MISTRAL_API_KEY}`,
-        },
-        body: JSON.stringify({
-          // Correctif (07/09/2026) : mistral-large-latest n'est plus couvert
-          // par le plan Mistral actuel ("This model is not available in
-          // your subscription tier") — toutes les fonctions IA de l'app en
-          // dépendent (résumé, continuation, chat, reformulation BD...),
-          // toutes échouaient donc identiquement. mistral-small-latest a
-          // résolu ça mais a un quota bien plus bas (20 000 tokens/minute,
-          // vérifié dans les limites du compte) — vite épuisé par les
-          // prompts avec contexte (chapitre, personnages, historique),
-          // d'où un 429 "Rate limit exceeded" systématique (11/09/2026).
-          // mistral-large-2512 (version figée, pas l'alias -latest) est
-          // bien couverte par ce compte et offre 250 000 tokens/minute.
-          model: 'mistral-large-2512',
-          max_tokens: maxTokens || 1000,
-          messages: [{ role: 'user', content: prompt }],
-          stream: true,
-        }),
-      });
+      // Correctif (11/09/2026) : bascule de Mistral vers Gemini (Google AI).
+      // Mistral (mistral-small-latest) a un quota gratuit de seulement
+      // 20 000 tokens/minute — vite épuisé par les prompts avec contexte
+      // (chapitre, personnages, historique de chat), d'où un 429 "Rate
+      // limit exceeded" systématique. Gemini offre 1 000 000 tokens/minute
+      // en gratuit (15 requêtes/minute, 1500/jour), largement suffisant
+      // pour un usage humain normal de l'app.
+      const model = 'gemini-2.5-flash';
+      const resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': env.GEMINI_API_KEY,
+          },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: maxTokens || 1000 },
+          }),
+        }
+      );
 
       if (!resp.ok) {
-        // Erreur : pas de flux à relayer, on lit le corps normalement (comme avant).
-        // Correctif (07/09/2026) : un "Rate limit exceeded" persistant (à
-        // chaque essai, pas seulement en rafale) ne colle pas avec la limite
-        // "1 requête/seconde" documentée pour le tier gratuit Mistral — pour
-        // distinguer un vrai plafond par seconde (se libère très vite) d'un
-        // quota épuisé ou d'un souci de compte, on relaie désormais le détail
-        // brut renvoyé par Mistral ainsi que les en-têtes X-RateLimit-* quand
-        // ils sont présents (documentés par Mistral pour diagnostiquer
-        // exactement ce genre de cas).
-        let message = `Erreur Mistral (${resp.status})`;
-        let raw = null;
-        try { raw = await resp.json(); if (raw.message) message = raw.message; else if (raw.error?.message) message = raw.error.message; } catch(e) {}
-        if (resp.status === 429) {
-          const limit = resp.headers.get('x-ratelimitbysize-limit-minute') || resp.headers.get('x-ratelimit-limit') || resp.headers.get('ratelimitbysize-limit');
-          const remaining = resp.headers.get('x-ratelimitbysize-remaining-minute') || resp.headers.get('x-ratelimit-remaining') || resp.headers.get('ratelimitbysize-remaining');
-          const reset = resp.headers.get('x-ratelimitbysize-reset') || resp.headers.get('x-ratelimit-reset') || resp.headers.get('ratelimitbysize-reset');
-          message = `Limite Mistral atteinte (429)` +
-            (limit || remaining || reset ? ` — limite:${limit ?? '?'} restant:${remaining ?? '?'} reset:${reset ?? '?'}s` : '') +
-            (raw ? ` — ${JSON.stringify(raw)}` : '');
-        }
+        let message = `Erreur Gemini (${resp.status})`;
+        try {
+          const raw = await resp.json();
+          if (raw.error?.message) {
+            message = raw.error.message + (raw.error.status ? ` (${raw.error.status})` : '');
+          }
+        } catch (e) {}
         return new Response(JSON.stringify({ error: { message } }), {
           status: resp.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      // Succès : on relaie le flux SSE de Mistral tel quel — ai.js sait
-      // désormais le lire directement (format standard `data: {...}\n\n`,
-      // `delta.content` à chaque morceau, `data: [DONE]` à la fin).
-      return new Response(resp.body, {
+      // Gemini renvoie son propre format de flux SSE (candidates[0].content.
+      // parts[0].text par morceau). ai.js (callClaude, voir js/ai.js) attend
+      // le format OpenAI-compatible utilisé par l'ancien relais Mistral
+      // (choices[0].delta.content) — plutôt que de modifier ai.js (et donc
+      // risquer de casser le chat/résumé/reformulation existants), on
+      // traduit ici le flux Gemini vers ce même format au fil de l'eau.
+      const decoder = new TextDecoder();
+      const encoder = new TextEncoder();
+      let buffer = '';
+      const translate = new TransformStream({
+        transform(chunk, controller) {
+          buffer += decoder.decode(chunk, { stream: true });
+          const lines = buffer.split('\n');
+          // Dernière ligne potentiellement incomplète : gardée pour le prochain morceau.
+          buffer = lines.pop();
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith('data:')) continue;
+            const payload = trimmed.slice(5).trim();
+            if (!payload) continue;
+            try {
+              const parsed = JSON.parse(payload);
+              const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+              if (text) {
+                const out = JSON.stringify({ choices: [{ delta: { content: text } }] });
+                controller.enqueue(encoder.encode(`data: ${out}\n\n`));
+              }
+            } catch (e) { /* morceau JSON non exploitable (rare, coupure réseau) : ignoré */ }
+          }
+        },
+        flush(controller) {
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        }
+      });
+
+      return new Response(resp.body.pipeThrough(translate), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' }
       });
