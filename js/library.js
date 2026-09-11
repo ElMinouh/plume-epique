@@ -1129,7 +1129,14 @@ async function libLoadManuscript(docId) {
           const blob = new Blob([bytes], { type:'image/webp' });
           let width = 0, height = 0;
           try { const bmp = await createImageBitmap(blob); width = bmp.width; height = bmp.height; bmp.close && bmp.close(); } catch(e) { /* dimensions non critiques */ }
-          await putGraphicImageRecord({ id: imgId, docId, blob, width, height, createdAt: Date.now() });
+          // hash/refCount (Lot 8, audit #27) : une image restaurée doit avoir
+          // ces deux champs comme toute image "normale", sinon elle ne serait
+          // ni éligible à la déduplication de futurs imports, ni comptée
+          // correctement à la suppression (deleteGraphicImage traite un
+          // refCount absent comme 1, donc pas de casse sans ça — mais autant
+          // rester cohérent avec le nouveau schéma).
+          const hash = typeof computeImageHash === 'function' ? await computeImageHash(blob) : undefined;
+          await putGraphicImageRecord({ id: imgId, docId, blob, width, height, hash, refCount: 1, createdAt: Date.now() });
         } catch(e) { /* une image corrompue ne doit pas bloquer la restauration du reste */ }
       }
       restored.gistSyncedImageIds = imageFiles.map(f => f.slice(4, -4));

@@ -1076,9 +1076,12 @@ async function gnDeletePage(i) {
   gnRenderTrashBadge();
   toast('Page déplacée vers la corbeille.', 'success');
 }
-// Duplication de page (Lot 5, audit #15) : chaque image est recopiée en
-// IndexedDB (voir duplicateGraphicImage, images.js) plutôt que partagée par
-// référence — la copie et l'originale restent totalement indépendantes.
+// Duplication de page (Lot 5, audit #15). Chaque image partage désormais le
+// même stockage que l'original (voir duplicateGraphicImage, images.js,
+// Lot 8 audit #27 — compteur de références) au lieu d'être recopiée en
+// IndexedDB : l'originale et la copie restent tout aussi indépendantes à
+// l'usage (supprimer l'une ne casse jamais l'autre), simplement sans
+// doubler le stockage pour un contenu identique.
 async function gnDuplicatePage(i) {
   const src = db.pages[i];
   if (!src) return;

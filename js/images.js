@@ -21,13 +21,33 @@ const PLUME_IMAGES_QUALITY = 0.85;
 let _plumeImagesDb = null;
 async function plumeImagesDb() {
   if (_plumeImagesDb) return _plumeImagesDb;
-  _plumeImagesDb = await idb.openDB(PLUME_IMAGES_DB, 1, {
-    upgrade(db) {
-      const store = db.createObjectStore('images', { keyPath:'id' });
-      store.createIndex('docId', 'docId');
+  _plumeImagesDb = await idb.openDB(PLUME_IMAGES_DB, 2, {
+    upgrade(db, oldVersion, newVersion, transaction) {
+      const store = oldVersion < 1
+        ? (() => { const s = db.createObjectStore('images', { keyPath:'id' }); s.createIndex('docId', 'docId'); return s; })()
+        : transaction.objectStore('images');
+      if (oldVersion < 2) {
+        // Lot 8, audit #27 — déduplication par contenu : index composé
+        // (docId+hash) pour retrouver en une requête une image identique
+        // déjà stockée dans le même manuscrit. Les enregistrements créés
+        // avant cette version n'ont pas de champ "hash" : IndexedDB les
+        // ignore simplement dans cet index (pas d'erreur, juste pas
+        // candidats à une déduplication rétroactive — volontaire, pour ne
+        // pas toucher aux images déjà en place).
+        store.createIndex('docIdHash', ['docId', 'hash']);
+      }
     }
   });
   return _plumeImagesDb;
+}
+
+// SHA-256 du contenu (déjà compressé) d'une image — sert de clé de
+// déduplication (Lot 8, audit #27). API native du navigateur, aucune
+// dépendance supplémentaire.
+async function computeImageHash(blob) {
+  const buf = await blob.arrayBuffer();
+  const digest = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 // Redimensionne/compresse un fichier image importé (photo appareil, PNG
@@ -54,11 +74,23 @@ async function compressImageFile(file) {
 
 // Importe un fichier, le compresse, le stocke, renvoie la référence à écrire
 // dans l'élément image de la page (imageId/imageW/imageH).
+// Lot 8, audit #27 — déduplication : si ce manuscrit contient déjà une
+// image de contenu identique (même hash), on réutilise son id au lieu d'en
+// stocker une copie — refCount compte le nombre d'éléments qui s'en
+// servent, pour ne la supprimer réellement que lorsque plus aucun ne la
+// référence (voir deleteGraphicImage plus bas).
 async function storeGraphicImage(file, docId) {
   const { blob, width, height } = await compressImageFile(file);
-  const id = genElementId();
+  const hash = await computeImageHash(blob);
   const db = await plumeImagesDb();
-  await db.put('images', { id, docId, blob, width, height, createdAt: Date.now() });
+  const existing = await db.getFromIndex('images', 'docIdHash', [docId, hash]);
+  if (existing) {
+    existing.refCount = (existing.refCount || 1) + 1;
+    await db.put('images', existing);
+    return { imageId: existing.id, imageW: existing.width, imageH: existing.height };
+  }
+  const id = genElementId();
+  await db.put('images', { id, docId, blob, width, height, hash, refCount: 1, createdAt: Date.now() });
   return { imageId:id, imageW:width, imageH:height };
 }
 
@@ -77,36 +109,62 @@ async function graphicImageUrl(imageId) {
   return url;
 }
 
-// Copie indépendante d'une image déjà stockée — utilisée par la duplication
-// de page (Lot 5, audit #15) : sans ça, la page originale et sa copie
-// partageraient le même imageId, et supprimer l'image sur l'une finirait
-// (après purge de la corbeille, 30 jours) par casser l'autre aussi.
+// Utilisée par la duplication de page (Lot 5, audit #15). Avant le
+// compteur de références (Lot 8, audit #27), cette fonction copiait le
+// blob sous un nouvel id pour garantir que supprimer l'image sur une page
+// ne casse pas l'autre. Le refCount offre maintenant la même garantie sans
+// dupliquer le stockage : on garde le MÊME id, on incrémente juste son
+// compteur — la suppression réelle n'aura lieu que lorsque plus aucun
+// élément ne référence l'image (voir deleteGraphicImage).
 async function duplicateGraphicImage(imageId, docId) {
   if (!imageId) return null;
   const db = await plumeImagesDb();
   const rec = await db.get('images', imageId);
   if (!rec) return null;
-  const newId = genElementId();
-  await db.put('images', { id: newId, docId, blob: rec.blob, width: rec.width, height: rec.height, createdAt: Date.now() });
-  return { imageId: newId, imageW: rec.width, imageH: rec.height };
+  rec.refCount = (rec.refCount || 1) + 1;
+  await db.put('images', rec);
+  return { imageId: rec.id, imageW: rec.width, imageH: rec.height };
 }
 
+// Décrémente le compteur de références d'une image — ne la supprime pour
+// de vrai que lorsque plus aucun élément ne s'en sert (Lot 8, audit #27).
+// Les enregistrements créés avant le compteur n'ont pas de champ refCount :
+// traité comme 1 (comportement d'origine, une seule référence).
 async function deleteGraphicImage(imageId) {
   if (!imageId) return;
-  const cached = _plumeImageUrlCache.get(imageId);
-  if (cached) { URL.revokeObjectURL(cached); _plumeImageUrlCache.delete(imageId); }
-  try { const db = await plumeImagesDb(); await db.delete('images', imageId); } catch(e) { /* best effort */ }
+  try {
+    const db = await plumeImagesDb();
+    const rec = await db.get('images', imageId);
+    if (!rec) return;
+    const newCount = (rec.refCount || 1) - 1;
+    if (newCount > 0) {
+      rec.refCount = newCount;
+      await db.put('images', rec);
+      return; // encore référencée ailleurs : le blob ne doit pas bouger
+    }
+    const cached = _plumeImageUrlCache.get(imageId);
+    if (cached) { URL.revokeObjectURL(cached); _plumeImageUrlCache.delete(imageId); }
+    await db.delete('images', imageId);
+  } catch (e) { /* best effort */ }
 }
 
 // Nettoyage complet à la suppression d'un manuscrit roman graphique (appelé
 // depuis library.js/cleanupDocumentSideData) — évite d'accumuler des images
 // orphelines indéfiniment, même principe que le nettoyage déjà en place pour
 // l'historique du chat IA et les sauvegardes de conflit.
+// Suppression FORCÉE (pas via deleteGraphicImage) : le manuscrit entier
+// disparaît, refCount n'a plus de sens — le décrémenter laisserait des
+// images orphelines derrière lui si l'une d'elles était référencée plus
+// d'une fois (Lot 8, audit #27).
 async function deleteAllGraphicImagesForDocument(docId) {
   try {
     const db = await plumeImagesDb();
     const keys = await db.getAllKeysFromIndex('images', 'docId', docId);
-    for (const id of keys) await deleteGraphicImage(id);
+    for (const id of keys) {
+      const cached = _plumeImageUrlCache.get(id);
+      if (cached) { URL.revokeObjectURL(cached); _plumeImageUrlCache.delete(id); }
+      await db.delete('images', id);
+    }
   } catch(e) { /* best effort */ }
 }
 

@@ -372,7 +372,11 @@ function importProjectLibrary(input) {
               envelope = { _enc:true, data:cipher };
               for (const img of imgList) {
                 const bytes = Uint8Array.from(atob(img.data), c => c.charCodeAt(0));
-                await putGraphicImageRecord({ id: idMap[img.id], docId: newId, blob: new Blob([bytes], { type:'image/webp' }), width: img.width, height: img.height, createdAt: Date.now() });
+                const blob = new Blob([bytes], { type:'image/webp' });
+                // hash/refCount (Lot 8, audit #27) : garde ces images
+                // cohérentes avec le nouveau schéma de déduplication.
+                const hash = typeof computeImageHash === 'function' ? await computeImageHash(blob) : undefined;
+                await putGraphicImageRecord({ id: idMap[img.id], docId: newId, blob, width: img.width, height: img.height, hash, refCount: 1, createdAt: Date.now() });
               }
             }
             // decrypted === null : fichier d'un autre profil, illisible de
