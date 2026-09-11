@@ -223,6 +223,43 @@ async function createNewGraphicNovel() {
 }
 
 // ─────────────────────────────────────────────────────────
+// ACCESSIBILITÉ CLAVIER DES FENÊTRES MODALES (Lot 9, audit #29)
+// Point d'entrée unique, appelé par chacune des 5 fenêtres du module
+// (nouveau projet, export PDF, export livre, corbeille, historique de
+// page) plutôt que de dupliquer cette logique dans chacune : Échap ferme
+// la fenêtre, Tab/Maj+Tab restent piégés à l'intérieur tant qu'elle est
+// ouverte (comme l'exige un dialogue modal accessible — sans ça, Tab fait
+// sortir le focus vers la page derrière, invisible sous l'overlay), et le
+// focus revient sur l'élément qui avait déclenché l'ouverture à la
+// fermeture. La fonction de fermeture de chaque fenêtre doit appeler
+// gnCleanupModalA11y(overlay) AVANT de retirer l'overlay du DOM.
+// ─────────────────────────────────────────────────────────
+function gnWireModalA11y(overlay, closeFn) {
+  const previouslyFocused = document.activeElement;
+  const focusableSel = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  const getFocusable = () => Array.from(overlay.querySelectorAll(focusableSel)).filter(el => !el.disabled && el.offsetParent !== null);
+  const first = getFocusable()[0];
+  (first || overlay.querySelector('.gn-modal'))?.focus();
+  function onKeydown(e) {
+    if (e.key === 'Escape') { e.preventDefault(); closeFn(); return; }
+    if (e.key !== 'Tab') return;
+    const items = getFocusable();
+    if (!items.length) return;
+    const firstItem = items[0], lastItem = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === firstItem) { e.preventDefault(); lastItem.focus(); }
+    else if (!e.shiftKey && document.activeElement === lastItem) { e.preventDefault(); firstItem.focus(); }
+  }
+  overlay.addEventListener('keydown', onKeydown);
+  overlay._gnA11yCleanup = () => {
+    overlay.removeEventListener('keydown', onKeydown);
+    if (previouslyFocused && typeof previouslyFocused.focus === 'function') previouslyFocused.focus();
+  };
+}
+function gnCleanupModalA11y(overlay) {
+  if (overlay && overlay._gnA11yCleanup) overlay._gnA11yCleanup();
+}
+
+// ─────────────────────────────────────────────────────────
 // FENÊTRE "NOUVEAU PROJET" — choix du type de document
 // ─────────────────────────────────────────────────────────
 function openNewDocumentTypeModal() {
@@ -276,10 +313,11 @@ function openNewDocumentTypeModal() {
     if (chosen === 'roman_graphique') createNewGraphicNovel();
     else if (chosen === 'texte') createNewTextDocument();
   });
+  gnWireModalA11y(overlay, closeNewDocumentTypeModal);
 }
 function closeNewDocumentTypeModal() {
   const el = document.getElementById('gn-type-modal-overlay');
-  if (el) el.remove();
+  if (el) { gnCleanupModalA11y(el); el.remove(); }
 }
 
 // ─────────────────────────────────────────────────────────
@@ -385,6 +423,18 @@ function gnWireEvents() {
     const lz = e.target.closest('.gn-lz button');
     if (lz) { e.stopPropagation(); if (!lz.disabled) gnMoveLayer(Number(lz.dataset.idx), lz.dataset.dir); return; }
     const row = e.target.closest('.gn-layer-row'); if (!row) return;
+    gnSelectElement(row.dataset.elId);
+  });
+  // Entrée/Espace équivaut au clic (Lot 9, audit #29) — mêmes touches que
+  // .gn-type-card (fenêtre "Nouveau projet"), même convention dans tout le
+  // module. e.target === row (pas closest) : évite de redéclencher quand
+  // Entrée/Espace est pressée sur un bouton ▲/▼ à l'intérieur de la ligne,
+  // qui a déjà son propre comportement natif pour ces touches.
+  document.getElementById('gn-layers').addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const row = e.target.closest('.gn-layer-row');
+    if (!row || e.target !== row) return;
+    e.preventDefault();
     gnSelectElement(row.dataset.elId);
   });
 
@@ -757,15 +807,24 @@ function gnDeselectOnBackdrop(e) {
 function gnRenderLayers() {
   const box = document.getElementById('gn-layers');
   const elements = db.pages[_gnActivePage].elements;
-  box.innerHTML = elements.map((el, i) => `
-    <div class="gn-layer-row${el.id===_gnSelectedElId?' gn-sel':''}" data-el-id="${el.id}">
+  // role/tabindex/aria (Lot 9, audit #29) : ce panneau est jusqu'ici le SEUL
+  // moyen de sélectionner un bloc de texte sans entrer directement en mode
+  // édition (sur le canevas, cliquer un bloc de texte place le curseur —
+  // voir gnRenderCanvas) — c'est donc le point le plus simple et le plus
+  // sûr pour rendre la sélection atteignable au clavier, pour les images
+  // comme pour le texte, sans toucher à la zone d'édition elle-même.
+  box.innerHTML = elements.map((el, i) => {
+    const label = el.type === 'image' ? (el.imageId ? 'Image' : 'Image (vide)') : (el.content ? el.content.slice(0,28) : 'Bloc de texte vide');
+    return `
+    <div class="gn-layer-row${el.id===_gnSelectedElId?' gn-sel':''}" data-el-id="${el.id}" role="button" tabindex="0" aria-pressed="${el.id===_gnSelectedElId}" aria-label="Sélectionner : ${DOMPurify.sanitize(label)}">
       <span class="gn-lg">${el.type==='image'?'🖼️':'🔤'}</span>
-      <span class="gn-lname">${el.type==='image' ? (el.imageId ? 'Image' : 'Image (vide)') : (el.content ? el.content.slice(0,28) : 'Bloc de texte vide')}</span>
+      <span class="gn-lname">${DOMPurify.sanitize(label)}</span>
       <span class="gn-lz">
         <button data-dir="up" data-idx="${i}" title="Passer au premier plan" ${i===elements.length-1?'disabled':''}>▲</button>
         <button data-dir="down" data-idx="${i}" title="Passer à l'arrière-plan" ${i===0?'disabled':''}>▼</button>
       </span>
-    </div>`).join('') || '<p class="gn-layers-empty">Page vide — choisis un gabarit ou ajoute un élément.</p>';
+    </div>`;
+  }).join('') || '<p class="gn-layers-empty">Page vide — choisis un gabarit ou ajoute un élément.</p>';
 }
 // Ordre du tableau elements = ordre d'empilement (le dernier est dessiné
 // au premier plan) — "monter/descendre" échange l'élément avec son voisin.
@@ -1621,10 +1680,11 @@ function gnOpenExportOptionsModal() {
     gnCloseExportOptionsModal();
     gnExportGraphicNovelPDF({ trimW: format.w, trimH: format.h, dpi, bleedMm });
   });
+  gnWireModalA11y(overlay, gnCloseExportOptionsModal);
 }
 function gnCloseExportOptionsModal() {
   const el = document.getElementById('gn-export-opts-overlay');
-  if (el) el.remove();
+  if (el) { gnCleanupModalA11y(el); el.remove(); }
 }
 
 // ─────────────────────────────────────────────────────────
@@ -1845,10 +1905,11 @@ function gnOpenBookExportModal() {
       if (btn) btn.disabled = false;
     }
   });
+  gnWireModalA11y(overlay, gnCloseBookExportModal);
 }
 function gnCloseBookExportModal() {
   const el = document.getElementById('gn-export-book-overlay');
-  if (el) el.remove();
+  if (el) { gnCleanupModalA11y(el); el.remove(); }
 }
 
 // ─────────────────────────────────────────────────────────
@@ -1903,10 +1964,11 @@ function gnOpenTrashModal() {
   overlay.addEventListener('click', e => { if (e.target === overlay) gnCloseTrashModal(); });
   document.getElementById('gn-trash-close-btn').addEventListener('click', gnCloseTrashModal);
   gnRenderTrashList();
+  gnWireModalA11y(overlay, gnCloseTrashModal);
 }
 function gnCloseTrashModal() {
   const el = document.getElementById('gn-trash-overlay');
-  if (el) el.remove();
+  if (el) { gnCleanupModalA11y(el); el.remove(); }
 }
 function gnTrashEntryLabel(t) {
   if (t.kind === 'gn-page') {
@@ -2024,10 +2086,11 @@ function gnOpenPageHistoryModal() {
   overlay.addEventListener('click', e => { if (e.target === overlay) gnClosePageHistoryModal(); });
   document.getElementById('gn-history-close-btn').addEventListener('click', gnClosePageHistoryModal);
   gnRenderPageHistoryList();
+  gnWireModalA11y(overlay, gnClosePageHistoryModal);
 }
 function gnClosePageHistoryModal() {
   const el = document.getElementById('gn-history-overlay');
-  if (el) el.remove();
+  if (el) { gnCleanupModalA11y(el); el.remove(); }
 }
 function gnRenderPageHistoryList() {
   const list = document.getElementById('gn-history-list');
