@@ -984,7 +984,7 @@ async function saveLibSettings() {
 async function libVerifyToken() {
   if (!_cloudToken) return null;
   try {
-    const resp = await fetch('https://api.github.com/user', { headers: { 'Authorization': `token ${_cloudToken}` } });
+    const resp = await fetchWithTimeout('https://api.github.com/user', { headers: { 'Authorization': `token ${_cloudToken}` }, timeoutMs: 15000 });
     if (!resp.ok) return null;
     const data = await resp.json();
     return data.login || 'compte GitHub';
@@ -1080,7 +1080,7 @@ async function libSyncManuscript(docId, opts) {
     // désormais plus qu'un blob illisible sans le mot de passe du profil.
     const cipher = await Crypto.encrypt(JSON.stringify(mData), _dataKey);
     files["plume.json"] = { content: JSON.stringify({ _enc:true, data:cipher }) };
-    const resp = await fetch(url, { method, headers:{'Authorization':`token ${_cloudToken}`,'Content-Type':'application/json'}, body: JSON.stringify({ public:false, files }) });
+    const resp = await fetchWithTimeout(url, { timeoutMs: 90000, method, headers:{'Authorization':`token ${_cloudToken}`,'Content-Type':'application/json'}, body: JSON.stringify({ public:false, files }) });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     if (data.id && data.id !== mData.gistId) mData.gistId = data.id;
@@ -1102,7 +1102,7 @@ async function libLoadManuscript(docId) {
   try {
     const mData = await loadManuscriptData(docId);
     if (!mData.gistId) { toast("Ce manuscrit n'a pas encore de Gist.", 'error'); return; }
-    const resp = await fetch(`https://api.github.com/gists/${mData.gistId}`, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
+    const resp = await fetchWithTimeout(`https://api.github.com/gists/${mData.gistId}`, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     const raw = data.files && data.files["plume.json"] && data.files["plume.json"].content;
@@ -1120,7 +1120,7 @@ async function libLoadManuscript(docId) {
           const file = data.files[fname];
           let content = file.content;
           if (file.truncated && file.raw_url) {
-            const rawResp = await fetch(file.raw_url, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
+            const rawResp = await fetchWithTimeout(file.raw_url, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
             content = await rawResp.text();
           }
           const b64 = await Crypto.decrypt(content, _dataKey);
@@ -1157,7 +1157,7 @@ async function libOpenGistHistory(docId) {
   listEl.innerHTML = '<div class="u-p-10px u-op-_6">Chargement…</div>';
   document.getElementById('gist-history-overlay').classList.add('active');
   try {
-    const resp = await fetch(`https://api.github.com/gists/${mData.gistId}/commits`, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
+    const resp = await fetchWithTimeout(`https://api.github.com/gists/${mData.gistId}/commits`, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const commits = await resp.json();
     if (!commits.length) { listEl.innerHTML = '<div class="u-p-10px u-op-_6">Aucun historique.</div>'; return; }
@@ -1175,7 +1175,7 @@ async function libOpenGistHistory(docId) {
 async function libLoadGistRevision(docId, gistId, sha) {
   if (!confirm('Charger cette révision remplacera ce manuscrit. Continuer ?')) return;
   try {
-    const resp = await fetch(`https://api.github.com/gists/${gistId}/${sha}`, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
+    const resp = await fetchWithTimeout(`https://api.github.com/gists/${gistId}/${sha}`, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     const raw = data.files && data.files["plume.json"] && data.files["plume.json"].content;

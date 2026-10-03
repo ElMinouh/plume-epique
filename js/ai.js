@@ -23,8 +23,8 @@ async function callClaude(prompt, maxTokens=1000, onChunk) {
   // « continuer sans synchronisation »), inutile d'appeler le réseau.
   const syncKey = (typeof getSyncKey === 'function') ? getSyncKey() : '';
   if (!syncKey) throw new Error("L'IA nécessite la clé de synchronisation (Système → Synchronisation). Elle n'est pas configurée sur cet appareil.");
-  const resp = await fetch('https://plume-epique-ai.air7841.workers.dev', {
-    method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + syncKey},
+  const resp = await fetchWithTimeout('https://plume-epique-ai.air7841.workers.dev', {
+    timeoutMs: 60000, method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + syncKey},
     body:JSON.stringify({ prompt, maxTokens })
   });
   if (!resp.ok) {

@@ -2116,14 +2116,15 @@ const GN_MAX_SNAPSHOTS = 30; // même limite que MAX_SNAPSHOTS (snapshots.js)
 
 function gnTakeSnapshot(pageIdx, label) {
   const page = db.pages[pageIdx];
-  if (!page || !page.id) return;
+  if (!page || !page.id) return false;
   if (!db.history) db.history = {};
   if (!db.history[page.id]) db.history[page.id] = [];
   const content = JSON.stringify({ elements: page.elements, background: page.background });
   const last = db.history[page.id][0];
-  if (last && last.content === content) return; // rien changé depuis le dernier instantané
+  if (last && last.content === content) return false; // rien changé depuis le dernier instantané
   db.history[page.id].unshift({ ts: Date.now(), label: label || new Date().toLocaleString('fr'), content });
   if (db.history[page.id].length > GN_MAX_SNAPSHOTS) db.history[page.id] = db.history[page.id].slice(0, GN_MAX_SNAPSHOTS);
+  return true;
 }
 
 // Gardé par docType ET par la classe sur <body> : ce minuteur tourne en
@@ -2132,8 +2133,9 @@ function gnTakeSnapshot(pageIdx, label) {
 // pointerait sur les pages d'un manuscrit qui n'est plus le document actif.
 setInterval(() => {
   if (db.docType === 'roman_graphique' && document.body.classList.contains('graphicnovel-mode') && db.pages && db.pages[_gnActivePage]) {
-    gnTakeSnapshot(_gnActivePage);
-    saveGraphicNovel();
+    // v9.21.0 (audit AUD-01-005) — n'enregistre que si la page a réellement
+    // changé depuis le dernier instantané : plus d'écriture en ligne à vide.
+    if (gnTakeSnapshot(_gnActivePage)) saveGraphicNovel();
   }
 }, 5 * 60 * 1000);
 

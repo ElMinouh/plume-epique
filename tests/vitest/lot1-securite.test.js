@@ -163,8 +163,11 @@ describe('DOMPurify réel (AUD-01-002) — la suite principale le remplace par u
 describe('callClaude — clé de synchronisation requise (AUD-01-004)', () => {
   function makeCtx(syncKey) {
     const ctx = vm.createContext({ console, TextDecoder, setTimeout, clearTimeout, Promise });
+    ctx.AbortController = AbortController;
     ctx.getSyncKey = () => syncKey;
     ctx.fetch = vi.fn(async () => new Response('data: {"choices":[{"delta":{"content":"salut"}}]}\n\ndata: [DONE]\n\n', { status: 200 }));
+    const rt = read('js/router.js');
+    vm.runInContext(rt.slice(rt.indexOf('const DEFAULT_FETCH_TIMEOUT_MS'), rt.indexOf('function getSyncKey()')) + '\nthis.fetchWithTimeout = fetchWithTimeout;', ctx, { filename: 'fetchWithTimeout' });
     vm.runInContext(read('js/ai.js') + '\nthis.__callClaude = callClaude;', ctx, { filename: 'ai.js' });
     return ctx;
   }

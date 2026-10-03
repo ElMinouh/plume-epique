@@ -179,7 +179,10 @@ async function bootProfiles() {
     // Le système de profils est actif : la migration a forcément déjà eu
     // lieu. L'ancienne clé mono-profil 'main' n'est donc plus nécessaire
     // — on la purge silencieusement si elle traîne encore.
-    const legacy = await loadData('main');
+    // v9.21.0 (audit AUD-01-017) — lecture strictement locale : l'ancienne
+    // clé 'main' n'existe plus que sur un appareil jamais migré ; l'interroger
+    // via loadData() obligeait chaque démarrage à attendre le serveur.
+    const legacy = await readLocalOnly('main');
     if (legacy) await persistData('main', null);
     // "Rester connecté" (nouveau) : si une session valide est enregistrée
     // sur cet appareil pour un profil existant, on saute directement

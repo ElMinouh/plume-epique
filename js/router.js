@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.20.0';
+const APP_VERSION = '9.21.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -94,6 +94,32 @@ async function initIDB() {
 // fonctionner en local uniquement.
 const SYNC_WORKER_URL = 'https://plume-epique-sync.air7841.workers.dev';
 
+// ═══════════════════════════════════════════════════════
+// DÉLAI MAXIMAL DES REQUÊTES RÉSEAU (v9.21.0, audit AUD-01-017)
+// Aucune requête n'avait de durée maximale : un serveur lent ou un réseau
+// instable pouvait laisser l'écran de connexion, la synchro ou une demande IA
+// attendre indéfiniment. Le délai (`timeoutMs`, 30 s par défaut) porte sur
+// l'obtention de la RÉPONSE : une fois les en-têtes reçus, un flux IA long
+// n'est pas interrompu. En cas de dépassement, l'erreur est explicite et les
+// appelants existants la traitent comme tout échec réseau (file de réessai).
+// ═══════════════════════════════════════════════════════
+const DEFAULT_FETCH_TIMEOUT_MS = 30000;
+async function fetchWithTimeout(url, opts) {
+  const { timeoutMs, ...fetchOpts } = opts || {};
+  const ms = timeoutMs || DEFAULT_FETCH_TIMEOUT_MS;
+  if (typeof AbortController === 'undefined') return fetch(url, fetchOpts);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { ...fetchOpts, signal: controller.signal });
+  } catch (e) {
+    if (e && e.name === 'AbortError') throw new Error('Délai dépassé (' + Math.round(ms / 1000) + ' s) : le serveur ne répond pas.');
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function getSyncKey() { return localStorage.getItem('plume_sync_key') || ''; }
 function setSyncKey(key) { localStorage.setItem('plume_sync_key', key); localStorage.removeItem('plume_sync_skipped'); }
 function isSyncSkipped() { return localStorage.getItem('plume_sync_skipped') === '1'; }
@@ -141,7 +167,7 @@ function renderSyncDot() {
 // le bouton "Vérifier" de l'écran de configuration.
 async function verifySyncKey(key) {
   try {
-    const resp = await fetch(SYNC_WORKER_URL + '?key=__ping__', { headers: { 'Authorization': 'Bearer ' + key } });
+    const resp = await fetchWithTimeout(SYNC_WORKER_URL + '?key=__ping__', { headers: { 'Authorization': 'Bearer ' + key }, timeoutMs: 8000 });
     return resp.ok;
   } catch(e) { return false; }
 }
@@ -444,6 +470,7 @@ async function syncPush(key, payload, attempt = 0) {
     // locale reste intacte et sera repoussée à la prochaine écriture).
     const opts = {
       method: 'PUT',
+      timeoutMs: 30000,
       headers: {
         'Content-Type':'application/json',
         'Authorization':'Bearer ' + syncKey,
@@ -455,7 +482,7 @@ async function syncPush(key, payload, attempt = 0) {
       body
     };
     if (body.length < 60000) opts.keepalive = true;
-    const resp = await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), opts);
+    const resp = await fetchWithTimeout(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), opts);
 
     // ── Refus : le serveur détient une version plus récente que la nôtre ──
     if (resp.status === 409) {
@@ -592,11 +619,16 @@ async function syncPush(key, payload, attempt = 0) {
 // exactement ce qui a causé la perte de profils du 27/07/2026.
 // `version: null` = information indisponible (échec réseau, ou Worker pas
 // encore redéployé en v8.1.0) → l'appelant ne doit alors RIEN remplacer.
+// v9.21.0 (audit AUD-01-005) — date de la dernière lecture serveur par clé et
+// délai minimal entre deux rafraîchissements d'arrière-plan (voir loadData).
+const _lastPullAt = {};
+let SYNC_BACKGROUND_PULL_COOLDOWN_MS = 120000;
 async function syncPull(key) {
   const syncKey = getSyncKey();
   if (!syncKey) return { data: undefined, version: null };
   try {
-    const resp = await fetch(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), { headers: { 'Authorization': 'Bearer ' + syncKey } });
+    const resp = await fetchWithTimeout(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), { headers: { 'Authorization': 'Bearer ' + syncKey }, timeoutMs: 8000 });
+    _lastPullAt[key] = Date.now();
     if (!resp.ok) { setLastSyncStatus(false); return { data: undefined, version: null }; }
     setLastSyncStatus(true);
     const version = readVersionHeader(resp);
@@ -780,6 +812,7 @@ const SYNC_PUSH_TIER2_INTERVAL_MS = 45000;        // …45s d'espacement
 const SYNC_PUSH_TIER3_AFTER_MS = 10 * 60 * 1000;  // au-delà de 10 min d'écriture continue…
 const SYNC_PUSH_TIER3_INTERVAL_MS = 90000;        // …90s d'espacement
 const SYNC_PUSH_STREAK_RESET_MS = 90000;          // 90s sans la moindre frappe = vraie pause : retour à 20s
+const SYNC_PUSH_INDEX_INTERVAL_MS = 120000;       // 2 min — index de la bibliothèque (v9.21.0)
 const SYNC_GLOBAL_BACKOFF_MS = 15 * 60 * 1000;    // 15 min de répit après une panne d'écriture confirmée par le serveur
 
 let _lastPushAt = {};          // clé → date du dernier envoi réseau réellement déclenché
@@ -802,13 +835,17 @@ function currentAdaptiveInterval(key, now) {
 }
 
 function scheduleSyncPush(key, payload) {
-  // v9.3.1 — Seules les clés de manuscrit ('doc_<profil>_<id>') sont concernées :
-  // ce sont elles qui reçoivent un envoi à chaque frappe (autosave 600ms), donc
-  // la source réelle de l'explosion d'écritures. L'index des profils et celui
-  // de la bibliothèque ('doclist_<profil>') changent rarement (CRUD explicite,
-  // pas à chaque frappe) : les espacer n'apporterait rien et retarderait des
-  // opérations que l'utilisateur attend instantanées (créer un profil, etc.).
-  if (!key.startsWith('doc_')) { queueSyncPush(key, payload); return; }
+  // v9.3.1 — Seules les clés de manuscrit ('doc_<profil>_<id>') reçoivent un
+  // envoi à chaque frappe (autosave 600ms), donc la source principale de
+  // l'explosion d'écritures. v9.21.0 (audit AUD-01-005) — l'index de la
+  // bibliothèque ('doclist_<profil>') était exclu au motif qu'il « change
+  // rarement » : FAUX, save() le réécrit à chaque sauvegarde (date, nombre de
+  // mots). Il est désormais espacé lui aussi, plus largement (c'est une simple
+  // fiche d'affichage) ; flushPendingSyncPushes() l'envoie quand même tout de
+  // suite au changement de manuscrit, à la perte de focus et à Ctrl+S.
+  const isDoc = key.startsWith('doc_');
+  const isIndex = key.startsWith('doclist_');
+  if (!isDoc && !isIndex) { queueSyncPush(key, payload); return; }
   // v9.3.2 — Une clé en pause de conflit (voir isConflictPaused) ne doit
   // JAMAIS faire progresser le compteur d'espacement : sinon, écrire pendant
   // qu'un conflit attend l'arbitrage de l'utilisateur retarderait ensuite,
@@ -818,7 +855,13 @@ function scheduleSyncPush(key, payload) {
   if (isConflictPaused(key)) { queueSyncPush(key, payload); return; }
 
   const now = Date.now();
-  if (_pushDebounceTimers[key]) clearTimeout(_pushDebounceTimers[key]);
+  if (_pushDebounceTimers[key]) { clearTimeout(_pushDebounceTimers[key]); delete _pushDebounceTimers[key]; }
+
+  // v9.21.0 — Contenu identique à ce que le serveur détient déjà (empreinte
+  // jointe à l'enveloppe, voir makeEncryptedEnvelope) : rien à envoyer. Le
+  // minuteur éventuel a été annulé ci-dessus, pour qu'un ancien contenu en
+  // attente ne parte pas après un retour au contenu déjà synchronisé.
+  if (isDoc && payload && payload._fp && payload._fp === getKnownRemoteFp(key) && !getPendingSyncKeys().includes(key)) return;
 
   // v9.3.3 — Repli global : une panne d'écriture vient d'être confirmée par
   // le serveur (voir le traitement du 503 dans syncPush) — on n'aggrave pas
@@ -833,7 +876,7 @@ function scheduleSyncPush(key, payload) {
     return;
   }
 
-  const interval = currentAdaptiveInterval(key, now);
+  const interval = isIndex ? SYNC_PUSH_INDEX_INTERVAL_MS : currentAdaptiveInterval(key, now);
   const elapsed = now - (_lastPushAt[key] || 0);
   if (elapsed >= interval) {
     _lastPushAt[key] = now;
@@ -920,6 +963,13 @@ async function loadData(key) {
     // STRICTEMENT plus récente que la nôtre n'est jamais appliquée.
     const versionAtPullStart = _localWriteVersion[key] || 0;
     const knownHashAtPullStart = getKnownRemoteHash(key);
+    // v9.21.0 (audit AUD-01-005) — chaque lecture locale déclenchait une
+    // requête serveur (loadDocList à chaque sauvegarde, etc.). On ne
+    // rafraîchit en arrière-plan qu'au plus une fois par SYNC_BACKGROUND_PULL_
+    // COOLDOWN_MS et par clé (la 1re lecture de la session part toujours).
+    // La connexion, l'ouverture d'un manuscrit et les écritures (409) vérifient
+    // de toute façon le serveur par ailleurs.
+    if (Date.now() - (_lastPullAt[key] || 0) < SYNC_BACKGROUND_PULL_COOLDOWN_MS) return local;
     syncPull(key).then(async ({ data: remote, version: remoteVersion }) => {
       // v8.1.0 — la condition portait aussi sur `idbStore` : sur un navigateur
       // sans IndexedDB (mode privé restrictif, quota refusé), l'appareil

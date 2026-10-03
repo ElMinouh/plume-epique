@@ -3,11 +3,11 @@ const MAX_SNAPSHOTS = 30;
 function takeSnapshot(chIdx, label) {
   if (!db.history) db.history = {};
   const ch = db.chapters[chIdx];
-  if (!ch || !ch.id) return;
+  if (!ch || !ch.id) return false;
   const key = ch.id;
   if (!db.history[key]) db.history[key] = [];
   const last = db.history[key][0];
-  if (last && last.content === ch.content) return;
+  if (last && last.content === ch.content) return false;
   db.history[key].unshift({
     ts: Date.now(),
     label: label || new Date().toLocaleString('fr'),
@@ -15,9 +15,21 @@ function takeSnapshot(chIdx, label) {
     title: ch.title
   });
   if (db.history[key].length > MAX_SNAPSHOTS) db.history[key] = db.history[key].slice(0, MAX_SNAPSHOTS);
+  return true;
 }
+// v9.21.0 (audit AUD-01-005) — ce minuteur sauvegardait le manuscrit toutes les
+// 5 minutes MÊME SANS CHANGEMENT (donc une écriture en ligne gaspillée, quota
+// KV gratuit de 1000/jour), et même quand la bibliothèque était affichée :
+// il réécrivait alors le manuscrit encore en mémoire, ce qui pouvait écraser
+// une restauration (Gist, conflit) faite depuis la bibliothèque. Il n'agit
+// désormais que dans l'éditeur, et que s'il y a quelque chose à enregistrer.
 setInterval(() => {
-  if (db.chapters && db.chapters[cur]) { flushCurrentChapter(); takeSnapshot(cur); debouncedSave(); }
+  if (document.body.classList.contains('library-mode')) return;
+  if (db.chapters && db.chapters[cur]) {
+    flushCurrentChapter();
+    const created = takeSnapshot(cur);
+    if (created || (typeof _unsavedChanges !== 'undefined' && _unsavedChanges)) debouncedSave();
+  }
 }, 5 * 60 * 1000);
 
 // Construit le contenu (hors câblage des clics) d'une ligne de la liste des

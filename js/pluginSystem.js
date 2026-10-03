@@ -9,7 +9,7 @@ const PLUGINS_REGISTRY = [
       if (!text || text.length < 10) return 'Pas de texte à analyser.';
       try {
         const params = new URLSearchParams({ text: text.substring(0, 1500), language: 'fr' });
-        const resp = await fetch('https://api.languagetool.org/v2/check', { method:'POST', body:params });
+        const resp = await fetchWithTimeout('https://api.languagetool.org/v2/check', { method:'POST', body:params, timeoutMs: 15000 });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
         if (!data.matches.length) return '✅ Aucune erreur détectée.';
