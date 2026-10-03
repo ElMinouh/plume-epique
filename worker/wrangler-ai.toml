@@ -7,7 +7,11 @@ name = "plume-epique-ai"
 main = "worker.js"
 compatibility_date = "2026-07-28"
 
-# Pas de namespace KV pour ce Worker. Le secret MISTRAL_API_KEY reste tel
-# que déjà configuré dans le dashboard Cloudflare (Worker → Variables and
-# Secrets) — un déploiement Wrangler ne le touche pas, il ne se déclare
+# Pas de namespace KV pour ce Worker. Deux secrets, à configurer dans le
+# dashboard Cloudflare (Worker → Variables and Secrets) ou par
+# `npx wrangler secret put <NOM> -c worker/wrangler-ai.toml` :
+#   - GEMINI_API_KEY : clé Google AI (fournisseur IA, depuis le 11/09/2026) ;
+#   - SYNC_KEY (v9.20.0) : la MÊME valeur que celle du Worker de synchro —
+#     sans elle le relais refuse tout appel (fail-closed).
+# Un déploiement Wrangler ne touche pas aux secrets ; ils ne se déclarent
 # jamais dans ce fichier (qui est dans le dépôt Git).

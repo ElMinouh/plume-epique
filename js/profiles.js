@@ -68,12 +68,16 @@ function readLocalSession() {
 // avant le tout premier usage de l'une de ces fonctions.
 // ═══════════════════════════════════════════════════════════════════════
 async function notifyThirdPartyDataUseOnce() {
-  if (!_currentProfile || _currentProfile.seenThirdPartyNotice) return;
-  alert('ℹ️ À savoir : les fonctions IA (résumé, continuation, incohérences, noms, synonymes/antonymes, mémoire narrative, reformulation dans le roman graphique) et le plugin LanguageTool envoient le texte concerné à des services externes (Mistral AI, LanguageTool.org) pour être traités. Ce texte n\'est jamais stocké en clair par Plume, mais transite en clair chez ces services le temps du traitement.\n\nCe message ne s\'affichera plus.');
-  _currentProfile.seenThirdPartyNotice = true;
+  // v9.20.0 (audit AUD-01-012) — la notice nommait Mistral alors que le texte
+  // part chez Google (Gemini) depuis le 11/09/2026. Nouveau drapeau « V2 » :
+  // la notice corrigée est réaffichée une fois, même aux profils qui avaient
+  // vu l'ancienne (qui désignait le mauvais prestataire).
+  if (!_currentProfile || _currentProfile.seenThirdPartyNoticeV2) return;
+  alert('ℹ️ À savoir : les fonctions IA (résumé, continuation, incohérences, noms, synonymes/antonymes, mémoire narrative, reformulation dans le roman graphique) envoient le texte concerné à Google (modèle Gemini, via le relais de Plume), et le plugin LanguageTool à LanguageTool.org, pour être traités. Ce texte n\'est jamais stocké en clair par Plume, mais transite en clair chez ces services le temps du traitement. Avec l\'offre gratuite de l\'API Gemini, Google peut conserver ces échanges et s\'en servir pour améliorer ses produits : n\'envoyez pas de passage que vous souhaitez garder strictement confidentiel.\n\nCe message ne s\'affichera plus.');
+  _currentProfile.seenThirdPartyNoticeV2 = true;
   await mutateProfilesIndex(idx => {
     const profil = idx.profiles.find(p => p.id === _currentProfileId);
-    if (profil) profil.seenThirdPartyNotice = true;
+    if (profil) profil.seenThirdPartyNoticeV2 = true;
   });
 }
 

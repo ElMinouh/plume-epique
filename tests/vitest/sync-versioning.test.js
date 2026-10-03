@@ -163,7 +163,7 @@ describe('Versionnage de la synchro — incident du 27/07/2026', () => {
   });
 
   it('le serveur refuse une écriture qui ne se base pas sur la version courante', async () => {
-    const url = 'https://exemple/?key=test';
+    const url = 'https://exemple/?key=doc_a_b';
     const h = { 'Authorization': 'Bearer ' + SYNC_KEY, 'Content-Type': 'application/json' };
 
     const r1 = await server.serverFetch(url, { method: 'PUT', headers: { ...h, 'X-Plume-Base-Version': '0' }, body: '{"a":1}' });

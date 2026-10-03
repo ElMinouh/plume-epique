@@ -1,2 +1,5 @@
 # Ne jamais envoyer la clé de synchronisation sur GitHub.
 CLE-DE-SYNCHRONISATION-NE-PAS-PARTAGER.txt
+
+# Dossier de livrables Claude (audits, maquettes) : ne pas versionner.
+Claude outputs/

@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.19.0';
+const APP_VERSION = '9.20.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -422,6 +422,11 @@ async function syncPush(key, payload, attempt = 0) {
   // l'autre appareil avant même qu'il ait choisi. Reprend automatiquement dès
   // que le conflit est tranché (voir resolveSyncConflict*, library.js).
   if (isConflictPaused(key)) return;
+  // v9.20.0 — les sauvegardes de conflit sont strictement locales (voir
+  // persistConflictBackup) : le Worker, qui n'accepte plus que les clés
+  // connues de l'application (AUD-01-010), les refuserait en 400 et elles
+  // resteraient indéfiniment dans la file de nouvelles tentatives.
+  if (typeof key === 'string' && key.startsWith('conflict_')) return;
   try {
     const body = JSON.stringify(payload);
     const newHash = await sha256Hex(body);
@@ -548,6 +553,12 @@ async function syncPush(key, payload, attempt = 0) {
       // au prochain refus, qui a réellement modifié quoi.
       setKnownRemoteFp(key, await valueFingerprint(payload));
       removePendingSyncKey(key);
+    } else if (resp.status === 400 || resp.status === 413) {
+      // v9.20.0 — refus définitif du serveur (clé non autorisée, donnée trop
+      // volumineuse) : le réessayer ne changerait rien, on ne l'empile pas
+      // dans la file de nouvelles tentatives.
+      removePendingSyncKey(key);
+      console.warn('Synchro refusée par le serveur (' + resp.status + ') pour la clé', key);
     } else {
       // v8.0.2 — Réponse reçue mais pas 2xx (Worker en erreur, quota
       // dépassé...) : jusqu'ici abandonné en silence comme un échec réseau,

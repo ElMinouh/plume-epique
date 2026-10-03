@@ -57,6 +57,50 @@
 //        - _headers, dans connect-src
 // ─────────────────────────────────────────────────────────────────────────
 
+// ═══════════════════════════════════════════════════════
+// v9.20.0 (audit AUD-01-010) — DURCISSEMENT DU WORKER
+//   • comparaison de la clé à temps constant ;
+//   • freinage des essais de clé ratés (429 après AUTH_FAIL_MAX échecs par
+//     adresse sur AUTH_FAIL_WINDOW_MS) — compteur propre à chaque instance du
+//     Worker, donc un frein de bon sens et non une garantie absolue (une règle
+//     Cloudflare « Rate Limiting » sur le dashboard le complète) ;
+//   • seules les clés que l'application utilise réellement sont acceptées ;
+//   • taille de corps plafonnée (413) ;
+//   • une erreur KV qui n'est pas un quota n'est plus déguisée en « quota ».
+// ═══════════════════════════════════════════════════════
+const AUTH_FAIL_WINDOW_MS = 60000;
+const AUTH_FAIL_MAX = 10;
+const _authFails = new Map(); // adresse -> { count, since }
+// 20 Mio : sous la limite de 25 Mio d'une valeur KV (le manuscrit chiffré est du texte).
+const MAX_BODY_BYTES = 20 * 1024 * 1024;
+const ID = '[A-Za-z0-9_-]{1,80}';
+const KEY_PATTERN = new RegExp(
+  '^(profiles|main|__ping__' +
+  '|(doclist|data|libsettings)_' + ID +
+  '|(doc|aichat)_' + ID + '_' + ID + ')$'
+);
+
+function timingSafeEqual(a, b) {
+  const enc = new TextEncoder();
+  const x = enc.encode(a), y = enc.encode(b);
+  let diff = x.length ^ y.length;
+  const n = Math.max(x.length, y.length);
+  for (let i = 0; i < n; i++) diff |= (x[i] || 0) ^ (y[i] || 0);
+  return diff === 0;
+}
+function isRateLimited(ip, now) {
+  const rec = _authFails.get(ip);
+  if (!rec) return false;
+  if (now - rec.since > AUTH_FAIL_WINDOW_MS) { _authFails.delete(ip); return false; }
+  return rec.count >= AUTH_FAIL_MAX;
+}
+function noteAuthFailure(ip, now) {
+  if (_authFails.size > 500) _authFails.clear(); // borne mémoire
+  const rec = _authFails.get(ip);
+  if (!rec || now - rec.since > AUTH_FAIL_WINDOW_MS) _authFails.set(ip, { count: 1, since: now });
+  else rec.count++;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -79,16 +123,30 @@ export default {
     // Authentification : une seule clé partagée pour tout le foyer/compte,
     // choisie par vous à l'étape 4 ci-dessus — jamais le mot de passe d'un
     // profil individuel.
+    const ip = request.headers.get('CF-Connecting-IP') || 'inconnue';
+    const now = Date.now();
+    if (isRateLimited(ip, now)) {
+      return new Response(JSON.stringify({ error: { message: 'Trop d\'essais invalides. Réessayez plus tard.' } }), {
+        status: 429, headers: { ...cors, 'Content-Type': 'application/json', 'Retry-After': '60' }
+      });
+    }
     const auth = request.headers.get('Authorization') || '';
     const providedKey = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-    if (!providedKey || providedKey !== env.SYNC_KEY) {
+    if (!env.SYNC_KEY || !providedKey || !timingSafeEqual(providedKey, env.SYNC_KEY)) {
+      noteAuthFailure(ip, now);
       return new Response(JSON.stringify({ error: { message: 'Clé de synchronisation invalide.' } }), {
         status: 401, headers: { ...cors, 'Content-Type': 'application/json' }
       });
     }
+    _authFails.delete(ip);
 
     if (!key) {
       return new Response(JSON.stringify({ error: { message: 'Paramètre "key" manquant.' } }), {
+        status: 400, headers: { ...cors, 'Content-Type': 'application/json' }
+      });
+    }
+    if (key.length > 200 || !KEY_PATTERN.test(key)) {
+      return new Response(JSON.stringify({ error: { message: 'Format de clé non autorisé.' } }), {
         status: 400, headers: { ...cors, 'Content-Type': 'application/json' }
       });
     }
@@ -120,7 +178,18 @@ export default {
     }
 
     if (request.method === 'PUT' || request.method === 'POST') {
+      const declaredLength = Number(request.headers.get('Content-Length') || 0);
+      if (declaredLength > MAX_BODY_BYTES) {
+        return new Response(JSON.stringify({ error: { message: 'Donnée trop volumineuse.' } }), {
+          status: 413, headers: { ...cors, 'Content-Type': 'application/json' }
+        });
+      }
       const body = await request.text();
+      if (body.length > MAX_BODY_BYTES) {
+        return new Response(JSON.stringify({ error: { message: 'Donnée trop volumineuse.' } }), {
+          status: 413, headers: { ...cors, 'Content-Type': 'application/json' }
+        });
+      }
       const { version: current } = await readCurrent();
 
       // Version sur laquelle l'appareil déclare se baser. Absente = appareil
@@ -162,10 +231,19 @@ export default {
       try {
         await env.PLUME_SYNC.put(key, body, { metadata: { v: next } });
       } catch (e) {
-        return new Response(JSON.stringify({
-          error: { message: "Écriture momentanément indisponible (quota ou panne passagère)." }
-        }), {
-          status: 503, headers: { ...cors, 'Content-Type': 'application/json', 'Retry-After': '900' }
+        // Seul un refus de type quota/limite (429, « limit ») mérite le 503 +
+        // Retry-After qui déclenche le repli global côté client. Toute autre
+        // erreur (valeur refusée, panne du binding) est une 500 ordinaire.
+        const msg = String((e && e.message) || e);
+        if (/429|limit|quota|too many/i.test(msg)) {
+          return new Response(JSON.stringify({
+            error: { message: "Écriture momentanément indisponible (quota ou panne passagère)." }
+          }), {
+            status: 503, headers: { ...cors, 'Content-Type': 'application/json', 'Retry-After': '900' }
+          });
+        }
+        return new Response(JSON.stringify({ error: { message: "Écriture refusée par le stockage." } }), {
+          status: 500, headers: { ...cors, 'Content-Type': 'application/json' }
         });
       }
       return new Response(JSON.stringify({ ok: true, version: next }), {

@@ -4,21 +4,27 @@
 // fonctionner : la CSP du projet (_headers) n'autorise que le Worker Cloudflare
 // en connexion sortante, et aucune clé API n'est (ni ne doit être) présente
 // côté client. Voir README, section "Intelligence artificielle" : le Worker
-// (plume-epique-ai.air7841.workers.dev) relaie vers Mistral AI et renvoie une
+// (plume-epique-ai.air7841.workers.dev) relaie vers Google Gemini (Mistral
+// jusqu'au 11/09/2026) et renvoie une
 // réponse déjà normalisée au format {content:[{type:'text', text}]} — c'est ce
 // format que le reste de cette fonction attendait déjà, donc seule l'URL
 // changeait. Le corps de la requête a été ajusté suite à un test réel : le
 // Worker attend un champ "prompt" direct (il a répondu "prompt manquant" avec
 // le format Anthropic {messages:[...]}), pas un tableau de messages.
-// v8.0.3 — Le Worker relaie désormais la réponse de Mistral en flux (SSE,
+// v8.0.3 — Le Worker relaie désormais la réponse du fournisseur IA en flux (SSE,
 // voir worker/worker.js) au lieu d'attendre la réponse complète : callClaude
 // lit ce flux morceau par morceau et appelle onChunk(texte accumulé jusqu'ici)
 // à chaque morceau reçu, pour un affichage progressif côté utilisateur.
 // onChunk est optionnel — sans lui, callClaude se comporte comme avant :
 // on attend simplement la fin et on renvoie le texte complet.
 async function callClaude(prompt, maxTokens=1000, onChunk) {
+  // v9.20.0 (audit AUD-01-004) — le relais IA exige désormais la clé de
+  // synchronisation (même secret que le Worker de synchro). Sans elle (mode
+  // « continuer sans synchronisation »), inutile d'appeler le réseau.
+  const syncKey = (typeof getSyncKey === 'function') ? getSyncKey() : '';
+  if (!syncKey) throw new Error("L'IA nécessite la clé de synchronisation (Système → Synchronisation). Elle n'est pas configurée sur cet appareil.");
   const resp = await fetch('https://plume-epique-ai.air7841.workers.dev', {
-    method:'POST', headers:{'Content-Type':'application/json'},
+    method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + syncKey},
     body:JSON.stringify({ prompt, maxTokens })
   });
   if (!resp.ok) {

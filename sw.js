@@ -1,7 +1,7 @@
 'use strict';
 // Changez ce numéro de version à chaque mise à jour majeure des fichiers
 // pour forcer les navigateurs à récupérer la nouvelle version.
-const CACHE = 'plume-epique-v9.19.0';
+const CACHE = 'plume-epique-v9.20.0';
 
 const CORE_ASSETS = [
   './',
@@ -16,14 +16,14 @@ const CORE_ASSETS = [
 ];
 
 const CDN_ASSETS = [
-  'https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js',
+  'https://cdn.jsdelivr.net/npm/dompurify@3.4.16/dist/purify.min.js',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
   'https://cdn.jsdelivr.net/npm/idb@8/build/umd.js',
   'https://unpkg.com/docx@7.1.0/build/index.js',
   'https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js',
   'https://d3js.org/d3.v7.min.js',
   'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
-  'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+  'https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js',
   'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
   'https://cdn.jsdelivr.net/npm/mammoth@1.11.0/mammoth.browser.min.js',
   'https://cdn.jsdelivr.net/npm/odf-kit@0.13.10/+esm',
