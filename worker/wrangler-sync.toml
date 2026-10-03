@@ -20,3 +20,11 @@ id = "9abfbc1017d245ef8def8a6ac8c72418"
 # dépôt Git) : ils restent tels que déjà configurés dans le dashboard
 # Cloudflare (Worker → Variables and Secrets), et un déploiement Wrangler
 # ne les touche pas.
+
+# v9.23.0 — Stockage D1 (remplace KV pour les ecritures ; KV reste lu en repli
+# pendant la transition). Le nom du binding ("DB") est fige dans le code.
+# L identifiant n est pas un secret.
+[[d1_databases]]
+binding = "DB"
+database_name = "plume-sync"
+database_id = "f6c1beed-fcc1-4bed-9a59-e06d603a0e93"

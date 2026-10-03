@@ -101,6 +101,104 @@ function noteAuthFailure(ip, now) {
   else rec.count++;
 }
 
+// ═══════════════════════════════════════════════════════
+// v9.23.0 — STOCKAGE D1 (en remplacement de KV, voir l'étude du quota)
+//
+// Pourquoi : le quota gratuit de Cloudflare KV (1 000 écritures/jour pour tout
+// le compte) est insuffisant dès qu'on est plusieurs. D1 offre 100 000 lignes
+// écrites/jour (partagées avec les autres bases du compte), une cohérence
+// immédiate, des écritures atomiques et 7 jours de sauvegarde (Time Travel).
+//
+// Choix du stockage : si le binding `DB` (D1) existe, il est utilisé ; sinon le
+// Worker se comporte exactement comme avant avec KV (`PLUME_SYNC`). Pendant la
+// transition les deux sont liés : on LIT dans D1 puis, à défaut, dans KV ; on
+// n'ÉCRIT plus que dans D1. Chaque donnée migre donc toute seule à sa première
+// écriture (aucune copie en masse, KV n'est jamais modifié ni supprimé).
+//
+// Découpage : D1 limite une valeur à 2 Mo. Une version est découpée en morceaux
+// de D1_CHUNK_CHARS caractères (sync_chunks), repérés par un identifiant
+// d'écriture `wid` unique. La table sync_meta pointe vers la version courante
+// (numéro, wid, nombre de morceaux). Une écriture insère ses morceaux puis bascule
+// `sync_meta` EN UNE SEULE TRANSACTION conditionnelle (… WHERE version = base) :
+// deux appareils ne peuvent plus écrire « en même temps » sans que l'un reçoive
+// un refus (409) — ce que KV, sans écriture conditionnelle, ne garantissait pas.
+// ═══════════════════════════════════════════════════════
+const D1_CHUNK_CHARS = 600000; // ≤ 1,8 Mo même si tous les caractères pèsent 3 octets (limite D1 : 2 Mo)
+
+function kvStore(env) {
+  return {
+    name: 'kv',
+    async read(key) {
+      const res = await env.PLUME_SYNC.getWithMetadata(key);
+      const version = (res && res.metadata && Number.isInteger(res.metadata.v)) ? res.metadata.v : 0;
+      return { value: res ? res.value : null, version };
+    },
+    async version(key) { return (await this.read(key)).version; },
+    async write(key, body, current) {
+      await env.PLUME_SYNC.put(key, body, { metadata: { v: current + 1 } });
+      return { ok: true, version: current + 1 };
+    }
+  };
+}
+
+function d1Store(env) {
+  const db = env.DB;
+  // Lecture de l'ancien stockage KV (transition) : valeur et version telles quelles.
+  async function kvFallback(key) {
+    if (!env.PLUME_SYNC) return { value: null, version: 0 };
+    return kvStore(env).read(key);
+  }
+  const readMeta = key => db.prepare('SELECT version, wid, chunks FROM sync_meta WHERE k = ?1').bind(key).first();
+  const dropChunks = (key, wid) => db.prepare('DELETE FROM sync_chunks WHERE k = ?1 AND wid = ?2').bind(key, wid).run();
+  return {
+    name: 'd1',
+    async read(key) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const meta = await readMeta(key);
+        if (!meta) return kvFallback(key);
+        const { results } = await db.prepare('SELECT data FROM sync_chunks WHERE k = ?1 AND wid = ?2 ORDER BY idx').bind(key, meta.wid).all();
+        if (results.length === meta.chunks) return { value: results.map(r => r.data).join(''), version: meta.version };
+        // Une écriture concurrente vient de remplacer cette version (ses anciens
+        // morceaux ont été effacés entre les deux lectures) : on relit.
+      }
+      throw new Error('Lecture incohérente (écritures concurrentes) : réessayez.');
+    },
+    async version(key) {
+      const meta = await readMeta(key);
+      return meta ? meta.version : (await kvFallback(key)).version;
+    },
+    async write(key, body, current) {
+      const next = current + 1;
+      const wid = crypto.randomUUID();
+      const chunks = [];
+      for (let i = 0; i < body.length; i += D1_CHUNK_CHARS) chunks.push(body.slice(i, i + D1_CHUNK_CHARS));
+      if (!chunks.length) chunks.push('');
+      const prev = await readMeta(key);
+      const now = Date.now();
+      const stmts = chunks.map((c, i) => db.prepare('INSERT INTO sync_chunks (k, wid, idx, data) VALUES (?1, ?2, ?3, ?4)').bind(key, wid, i, c));
+      stmts.push(prev
+        ? db.prepare('UPDATE sync_meta SET version = ?1, wid = ?2, chunks = ?3, updated_at = ?4 WHERE k = ?5 AND version = ?6').bind(next, wid, chunks.length, now, key, current)
+        : db.prepare('INSERT INTO sync_meta (k, version, wid, chunks, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)').bind(key, next, wid, chunks.length, now));
+      let results;
+      try {
+        results = await db.batch(stmts);
+      } catch (e) {
+        // Une autre écriture a créé la clé entre-temps (violation d'unicité) :
+        // la transaction est annulée, rien n'a été écrit → conflit ordinaire.
+        if (/UNIQUE|constraint/i.test(String((e && e.message) || e))) return { conflict: true };
+        throw e;
+      }
+      const last = results[results.length - 1];
+      if (!last || !last.meta || last.meta.changes !== 1) {
+        await dropChunks(key, wid); // la version attendue n'était plus la bonne : on retire nos morceaux orphelins
+        return { conflict: true };
+      }
+      if (prev) { try { await dropChunks(key, prev.wid); } catch (e) { /* nettoyage différé : sans effet sur les données */ } }
+      return { ok: true, version: next };
+    }
+  };
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -113,8 +211,11 @@ export default {
       // Sans ceci, le navigateur cache la réponse mais REFUSE au JavaScript
       // de lire nos en-têtes de version (règle CORS) : le client croirait
       // alors toujours être en version 0 et le contrôle ne servirait à rien.
-      'Access-Control-Expose-Headers': 'X-Plume-Version'
+      'Access-Control-Expose-Headers': 'X-Plume-Version, X-Plume-Storage',
+      // v9.23.0 — permet de vérifier à distance quel stockage répond (kv | d1).
+      'X-Plume-Storage': env.DB ? 'd1' : 'kv'
     };
+    const store = env.DB ? d1Store(env) : kvStore(env);
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: cors });
@@ -158,18 +259,14 @@ export default {
       return new Response(JSON.stringify({ ok: true }), { headers: { ...cors, 'Content-Type': 'application/json' } });
     }
 
-    // Version actuellement stockée pour cette clé. Les données écrites avant
-    // la v8.1.0 n'ont pas de métadonnée : elles valent la version 0, et la
-    // toute première écriture versionnée les fera passer à 1 (aucune
-    // migration nécessaire, aucune donnée existante touchée).
-    async function readCurrent() {
-      const res = await env.PLUME_SYNC.getWithMetadata(key);
-      const version = (res && res.metadata && Number.isInteger(res.metadata.v)) ? res.metadata.v : 0;
-      return { value: res ? res.value : null, version };
-    }
-
     if (request.method === 'GET') {
-      const { value, version } = await readCurrent();
+      let value, version;
+      try { ({ value, version } = await store.read(key)); }
+      catch (e) {
+        return new Response(JSON.stringify({ error: { message: 'Lecture momentanément impossible.' } }), {
+          status: 500, headers: { ...cors, 'Content-Type': 'application/json' }
+        });
+      }
       // `null` (chaîne JSON) si cette clé n'a encore jamais été synchronisée
       // par aucun appareil — l'app le traite comme "pas encore de donnée ici".
       return new Response(value ?? 'null', {
@@ -190,7 +287,7 @@ export default {
           status: 413, headers: { ...cors, 'Content-Type': 'application/json' }
         });
       }
-      const { version: current } = await readCurrent();
+      const current = await store.version(key);
 
       // Version sur laquelle l'appareil déclare se baser. Absente = appareil
       // encore sur une version antérieure du code : on refuse plutôt que de
@@ -219,23 +316,17 @@ export default {
         });
       }
 
-      const next = current + 1;
       // v9.3.3 — Sans ce filet, une écriture refusée par Cloudflare (quota
-      // KV du compte gratuit épuisé, ou toute autre panne du binding) faisait
-      // planter tout le handler : le client recevait une erreur 500/1101
-      // opaque, indiscernable d'un simple problème réseau. On distingue
-      // désormais clairement ce cas par un 503 explicite avec Retry-After,
-      // que le client utilise pour ralentir TOUS ses envois (voir
-      // le repli global dans router.js) plutôt que de continuer à insister
-      // sans effet pendant que le quota reste épuisé.
+      // épuisé ou panne du stockage) faisait planter tout le handler : le client
+      // recevait une erreur 500/1101 opaque, indiscernable d'un problème réseau.
+      // On distingue le cas « quota » par un 503 avec Retry-After, que le client
+      // utilise pour ralentir TOUS ses envois (repli global, router.js).
+      let outcome;
       try {
-        await env.PLUME_SYNC.put(key, body, { metadata: { v: next } });
+        outcome = await store.write(key, body, current);
       } catch (e) {
-        // Seul un refus de type quota/limite (429, « limit ») mérite le 503 +
-        // Retry-After qui déclenche le repli global côté client. Toute autre
-        // erreur (valeur refusée, panne du binding) est une 500 ordinaire.
         const msg = String((e && e.message) || e);
-        if (/429|limit|quota|too many/i.test(msg)) {
+        if (/429|limit|quota|too many|exceed/i.test(msg)) {
           return new Response(JSON.stringify({
             error: { message: "Écriture momentanément indisponible (quota ou panne passagère)." }
           }), {
@@ -246,6 +337,19 @@ export default {
           status: 500, headers: { ...cors, 'Content-Type': 'application/json' }
         });
       }
+      // v9.23.0 — Avec D1 l'écriture est conditionnelle : si quelqu'un d'autre a
+      // écrit entre la vérification ci-dessus et maintenant, on obtient ici un
+      // conflit (jamais d'écrasement silencieux).
+      if (outcome.conflict) {
+        const actual = await store.version(key);
+        return new Response(JSON.stringify({
+          error: { message: 'Version périmée : le serveur détient une version plus récente.' },
+          serverVersion: actual
+        }), {
+          status: 409, headers: { ...cors, 'Content-Type': 'application/json', 'X-Plume-Version': String(actual) }
+        });
+      }
+      const next = outcome.version;
       return new Response(JSON.stringify({ ok: true, version: next }), {
         headers: { ...cors, 'Content-Type': 'application/json', 'X-Plume-Version': String(next) }
       });

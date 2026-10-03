@@ -3,3 +3,6 @@ CLE-DE-SYNCHRONISATION-NE-PAS-PARTAGER.txt
 
 # Dossier de livrables Claude (audits, maquettes) : ne pas versionner.
 Claude outputs/
+
+# Sauvegardes locales du stockage de synchro (données chiffrées, jamais versionnées).
+backups-kv/
