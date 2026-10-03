@@ -20,6 +20,45 @@ function questsLabelFor(projectType) {
   return (PROJECT_TYPES[projectType] || PROJECT_TYPES['fantasy']).questsLabel;
 }
 
+// ═══════════════════════════════════════════════════════
+// HISTORIQUE « ESPACÉ » (v9.25.0, audit AUD-01-023)
+// Jusqu'ici : 30 copies par chapitre/page, une toutes les 5 minutes — soit
+// environ 2 h 30 de recul seulement, pour un poids énorme (un manuscrit de
+// 90 Ko de texte pesait 2,9 Mo, dont 95 % d'historique, renvoyé en entier à
+// chaque synchronisation). Désormais : des copies de plus en plus espacées à
+// mesure qu'elles vieillissent, sur un mois :
+//   • moins d'1 h : une copie par tranche de 15 min ;
+//   • moins de 24 h : une par tranche de 3 h ;
+//   • moins de 30 jours : une par tranche de 2 jours ;
+//   • au-delà de 30 jours : abandonnées ;
+//   • les instantanés MANUELS (étiquette « Manuel… ») sont toujours gardés.
+// `list` : tableau d'instantanés {ts, label, ...}, du plus récent au plus
+// ancien. Renvoie un nouveau tableau, dans le même ordre. Fonction pure.
+// ═══════════════════════════════════════════════════════
+const HISTORY_MAX_AUTO = 20;
+const HISTORY_MAX_MANUAL = 20;
+function thinSnapshots(list, now, maxAuto) {
+  if (!Array.isArray(list) || list.length <= 1) return Array.isArray(list) ? list.slice() : [];
+  const limitAuto = maxAuto || HISTORY_MAX_AUTO;
+  const MIN = 60000, H = 60 * MIN, D = 24 * H;
+  const sorted = list.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  const seen = new Set();
+  const autos = [], manuals = [];
+  for (const sn of sorted) {
+    if (/^Manuel/.test(sn.label || '')) { if (manuals.length < HISTORY_MAX_MANUAL) manuals.push(sn); continue; }
+    const age = Math.max(0, now - (sn.ts || 0));
+    let slot;
+    if (age < H) slot = 'a' + Math.floor(age / (15 * MIN));
+    else if (age < D) slot = 'b' + Math.floor(age / (3 * H));
+    else if (age < 30 * D) slot = 'c' + Math.floor(age / (2 * D));
+    else continue;
+    if (seen.has(slot)) continue; // le plus récent de chaque tranche passe en premier
+    seen.add(slot);
+    if (autos.length < limitAuto) autos.push(sn);
+  }
+  return autos.concat(manuals).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+}
+
 function genChapterId() {
   return (crypto.randomUUID ? crypto.randomUUID() : 'ch_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
 }

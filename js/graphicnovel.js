@@ -71,6 +71,8 @@ function openGraphicNovelScreen() {
   gnPurgeOldTrash();
   // Annuler/Rétablir (Lot 4) : pile remise à zéro à chaque ouverture d'un
   // manuscrit — on ne propose jamais d'annuler au-delà de la session en cours.
+  // v9.25.0 — historique espacé : anciens manuscrits allégés à l'ouverture.
+  if (typeof thinAllHistory === 'function' && thinAllHistory()) saveGraphicNovel();
   gnResetUndoStack();
   // Stats (Lot 6, audit #21) : mêmes globales que l'éditeur texte
   // (router.js), pour que "mots aujourd'hui"/"mots par minute" restent
@@ -115,9 +117,14 @@ function gnUpdateDailyStats() {
 }
 async function saveGraphicNovel(immediate) {
   if (!_currentProfileId || !_dataKey || !_currentDocumentId) return;
+  // v9.25.0 (AUD-01-023) — même garde-fou que l'éditeur texte : une
+  // modification en attente d'enregistrement déclenche l'avertissement de
+  // fermeture du navigateur (beforeunload) et la sauvegarde à la fermeture.
+  if (typeof _unsavedChanges !== 'undefined') _unsavedChanges = true;
   const doSave = async () => {
     try {
       const payload = { ...db };
+      delete payload.cloudToken; // comme save() (router.js) : jamais de jeton dans le manuscrit
       await persistData(docDataKey(_currentProfileId, _currentDocumentId), await makeEncryptedEnvelope(JSON.stringify(payload)));
       await mutateDocList(list => {
         const entry = list.documents.find(d => d.id === _currentDocumentId);
@@ -141,6 +148,7 @@ async function saveGraphicNovel(immediate) {
       // mutation (glisser, propriétés, ajout/suppression, corbeille…) passe
       // par ici une fois réellement sauvegardée.
       gnCommitUndoSnapshot();
+      if (typeof _unsavedChanges !== 'undefined') _unsavedChanges = false;
       gnUpdateDailyStats();
       if (typeof flashSave === 'function') flashSave();
     } catch(e) {
@@ -157,12 +165,17 @@ let _gnSaveTimer = null;
 // ─────────────────────────────────────────────────────────
 // ANNULER / RÉTABLIR (Lot 4, audit #9)
 // ─────────────────────────────────────────────────────────
+// v9.25.0 (audit AUD-01-006) — l'instantané d'annulation contient AUSSI la
+// corbeille : « supprimer puis annuler » remet pages et corbeille dans le même
+// état. Avant, l'entrée de corbeille survivait à l'annulation et sa purge,
+// 30 jours plus tard, détruisait l'image de l'élément pourtant rétabli.
+function gnUndoSnapshotString() { return JSON.stringify({ pages: db.pages, trash: db.trash || [] }); }
 function gnResetUndoStack() {
-  _gnUndoStack = { stack: [JSON.stringify(db.pages)], index: 0 };
+  _gnUndoStack = { stack: [gnUndoSnapshotString()], index: 0 };
   gnUpdateUndoRedoButtons();
 }
 function gnCommitUndoSnapshot() {
-  const snap = JSON.stringify(db.pages);
+  const snap = gnUndoSnapshotString();
   if (_gnUndoStack.stack[_gnUndoStack.index] === snap) { gnUpdateUndoRedoButtons(); return; }
   _gnUndoStack.stack = _gnUndoStack.stack.slice(0, _gnUndoStack.index + 1);
   _gnUndoStack.stack.push(snap);
@@ -181,7 +194,9 @@ function gnRedo() {
   gnApplyUndoState();
 }
 function gnApplyUndoState() {
-  db.pages = JSON.parse(_gnUndoStack.stack[_gnUndoStack.index]);
+  const state = JSON.parse(_gnUndoStack.stack[_gnUndoStack.index]);
+  db.pages = state.pages;
+  db.trash = state.trash || [];
   _gnSelectedElId = null; _gnPreviewGabarit = null;
   if (_gnActivePage >= db.pages.length) _gnActivePage = db.pages.length - 1;
   renderGraphicNovelScreen();
@@ -1995,16 +2010,34 @@ const GN_TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // même délai que edit
 // l'ouverture de l'écran (voir openGraphicNovelScreen), jamais pendant
 // l'édition (une image encore affichée ne doit jamais disparaître sous les
 // pieds de l'utilisateur).
+// v9.25.0 (AUD-01-006) — identifiants des images portées par une entrée de corbeille.
+function gnTrashEntryImageIds(t) {
+  if (t.kind === 'gn-element') return (t.element && t.element.type === 'image' && t.element.imageId) ? [t.element.imageId] : [];
+  if (t.kind === 'gn-page') return (t.page.elements || []).filter(el => el.type === 'image' && el.imageId).map(el => el.imageId);
+  return [];
+}
+// Nombre RÉEL d'éléments qui utilisent encore cette image (pages + corbeille).
+function gnImageUses(imageId) {
+  let n = 0;
+  (db.pages || []).forEach(p => (p.elements || []).forEach(el => { if (el.type === 'image' && el.imageId === imageId) n++; }));
+  (db.trash || []).forEach(t => { n += gnTrashEntryImageIds(t).filter(id => id === imageId).length; });
+  return n;
+}
+function gnReleaseImage(imageId) { return reconcileGraphicImageRef(imageId, gnImageUses(imageId)); }
+
 function gnPurgeOldTrash() {
   const now = Date.now();
   const kept = [];
+  const dropped = [];
   (db.trash || []).forEach(t => {
     if (t.kind !== 'gn-page' && t.kind !== 'gn-element') { kept.push(t); return; }
     if (now - t.deletedAt < GN_TRASH_RETENTION_MS) { kept.push(t); return; }
-    if (t.kind === 'gn-element' && t.element.type === 'image' && t.element.imageId) deleteGraphicImage(t.element.imageId);
-    if (t.kind === 'gn-page') (t.page.elements || []).forEach(el => { if (el.type === 'image' && el.imageId) deleteGraphicImage(el.imageId); });
+    gnTrashEntryImageIds(t).forEach(id => { dropped.push([id, t]); });
   });
   db.trash = kept;
+  // Les images ne sont libérées qu'APRÈS avoir retiré les entrées expirées, en
+  // recomptant ce qui les utilise encore (pages + corbeille restante).
+  dropped.forEach(([id]) => gnReleaseImage(id));
 }
 
 function gnRenderTrashBadge() {
@@ -2095,9 +2128,9 @@ function gnPurgeTrashEntry(i) {
   const item = db.trash[i];
   if (!item) return;
   if (!confirm('Supprimer définitivement ? Cette action est irréversible.')) return;
-  if (item.kind === 'gn-element' && item.element.type === 'image' && item.element.imageId) deleteGraphicImage(item.element.imageId);
-  if (item.kind === 'gn-page') (item.page.elements || []).forEach(el => { if (el.type === 'image' && el.imageId) deleteGraphicImage(el.imageId); });
+  const ids = gnTrashEntryImageIds(item);
   db.trash.splice(i, 1);
+  ids.forEach(id => gnReleaseImage(id)); // après retrait de l'entrée : recompte ce qui utilise encore l'image
   saveGraphicNovel();
   gnRenderTrashList();
   gnRenderTrashBadge();
@@ -2112,7 +2145,7 @@ function gnPurgeTrashEntry(i) {
 // visuelle ne se compare pas comme du texte) : juste une liste, restauration
 // directe avec confirmation.
 // ─────────────────────────────────────────────────────────
-const GN_MAX_SNAPSHOTS = 30; // même limite que MAX_SNAPSHOTS (snapshots.js)
+const GN_MAX_SNAPSHOTS = HISTORY_MAX_AUTO; // v9.25.0 : 20 copies espacées sur un mois (voir thinSnapshots, schema.js)
 
 function gnTakeSnapshot(pageIdx, label) {
   const page = db.pages[pageIdx];
@@ -2123,7 +2156,7 @@ function gnTakeSnapshot(pageIdx, label) {
   const last = db.history[page.id][0];
   if (last && last.content === content) return false; // rien changé depuis le dernier instantané
   db.history[page.id].unshift({ ts: Date.now(), label: label || new Date().toLocaleString('fr'), content });
-  if (db.history[page.id].length > GN_MAX_SNAPSHOTS) db.history[page.id] = db.history[page.id].slice(0, GN_MAX_SNAPSHOTS);
+  db.history[page.id] = thinSnapshots(db.history[page.id], Date.now(), GN_MAX_SNAPSHOTS);
   return true;
 }
 

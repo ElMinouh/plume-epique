@@ -272,10 +272,17 @@
   takeSnapshot(0, 'Doublon');
   assert(db.history['sx1'].length === 1, 'un contenu identique au précédent snapshot n\'est pas re-enregistré');
   db.chapters[0].content = 'Version B';
+  db.history['sx1'][0].ts -= 20 * 60000; // v9.25.0 : historique espacé — le 1er snapshot a 20 min (autre tranche de 15 min)
   takeSnapshot(0, 'Deuxième snapshot');
   assert(db.history['sx1'].length === 2 && db.history['sx1'][0].content === 'Version B', 'un contenu modifié crée un nouveau snapshot (le plus récent en tête)');
-  for (let i = 0; i < 35; i++) { db.chapters[0].content = 'Version ' + i; takeSnapshot(0, 'Snap ' + i); }
-  assert(db.history['sx1'].length === MAX_SNAPSHOTS, `l'historique est plafonné à MAX_SNAPSHOTS (${MAX_SNAPSHOTS}), obtenu ${db.history['sx1'].length}`);
+  // v9.25.0 — historique ESPACÉ : 35 sauvegardes (une toutes les 16 min, soit ~9 h) ne laissent
+  // que le plus récent de chaque tranche (15 min puis 3 h), pas les 35 copies.
+  for (let i = 0; i < 35; i++) {
+    db.chapters[0].content = 'Version ' + i; takeSnapshot(0, 'Snap ' + i);
+    db.history['sx1'].forEach(sn => { sn.ts -= 16 * 60000; });
+  }
+  assert(db.history['sx1'].length >= 5 && db.history['sx1'].length < 20, `l'historique est espacé (${db.history['sx1'].length} copies pour 35 sauvegardes sur ~9 h)`);
+  assert(db.history['sx1'][0].content === 'Version 34', 'la copie la plus récente est toujours conservée, en tête');
 
   group('export-format-utils.js — escapeXml() / toXhtmlSafe()');
   assert(escapeXml('<a> & "b"') === '&lt;a&gt; &amp; &quot;b&quot;', 'échappe correctement <, >, & et "');

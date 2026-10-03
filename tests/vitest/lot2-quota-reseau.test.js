@@ -152,8 +152,9 @@ describe('Durée maximale des requêtes (AUD-01-017)', () => {
 
 describe('Minuteurs de 5 minutes : pas d\'enregistrement à vide (AUD-01-005)', () => {
   it('takeSnapshot indique s\'il a réellement créé un instantané', () => {
-    const ctx = vm.createContext({ console, setInterval: () => 0, document: { body: { classList: { contains: () => false } } } });
+    const ctx = vm.createContext({ console, crypto: globalThis.crypto, setInterval: () => 0, document: { body: { classList: { contains: () => false } } } });
     vm.runInContext("var db = { chapters: [{ id: 'c1', title: 'T', content: 'abc' }], history: {} }; var cur = 0;", ctx);
+    vm.runInContext(fs.readFileSync(path.join(JS_DIR, 'schema.js'), 'utf8'), ctx);
     vm.runInContext(fs.readFileSync(path.join(JS_DIR, 'snapshots.js'), 'utf8') + '\nthis.takeSnapshot = takeSnapshot;', ctx);
     expect(ctx.takeSnapshot(0)).toBe(true);
     expect(ctx.takeSnapshot(0)).toBe(false); // même contenu : pas de nouvel instantané

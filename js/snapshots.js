@@ -1,5 +1,5 @@
 'use strict';
-const MAX_SNAPSHOTS = 30;
+const MAX_SNAPSHOTS = HISTORY_MAX_AUTO; // v9.25.0 : 20 copies automatiques, mais espacées sur un mois (voir thinSnapshots, schema.js)
 function takeSnapshot(chIdx, label) {
   if (!db.history) db.history = {};
   const ch = db.chapters[chIdx];
@@ -14,8 +14,25 @@ function takeSnapshot(chIdx, label) {
     content: ch.content,
     title: ch.title
   });
-  if (db.history[key].length > MAX_SNAPSHOTS) db.history[key] = db.history[key].slice(0, MAX_SNAPSHOTS);
+  db.history[key] = thinSnapshots(db.history[key], Date.now(), MAX_SNAPSHOTS);
   return true;
+}
+// v9.25.0 — amincit en une fois tout l'historique d'un manuscrit (chapitres
+// ET pages de roman graphique) : appelée à l'ouverture, pour que les anciens
+// manuscrits alourdis par 30 copies serrées retrouvent un poids raisonnable
+// sans attendre la prochaine modification de chaque chapitre. Renvoie true si
+// quelque chose a été retiré (l'appelant déclenche alors une sauvegarde).
+function thinAllHistory() {
+  if (!db || !db.history || typeof db.history !== 'object') return false;
+  let changed = false;
+  const now = Date.now();
+  for (const k of Object.keys(db.history)) {
+    const before = db.history[k];
+    if (!Array.isArray(before)) continue;
+    const after = thinSnapshots(before, now, MAX_SNAPSHOTS);
+    if (after.length !== before.length) { db.history[k] = after; changed = true; }
+  }
+  return changed;
 }
 // v9.21.0 (audit AUD-01-005) — ce minuteur sauvegardait le manuscrit toutes les
 // 5 minutes MÊME SANS CHANGEMENT (donc une écriture en ligne gaspillée, quota

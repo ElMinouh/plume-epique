@@ -148,6 +148,29 @@ async function deleteGraphicImage(imageId) {
   } catch (e) { /* best effort */ }
 }
 
+// v9.25.0 (audit AUD-01-006) — Ramène le compteur de références d'une image au
+// nombre RÉEL d'éléments qui l'utilisent encore (`uses`, compté par l'appelant
+// dans les pages et la corbeille). À 0 : l'image est supprimée ; sinon elle
+// est CONSERVÉE, quelle que soit la valeur que le compteur avait dérivé.
+// Remplace le simple « décrémenter » à la purge de la corbeille, qui pouvait
+// détruire une image encore affichée après un « annuler » (le compteur ne
+// sait pas ce que l'historique d'annulation a rétabli).
+async function reconcileGraphicImageRef(imageId, uses) {
+  if (!imageId) return;
+  try {
+    const db = await plumeImagesDb();
+    const rec = await db.get('images', imageId);
+    if (!rec) return;
+    if (uses > 0) {
+      if (rec.refCount !== uses) { rec.refCount = uses; await db.put('images', rec); }
+      return;
+    }
+    const cached = _plumeImageUrlCache.get(imageId);
+    if (cached) { URL.revokeObjectURL(cached); _plumeImageUrlCache.delete(imageId); }
+    await db.delete('images', imageId);
+  } catch (e) { /* best effort */ }
+}
+
 // Nettoyage complet à la suppression d'un manuscrit roman graphique (appelé
 // depuis library.js/cleanupDocumentSideData) — évite d'accumuler des images
 // orphelines indéfiniment, même principe que le nettoyage déjà en place pour

@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.24.0';
+const APP_VERSION = '9.25.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1066,6 +1066,8 @@ function initApp(){
   // remis à zéro ici, rechargé (déchiffré) seulement à la prochaine ouverture
   // du panneau, pour ne jamais mélanger deux conversations différentes.
   resetAiChatForDocument();
+  // v9.25.0 (AUD-01-023) — historique espacé : les anciens manuscrits sont allégés à l'ouverture.
+  if (typeof thinAllHistory === 'function' && thinAllHistory()) debouncedSave();
   // v7.10.0 : la vue Chapitres (Liste/Fiches) revient toujours sur Liste à
   // l'ouverture d'un manuscrit — ce n'est pas une préférence mémorisée.
   setChapterViewMode('list');
