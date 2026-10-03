@@ -101,6 +101,12 @@ Les deux doivent être bumpés ensemble à chaque release (contextes différents
   2. APRÈS codage et livraison : donner le **numéro de version attendue** (APP_VERSION +
      CACHE de sw.js, bumpés ensemble) et la **méthode pour vérifier le résultat**
      (tests à lancer, parcours manuel, console/réseau à contrôler).
+  3. APRÈS chaque push (demandé le 2026-10-03) : Claude vérifie lui-même le site en ligne
+     (navigateur intégré, sans se connecter) : version publiée (APP_VERSION/sw.js/titre),
+     versions des libs, erreurs console, réponses des Workers (curl : 401/403 attendus),
+     puis donne à l'utilisateur uniquement la liste des tests qui exigent une session
+     connectée (saisie, synchro, IA, exports) — Claude ne saisit jamais de mot de passe
+     ni ne crée de profil sur le site réel.
   Lots regroupés de façon cohérente techniquement et économes en tokens (plan issu de
   l'audit AUD-01, fichiers dans `Claude outputs/Audit-01/`).
 - **Les conversations se font UNIQUEMENT en français** dans ce projet, quelle que soit la session.
