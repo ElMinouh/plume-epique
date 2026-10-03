@@ -40,12 +40,21 @@ const SECURITY_QUESTIONS = [
 // nombre de minutes.
 // ═══════════════════════════════════════════════════════════════════════
 const SESSION_STORAGE_KEY = 'plume_auto_session';
-const DEFAULT_SESSION_MINUTES = 1440; // 24h
-function persistLocalSession(profil, dek, pwd) {
+// v9.24.0 (audit AUD-01-009) — le MOT DE PASSE n'est plus jamais stocké : il
+// ne servait qu'à comparer l'ancien mot de passe lors d'un changement (voir
+// saveMyPassword), la clé de données (dek) suffit à rouvrir la session. Les
+// sessions déjà enregistrées par une version antérieure sont purgées de leur
+// mot de passe dès la première lecture (readLocalSession). Durée par défaut
+// ramenée de 24 h à 12 h pour les profils sans réglage explicite.
+const DEFAULT_SESSION_MINUTES = 720; // 12h
+// v9.24.0 — longueur minimale des NOUVEAUX mots de passe (les anciens, plus
+// courts, continuent de fonctionner jusqu'à leur prochain changement).
+const MIN_PASSWORD_LENGTH = 12;
+function persistLocalSession(profil, dek) {
   const minutes = (profil.sessionMinutes === undefined || profil.sessionMinutes === null) ? DEFAULT_SESSION_MINUTES : profil.sessionMinutes;
   if (minutes === 0) { localStorage.removeItem(SESSION_STORAGE_KEY); return; }
   const expiresAt = minutes === -1 ? null : Date.now() + minutes * 60000;
-  localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ profileId: profil.id, dek, pwd, expiresAt }));
+  localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ profileId: profil.id, dek, expiresAt }));
 }
 function clearLocalSession() { localStorage.removeItem(SESSION_STORAGE_KEY); }
 function readLocalSession() {
@@ -54,6 +63,8 @@ function readLocalSession() {
     if (!raw) return null;
     const s = JSON.parse(raw);
     if (s.expiresAt !== null && s.expiresAt < Date.now()) { localStorage.removeItem(SESSION_STORAGE_KEY); return null; }
+    // Purge du mot de passe laissé en clair par les versions antérieures.
+    if ('pwd' in s) { delete s.pwd; localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(s)); }
     return s;
   } catch(e) { return null; }
 }
@@ -190,7 +201,7 @@ async function bootProfiles() {
     const session = readLocalSession();
     if (session) {
       const profil = idx.profiles.find(p => p.id === session.profileId);
-      if (profil) { await openProfile(profil, session.dek, session.pwd); return; }
+      if (profil) { await openProfile(profil, session.dek); return; }
       clearLocalSession();
     }
     renderLoginScreen(idx);
@@ -294,7 +305,7 @@ async function doLogin() {
   if (!profil) { errEl.textContent = 'Profil introuvable.'; return; }
   const dek = await Crypto.decrypt(profil.wrapPwd, pwd);
   if (!dek) { errEl.textContent = 'Mot de passe incorrect.'; return; }
-  await openProfile(profil, dek, pwd);
+  await openProfile(profil, dek);
 }
 
 // ── ÉCRAN 4 : Création d'un profil ──────────────────────────────────────
@@ -307,7 +318,7 @@ function renderCreateProfile(opts) {
     <label class="gate-label">Nom du profil</label>
     <input id="cp-name" type="text" class="gate-field" value="${DOMPurify.sanitize(defaultName)}" placeholder="Votre nom">
     <label class="gate-label">Mot de passe</label>
-    <input id="cp-pwd" type="password" class="gate-field" placeholder="Mot de passe" autocomplete="new-password">
+    <input id="cp-pwd" type="password" class="gate-field" placeholder="Mot de passe (12 caractères minimum)" autocomplete="new-password">
     <label class="gate-label">Confirmer le mot de passe</label>
     <input id="cp-pwd2" type="password" class="gate-field" placeholder="Répétez le mot de passe" autocomplete="new-password">
     <div class="gate-section">
@@ -342,7 +353,7 @@ async function submitCreateProfile(opts) {
 
   if (!name) { errEl.textContent = 'Entrez un nom de profil.'; return; }
   if (nameExists(idx, name)) { errEl.textContent = 'Ce nom de profil existe déjà.'; return; }
-  if (pwd.length < 8) { errEl.textContent = 'Mot de passe trop court (8 caractères minimum).'; return; }
+  if (pwd.length < MIN_PASSWORD_LENGTH) { errEl.textContent = 'Mot de passe trop court (' + MIN_PASSWORD_LENGTH + ' caractères minimum).'; return; }
   if (pwd !== pwd2) { errEl.textContent = 'Les deux mots de passe ne correspondent pas.'; return; }
   if (!answer.trim()) { errEl.textContent = 'Entrez une réponse à la question de sécurité.'; return; }
 
@@ -375,7 +386,7 @@ async function submitCreateProfile(opts) {
   //  • création par l'admin pour autrui → retour au panneau admin
   showRecoveryCode(code, name, async () => {
     if (opts.byAdmin) { hideGate(); openManageProfiles(); toast('Profil créé', 'success'); }
-    else { await openProfile(profil, dek, pwd); }
+    else { await openProfile(profil, dek); }
   });
 }
 
@@ -433,7 +444,7 @@ function renderRecovery(profileId) {
       </div>
       <div class="gate-section">
         <label class="gate-label">Nouveau mot de passe</label>
-        <input id="rec-pwd" type="password" class="gate-field" placeholder="Nouveau mot de passe" autocomplete="new-password">
+        <input id="rec-pwd" type="password" class="gate-field" placeholder="Nouveau mot de passe (12 caractères minimum)" autocomplete="new-password">
         <label class="gate-label">Confirmer</label>
         <input id="rec-pwd2" type="password" class="gate-field" placeholder="Répétez" autocomplete="new-password">
       </div>
@@ -458,7 +469,7 @@ async function submitRecovery(profileId) {
   const errEl = document.getElementById('rec-err');
   errEl.textContent = '';
 
-  if (pwd.length < 8) { errEl.textContent = 'Nouveau mot de passe trop court (8 caractères minimum).'; return; }
+  if (pwd.length < MIN_PASSWORD_LENGTH) { errEl.textContent = 'Nouveau mot de passe trop court (' + MIN_PASSWORD_LENGTH + ' caractères minimum).'; return; }
   if (pwd !== pwd2) { errEl.textContent = 'Les deux mots de passe ne correspondent pas.'; return; }
 
   let dek = null;
@@ -478,16 +489,15 @@ async function submitRecovery(profileId) {
     if (freshProfil) freshProfil.wrapPwd = newWrapPwd;
   });
   toast('Mot de passe réinitialisé', 'success');
-  await openProfile(profil, dek, pwd);
+  await openProfile(profil, dek);
 }
 
 // ── Ouverture effective d'un profil : mène à SA bibliothèque de manuscrits ─
-async function openProfile(profil, dek, pwd) {
+async function openProfile(profil, dek) {
   _currentProfileId = profil.id;
   _currentProfile = profil;
   _dataKey = dek;
-  _encPassword = pwd;
-  persistLocalSession(profil, dek, pwd);
+  persistLocalSession(profil, dek);
   hideGate();
   syncPushEntireLibrary(); // arrière-plan, non bloquant — voir library.js
   await enterLibrary();
@@ -639,7 +649,7 @@ async function saveMySessionDuration() {
   _currentProfile.sessionMinutes = minutes;
   // Répercute tout de suite sur la session déjà active de cet appareil,
   // sans attendre une prochaine connexion.
-  persistLocalSession(_currentProfile, _dataKey, _encPassword);
+  persistLocalSession(_currentProfile, _dataKey);
   toast('Durée de session mise à jour', 'success');
 }
 
@@ -661,15 +671,21 @@ async function saveMyPassword() {
   const oldPwd = document.getElementById('mp-old-pwd').value;
   const newPwd = document.getElementById('mp-new-pwd').value;
   const newPwd2 = document.getElementById('mp-new-pwd2').value;
-  if (oldPwd !== _encPassword) { toast('Mot de passe actuel incorrect.', 'error'); return; }
-  if (newPwd.length < 8) { toast('Nouveau mot de passe trop court (8 min).', 'error'); return; }
+  // v9.24.0 — vérification de l'ancien mot de passe sans le garder en mémoire :
+  // on tente d'ouvrir l'enveloppe À JOUR du profil (relue dans l'index, car
+  // _currentProfile peut dater d'avant une récupération de mot de passe).
+  const freshIdx = await loadProfilesIndex();
+  const freshProfil = freshIdx && freshIdx.profiles.find(p => p.id === _currentProfileId);
+  const oldOk = freshProfil && await Crypto.decrypt(freshProfil.wrapPwd, oldPwd);
+  if (!oldOk) { toast('Mot de passe actuel incorrect.', 'error'); return; }
+  if (newPwd.length < MIN_PASSWORD_LENGTH) { toast('Nouveau mot de passe trop court (' + MIN_PASSWORD_LENGTH + ' caractères minimum).', 'error'); return; }
   if (newPwd !== newPwd2) { toast('Les deux mots de passe ne correspondent pas.', 'error'); return; }
   const newWrapPwd = await Crypto.encrypt(_dataKey, newPwd);
   await mutateProfilesIndex(idx => {
     const profil = idx.profiles.find(p => p.id === _currentProfileId);
     if (profil) profil.wrapPwd = newWrapPwd;
   });
-  _encPassword = newPwd;
+  _currentProfile.wrapPwd = newWrapPwd;
   document.getElementById('mp-old-pwd').value = '';
   document.getElementById('mp-new-pwd').value = '';
   document.getElementById('mp-new-pwd2').value = '';
@@ -702,7 +718,7 @@ function renderMigration(legacy) {
       ? `<label class="gate-label">Votre mot de passe actuel</label>
          <input id="mig-oldpwd" type="password" class="gate-field" placeholder="Mot de passe actuel" autocomplete="current-password">`
       : `<label class="gate-label">Choisissez un mot de passe</label>
-         <input id="mig-newpwd" type="password" class="gate-field" placeholder="Mot de passe" autocomplete="new-password">
+         <input id="mig-newpwd" type="password" class="gate-field" placeholder="Mot de passe (12 caractères minimum)" autocomplete="new-password">
          <label class="gate-label">Confirmer</label>
          <input id="mig-newpwd2" type="password" class="gate-field" placeholder="Répétez" autocomplete="new-password">`}
     <div class="gate-section">
@@ -736,7 +752,7 @@ async function submitMigration(legacy, encrypted) {
   } else {
     pwd = document.getElementById('mig-newpwd').value;
     const pwd2 = document.getElementById('mig-newpwd2').value;
-    if (pwd.length < 8) { errEl.textContent = 'Mot de passe trop court (8 min).'; return; }
+    if (pwd.length < MIN_PASSWORD_LENGTH) { errEl.textContent = 'Mot de passe trop court (' + MIN_PASSWORD_LENGTH + ' caractères minimum).'; return; }
     if (pwd !== pwd2) { errEl.textContent = 'Les deux mots de passe ne correspondent pas.'; return; }
     dbData = migrateDb(legacy);
   }
@@ -765,5 +781,5 @@ async function submitMigration(legacy, encrypted) {
     wordCount: (dbData.chapters||[]).reduce((s,c) => s + getWordCount(c.content), 0)
   }] });
 
-  showRecoveryCode(code, name, async () => { await openProfile(profil, dek, pwd); });
+  showRecoveryCode(code, name, async () => { await openProfile(profil, dek); });
 }

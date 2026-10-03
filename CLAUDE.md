@@ -34,7 +34,7 @@ export-format-utils.js, database.js, memory.js
 ### État global central (js/router.js)
 
 `router.js` (~96 Ko) est le cœur de l'app :
-- `let db = DEFAULT_DB(), cur = 0, _cloudToken, _encPassword, _dataKey, _currentDocumentId, _currentProfileId` — état mutable partagé, lu/modifié directement par tous les autres modules (pas de bus d'événements, pas de store).
+- `let db = DEFAULT_DB(), cur = 0, _cloudToken, _dataKey, _currentDocumentId, _currentProfileId` — état mutable partagé, lu/modifié directement par tous les autres modules (pas de bus d'événements, pas de store).
 - `db` = données complètes du manuscrit courant (chapitres, personnages...). `cur` = index du chapitre courant.
 - IndexedDB (ouverture/migration `plume_v55` → `plume_epique`), persistance chiffrée (`persistData`/`loadData`), moteur de sync (`syncPush`/`syncPull`, gestion de conflits versionnés), `APP_VERSION`, `initApp()` (bootstrap).
 

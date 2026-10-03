@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.23.0';
+const APP_VERSION = '9.24.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -984,7 +984,7 @@ async function loadData(key) {
 // ═══════════════════════════════════════════════════════
 // ÉTAT GLOBAL
 // ═══════════════════════════════════════════════════════
-let db = DEFAULT_DB(), _cloudToken = '', _encPassword = '';
+let db = DEFAULT_DB(), _cloudToken = '';
 let cur = 0, tensionChart, sessionChart, dialogChart;
 let sprintInterval = null, sprintWordsStart = 0;
 let sessionWordsStart = 0, sessionStartTime = Date.now();

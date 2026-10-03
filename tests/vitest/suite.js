@@ -81,8 +81,8 @@
   group('profiles.js — création de profil (enveloppement de clé DEK)');
   renderCreateProfile({ firstAdmin: true });
   document.getElementById('cp-name').value = 'TestUser';
-  document.getElementById('cp-pwd').value = 'motdepasse1';
-  document.getElementById('cp-pwd2').value = 'motdepasse1';
+  document.getElementById('cp-pwd').value = 'motdepasse-un1';
+  document.getElementById('cp-pwd2').value = 'motdepasse-un1';
   document.getElementById('cp-question').value = SECURITY_QUESTIONS[0];
   document.getElementById('cp-answer').value = 'Fido';
   await submitCreateProfile({ firstAdmin: true });
@@ -91,7 +91,7 @@
   const p1 = idx.profiles[0];
   assert(p1.name === 'TestUser' && p1.role === 'admin', 'nom et rôle admin corrects');
   assert(!!p1.wrapPwd && !!p1.wrapAnswer && !!p1.wrapCode, 'les 3 enveloppes de clé sont générées');
-  const dekViaPwd = await Crypto.decrypt(p1.wrapPwd, 'motdepasse1');
+  const dekViaPwd = await Crypto.decrypt(p1.wrapPwd, 'motdepasse-un1');
   const dekViaAnswer = await Crypto.decrypt(p1.wrapAnswer, Crypto.normalize('Fido'));
   assert(dekViaPwd !== null, 'le mot de passe ouvre la DEK');
   assert(dekViaAnswer !== null, 'la réponse à la question ouvre aussi la DEK');
@@ -106,9 +106,52 @@
   document.getElementById('login-pwd').value = 'mauvais-mdp';
   await doLogin();
   assert(document.getElementById('login-err').textContent === 'Mot de passe incorrect.', 'mauvais mot de passe rejeté proprement');
-  document.getElementById('login-pwd').value = 'motdepasse1';
+  document.getElementById('login-pwd').value = 'motdepasse-un1';
   await doLogin();
   assert(_currentProfileId === p1.id, 'connexion réussie : profil courant mis à jour');
+
+  group('profiles.js — session sans mot de passe et mots de passe de 12 caractères (v9.24.0)');
+  {
+    // 1. La session « rester connecté » ne contient plus le mot de passe
+    const sess = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY));
+    assert(sess && sess.profileId === p1.id && !!sess.dek, 'la session mémorise le profil et la clé de données');
+    assert(!('pwd' in sess), 'le mot de passe n\'est plus stocké dans la session');
+    const dureeMs = sess.expiresAt - Date.now();
+    assert(dureeMs > 11.9 * 3600000 && dureeMs <= 12 * 3600000, 'durée par défaut de la session : 12 heures');
+    // 2. Une session héritée d'une ancienne version est purgée de son mot de passe à la lecture
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ profileId: p1.id, dek: 'dek', pwd: 'ancien-mot-de-passe', expiresAt: null }));
+    const lue = readLocalSession();
+    assert(lue && !('pwd' in lue), 'lecture d\'une ancienne session : mot de passe retiré');
+    assert(!('pwd' in JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY))), 'et effacé du stockage');
+    persistLocalSession(_currentProfile, _dataKey); // remet une session saine pour la suite
+    // 3. Un mot de passe de 11 caractères est refusé à la création
+    const nbAvant = (await loadProfilesIndex()).profiles.length;
+    renderCreateProfile({ firstAdmin: false });
+    document.getElementById('cp-name').value = 'Court';
+    document.getElementById('cp-pwd').value = 'onzecarac11'; document.getElementById('cp-pwd2').value = 'onzecarac11';
+    document.getElementById('cp-question').value = SECURITY_QUESTIONS[0]; document.getElementById('cp-answer').value = 'x';
+    await submitCreateProfile({ firstAdmin: false });
+    assert(/12 caractères/.test(document.getElementById('cp-err').textContent), 'mot de passe de 11 caractères refusé (message : 12 minimum)');
+    assert((await loadProfilesIndex()).profiles.length === nbAvant, 'aucun profil créé avec un mot de passe trop court');
+    // 4. Changement de mot de passe : l'ancien est vérifié sans être gardé en mémoire
+    for (const id of ['mp-old-pwd', 'mp-new-pwd', 'mp-new-pwd2']) {
+      if (!document.getElementById(id)) { const i = document.createElement('input'); i.id = id; document.body.appendChild(i); }
+    }
+    const setMp = (a, b) => { document.getElementById('mp-old-pwd').value = a; document.getElementById('mp-new-pwd').value = b; document.getElementById('mp-new-pwd2').value = b; };
+    const toastTxt = () => (_lastToast && _lastToast.msg) || '';
+    setMp('mauvais-ancien-mdp', 'nouveau-mdp-solide-1'); await saveMyPassword();
+    assert(/actuel incorrect/.test(toastTxt()), 'changement refusé si l\'ancien mot de passe est faux');
+    setMp('motdepasse-un1', 'court-11-ch'); await saveMyPassword();
+    assert(/trop court/.test(toastTxt()), 'changement refusé si le nouveau mot de passe a moins de 12 caractères');
+    setMp('motdepasse-un1', 'nouveau-mdp-solide-1'); await saveMyPassword();
+    let idx2 = await loadProfilesIndex(); const pp = idx2.profiles.find(x => x.id === p1.id);
+    assert(await Crypto.decrypt(pp.wrapPwd, 'nouveau-mdp-solide-1') !== null, 'le nouveau mot de passe ouvre la clé de données');
+    assert(await Crypto.decrypt(pp.wrapPwd, 'motdepasse-un1') === null, 'l\'ancien mot de passe ne fonctionne plus');
+    // Un second changement immédiat doit se baser sur l'enveloppe À JOUR (pas sur une copie périmée)
+    setMp('nouveau-mdp-solide-1', 'motdepasse-un1'); await saveMyPassword();
+    idx2 = await loadProfilesIndex();
+    assert(await Crypto.decrypt(idx2.profiles.find(x => x.id === p1.id).wrapPwd, 'motdepasse-un1') !== null, 'deuxième changement enchaîné accepté (remise à l\'état initial pour la suite)');
+  }
 
   group('library.js — création et ouverture d\'un manuscrit');
   // createNewDocument() n'ouvre plus qu'une fenêtre de choix du type de
@@ -136,22 +179,22 @@
   renderRecovery(p1.id); // async en interne (.then()) : on laisse le temps au DOM d'apparaître
   await new Promise(r => setTimeout(r, 0));
   document.getElementById('rec-answer').value = 'fido'; // insensible à la casse/accents via Crypto.normalize
-  document.getElementById('rec-pwd').value = 'nouveauMdp1';
-  document.getElementById('rec-pwd2').value = 'nouveauMdp1';
+  document.getElementById('rec-pwd').value = 'nouveauMdp-12ab';
+  document.getElementById('rec-pwd2').value = 'nouveauMdp-12ab';
   await submitRecovery(p1.id);
   idx = await loadProfilesIndex();
   const p1AfterRecovery = idx.profiles.find(p => p.id === p1.id);
-  const dekAfter = await Crypto.decrypt(p1AfterRecovery.wrapPwd, 'nouveauMdp1');
+  const dekAfter = await Crypto.decrypt(p1AfterRecovery.wrapPwd, 'nouveauMdp-12ab');
   assert(dekAfter !== null, 'récupération par question : le nouveau mot de passe fonctionne');
-  const oldStillWorks = await Crypto.decrypt(p1AfterRecovery.wrapPwd, 'motdepasse1');
+  const oldStillWorks = await Crypto.decrypt(p1AfterRecovery.wrapPwd, 'motdepasse-un1');
   assert(oldStillWorks === null, "l'ancien mot de passe est bien invalidé après récupération");
 
   group('profiles.js — protections de suppression de profil');
   // Second profil "jetable", créé par l'admin, pour tester une suppression réussie.
   renderCreateProfile({ firstAdmin: false, byAdmin: true });
   document.getElementById('cp-name').value = 'Marie';
-  document.getElementById('cp-pwd').value = 'motdepasse2';
-  document.getElementById('cp-pwd2').value = 'motdepasse2';
+  document.getElementById('cp-pwd').value = 'motdepasse-deux2';
+  document.getElementById('cp-pwd2').value = 'motdepasse-deux2';
   document.getElementById('cp-question').value = SECURITY_QUESTIONS[1];
   document.getElementById('cp-answer').value = 'Paris';
   await submitCreateProfile({ firstAdmin: false, byAdmin: true });
