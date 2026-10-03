@@ -97,9 +97,9 @@ describe('Écritures en ligne : rien n\'a changé → rien n\'est envoyé (AUD-0
       await a.persistData(LIST_KEY, { version: 1, documents: [{ id: 'm1', title: 'T', lastModified: 1000 + i, wordCount: i }] });
       await settle();
     }
-    expect(server.calls.PUT).toBe(1);
+    expect(server.calls.PUT).toBe(0);
     a.flushPendingSyncPushes(); await settle();
-    expect(server.calls.PUT).toBe(2);
+    expect(server.calls.PUT).toBe(1);
     const stored = JSON.parse(server.kv.get(LIST_KEY).value);
     expect(stored.documents[0].wordCount).toBe(29); // la dernière valeur n'est pas perdue
   });

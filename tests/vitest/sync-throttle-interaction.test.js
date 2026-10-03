@@ -206,12 +206,6 @@ describe('Le plafonnement du débit (v9.3.1) ne réintroduit pas les conflits co
     await laisseFilerLeDelai(b);
     expect(b.isConflictPaused(DOC_KEY)).toBe(true);
 
-    // Simule un temps de réflexion réaliste (le conflit reste souvent en
-    // attente plusieurs minutes, le temps que l'utilisateur remarque
-    // l'alerte) : on recule artificiellement l'horloge interne, plutôt que
-    // d'attendre pour de vrai dans ce test.
-    vm.runInContext(`_lastPushAt[${JSON.stringify(DOC_KEY)}] = Date.now() - 5 * 60 * 1000;`, b);
-
     // B continue d'écrire PENDANT la pause (plusieurs tentatives bloquées).
     // AVANT le correctif v9.3.2, chacune de ces tentatives aurait remis
     // _lastPushAt à "maintenant" malgré tout, effaçant le recul ci-dessus.
@@ -232,6 +226,7 @@ describe('Le plafonnement du débit (v9.3.1) ne réintroduit pas les conflits co
     // artificiel hérité des tentatives bloquées pendant la pause.
     const versionServeurAvant = server.kv.get(DOC_KEY).metadata.v;
     await tape(b, 'B tape juste apres avoir resolu');
+    await laisseFilerLeDelai(b); // v9.22.0 : l'envoi part après une pause ou au flush, plus « tout de suite »
     expect(server.kv.get(DOC_KEY).metadata.v).toBeGreaterThan(versionServeurAvant);
     expect(await lireServeur(b, server)).toBe('B tape juste apres avoir resolu');
   });

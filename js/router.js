@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.21.0';
+const APP_VERSION = '9.22.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -765,146 +765,108 @@ window.addEventListener('online', () => {
 
 
 // ═══════════════════════════════════════════════════════
-// PLAFONNEMENT ADAPTATIF DU DÉBIT D'ENVOI (v9.3.1 → v9.3.3)
+// ENVOI EN LIGNE « APRÈS UNE PAUSE » (v9.22.0 — remplace le plafonnement
+// adaptatif des v9.3.1 → v9.3.3)
 //
-// v9.3.1 : problème rapporté le 31/07/2026 — chaque frappe déclenche, 600ms
-// après la pause de frappe, un persistData() → un envoi réseau réel (une
-// écriture KV Cloudflare) à CHAQUE pause. De quoi épuiser le quota gratuit
-// (1000 écritures/24h) en un peu plus d'une heure, comme mesuré au tableau
-// de bord Cloudflare.
+// Contexte : le quota gratuit de Cloudflare KV est de 1 000 écritures par
+// jour pour TOUT le compte. Mesure du 02/10/2026 (tableau de bord Cloudflare,
+// un seul utilisateur) : environ 1 000 écritures en une journée, jusqu'à ~400
+// en une heure. Même après l'espacement adaptatif (20 s → 45 s → 90 s) et le
+// lot 9.21.0, une heure d'écriture continue coûtait ~120 écritures.
 //
-// v9.3.3 : le logiciel pouvant servir à plusieurs personnes en même temps,
-// un plafond fixe ne suffit plus (5 sessions actives en continu peuvent, à
-// elles seules, approcher le quota en une heure). Deux mécanismes
-// supplémentaires, cumulables :
+// Règle actuelle : la sauvegarde LOCALE (IndexedDB, 600 ms après la dernière
+// frappe) ne change pas. L'ENVOI EN LIGNE, lui, n'a lieu que :
+//   • après SYNC_PUSH_IDLE_MS sans nouvelle sauvegarde (une vraie pause) ;
+//   • au plus tard SYNC_PUSH_MAX_WAIT_MS après la première modification non
+//     envoyée, même si l'écriture continue sans pause ;
+//   • tout de suite quand il ne faut rien laisser en suspens : changement de
+//     manuscrit, retour à la bibliothèque, Ctrl+S, onglet masqué, fermeture
+//     (voir flushPendingSyncPushes et onPageLeaving).
+// L'index de la bibliothèque, simple fiche d'affichage, est encore plus
+// espacé. Un envoi dû est marqué dans la file de reprise (localStorage) dès
+// la modification : si l'onglet se ferme avant qu'il ait pu partir, il part
+// au prochain démarrage (retryPendingSyncs) — rien n'est jamais oublié.
 //
-//  • ESPACEMENT ADAPTATIF PAR CLÉ — l'intervalle s'allonge tant qu'un même
-//    manuscrit reste écrit sans interruption : 20s au début d'une session
-//    d'écriture, 45s après 3 minutes continues, 90s après 10 minutes. Il
-//    revient à 20s dès qu'une vraie pause (90s sans la moindre frappe) a eu
-//    lieu. Une session d'écriture courante et normale n'est donc jamais
-//    ralentie ; seules les sessions très longues et ininterrompues le sont
-//    davantage, précisément celles qui pesaient le plus sur le quota.
-//
-//  • REPLI GLOBAL PARTAGÉ — le quota KV est unique pour TOUT le compte,
-//    partagé entre tous les utilisateurs : impossible de le mesurer
-//    précisément depuis le navigateur sans consommer des requêtes
-//    supplémentaires rien que pour le vérifier (contre-productif). En
-//    revanche, si le Worker signale une vraie panne d'écriture (quota
-//    épuisé ou autre — voir le 503 explicite ajouté dans sync-worker.js),
-//    CE signal est par nature commun à tout le monde : le quota étant
-//    partagé, n'importe quel appareil qui écrit à ce moment-là recevra
-//    exactement la même réponse. Chaque appareil qui la reçoit ralentit
-//    alors ELLE-MÊME ses envois pour tous ses manuscrits pendant
-//    SYNC_GLOBAL_BACKOFF_MS, sans throttle prédictif : c'est la réaction
-//    coordonnée d'un signal déjà partagé, pas une invention de coordination.
-//
-// La sauvegarde LOCALE (IndexedDB, à 600ms) n'est touchée par rien de tout
-// ceci — toujours aussi rapide, rien n'est jamais perdu. Seule la fréquence
-// des envois RÉSEAU change. Les moments qui comptent (perte de focus,
-// fermeture de l'onglet, changement de manuscrit, Ctrl+S) continuent de
-// forcer un envoi immédiat via flushPendingSyncPushes(), qui ignore
-// volontairement ces délais : ce sont des actions explicites et rares,
-// jamais la source du problème.
-const SYNC_PUSH_BASE_INTERVAL_MS = 20000;         // 20s — début de session d'écriture
-const SYNC_PUSH_TIER2_AFTER_MS = 3 * 60 * 1000;   // au-delà de 3 min d'écriture continue…
-const SYNC_PUSH_TIER2_INTERVAL_MS = 45000;        // …45s d'espacement
-const SYNC_PUSH_TIER3_AFTER_MS = 10 * 60 * 1000;  // au-delà de 10 min d'écriture continue…
-const SYNC_PUSH_TIER3_INTERVAL_MS = 90000;        // …90s d'espacement
-const SYNC_PUSH_STREAK_RESET_MS = 90000;          // 90s sans la moindre frappe = vraie pause : retour à 20s
-const SYNC_PUSH_INDEX_INTERVAL_MS = 120000;       // 2 min — index de la bibliothèque (v9.21.0)
-const SYNC_GLOBAL_BACKOFF_MS = 15 * 60 * 1000;    // 15 min de répit après une panne d'écriture confirmée par le serveur
+// REPLI GLOBAL PARTAGÉ (v9.3.3, conservé) — si le Worker signale une vraie
+// panne d'écriture (503 : quota épuisé), tous les envois de cet appareil
+// attendent SYNC_GLOBAL_BACKOFF_MS.
+// ═══════════════════════════════════════════════════════
+const SYNC_PUSH_IDLE_MS = 60000;                // manuscrit : envoi après 1 min sans modification
+const SYNC_PUSH_MAX_WAIT_MS = 5 * 60 * 1000;    // …et au plus 5 min d'attente en écriture continue
+const SYNC_INDEX_IDLE_MS = 120000;              // index de bibliothèque : 2 min de calme
+const SYNC_INDEX_MAX_WAIT_MS = 10 * 60 * 1000;  // …et au plus 10 min
+const SYNC_GLOBAL_BACKOFF_MS = 15 * 60 * 1000;  // 15 min de répit après une panne d'écriture confirmée par le serveur
 
 let _lastPushAt = {};          // clé → date du dernier envoi réseau réellement déclenché
 let _pushDebounceTimers = {};  // clé → minuteur en attente (au plus un par clé)
-let _streakStartedAt = {};     // clé → début de la rafale d'écriture continue en cours
-let _lastPushAttemptAt = {};   // clé → date du dernier appel (déclenché ou différé), pour détecter une vraie pause
+let _pendingSince = {};        // clé → date de la 1re modification non encore envoyée
+let _pendingPayload = {};      // clé → dernier contenu à envoyer (utile à la fermeture, sans relire IndexedDB)
 
 function getGlobalBackoffUntil() { return Number(localStorage.getItem('plume_sync_global_backoff_until') || 0); }
 function setGlobalBackoffUntil(ts) { localStorage.setItem('plume_sync_global_backoff_until', String(ts)); }
 
-function currentAdaptiveInterval(key, now) {
-  if (!_streakStartedAt[key] || (now - (_lastPushAttemptAt[key] || 0)) >= SYNC_PUSH_STREAK_RESET_MS) {
-    _streakStartedAt[key] = now; // nouvelle rafale d'écriture (première fois, ou après une vraie pause)
-  }
-  _lastPushAttemptAt[key] = now;
-  const streakDuration = now - _streakStartedAt[key];
-  if (streakDuration >= SYNC_PUSH_TIER3_AFTER_MS) return SYNC_PUSH_TIER3_INTERVAL_MS;
-  if (streakDuration >= SYNC_PUSH_TIER2_AFTER_MS) return SYNC_PUSH_TIER2_INTERVAL_MS;
-  return SYNC_PUSH_BASE_INTERVAL_MS;
+// Délai avant l'envoi : "pause" ou "attente maximale", le plus court des deux,
+// repoussé si le repli global est actif. Fonction pure (testée directement).
+function computePushDelay(isIndex, pendingSince, now, backoffUntil) {
+  const idle = isIndex ? SYNC_INDEX_IDLE_MS : SYNC_PUSH_IDLE_MS;
+  const maxWait = isIndex ? SYNC_INDEX_MAX_WAIT_MS : SYNC_PUSH_MAX_WAIT_MS;
+  let delay = Math.min(idle, Math.max(0, maxWait - (now - pendingSince)));
+  if (backoffUntil > now) delay = Math.max(delay, backoffUntil - now);
+  return delay;
 }
 
 function scheduleSyncPush(key, payload) {
-  // v9.3.1 — Seules les clés de manuscrit ('doc_<profil>_<id>') reçoivent un
-  // envoi à chaque frappe (autosave 600ms), donc la source principale de
-  // l'explosion d'écritures. v9.21.0 (audit AUD-01-005) — l'index de la
-  // bibliothèque ('doclist_<profil>') était exclu au motif qu'il « change
-  // rarement » : FAUX, save() le réécrit à chaque sauvegarde (date, nombre de
-  // mots). Il est désormais espacé lui aussi, plus largement (c'est une simple
-  // fiche d'affichage) ; flushPendingSyncPushes() l'envoie quand même tout de
-  // suite au changement de manuscrit, à la perte de focus et à Ctrl+S.
+  // Seules les clés de manuscrit ('doc_<profil>_<id>') et l'index de la
+  // bibliothèque ('doclist_<profil>') sont réécrites à chaque sauvegarde. Les
+  // autres (profils, réglages, historique du chat) changent par action
+  // explicite et restent envoyées tout de suite.
   const isDoc = key.startsWith('doc_');
   const isIndex = key.startsWith('doclist_');
   if (!isDoc && !isIndex) { queueSyncPush(key, payload); return; }
-  // v9.3.2 — Une clé en pause de conflit (voir isConflictPaused) ne doit
-  // JAMAIS faire progresser le compteur d'espacement : sinon, écrire pendant
-  // qu'un conflit attend l'arbitrage de l'utilisateur retarderait ensuite,
-  // sans raison, l'envoi de la RÉSOLUTION une fois le choix fait — puisque
-  // syncPush() bloque de toute façon ces tentatives (rien n'est perdu), il
-  // n'y a ici rien de réel à espacer.
+  // Une clé en pause de conflit ne doit JAMAIS faire progresser un compteur :
+  // syncPush() bloque de toute façon ces tentatives (rien n'est perdu).
   if (isConflictPaused(key)) { queueSyncPush(key, payload); return; }
 
   const now = Date.now();
   if (_pushDebounceTimers[key]) { clearTimeout(_pushDebounceTimers[key]); delete _pushDebounceTimers[key]; }
 
-  // v9.21.0 — Contenu identique à ce que le serveur détient déjà (empreinte
-  // jointe à l'enveloppe, voir makeEncryptedEnvelope) : rien à envoyer. Le
-  // minuteur éventuel a été annulé ci-dessus, pour qu'un ancien contenu en
-  // attente ne parte pas après un retour au contenu déjà synchronisé.
-  if (isDoc && payload && payload._fp && payload._fp === getKnownRemoteFp(key) && !getPendingSyncKeys().includes(key)) return;
-
-  // v9.3.3 — Repli global : une panne d'écriture vient d'être confirmée par
-  // le serveur (voir le traitement du 503 dans syncPush) — on n'aggrave pas
-  // la situation en insistant, on attend la fin du répit commun.
-  const backoffUntil = getGlobalBackoffUntil();
-  if (backoffUntil > now) {
-    _pushDebounceTimers[key] = setTimeout(() => {
-      delete _pushDebounceTimers[key];
-      if (!isConflictPaused(key)) _lastPushAt[key] = Date.now();
-      queueSyncPush(key, payload);
-    }, backoffUntil - now);
+  // Contenu identique à ce que le serveur détient déjà (empreinte jointe à
+  // l'enveloppe) : rien à envoyer, et plus rien de « dû » pour cette clé.
+  if (isDoc && payload && payload._fp && payload._fp === getKnownRemoteFp(key)) {
+    delete _pendingSince[key]; delete _pendingPayload[key];
+    removePendingSyncKey(key);
     return;
   }
 
-  const interval = isIndex ? SYNC_PUSH_INDEX_INTERVAL_MS : currentAdaptiveInterval(key, now);
-  const elapsed = now - (_lastPushAt[key] || 0);
-  if (elapsed >= interval) {
-    _lastPushAt[key] = now;
-    queueSyncPush(key, payload);
-  } else {
-    _pushDebounceTimers[key] = setTimeout(() => {
-      delete _pushDebounceTimers[key];
-      // Une pause a pu démarrer PENDANT l'attente : dans ce cas, ne pas
-      // marquer d'envoi réel non plus (même raisonnement que ci-dessus).
-      if (!isConflictPaused(key)) _lastPushAt[key] = Date.now();
-      queueSyncPush(key, payload);
-    }, interval - elapsed);
-  }
+  // Envoi dû : mémorisé durablement pour qu'une fermeture brutale ne l'oublie pas.
+  addPendingSyncKey(key);
+  if (!_pendingSince[key]) _pendingSince[key] = now;
+  _pendingPayload[key] = payload;
+
+  const delay = computePushDelay(isIndex, _pendingSince[key], now, getGlobalBackoffUntil());
+  _pushDebounceTimers[key] = setTimeout(() => {
+    delete _pushDebounceTimers[key];
+    const latest = _pendingPayload[key];
+    delete _pendingSince[key]; delete _pendingPayload[key];
+    _lastPushAt[key] = Date.now();
+    queueSyncPush(key, latest !== undefined ? latest : payload);
+  }, delay);
 }
-// Envoie immédiatement tout ce qui est en attente d'espacement — appelé aux
-// moments où il ne faut RIEN laisser en suspens : perte de focus, fermeture
-// de l'onglet, changement de manuscrit (voir les 3 points d'appel plus bas).
-// Bypass volontaire de tout espacement (adaptatif ou repli global) : ce sont
-// des actions explicites et rares, jamais la source du problème de quota.
-function flushPendingSyncPushes() {
+
+// Envoie immédiatement tout ce qui est en attente — appelé aux moments où il
+// ne faut RIEN laisser en suspens : changement de manuscrit, retour à la
+// bibliothèque, Ctrl+S (copie locale relue : à jour même si une restauration
+// a eu lieu entre-temps) et, avec `urgent`, onglet masqué ou fermeture : le
+// contenu gardé en mémoire part sans relire IndexedDB, car la page peut
+// disparaître d'une seconde à l'autre.
+function flushPendingSyncPushes(urgent) {
   for (const key of Object.keys(_pushDebounceTimers)) {
     clearTimeout(_pushDebounceTimers[key]);
     delete _pushDebounceTimers[key];
     _lastPushAt[key] = Date.now();
-    // On relit la copie locale plutôt que de garder le payload capturé à la
-    // planification : persistData() a de toute façon déjà écrit en local
-    // avant de programmer ce minuteur, donc cette lecture est à jour et
-    // évite tout risque de repousser un contenu périmé.
+    const mem = _pendingPayload[key];
+    delete _pendingSince[key]; delete _pendingPayload[key];
+    if (urgent && mem !== undefined && mem !== null) { queueSyncPush(key, mem); continue; }
     readLocalOnly(key).then(payload => { if (payload !== null && payload !== undefined) queueSyncPush(key, payload); });
   }
 }
@@ -1420,7 +1382,7 @@ function wireAppEventListenersOnce(){
     // v9.3.1 — Idem visibilitychange : ne rien laisser en suspens à la
     // fermeture (best-effort, sans attendre — le navigateur ne garantit
     // pas qu'une requête réseau ait le temps de se terminer ici).
-    flushPendingSyncPushes();
+    flushPendingSyncPushes(true);
     if (_unsavedChanges) { e.preventDefault(); e.returnValue = ''; }
   });
 
@@ -1556,14 +1518,32 @@ function initToolbarDropdowns(){
 // la fermeture réelle de l'onglet. Ici, la page reste vivante assez
 // longtemps après avoir perdu le focus pour que l'envoi se termine.
 // ═══════════════════════════════════════════════════════
+// v9.22.0 — Fermeture, masquage ou changement d'application : (1) la dernière
+// frappe est enregistrée localement tout de suite (la sauvegarde différée de
+// 600 ms pouvait ne jamais avoir lieu), (2) ce qui est dû en ligne part
+// immédiatement depuis la mémoire. Si l'envoi ne peut pas aboutir (page tuée,
+// gros manuscrit > 64 Ko qui n'accepte pas keepalive), la file de reprise le
+// renverra au prochain démarrage.
+let _leaving = false;
+async function onPageLeaving() {
+  if (_leaving) return;
+  _leaving = true;
+  try {
+    if (typeof _currentDocumentId !== 'undefined' && _currentDocumentId && !document.body.classList.contains('library-mode')) {
+      if (document.body.classList.contains('graphicnovel-mode') && typeof saveGraphicNovel === 'function') await saveGraphicNovel(true);
+      else if (_unsavedChanges && typeof flushCurrentChapter === 'function') { flushCurrentChapter(); await save(); }
+    }
+  } catch (e) { /* le masquage ne doit jamais lever d'erreur */ }
+  flushPendingSyncPushes(true);
+  _leaving = false;
+}
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
-    // v9.3.1 — Rien ne doit rester en suspens plus longtemps que nécessaire
-    // quand l'onglet passe en arrière-plan (voir SYNC_PUSH_MIN_INTERVAL_MS).
-    flushPendingSyncPushes();
+    onPageLeaving();
     if (typeof syncAllLibraryManuscripts === 'function') syncAllLibraryManuscripts('focus-loss');
   }
 });
+window.addEventListener('pagehide', () => { onPageLeaving(); });
 
 // ═══════════════════════════════════════════════════════
 // BOOTSTRAP — v7.0.0 : passe par le système de profils (voir profiles.js)
