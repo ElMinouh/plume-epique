@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.26.1';
+const APP_VERSION = '9.27.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1291,6 +1291,9 @@ function wireAppEventListenersOnce(){
   initTTS(); initDictation();
 
   document.getElementById('writer').addEventListener('input',liveCounter);
+  // v9.27.0 (AUD-01-027) — collage nettoyé dans l'éditeur et dans le mode Focus.
+  document.getElementById('writer').addEventListener('paste', handleManuscriptPaste);
+  document.getElementById('focus-writer').addEventListener('paste', handleManuscriptPaste);
   document.getElementById('chapter-title').addEventListener('blur',e=>updateTitle(e.target.innerText.trim()));
   document.getElementById('tension-slider').addEventListener('input',e=>updateTension(e.target.value));
   document.getElementById('chapter-status-sel').addEventListener('change',e=>{db.chapters[cur].status=e.target.value;renderChapterList();debouncedSave();});

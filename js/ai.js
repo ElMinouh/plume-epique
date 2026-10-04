@@ -71,7 +71,7 @@ async function generateAISummary() {
     const s = await callClaude(`Résume ce chapitre en 3-5 phrases concises en français.\n\nChapitre: "${db.chapters[cur].title}"\n\n${txt.substring(0,3000)}`, 1000,
       partial => { textEl.innerText = partial; });
     textEl.innerText = s; textEl.dataset.generated = s;
-  } catch(e) { textEl.innerHTML = `<span class="u-c-v-danger">❌ ${e.message}</span>`; }
+  } catch(e) { textEl.innerHTML = `<span class="u-c-v-danger">❌ ${escapeHtml(e.message)}</span>`; }
 }
 function copyAISummaryToChapter() {
   const textEl = document.getElementById('ai-summary-text'), s = textEl.dataset.generated||textEl.innerText;
@@ -87,7 +87,7 @@ async function aiContinueSuggestions() {
     const r = await callClaude(`Voici la fin d'un chapitre: "...${text.slice(-600)}"\n\nPropose 3 continuations numérotées 1. 2. 3., chacune en 2-3 phrases en français, avec des tons variés.`, 800,
       partial => { el.innerHTML = DOMPurify.sanitize(partial.replace(/\n/g,'<br>')); });
     el.innerHTML = DOMPurify.sanitize(r.replace(/\n/g,'<br>'));
-  } catch(e) { el.innerHTML = `<span class="u-c-v-danger">❌ ${e.message}</span>`; }
+  } catch(e) { el.innerHTML = `<span class="u-c-v-danger">❌ ${escapeHtml(e.message)}</span>`; }
 }
 async function aiCheckInconsistencies() {
   await notifyThirdPartyDataUseOnce();
@@ -100,7 +100,7 @@ async function aiCheckInconsistencies() {
     const r = await callClaude(`Personnages: ${bible||'(vide)'}\n\nTexte: ${fullText.substring(0,4000)}\n\nListe les incohérences potentielles en français (max 5 points).`, 600,
       partial => { el.innerHTML = DOMPurify.sanitize(partial.replace(/\n/g,'<br>')); });
     el.innerHTML = DOMPurify.sanitize(r.replace(/\n/g,'<br>'));
-  } catch(e) { el.innerHTML = `<span class="u-c-v-danger">❌ ${e.message}</span>`; }
+  } catch(e) { el.innerHTML = `<span class="u-c-v-danger">❌ ${escapeHtml(e.message)}</span>`; }
 }
 async function aiGenerateNames() {
   await notifyThirdPartyDataUseOnce();
@@ -129,7 +129,7 @@ Génère 10 noms maintenant, en français ou adaptés au genre ${genre} :`;
       el.innerHTML = lines.map(line => `<div class="u-p-3px-0 u-bdb-1px-solid-v-border">${DOMPurify.sanitize(line)}</div>`).join('');
     }
   } catch(e) {
-    el.innerHTML = `<span class="u-c-v-danger">❌ ${e.message}</span>`;
+    el.innerHTML = `<span class="u-c-v-danger">❌ ${escapeHtml(e.message)}</span>`;
   }
 }
 

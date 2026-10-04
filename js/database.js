@@ -36,11 +36,12 @@ const CARD_SPINE_COLORS = [
   {a:'#c2185b',b:'#d4af37'}, {a:'#34495e',b:'#7f8c8d'}, {a:'#f39c12',b:'#e74c3c'},
   {a:'#6d4c41',b:'#3e2723'}, {a:'#8e7cc3',b:'#5b3a8e'}
 ];
-function colorForId(id) {
+function colorIndexForId(id) {
   let h = 0; const s = String(id||'');
   for (let i=0;i<s.length;i++) h = (h*31 + s.charCodeAt(i)) >>> 0;
-  return CARD_SPINE_COLORS[h % CARD_SPINE_COLORS.length];
+  return h % CARD_SPINE_COLORS.length;
 }
+function colorForId(id) { return CARD_SPINE_COLORS[colorIndexForId(id)]; }
 let _universeViewMode = 'list';
 function setUniverseViewMode(mode) {
   _universeViewMode = mode;
@@ -63,8 +64,10 @@ function renderLibraryCards(type) {
     .map((item,i)=>({item,i}))
     .filter(({item})=>!filter||(item.name||'').toLowerCase().includes(filter));
   cont.innerHTML = items.map(({item,i}) => {
-    const c = colorForId(item.id || String(i));
-    return `<div class="uni-card" data-idx="${i}" style="background:linear-gradient(160deg,${c.a},${c.b})" tabindex="0" role="listitem" title="${DOMPurify.sanitize(item.name||'Sans titre')}">
+    // v9.27.0 (AUD-01-013) — la couleur passe par une classe (.uni-card-c0 … c7, style.css) : un attribut
+    // style="" est bloqué par la CSP (style-src sans 'unsafe-inline'), les cartes perdaient leur fond.
+    const ci = colorIndexForId(item.id || String(i));
+    return `<div class="uni-card uni-card-c${ci}" data-idx="${i}" tabindex="0" role="listitem" title="${DOMPurify.sanitize(item.name||'Sans titre')}">
       <div class="uni-card-band"></div>
       <div class="uni-card-title">${DOMPurify.sanitize(item.name||'Sans titre')}</div>
       <div class="uni-card-band"></div>

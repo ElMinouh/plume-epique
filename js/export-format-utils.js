@@ -233,7 +233,7 @@ function importManuscriptFile(input) {
     ? file.arrayBuffer().then(buf => window.odfKit.odtToHtml(new Uint8Array(buf), { fragment:true }))
     : file.arrayBuffer().then(buf => mammoth.convertToHtml({ arrayBuffer: buf })).then(r => r.value);
   Promise.resolve(convert).then(html => {
-    _docxImportHtml = DOMPurify.sanitize(html || '<p></p>');
+    _docxImportHtml = sanitizeManuscriptHtml(html || '<p></p>'); // v9.27.0 : sans attributs style (l'import ODT en produit)
     openDocxImportModal(file.name);
   }).catch(err => { toast('Fichier invalide : ' + err.message, 'error'); }).finally(() => { input.value = ''; });
 }

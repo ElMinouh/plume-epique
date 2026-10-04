@@ -1,7 +1,7 @@
 'use strict';
 // Changez ce numéro de version à chaque mise à jour majeure des fichiers
 // pour forcer les navigateurs à récupérer la nouvelle version.
-const CACHE = 'plume-epique-v9.26.1';
+const CACHE = 'plume-epique-v9.27.0';
 
 const CORE_ASSETS = [
   './',
@@ -12,31 +12,17 @@ const CORE_ASSETS = [
   './js/schema.js','./js/images.js','./js/graphicnovel.js','./js/pwa.js','./js/notifications.js','./js/crypto.js','./js/router.js','./js/profiles.js','./js/library.js','./js/editor.js',
   './js/tabs.js','./js/panels.js','./js/findreplace.js','./js/ai.js','./js/snapshots.js','./js/diff.js','./js/stats.js',
   './js/readability.js','./js/relations.js','./js/timeline.js','./js/fulltour.js','./js/tts.js','./js/wordcloud.js',
-  './js/pluginSystem.js','./js/export-format-utils.js','./js/database.js','./js/memory.js','./js/odf-loader.js'
+  './js/pluginSystem.js','./js/export-format-utils.js','./js/database.js','./js/memory.js','./js/odf-loader.js',
+  './vendor/dompurify-3.4.16.min.js','./vendor/chart-4.4.0.umd.min.js','./vendor/idb-8.0.3.umd.js','./vendor/docx-7.1.0.js','./vendor/file-saver-2.0.5.min.js','./vendor/d3-7.9.0.min.js','./vendor/jszip-3.10.1.min.js','./vendor/jspdf-4.2.1.umd.min.js','./vendor/html2canvas-1.4.1.min.js','./vendor/mammoth-1.11.0.browser.min.js',
+  './vendor/odf-kit-0.13.10.esm.js','./vendor/odf-kit-reader-0.13.10.esm.js','./vendor/odf-kit-document-0.13.10.esm.js','./vendor/fflate-0.8.3.esm.js','./vendor/marked-18.0.5.esm.js'
 ];
 
-const CDN_ASSETS = [
-  'https://cdn.jsdelivr.net/npm/dompurify@3.4.16/dist/purify.min.js',
-  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
-  'https://cdn.jsdelivr.net/npm/idb@8/build/umd.js',
-  'https://unpkg.com/docx@7.1.0/build/index.js',
-  'https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js',
-  'https://d3js.org/d3.v7.min.js',
-  'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
-  'https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js',
-  'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
-  'https://cdn.jsdelivr.net/npm/mammoth@1.11.0/mammoth.browser.min.js',
-  'https://cdn.jsdelivr.net/npm/odf-kit@0.13.10/+esm',
-  'https://cdn.jsdelivr.net/npm/odf-kit@0.13.10/odt-reader/+esm'
-];
+// v9.27.0 : plus aucune librairie externe — elles sont toutes dans vendor/ (CORE_ASSETS).
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
     await cache.addAll(CORE_ASSETS).catch(() => {});
-    await Promise.allSettled(
-      CDN_ASSETS.map(url => cache.add(new Request(url, { mode: 'no-cors' })).catch(() => {}))
-    );
   })());
   // Correction v6.0.0 : on ne saute plus l'attente automatiquement.
   // Le nouveau Service Worker reste "waiting" tant que l'utilisateur n'a
@@ -83,8 +69,7 @@ async function cacheableResponse(res) {
 //      vieilles données au lieu de l'état réel du serveur.
 // Une réponse d'API est vivante par nature : elle ne se met jamais en cache.
 function isAppAsset(url) {
-  if (url.origin === self.location.origin) return true;
-  return CDN_ASSETS.some(cdnUrl => url.href === cdnUrl);
+  return url.origin === self.location.origin;
 }
 
 self.addEventListener('fetch', event => {

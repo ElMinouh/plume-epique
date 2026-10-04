@@ -143,7 +143,7 @@ async function queryNarrativeMemory() {
     });
 
   } catch(e) {
-    resultsEl.innerHTML = `<div class="u-c-v-danger u-fs-_82rem u-p-10px">❌ Erreur IA: ${e.message}</div>`;
+    resultsEl.innerHTML = `<div class="u-c-v-danger u-fs-_82rem u-p-10px">❌ Erreur IA: ${escapeHtml(e.message)}</div>`;
   }
 }
 

@@ -1199,7 +1199,7 @@ async function libOpenGistHistory(docId) {
       el.addEventListener('click', () => libLoadGistRevision(docId, mData.gistId, c.version));
       listEl.appendChild(el);
     });
-  } catch(e) { listEl.innerHTML = `<div class="u-p-10px u-c-v-danger">❌ ${e.message}</div>`; }
+  } catch(e) { listEl.innerHTML = `<div class="u-p-10px u-c-v-danger">❌ ${escapeHtml(e.message)}</div>`; }
 }
 async function libLoadGistRevision(docId, gistId, sha) {
   if (!confirm('Charger cette révision remplacera ce manuscrit. Continuer ?')) return;
@@ -1377,11 +1377,10 @@ async function renderConflictBackups() {
   }
 
   cont.innerHTML = rows.map(b => `
-    <div class="u-d-flex u-ai-center u-gap-8px u-p-10px u-br-8px u-bd-1px-solid-v-border"
-         style="${b.awaiting ? 'border:2px solid var(--border-accent);' : ''}">
+    <div class="u-d-flex u-ai-center u-gap-8px u-p-10px u-br-8px u-bd-1px-solid-v-border${b.awaiting ? ' conflict-row-awaiting' : ''}">
       <div class="u-flex-1 u-minw-0">
         <p class="u-fs-_8rem u-m-0">${DOMPurify.sanitize(b.title || 'Sans titre')}
-          ${b.awaiting ? '<span class="mp-badge" style="background:var(--bg-accent);color:var(--text-accent);margin-left:6px;">En attente de votre choix</span>' : ''}
+          ${b.awaiting ? '<span class="mp-badge conflict-badge-awaiting">En attente de votre choix</span>' : ''}
         </p>
         <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-0">Détectée le ${new Date(b.ts).toLocaleString('fr')}</p>
         ${b.awaiting ? '<p class="u-fs-_66rem u-c-v-text-muted u-m-2px-0-0">Synchro de ce manuscrit en pause jusqu\'à votre décision.</p>' : ''}

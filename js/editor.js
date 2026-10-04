@@ -103,6 +103,56 @@ function flushCurrentChapter() {
   if (t) db.chapters[cur].title = t.innerText.trim() || db.chapters[cur].title;
   if (st) db.chapters[cur].status = st.value;
 }
+// ═══════════════════════════════════════════════════════
+// v9.27.0 (audit AUD-01-027) — TEXTE COLLÉ ET STYLES ÉTRANGERS
+// Coller depuis Word ou le web apportait polices, couleurs, tableaux (attributs style="",
+// balises <font>…) dans le manuscrit : poids inutile, et ces styles sont de toute façon
+// bloqués par la CSP à l'affichage. Deux garde-fous :
+//   • à la colle, on ne garde que paragraphes, retours à la ligne, gras, italique,
+//     souligné et titres (cleanPastedHtml) ;
+//   • à l'affichage, les attributs style sont retirés (sanitizeManuscriptHtml) — les
+//     surlignages manuels passent par des classes (hl-*) et ne sont pas touchés.
+// ═══════════════════════════════════════════════════════
+// Les attributs style sont retirés AVANT l'analyse par DOMPurify : l'analyse d'un texte qui en
+// contient déclenche à elle seule un blocage de la CSP (message en console) même si DOMPurify
+// les enlève ensuite.
+function stripStyleAttributes(html) {
+  return String(html || '').replace(/\sstyle\s*=\s*(?:"[^"]*"|'[^']*')/gi, '');
+}
+function sanitizeManuscriptHtml(html) {
+  return DOMPurify.sanitize(stripStyleAttributes(html), { FORBID_ATTR: ['style'] });
+}
+function cleanPastedHtml(html) {
+  return DOMPurify.sanitize(stripStyleAttributes(html), {
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'h1', 'h2', 'h3'],
+    ALLOWED_ATTR: []
+  });
+}
+function plainTextToHtml(text) {
+  return String(text || '').replace(/\r\n?/g, '\n').split(/\n{2,}/).map(par => '<p>' + escapeHtml(par).replace(/\n/g, '<br>') + '</p>').join('');
+}
+function handleManuscriptPaste(ev) {
+  const cd = ev.clipboardData;
+  if (!cd) return;
+  const html = cd.getData('text/html');
+  const text = cd.getData('text/plain');
+  if (!html && !text) return;
+  ev.preventDefault();
+  const clean = html ? cleanPastedHtml(html) : plainTextToHtml(text);
+  // Insertion directe dans la sélection (et non execCommand('insertHTML') : Chrome y ajoute ses
+  // propres attributs style, bloqués par la CSP). L'éditeur a sa propre pile d'annulation,
+  // alimentée par l'évènement « input » déclenché ci-dessous.
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  range.deleteContents();
+  const frag = range.createContextualFragment(clean);
+  const last = frag.lastChild;
+  range.insertNode(frag);
+  if (last) { range.setStartAfter(last); range.collapse(true); sel.removeAllRanges(); sel.addRange(range); }
+  ev.target.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 function loadChapter(i) {
   const w = document.getElementById('writer'), t = document.getElementById('chapter-title'), s = document.getElementById('tension-slider'), st = document.getElementById('chapter-status-sel');
   const ch = db.chapters[i];
@@ -110,7 +160,7 @@ function loadChapter(i) {
   // Sanitisation défensive : ch.content peut provenir d'un import JSON, d'une
   // restauration Gist ou d'un autre appareil synchronisé — jamais une source
   // 100% de confiance, même si le contenu vient normalement de #writer lui-même.
-  w.innerHTML = DOMPurify.sanitize(ch.content || '');
+  w.innerHTML = sanitizeManuscriptHtml(ch.content || '');
   if (t) t.innerText = ch.title || '';
   if (s) s.value = ch.tension ?? 20;
   if (st) st.value = ch.status || 'draft';
@@ -670,7 +720,7 @@ function enterFocus() {
   commitUndoSnapshot();
   const fw = document.getElementById('focus-writer');
   document.getElementById('focus-title').value = db.chapters[cur].title || '';
-  fw.innerHTML = DOMPurify.sanitize(db.chapters[cur].content || '');
+  fw.innerHTML = sanitizeManuscriptHtml(db.chapters[cur].content || '');
   document.getElementById('focus-chapter-label').innerText = `Chapitre ${cur+1}`;
   document.getElementById('focus-overlay').classList.add('active');
   fw.focus(); updateFocusCount();

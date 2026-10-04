@@ -24,6 +24,7 @@
 // la dernière disponible (0.13.10 au moment de ce correctif) : signatures
 // htmlToOdt(html, {pageFormat}) et odtToHtml(bytes, {fragment}) inchangées,
 // vérifiées directement dans le paquet npm avant ce correctif.
-import { htmlToOdt } from "https://cdn.jsdelivr.net/npm/odf-kit@0.13.10/+esm";
-import { odtToHtml } from "https://cdn.jsdelivr.net/npm/odf-kit@0.13.10/odt-reader/+esm";
+// v9.27.0 : modules servis par ce site (vendor/), plus par jsDelivr.
+import { htmlToOdt } from "../vendor/odf-kit-0.13.10.esm.js";
+import { odtToHtml } from "../vendor/odf-kit-reader-0.13.10.esm.js";
 window.odfKit = { htmlToOdt, odtToHtml };

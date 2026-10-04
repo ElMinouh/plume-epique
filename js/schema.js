@@ -59,6 +59,16 @@ function thinSnapshots(list, now, maxAuto) {
   return autos.concat(manuals).sort((a, b) => (b.ts || 0) - (a.ts || 0));
 }
 
+// v9.27.0 (audit AUD-01-020) — échappement d'un TEXTE BRUT avant insertion dans du HTML
+// (innerHTML) : à utiliser partout où une valeur n'est pas du HTML à assainir mais
+// du texte (message d'erreur, titre, nom saisi…), y compris dans un attribut.
+// DOMPurify.sanitize() assainit du HTML, il n'échappe pas les guillemets d'un attribut.
+function escapeHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function genChapterId() {
   return (crypto.randomUUID ? crypto.randomUUID() : 'ch_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
 }

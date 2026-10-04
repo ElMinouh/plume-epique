@@ -2077,7 +2077,7 @@ function gnTrashEntryLabel(t) {
     const n = (t.page.elements || []).length;
     return 'Page (' + n + ' élément' + (n > 1 ? 's' : '') + ')';
   }
-  return t.element.type === 'image' ? 'Image' : 'Bloc de texte' + (t.element.content ? ' — « ' + t.element.content.slice(0, 24) + ' »' : ' (vide)');
+  return t.element.type === 'image' ? 'Image' : 'Bloc de texte' + (t.element.content ? ' — « ' + escapeHtml(t.element.content.slice(0, 24)) + ' »' : ' (vide)');
 }
 function gnRenderTrashList() {
   const list = document.getElementById('gn-trash-list');

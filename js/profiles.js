@@ -266,7 +266,7 @@ function nameExists(idx, name, exceptId) {
   return idx.profiles.some(p => p.name.toLowerCase() === n && p.id !== exceptId);
 }
 function questionOptionsHtml() {
-  return SECURITY_QUESTIONS.map(q => `<option value="${DOMPurify.sanitize(q)}">${DOMPurify.sanitize(q)}</option>`).join('');
+  return SECURITY_QUESTIONS.map(q => `<option value="${escapeHtml(q)}">${escapeHtml(q)}</option>`).join('');
 }
 
 // ── ÉCRAN 1 : Connexion ─────────────────────────────────────────────────

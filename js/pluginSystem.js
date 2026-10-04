@@ -95,7 +95,7 @@ function renderPlugins() {
         // ici, une fois pour tous les plugins présents et futurs — défense
         // en profondeur, au cas où une réponse IA contiendrait du HTML.
         resultDiv.innerHTML = DOMPurify.sanitize(asHtml);
-      } catch(e) { resultDiv.innerHTML = `<span class="u-c-v-danger">❌ ${e.message}</span>`; }
+      } catch(e) { resultDiv.innerHTML = `<span class="u-c-v-danger">❌ ${escapeHtml(e.message)}</span>`; }
     });
     card.querySelector(`input[data-plugin="${plugin.id}"]`).addEventListener('change', e => {
       db.plugins[plugin.id] = e.target.checked; debouncedSave();

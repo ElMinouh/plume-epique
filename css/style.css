@@ -1628,3 +1628,17 @@ body.graphicnovel-mode #graphicnovel-screen{display:flex;flex-direction:column;h
   .gn-type-grid{grid-template-columns:1fr;}
   .gn-doc-name{max-width:32vw;}
 }
+
+/* v9.27.0 (audit AUD-01-013) — styles qui étaient écrits en ligne (bloqués par la CSP). */
+.uni-card-c0 { background: linear-gradient(160deg, #c0392b, #8e44ad); }
+.uni-card-c1 { background: linear-gradient(160deg, #2980b9, #16a085); }
+.uni-card-c2 { background: linear-gradient(160deg, #27ae60, #2c3e50); }
+.uni-card-c3 { background: linear-gradient(160deg, #c2185b, #d4af37); }
+.uni-card-c4 { background: linear-gradient(160deg, #34495e, #7f8c8d); }
+.uni-card-c5 { background: linear-gradient(160deg, #f39c12, #e74c3c); }
+.uni-card-c6 { background: linear-gradient(160deg, #6d4c41, #3e2723); }
+.uni-card-c7 { background: linear-gradient(160deg, #8e7cc3, #5b3a8e); }
+/* Les variables --border-accent / --bg-accent / --text-accent de l'ancien style en ligne n'ont JAMAIS existé :
+   l'alerte « en attente de votre choix » n'a donc jamais été visible. Couleurs du thème utilisées à la place. */
+.conflict-row-awaiting { border: 2px solid var(--accent); }
+.conflict-badge-awaiting { background: var(--accent); color: #fff; margin-left: 6px; }

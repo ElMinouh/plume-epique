@@ -135,13 +135,13 @@ describe('DOMPurify réel (AUD-01-002) — la suite principale le remplace par u
   const DOMPurify = createDOMPurify(window);
 
   it('la version testée est celle chargée par index.html ET par sw.js', () => {
-    const fromHtml = read('index.html').match(/dompurify@([\d.]+)\//)[1];
-    const fromSw = read('sw.js').match(/dompurify@([\d.]+)\//)[1];
+    const fromHtml = read('index.html').match(/vendor\/dompurify-([\d.]+)\.min\.js/)[1];
+    const fromSw = read('sw.js').match(/vendor\/dompurify-([\d.]+)\.min\.js/)[1];
     expect(fromHtml).toBe(fromSw);
     expect(DOMPurify.version).toBe(fromHtml);
   });
   it('jsPDF : même version dans index.html et sw.js', () => {
-    expect(read('index.html').match(/jspdf@([\d.]+)\//)[1]).toBe(read('sw.js').match(/jspdf@([\d.]+)\//)[1]);
+    expect(read('index.html').match(/vendor\/jspdf-([\d.]+)\.umd/)[1]).toBe(read('sw.js').match(/vendor\/jspdf-([\d.]+)\.umd/)[1]);
   });
   it.each([
     ['<img src=x onerror=alert(1)>', 'onerror'],

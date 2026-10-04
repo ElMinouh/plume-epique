@@ -107,6 +107,13 @@ Les deux doivent être bumpés ensemble à chaque release (contextes différents
      puis donne à l'utilisateur uniquement la liste des tests qui exigent une session
      connectée (saisie, synchro, IA, exports) — Claude ne saisit jamais de mot de passe
      ni ne crée de profil sur le site réel.
+  4. APRÈS chaque push (demandé le 2026-10-04) : Claude fait aussi, SYSTÉMATIQUEMENT, un test en
+     réel sur une COPIE LOCALE (jamais sur le site réel) : serveur de synchro local (`wrangler dev`
+     --local avec D1 jetable dans `.wrangler-test`, clé de test), deux « appareils » = deux ports
+     localhost servis par un petit serveur statique qui redirige `SYNC_WORKER_URL` vers le local,
+     piloté par le navigateur intégré avec un profil de TEST. Il couvre les parcours du lot
+     (création, saisie, synchro, suppression, etc.), puis arrête les processus et signale à
+     l'utilisateur ce que ce test ne peut pas couvrir (données et mot de passe réels).
   Lots regroupés de façon cohérente techniquement et économes en tokens (plan issu de
   l'audit AUD-01, fichiers dans `Claude outputs/Audit-01/`).
 - **Les conversations se font UNIQUEMENT en français** dans ce projet, quelle que soit la session.

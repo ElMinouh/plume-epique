@@ -9,18 +9,20 @@
 <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
 <title>Plume</title>
 <link rel="stylesheet" href="css/style.css">
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.16/dist/purify.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/idb@8/build/umd.js"></script>
-<script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
+<!-- v9.27.0 (audit AUD-01-003) : toutes les librairies sont servies par ce site (dossier vendor/,
+     versions exactes, voir vendor/LISEZMOI.md) — plus aucun CDN, plus de dépendance à un site tiers. -->
+<script src="vendor/dompurify-3.4.16.min.js"></script>
+<script src="vendor/chart-4.4.0.umd.min.js"></script>
+<script src="vendor/idb-8.0.3.umd.js"></script>
+<script src="vendor/docx-7.1.0.js"></script>
+<script src="vendor/file-saver-2.0.5.min.js"></script>
+<script src="vendor/d3-7.9.0.min.js"></script>
+<script src="vendor/jszip-3.10.1.min.js"></script>
+<script src="vendor/jspdf-4.2.1.umd.min.js"></script>
 <!-- Export PDF qualité impression du roman graphique : rend chaque page hors-écran
      en haute résolution avant de l'incorporer au PDF (js/graphicnovel.js). -->
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/mammoth@1.11.0/mammoth.browser.min.js"></script>
+<script src="vendor/html2canvas-1.4.1.min.js"></script>
+<script src="vendor/mammoth-1.11.0.browser.min.js"></script>
 <!-- v7.16.0 : ce chargeur odf-kit était auparavant un script module écrit
      directement ici — bloqué par la CSP (script-src n'autorise pas
      l'exécution de script inline, volontairement, voir _headers). Déplacé
