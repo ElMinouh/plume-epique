@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.27.0';
+const APP_VERSION = '9.28.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -363,7 +363,7 @@ async function purgeTombstonedDocs(listKey, list) {
       await writeLocalOnly(dk, null);
       removePendingSyncKey(dk); removeConflictPausedKey(dk);
       clearTimeout(_pushDebounceTimers[dk]); delete _pushDebounceTimers[dk]; delete _pendingSince[dk]; delete _pendingPayload[dk];
-      if (typeof cleanupDocumentSideData === 'function') { try { await cleanupDocumentSideData(pid, t.id); } catch (e) { /* best effort */ } }
+      if (typeof cleanupDocumentSideData === 'function') { try { await cleanupDocumentSideData(pid, t.id, { localOnly: true }); } catch (e) { /* best effort */ } }
       purged = true;
     }
     if (purged && typeof onRemoteVersionAdopted === 'function') onRemoteVersionAdopted(listKey);

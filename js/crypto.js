@@ -39,6 +39,37 @@ const Crypto = {
     } catch { return null; }
   },
 
+  // ── Chiffrement d'OCTETS (images du roman graphique, v9.28.0) ──────────────
+  // La clé AES-GCM est dérivée UNE FOIS de la clé de données du profil (HKDF-SHA256) et gardée
+  // en mémoire : pas de PBKDF2 à 310 000 itérations par image (inutile : la clé de données est
+  // déjà aléatoire et forte). Format : iv (12 octets) + texte chiffré.
+  _imgKey: { dek: null, key: null },
+  async imageKey(dek) {
+    if (this._imgKey.dek === dek && this._imgKey.key) return this._imgKey.key;
+    const ikm = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(dek));
+    const base = await crypto.subtle.importKey('raw', ikm, 'HKDF', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey(
+      { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(32), info: new TextEncoder().encode('plume-image-v1') },
+      base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    this._imgKey = { dek, key };
+    return key;
+  },
+  async encryptBytes(bytes, dek) {
+    const key = await this.imageKey(dek);
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, bytes));
+    const out = new Uint8Array(12 + ct.length);
+    out.set(iv); out.set(ct, 12);
+    return out;
+  },
+  async decryptBytes(buf, dek) {
+    try {
+      const key = await this.imageKey(dek);
+      const b = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+      return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(0, 12) }, key, b.slice(12)));
+    } catch (e) { return null; }
+  },
+
   // ── Multi-profils (v7.0.0) ────────────────────────────────────────────
   // Génère une "clé de données" (DEK) aléatoire et forte, sous forme de
   // chaîne. Cette clé sert de mot de passe interne pour chiffrer les données

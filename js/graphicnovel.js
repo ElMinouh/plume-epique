@@ -73,6 +73,16 @@ function openGraphicNovelScreen() {
   // manuscrit — on ne propose jamais d'annuler au-delà de la session en cours.
   // v9.25.0 — historique espacé : anciens manuscrits allégés à l'ouverture.
   if (typeof thinAllHistory === 'function' && thinAllHistory()) saveGraphicNovel();
+  // v9.28.0 (AUD-01-011) — images : conversion en version chiffrée des images d'avant, puis envoi au
+  // serveur de synchro de celles qui n'y sont pas encore (en arrière-plan, sans bloquer l'écran).
+  (async () => {
+    try {
+      const docId = _currentDocumentId;
+      if (typeof migrateGraphicImagesToEncrypted === 'function') await migrateGraphicImagesToEncrypted(docId);
+      if (typeof syncUpGraphicImages === 'function') await syncUpGraphicImages(docId);
+      gnUpdateStorageInfo();
+    } catch (e) { /* purement opportuniste : réessayé à la prochaine ouverture */ }
+  })();
   gnResetUndoStack();
   // Stats (Lot 6, audit #21) : mêmes globales que l'éditeur texte
   // (router.js), pour que "mots aujourd'hui"/"mots par minute" restent
@@ -546,6 +556,13 @@ async function gnUpdateStorageInfo() {
     const totalBytes = await getGraphicImagesTotalSize(_currentDocumentId);
     const mo = totalBytes / (1024 * 1024);
     let txt = `🖼️ Images de ce roman graphique : ${mo < 0.1 ? '< 0,1' : mo.toFixed(1)} Mo`;
+    // v9.28.0 : état de la synchronisation des images entre appareils
+    if (typeof countUnsyncedGraphicImages === 'function' && typeof getSyncKey === 'function' && getSyncKey()) {
+      const n = await countUnsyncedGraphicImages(_currentDocumentId);
+      txt += n ? ` — ☁ ${n} image(s) en attente de synchronisation` : ' — ☁ synchronisées';
+    } else if (typeof getSyncKey === 'function' && !getSyncKey()) {
+      txt += ' — ☁ synchronisation non configurée (sauvegarde GitHub pour les déplacer)';
+    }
     if (navigator.storage && navigator.storage.estimate) {
       const est = await navigator.storage.estimate();
       if (est.quota) {

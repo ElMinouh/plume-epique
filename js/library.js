@@ -194,6 +194,8 @@ async function syncPushEntireLibrary() {
     }
   } catch(e) { /* meilleure tentative uniquement */ }
   try { retryPendingSyncs(); } catch(e) { /* meilleure tentative uniquement */ }
+  // v9.28.0 : suppressions d'images restées en attente (serveur injoignable lors de la suppression).
+  try { if (typeof retryPendingImageDeletes === 'function') retryPendingImageDeletes(); } catch(e) { /* meilleure tentative uniquement */ }
 }
 
 // v9.3.0 — Réconciliation explicite d'une clé : récupère la version du
@@ -887,12 +889,13 @@ async function createNewTextDocument() {
 // manuscrit, stockées sous des clés séparées — jusqu'ici jamais nettoyées
 // à la suppression de ce manuscrit (ou de tout le profil), laissant des
 // blobs chiffrés orphelins s'accumuler indéfiniment. Nettoyage explicite ici.
-async function cleanupDocumentSideData(profileId, docId) {
+async function cleanupDocumentSideData(profileId, docId, opts) {
   try { await persistData(aiChatDataKey(profileId, docId), null); } catch(e) { /* best effort */ }
   // Module Roman graphique : les images (IndexedDB séparée, voir images.js)
   // ne sont jamais nettoyées automatiquement ailleurs — sans appel ici, un
   // manuscrit illustré supprimé laisserait ses images orphelines.
-  try { await deleteAllGraphicImagesForDocument(docId); } catch(e) { /* best effort */ }
+  // v9.28.0 : `opts.localOnly` (suppression venue d'un autre appareil) ne touche pas aux images du serveur.
+  try { await deleteAllGraphicImagesForDocument(docId, { localOnly: !!(opts && opts.localOnly), profileId }); } catch(e) { /* best effort */ }
   try {
     const prefix = 'conflict_doc_' + profileId + '_' + docId + '_';
     let keys = [];
@@ -1058,6 +1061,24 @@ async function decryptGistContent(raw) {
   return parsed; // ancien format en clair
 }
 
+const GIST_BATCH_CHARS = 8000000; // ~8 Mo par requête : prudent vis-à-vis des limites de l'API GitHub
+// Message d'erreur précis d'une réponse GitHub (code HTTP + message renvoyé), au lieu d'un « HTTP 422 » nu.
+async function gistErrorMessage(resp) {
+  let detail = '';
+  try { const j = await resp.json(); if (j && j.message) detail = ' — ' + j.message; } catch (e) { /* corps non JSON */ }
+  const hint = resp.status === 401 ? ' (jeton GitHub invalide ou expiré)' : resp.status === 403 ? ' (limite de l\'API ou droits insuffisants)' : resp.status === 413 || resp.status === 422 ? ' (envoi trop volumineux ?)' : '';
+  return `HTTP ${resp.status}${detail}${hint}`;
+}
+// Retient gistId et images déjà envoyées sur la copie À JOUR du manuscrit (même principe que la fin de libSyncManuscript).
+async function persistGistProgress(docId, gistId, imageIds) {
+  try {
+    const fresh = await loadManuscriptData(docId);
+    fresh.gistId = gistId;
+    if (imageIds.length) fresh.gistSyncedImageIds = Array.from(new Set([...(fresh.gistSyncedImageIds || []), ...imageIds]));
+    if (_currentDocumentId === docId && db) { db.gistId = gistId; if (imageIds.length) db.gistSyncedImageIds = fresh.gistSyncedImageIds; }
+    await persistManuscriptData(docId, fresh);
+  } catch (e) { /* meilleur effort */ }
+}
 async function libSyncManuscript(docId, opts) {
   opts = opts || {};
   if (!_cloudToken) { if (!opts.silent) toast('Token GitHub requis.', 'error'); return false; }
@@ -1069,7 +1090,11 @@ async function libSyncManuscript(docId, opts) {
     // seul gros blob — seules les images nouvelles depuis la dernière
     // synchro sont envoyées (mData.gistSyncedImageIds mémorise ce qui l'a
     // déjà été), pour ne pas retransmettre tout le lot à chaque sauvegarde.
-    let newImageIds = [];
+    // v9.28.0 (audit AUD-01-026) — Les images sont DÉJÀ chiffrées au repos : on envoie leurs octets
+    // chiffrés tels quels (base64, préfixe « v2: ») au lieu de les rechiffrer (ancien format : ×1,8 en
+    // poids et un PBKDF2 par image). Envoi PAR PAQUETS d'au plus GIST_BATCH_CHARS caractères : un
+    // livre de plusieurs dizaines de pages ne tient pas dans une seule requête.
+    const imageFiles = []; // { id, name, content }
     if (mData.docType === 'roman_graphique' && typeof getAllGraphicImagesForDocument === 'function') {
       const referenced = new Set();
       (mData.pages || []).forEach(p => (p.elements || []).forEach(el => { if (el.type === 'image' && el.imageId) referenced.add(el.imageId); }));
@@ -1079,14 +1104,19 @@ async function libSyncManuscript(docId, opts) {
       if (toUpload.length && typeof notifyGistImageSyncOnce === 'function') await notifyGistImageSyncOnce();
       for (const rec of toUpload) {
         try {
-          const bytes = new Uint8Array(await rec.blob.arrayBuffer());
-          const encrypted = await Crypto.encrypt(bytesToBase64(bytes), _dataKey);
-          files[`img_${rec.id}.txt`] = { content: encrypted };
-          newImageIds.push(rec.id);
+          const cipher = await graphicImageCipher(rec);
+          if (!cipher) continue;
+          imageFiles.push({ id: rec.id, name: `img_${rec.id}.txt`, content: 'v2:' + imgBytesToBase64(cipher) + ':' + (rec.mime || 'image/webp') });
         } catch(e) { /* une image illisible localement ne doit pas bloquer la synchro du reste */ }
       }
-      if (newImageIds.length) mData.gistSyncedImageIds = [...(mData.gistSyncedImageIds || []), ...newImageIds];
     }
+    const batches = [];
+    { let cur = [], size = 0;
+      for (const f of imageFiles) {
+        if (cur.length && size + f.content.length > GIST_BATCH_CHARS) { batches.push(cur); cur = []; size = 0; }
+        cur.push(f); size += f.content.length;
+      }
+      if (cur.length) batches.push(cur); }
     const method = mData.gistId ? 'PATCH' : 'POST';
     const url = mData.gistId ? `https://api.github.com/gists/${mData.gistId}` : 'https://api.github.com/gists';
     // Correction (audit v7.35.0) : le contenu était jusqu'ici envoyé à GitHub
@@ -1096,10 +1126,30 @@ async function libSyncManuscript(docId, opts) {
     // désormais plus qu'un blob illisible sans le mot de passe du profil.
     const cipher = await Crypto.encrypt(JSON.stringify(mData), _dataKey);
     files["plume.json"] = { content: JSON.stringify({ _enc:true, data:cipher }) };
-    const resp = await fetchWithTimeout(url, { timeoutMs: 90000, method, headers:{'Authorization':`token ${_cloudToken}`,'Content-Type':'application/json'}, body: JSON.stringify({ public:false, files }) });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
+    // Première requête : le manuscrit + le 1er paquet d'images ; puis un PATCH par paquet restant.
+    // Les identifiants d'images réellement envoyés sont retenus au fur et à mesure : un échec au
+    // milieu d'un gros livre ne fait pas tout recommencer.
+    const newImageIds = [];
+    const first = batches.shift() || [];
+    first.forEach(f => { files[f.name] = { content: f.content }; });
+    let resp = await fetchWithTimeout(url, { timeoutMs: 120000, method, headers:{'Authorization':`token ${_cloudToken}`,'Content-Type':'application/json'}, body: JSON.stringify({ public:false, files }) });
+    if (!resp.ok) throw new Error(await gistErrorMessage(resp));
+    let data = await resp.json();
     if (data.id && data.id !== mData.gistId) mData.gistId = data.id;
+    first.forEach(f => newImageIds.push(f.id));
+    const totalBatches = batches.length + 1;
+    for (let i = 0; i < batches.length; i++) {
+      if (!opts.silent) toast(`Sauvegarde GitHub : images ${i + 2}/${totalBatches}…`, 'info');
+      const extra = {}; batches[i].forEach(f => { extra[f.name] = { content: f.content }; });
+      try {
+        const r2 = await fetchWithTimeout(`https://api.github.com/gists/${mData.gistId}`, { timeoutMs: 120000, method: 'PATCH', headers:{'Authorization':`token ${_cloudToken}`,'Content-Type':'application/json'}, body: JSON.stringify({ files: extra }) });
+        if (!r2.ok) throw new Error(await gistErrorMessage(r2));
+        batches[i].forEach(f => newImageIds.push(f.id));
+      } catch (e) {
+        await persistGistProgress(docId, mData.gistId, newImageIds); // ce qui est déjà parti est retenu
+        throw new Error(`images ${i + 2}/${totalBatches} : ${e.message}`);
+      }
+    }
     // Persisté à chaque appel désormais (plus seulement au premier envoi) :
     // gistSyncedImageIds doit rester à jour localement pour éviter de
     // renvoyer les mêmes images indéfiniment.
@@ -1152,20 +1202,27 @@ async function libLoadManuscript(docId) {
             const rawResp = await fetchWithTimeout(file.raw_url, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
             content = await rawResp.text();
           }
-          const b64 = await Crypto.decrypt(content, _dataKey);
-          if (!b64) continue; // sauvegarde d'un autre profil, illisible — ignorée sans bloquer le reste
-          const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-          const blob = new Blob([bytes], { type:'image/webp' });
-          let width = 0, height = 0;
-          try { const bmp = await createImageBitmap(blob); width = bmp.width; height = bmp.height; bmp.close && bmp.close(); } catch(e) { /* dimensions non critiques */ }
-          // hash/refCount (Lot 8, audit #27) : une image restaurée doit avoir
-          // ces deux champs comme toute image "normale", sinon elle ne serait
-          // ni éligible à la déduplication de futurs imports, ni comptée
-          // correctement à la suppression (deleteGraphicImage traite un
-          // refCount absent comme 1, donc pas de casse sans ça — mais autant
-          // rester cohérent avec le nouveau schéma).
-          const hash = typeof computeImageHash === 'function' ? await computeImageHash(blob) : undefined;
-          await putGraphicImageRecord({ id: imgId, docId, blob, width, height, hash, refCount: 1, createdAt: Date.now() });
+          let rec = null;
+          if (content.startsWith('v2:')) {
+            // v9.28.0 : octets chiffrés tels quels (« v2:<base64>:<mime> »)
+            const [, b64, mime] = content.split(':');
+            rec = await restoreGraphicImage({ id: imgId, docId, cipherBytes: imgBase64ToBytes(b64), mime: mime || 'image/webp', refCount: 1 });
+          } else {
+            // ancien format : base64 de l'image, chiffré comme un texte
+            const b64 = await Crypto.decrypt(content, _dataKey);
+            if (!b64) continue; // sauvegarde d'un autre profil, illisible — ignorée sans bloquer le reste
+            rec = await restoreGraphicImage({ id: imgId, docId, plainBytes: imgBase64ToBytes(b64), mime: 'image/webp', refCount: 1 });
+          }
+          if (rec && typeof createImageBitmap === 'function') {
+            // dimensions : relues sur l'image elle-même (non critiques)
+            try {
+              const bytes = await graphicImageBytes(rec);
+              const bmp = await createImageBitmap(new Blob([bytes], { type: rec.mime || 'image/webp' }));
+              const db2 = await plumeImagesDb(); const cur2 = await db2.get('images', imgId);
+              if (cur2) { cur2.width = bmp.width; cur2.height = bmp.height; await db2.put('images', cur2); }
+              bmp.close && bmp.close();
+            } catch (e) { /* dimensions non critiques */ }
+          }
         } catch(e) { /* une image corrompue ne doit pas bloquer la restauration du reste */ }
       }
       restored.gistSyncedImageIds = imageFiles.map(f => f.slice(4, -4));

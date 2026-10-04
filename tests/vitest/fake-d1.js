@@ -17,14 +17,14 @@ export class FakeD1 {
   }
   prepare(sql) {
     const db = this.db;
-    return {
-      bind: (...params) => ({
-        sql,
-        async first() { return db.prepare(sql).get(...params) ?? null; },
-        async all() { return { results: db.prepare(sql).all(...params) }; },
-        async run() { const r = db.prepare(sql).run(...params); return { meta: { changes: Number(r.changes) } }; }
-      })
-    };
+    const withParams = (...params) => ({
+      sql,
+      async first() { return db.prepare(sql).get(...params) ?? null; },
+      async all() { return { results: db.prepare(sql).all(...params) }; },
+      async run() { const r = db.prepare(sql).run(...params); return { meta: { changes: Number(r.changes) } }; }
+    });
+    // Comme le vrai D1 : une requête sans paramètre s'exécute directement (first/all/run), sinon via bind().
+    return { bind: withParams, ...withParams() };
   }
   // Comme le vrai D1, un batch est atomique ET sérialisé : deux batch lancés en
   // même temps s'exécutent l'un après l'autre (une seule connexion SQLite ici).

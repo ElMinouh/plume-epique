@@ -77,8 +77,12 @@ const ID = '[A-Za-z0-9_-]{1,80}';
 const KEY_PATTERN = new RegExp(
   '^(profiles|main|__ping__' +
   '|(doclist|data|libsettings)_' + ID +
-  '|(doc|aichat)_' + ID + '_' + ID + ')$'
+  '|(doc|aichat)_' + ID + '_' + ID +
+  '|img_' + ID + '_' + ID + '_' + ID + ')$'
 );
+// v9.28.0 — Budget des IMAGES synchronisées dans D1 (limite gratuite de la base : 500 Mo, partagés avec
+// tous les textes) : au-delà, les nouvelles images sont refusées (507) ; les textes restent acceptés.
+const IMG_BUDGET_BYTES = 350 * 1024 * 1024;
 
 function timingSafeEqual(a, b) {
   const enc = new TextEncoder();
@@ -134,6 +138,8 @@ function kvStore(env) {
       return { value: res ? res.value : null, version };
     },
     async version(key) { return (await this.read(key)).version; },
+    async imagesBytes() { return 0; }, // pas de budget en mode KV (valeur limitée à 25 Mio, pas de base partagée)
+    async remove(key) { await env.PLUME_SYNC.delete(key); },
     async write(key, body, current) {
       await env.PLUME_SYNC.put(key, body, { metadata: { v: current + 1 } });
       return { ok: true, version: current + 1 };
@@ -166,6 +172,17 @@ function d1Store(env) {
     async version(key) {
       const meta = await readMeta(key);
       return meta ? meta.version : (await kvFallback(key)).version;
+    },
+    // Octets déjà occupés par les images (préfixe de clé « img_ » : parcours par intervalle sur la clé primaire).
+    async imagesBytes() {
+      const r = await db.prepare("SELECT COALESCE(SUM(LENGTH(data)), 0) AS n FROM sync_chunks WHERE k >= 'img_' AND k < 'img`'").first();
+      return r ? r.n : 0;
+    },
+    async remove(key) {
+      await db.batch([
+        db.prepare('DELETE FROM sync_chunks WHERE k = ?1').bind(key),
+        db.prepare('DELETE FROM sync_meta WHERE k = ?1').bind(key)
+      ]);
     },
     async write(key, body, current) {
       const next = current + 1;
@@ -206,7 +223,7 @@ export default {
 
     const cors = {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,PUT,OPTIONS',
+      'Access-Control-Allow-Methods': 'GET,PUT,DELETE,OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Plume-Base-Version',
       // Sans ceci, le navigateur cache la réponse mais REFUSE au JavaScript
       // de lire nos en-têtes de version (règle CORS) : le client croirait
@@ -274,6 +291,23 @@ export default {
       });
     }
 
+    // v9.28.0 — Suppression d'une IMAGE synchronisée (manuscrit supprimé, image retirée). Réservée aux
+    // clés img_* : les textes se suppriment par pierre tombale (voir l'index de bibliothèque).
+    if (request.method === 'DELETE') {
+      if (!key.startsWith('img_')) {
+        return new Response(JSON.stringify({ error: { message: 'Suppression non autorisée pour cette clé.' } }), {
+          status: 405, headers: { ...cors, 'Content-Type': 'application/json' }
+        });
+      }
+      try { await store.remove(key); }
+      catch (e) {
+        return new Response(JSON.stringify({ error: { message: 'Suppression refusée par le stockage.' } }), {
+          status: 500, headers: { ...cors, 'Content-Type': 'application/json' }
+        });
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: { ...cors, 'Content-Type': 'application/json' } });
+    }
+
     if (request.method === 'PUT' || request.method === 'POST') {
       const declaredLength = Number(request.headers.get('Content-Length') || 0);
       if (declaredLength > MAX_BODY_BYTES) {
@@ -288,6 +322,16 @@ export default {
         });
       }
       const current = await store.version(key);
+
+      // v9.28.0 — Budget des images : refus (507) quand la place réservée est consommée.
+      if (key.startsWith('img_') && current === 0) {
+        const used = await store.imagesBytes();
+        if (used + body.length > IMG_BUDGET_BYTES) {
+          return new Response(JSON.stringify({ error: { message: 'Espace de synchronisation des images plein.' }, used, budget: IMG_BUDGET_BYTES }), {
+            status: 507, headers: { ...cors, 'Content-Type': 'application/json' }
+          });
+        }
+      }
 
       // Version sur laquelle l'appareil déclare se baser. Absente = appareil
       // encore sur une version antérieure du code : on refuse plutôt que de

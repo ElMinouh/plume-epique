@@ -319,14 +319,19 @@ async function megaExportLibrary() {
       if (entry.docType === 'roman_graphique' && typeof getAllGraphicImagesForDocument === 'function') {
         const recs = await getAllGraphicImagesForDocument(entry.id);
         if (recs.length) {
-          images[entry.id] = await Promise.all(recs.map(async r => ({
-            id: r.id, width: r.width, height: r.height,
-            data: bytesToBase64(new Uint8Array(await r.blob.arrayBuffer()))
-          })));
+          // v9.28.0 (AUD-01-011) : octets CHIFFRÉS avec la clé du profil (comme les manuscrits du même
+          // fichier) — avant, images en clair dans un fichier réputé chiffré. `enc:true` les distingue
+          // des anciens exports (images en clair), toujours acceptés à l'import.
+          const lot = [];
+          for (const r of recs) {
+            const cipher = await graphicImageCipher(r);
+            if (cipher) lot.push({ id: r.id, width: r.width, height: r.height, mime: r.mime || 'image/webp', enc: true, data: bytesToBase64(cipher) });
+          }
+          images[entry.id] = lot;
         }
       }
     }
-    const payload = JSON.stringify({ _plumeLibraryExport:true, version:2, doclist:list, documents, images });
+    const payload = JSON.stringify({ _plumeLibraryExport:true, version:3, doclist:list, documents, images });
     saveAs(new Blob([payload], {type:'application/json'}), 'bibliotheque_plume.json');
     toast('Export de toute la bibliothèque réussi.', 'success');
   } catch(e) {
@@ -357,7 +362,7 @@ function importProjectLibrary(input) {
         // silencieusement) l'image existante à ce nouveau manuscrit,
         // cassant le manuscrit d'origine. D'où le remappage des imageId
         // DANS le contenu déchiffré avant réenregistrement.
-        if (imgList.length && typeof putGraphicImageRecord === 'function') {
+        if (imgList.length && typeof restoreGraphicImage === 'function') {
           try {
             const decrypted = envelope && envelope._enc ? await Crypto.decrypt(envelope.data, _dataKey) : null;
             if (decrypted) {
@@ -372,11 +377,12 @@ function importProjectLibrary(input) {
               envelope = { _enc:true, data:cipher };
               for (const img of imgList) {
                 const bytes = Uint8Array.from(atob(img.data), c => c.charCodeAt(0));
-                const blob = new Blob([bytes], { type:'image/webp' });
-                // hash/refCount (Lot 8, audit #27) : garde ces images
-                // cohérentes avec le nouveau schéma de déduplication.
-                const hash = typeof computeImageHash === 'function' ? await computeImageHash(blob) : undefined;
-                await putGraphicImageRecord({ id: idMap[img.id], docId: newId, blob, width: img.width, height: img.height, hash, refCount: 1, createdAt: Date.now() });
+                // v9.28.0 : export chiffré (enc:true, octets chiffrés avec la clé du profil — vérifiés avant
+                // d'être gardés) ou ancien export en clair (rechiffré ici). restoreGraphicImage calcule
+                // l'empreinte de déduplication et chiffre au repos.
+                await restoreGraphicImage(img.enc
+                  ? { id: idMap[img.id], docId: newId, cipherBytes: bytes, mime: img.mime, width: img.width, height: img.height, refCount: 1 }
+                  : { id: idMap[img.id], docId: newId, plainBytes: bytes, mime: img.mime || 'image/webp', width: img.width, height: img.height, refCount: 1 });
               }
             }
             // decrypted === null : fichier d'un autre profil, illisible de

@@ -1,20 +1,35 @@
 'use strict';
 // ═══════════════════════════════════════════════════════
-// IMAGES DU ROMAN GRAPHIQUE — stockage local séparé (nouveau)
+// IMAGES DU ROMAN GRAPHIQUE — stockage local séparé, CHIFFRÉ, synchronisé
 // Les images des pages illustrées ne vivent JAMAIS dans db.pages (qui est
 // chiffré, stringifié et poussé vers l'API Gist à chaque synchro) : à cette
 // taille, elles feraient exploser le payload et la limite de localStorage.
 // Elles vivent dans leur propre base IndexedDB, compressées à l'import, et
-// db.pages ne garde qu'un imageId qui pointe dessus. Ce fichier ne dépend
-// d'aucun autre script de l'app (hors la lib "idb" déjà chargée par
-// index.html) — il peut être testé/relu isolément.
+// db.pages ne garde qu'un imageId qui pointe dessus.
+//
+// v9.28.0 (audit AUD-01-011) — TROIS CHANGEMENTS :
+//  A. CHIFFREMENT AU REPOS : chaque image est chiffrée (AES-GCM, clé dérivée de
+//     la clé de données du profil) avant d'être rangée. Avant, elles étaient
+//     stockées en clair et lisibles par n'importe qui ayant accès au navigateur,
+//     sans aucune séparation entre profils. Les images anciennes (blob en clair)
+//     sont converties à la première ouverture du manuscrit
+//     (migrateGraphicImagesToEncrypted) et restent lisibles d'ici là.
+//  B. L'envoi Gist et l'export réutilisent l'octet chiffré tel quel (voir library.js).
+//  C. SYNCHRONISATION ENTRE APPAREILS via le Worker de synchro (clés img_*),
+//     chiffrée, une seule fois par image (une image est immuable), et récupérée
+//     à la demande quand un appareil ne l'a pas encore.
+//
+// Format d'un enregistrement :
+//   ancien : { id, docId, blob, width, height, hash, refCount, createdAt }
+//   chiffré: { id, docId, enc:true, data:<iv(12)+chiffré>, mime, size, width, height,
+//              hash (clé), refCount, createdAt, synced:boolean }
+// Sans clé de données disponible (tests isolés), on retombe sur l'ancien format.
 // ═══════════════════════════════════════════════════════
 const PLUME_IMAGES_DB = 'plume_epique_images';
 // 2600px (Lot 2, audit #1) : le format d'export 20×25cm + 3mm de fond perdu
 // à 300 DPI demande jusqu'à ~2432px pour une image plein cadre plein page
 // (voir GN_PDF_TRIM_MM/GN_PDF_BLEED_MM/GN_PDF_DPI dans graphicnovel.js) —
-// 2600px laisse une marge de sécurité sans exploser le poids de stockage
-// local (cette base n'est ni synchronisée ni chiffrée, donc coût local seul).
+// 2600px laisse une marge de sécurité sans exploser le poids de stockage.
 const PLUME_IMAGES_MAX_DIMENSION = 2600; // px, côté le plus long
 const PLUME_IMAGES_QUALITY = 0.85;
 
@@ -28,12 +43,7 @@ async function plumeImagesDb() {
         : transaction.objectStore('images');
       if (oldVersion < 2) {
         // Lot 8, audit #27 — déduplication par contenu : index composé
-        // (docId+hash) pour retrouver en une requête une image identique
-        // déjà stockée dans le même manuscrit. Les enregistrements créés
-        // avant cette version n'ont pas de champ "hash" : IndexedDB les
-        // ignore simplement dans cet index (pas d'erreur, juste pas
-        // candidats à une déduplication rétroactive — volontaire, pour ne
-        // pas toucher aux images déjà en place).
+        // (docId+hash). Les enregistrements sans "hash" sont ignorés de cet index.
         store.createIndex('docIdHash', ['docId', 'hash']);
       }
     }
@@ -41,19 +51,53 @@ async function plumeImagesDb() {
   return _plumeImagesDb;
 }
 
-// SHA-256 du contenu (déjà compressé) d'une image — sert de clé de
-// déduplication (Lot 8, audit #27). API native du navigateur, aucune
-// dépendance supplémentaire.
+// ── Outils octets ↔ base64 (indépendants de crypto.js, chargé après ce fichier) ──
+function imgBytesToBase64(bytes) {
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  return btoa(binary);
+}
+function imgBase64ToBytes(b64) { return Uint8Array.from(atob(b64), c => c.charCodeAt(0)); }
+function imgToBytes(data) { return data instanceof Uint8Array ? data : new Uint8Array(data); }
+
+// ── Chiffrement des images ──
+function imagesCanEncrypt() {
+  return typeof Crypto !== 'undefined' && typeof Crypto.encryptBytes === 'function' && typeof _dataKey === 'string' && !!_dataKey;
+}
+// Octets en clair d'un enregistrement (chiffré ou ancien) ; null si illisible.
+async function graphicImageBytes(rec) {
+  if (!rec) return null;
+  if (rec.enc) return imagesCanEncrypt() ? await Crypto.decryptBytes(imgToBytes(rec.data), _dataKey) : null;
+  if (rec.blob) return new Uint8Array(await rec.blob.arrayBuffer());
+  return null;
+}
+// Octets CHIFFRÉS d'un enregistrement (chiffre à la volée un ancien enregistrement en clair).
+async function graphicImageCipher(rec) {
+  if (!rec) return null;
+  if (rec.enc) return imgToBytes(rec.data);
+  if (!imagesCanEncrypt()) return null;
+  const plain = await graphicImageBytes(rec);
+  return plain ? await Crypto.encryptBytes(plain, _dataKey) : null;
+}
+
+// SHA-256 du contenu (déjà compressé) d'une image — sert de clé de déduplication.
 async function computeImageHash(blob) {
   const buf = await blob.arrayBuffer();
   const digest = await crypto.subtle.digest('SHA-256', buf);
   return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
+// Empreinte de déduplication stockée EN CLAIR à côté de l'image chiffrée : liée à la clé du
+// profil, pour qu'elle ne permette pas de reconnaître une image connue (attaque par confirmation).
+async function keyedImageHash(blob) {
+  const plain = await computeImageHash(blob);
+  if (!imagesCanEncrypt()) return plain;
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(_dataKey + '\u0000img\u0000' + plain));
+  return Array.from(new Uint8Array(d)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
-// Redimensionne/compresse un fichier image importé (photo appareil, PNG
-// lourd...) en WebP, taille max PLUME_IMAGES_MAX_DIMENSION sur le plus grand
-// côté. Renvoie { blob, width, height } — les dimensions FINALES (après
-// redimensionnement), utilisées pour l'alerte "résolution trop basse".
+// Redimensionne/compresse un fichier image importé en WebP, taille max
+// PLUME_IMAGES_MAX_DIMENSION sur le plus grand côté. Renvoie { blob, width, height }.
 async function compressImageFile(file) {
   const bitmap = await createImageBitmap(file);
   let { width, height } = bitmap;
@@ -72,16 +116,23 @@ async function compressImageFile(file) {
   return { blob: blob || file, width, height };
 }
 
-// Importe un fichier, le compresse, le stocke, renvoie la référence à écrire
+// Fabrique l'enregistrement d'une image à partir de ses octets en clair (chiffré si possible).
+async function buildImageRecord({ id, docId, bytes, mime, width, height, hash, refCount, synced, blob }) {
+  const base = { id, docId, width, height, hash, refCount: refCount || 1, createdAt: Date.now() };
+  if (imagesCanEncrypt()) {
+    return { ...base, enc: true, data: await Crypto.encryptBytes(bytes, _dataKey), mime: mime || 'image/webp', size: bytes.length, synced: !!synced };
+  }
+  return { ...base, blob: blob || new Blob([bytes], { type: mime || 'image/webp' }) };
+}
+
+// Importe un fichier, le compresse, le stocke (chiffré), renvoie la référence à écrire
 // dans l'élément image de la page (imageId/imageW/imageH).
-// Lot 8, audit #27 — déduplication : si ce manuscrit contient déjà une
-// image de contenu identique (même hash), on réutilise son id au lieu d'en
-// stocker une copie — refCount compte le nombre d'éléments qui s'en
-// servent, pour ne la supprimer réellement que lorsque plus aucun ne la
-// référence (voir deleteGraphicImage plus bas).
+// Déduplication (Lot 8, audit #27) : si ce manuscrit contient déjà une image de contenu
+// identique (même empreinte), on réutilise son id — refCount compte le nombre d'éléments qui
+// s'en servent.
 async function storeGraphicImage(file, docId) {
   const { blob, width, height } = await compressImageFile(file);
-  const hash = await computeImageHash(blob);
+  const hash = await keyedImageHash(blob);
   const db = await plumeImagesDb();
   const existing = await db.getFromIndex('images', 'docIdHash', [docId, hash]);
   if (existing) {
@@ -90,32 +141,36 @@ async function storeGraphicImage(file, docId) {
     return { imageId: existing.id, imageW: existing.width, imageH: existing.height };
   }
   const id = genElementId();
-  await db.put('images', { id, docId, blob, width, height, hash, refCount: 1, createdAt: Date.now() });
-  return { imageId:id, imageW:width, imageH:height };
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const rec = await buildImageRecord({ id, docId, bytes, mime: blob.type, width, height, hash, refCount: 1, blob });
+  await db.put('images', rec);
+  if (rec.enc && typeof queueGraphicImagePush === 'function') queueGraphicImagePush(id);
+  return { imageId: id, imageW: width, imageH: height };
 }
 
-// Cache mémoire des URL objet déjà créées, pour ne pas relire l'IndexedDB à
-// chaque re-rendu du canvas (l'éditeur redessine souvent pendant un
-// glisser-déposer).
+// Cache mémoire des URL objet déjà créées (le canvas redessine souvent).
 const _plumeImageUrlCache = new Map();
 async function graphicImageUrl(imageId) {
   if (!imageId) return null;
   if (_plumeImageUrlCache.has(imageId)) return _plumeImageUrlCache.get(imageId);
   const db = await plumeImagesDb();
-  const rec = await db.get('images', imageId);
+  let rec = await db.get('images', imageId);
+  // Image inconnue sur cet appareil (créée ailleurs) : on la récupère auprès du serveur de synchro.
+  if (!rec && typeof pullGraphicImage === 'function') rec = await pullGraphicImage(imageId);
   if (!rec) return null;
-  const url = URL.createObjectURL(rec.blob);
+  let blob = rec.blob;
+  if (rec.enc) {
+    const bytes = await graphicImageBytes(rec);
+    if (!bytes) return null;
+    blob = new Blob([bytes], { type: rec.mime || 'image/webp' });
+  }
+  if (!blob) return null;
+  const url = URL.createObjectURL(blob);
   _plumeImageUrlCache.set(imageId, url);
   return url;
 }
 
-// Utilisée par la duplication de page (Lot 5, audit #15). Avant le
-// compteur de références (Lot 8, audit #27), cette fonction copiait le
-// blob sous un nouvel id pour garantir que supprimer l'image sur une page
-// ne casse pas l'autre. Le refCount offre maintenant la même garantie sans
-// dupliquer le stockage : on garde le MÊME id, on incrémente juste son
-// compteur — la suppression réelle n'aura lieu que lorsque plus aucun
-// élément ne référence l'image (voir deleteGraphicImage).
+// Duplication de page : on garde le MÊME id, on incrémente juste son compteur (refCount).
 async function duplicateGraphicImage(imageId, docId) {
   if (!imageId) return null;
   const db = await plumeImagesDb();
@@ -126,10 +181,13 @@ async function duplicateGraphicImage(imageId, docId) {
   return { imageId: rec.id, imageW: rec.width, imageH: rec.height };
 }
 
-// Décrémente le compteur de références d'une image — ne la supprime pour
-// de vrai que lorsque plus aucun élément ne s'en sert (Lot 8, audit #27).
-// Les enregistrements créés avant le compteur n'ont pas de champ refCount :
-// traité comme 1 (comportement d'origine, une seule référence).
+function forgetImageUrl(imageId) {
+  const cached = _plumeImageUrlCache.get(imageId);
+  if (cached) { URL.revokeObjectURL(cached); _plumeImageUrlCache.delete(imageId); }
+}
+
+// Décrémente le compteur de références d'une image — ne la supprime pour de vrai que lorsque
+// plus aucun élément ne s'en sert. Les enregistrements anciens sans refCount valent 1.
 async function deleteGraphicImage(imageId) {
   if (!imageId) return;
   try {
@@ -140,21 +198,16 @@ async function deleteGraphicImage(imageId) {
     if (newCount > 0) {
       rec.refCount = newCount;
       await db.put('images', rec);
-      return; // encore référencée ailleurs : le blob ne doit pas bouger
+      return;
     }
-    const cached = _plumeImageUrlCache.get(imageId);
-    if (cached) { URL.revokeObjectURL(cached); _plumeImageUrlCache.delete(imageId); }
+    forgetImageUrl(imageId);
     await db.delete('images', imageId);
+    if (typeof deleteRemoteGraphicImage === 'function') deleteRemoteGraphicImage(rec.docId, imageId);
   } catch (e) { /* best effort */ }
 }
 
-// v9.25.0 (audit AUD-01-006) — Ramène le compteur de références d'une image au
-// nombre RÉEL d'éléments qui l'utilisent encore (`uses`, compté par l'appelant
-// dans les pages et la corbeille). À 0 : l'image est supprimée ; sinon elle
-// est CONSERVÉE, quelle que soit la valeur que le compteur avait dérivé.
-// Remplace le simple « décrémenter » à la purge de la corbeille, qui pouvait
-// détruire une image encore affichée après un « annuler » (le compteur ne
-// sait pas ce que l'historique d'annulation a rétabli).
+// v9.25.0 (audit AUD-01-006) — Ramène le compteur de références au nombre RÉEL d'éléments qui
+// utilisent encore l'image. À 0 : supprimée ; sinon CONSERVÉE, quelle que soit la dérive du compteur.
 async function reconcileGraphicImageRef(imageId, uses) {
   if (!imageId) return;
   try {
@@ -165,57 +218,196 @@ async function reconcileGraphicImageRef(imageId, uses) {
       if (rec.refCount !== uses) { rec.refCount = uses; await db.put('images', rec); }
       return;
     }
-    const cached = _plumeImageUrlCache.get(imageId);
-    if (cached) { URL.revokeObjectURL(cached); _plumeImageUrlCache.delete(imageId); }
+    forgetImageUrl(imageId);
     await db.delete('images', imageId);
+    if (typeof deleteRemoteGraphicImage === 'function') deleteRemoteGraphicImage(rec.docId, imageId);
   } catch (e) { /* best effort */ }
 }
 
-// Nettoyage complet à la suppression d'un manuscrit roman graphique (appelé
-// depuis library.js/cleanupDocumentSideData) — évite d'accumuler des images
-// orphelines indéfiniment, même principe que le nettoyage déjà en place pour
-// l'historique du chat IA et les sauvegardes de conflit.
-// Suppression FORCÉE (pas via deleteGraphicImage) : le manuscrit entier
-// disparaît, refCount n'a plus de sens — le décrémenter laisserait des
-// images orphelines derrière lui si l'une d'elles était référencée plus
-// d'une fois (Lot 8, audit #27).
-async function deleteAllGraphicImagesForDocument(docId) {
+// Nettoyage complet à la suppression d'un manuscrit roman graphique. Suppression FORCÉE
+// (refCount n'a plus de sens). `opts.localOnly` : ne touche pas au serveur (la suppression a eu
+// lieu sur un autre appareil, qui s'en est déjà chargé) ; `opts.profileId` : profil propriétaire.
+async function deleteAllGraphicImagesForDocument(docId, opts) {
+  opts = opts || {};
   try {
     const db = await plumeImagesDb();
     const keys = await db.getAllKeysFromIndex('images', 'docId', docId);
     for (const id of keys) {
-      const cached = _plumeImageUrlCache.get(id);
-      if (cached) { URL.revokeObjectURL(cached); _plumeImageUrlCache.delete(id); }
+      forgetImageUrl(id);
       await db.delete('images', id);
+      if (!opts.localOnly && typeof deleteRemoteGraphicImage === 'function') deleteRemoteGraphicImage(docId, id, opts.profileId);
     }
   } catch(e) { /* best effort */ }
 }
 
-// Toutes les images d'un document (Lot 7, audit #25) — utilisé pour les
-// inclure dans la sauvegarde JSON et la synchronisation Gist, qui ne
-// touchaient jusqu'ici que db.pages (les images, elles, vivent uniquement
-// dans cette base locale — voir la note en tête de fichier).
+// Toutes les images d'un document (enregistrements bruts : chiffrés ou anciens).
 async function getAllGraphicImagesForDocument(docId) {
   const db = await plumeImagesDb();
   return db.getAllFromIndex('images', 'docId', docId);
 }
 
-// Poids total (octets) des images d'un document (Lot 8, audit #26) —
-// utilisé pour afficher un repère de taille et avertir avant d'approcher
-// du quota de stockage réel du navigateur (voir gnUpdateStorageInfo,
-// graphicnovel.js), plutôt que de laisser l'utilisateur découvrir le
-// problème via une erreur de quota dépassé en pleine séance.
+// Poids total (octets, en clair) des images d'un document.
 async function getGraphicImagesTotalSize(docId) {
   const list = await getAllGraphicImagesForDocument(docId);
-  return list.reduce((sum, rec) => sum + (rec.blob ? rec.blob.size : 0), 0);
+  return list.reduce((sum, rec) => sum + (rec.enc ? (rec.size || 0) : (rec.blob ? rec.blob.size : 0)), 0);
 }
 
-// Écrit (ou remplace) un enregistrement d'image tel quel — utilisé à la
-// restauration depuis un fichier JSON ou un Gist. Les images ne sont jamais
-// modifiées après création (seulement dupliquées avec un nouvel id, ou
-// supprimées) : réécrire un id déjà présent avec le même contenu est donc
-// sans risque.
+// Écrit (ou remplace) un enregistrement d'image tel quel.
 async function putGraphicImageRecord(rec) {
   const db = await plumeImagesDb();
   await db.put('images', rec);
+}
+
+// Restaure une image à partir de ses octets (fichier JSON, Gist, serveur) : `plainBytes` en
+// clair, ou `cipherBytes` (déjà chiffrés avec la clé de CE profil — vérifiés avant d'être gardés).
+async function restoreGraphicImage({ id, docId, plainBytes, cipherBytes, mime, width, height, refCount, synced }) {
+  let plain = plainBytes || null;
+  if (!plain && cipherBytes && imagesCanEncrypt()) plain = await Crypto.decryptBytes(imgToBytes(cipherBytes), _dataKey);
+  if (!plain) return null; // illisible (autre profil, fichier corrompu)
+  const blob = new Blob([plain], { type: mime || 'image/webp' });
+  const hash = await keyedImageHash(blob);
+  let rec;
+  if (cipherBytes && imagesCanEncrypt() && !plainBytes) {
+    rec = { id, docId, enc: true, data: imgToBytes(cipherBytes), mime: mime || 'image/webp', size: plain.length, width, height, hash, refCount: refCount || 1, createdAt: Date.now(), synced: !!synced };
+  } else {
+    rec = await buildImageRecord({ id, docId, bytes: plain, mime, width, height, hash, refCount, synced });
+  }
+  await putGraphicImageRecord(rec);
+  return rec;
+}
+
+// Convertit en clair → chiffré toutes les images d'un manuscrit. Sûr : chaque image est
+// rechiffrée, RELUE et comparée avant de remplacer l'ancienne ; en cas de doute, l'ancienne reste.
+async function migrateGraphicImagesToEncrypted(docId) {
+  if (!imagesCanEncrypt()) return 0;
+  let converted = 0;
+  const db = await plumeImagesDb();
+  const recs = await db.getAllFromIndex('images', 'docId', docId);
+  for (const rec of recs) {
+    if (rec.enc || !rec.blob) continue;
+    try {
+      const bytes = new Uint8Array(await rec.blob.arrayBuffer());
+      const sealed = await Crypto.encryptBytes(bytes, _dataKey);
+      const back = await Crypto.decryptBytes(sealed, _dataKey);
+      if (!back || back.length !== bytes.length) continue;
+      const hash = await keyedImageHash(rec.blob);
+      const tx = db.transaction('images', 'readwrite');
+      const fresh = await tx.store.get(rec.id);
+      if (fresh && !fresh.enc) {
+        await tx.store.put({ id: fresh.id, docId: fresh.docId, enc: true, data: sealed, mime: rec.blob.type || 'image/webp', size: bytes.length,
+          width: fresh.width, height: fresh.height, hash, refCount: fresh.refCount || 1, createdAt: fresh.createdAt || Date.now(), synced: false });
+        converted++;
+      }
+      await tx.done;
+    } catch (e) { /* cette image reste en clair, réessayée à la prochaine ouverture */ }
+  }
+  return converted;
+}
+
+// ═══════════════════════════════════════════════════════
+// SYNCHRONISATION DES IMAGES ENTRE APPAREILS (v9.28.0, C)
+// Une image est IMMUABLE : on ne l'envoie qu'une fois (version 0 → 1 ; un 409 signifie « déjà
+// là »), chiffrée, sous la clé img_<profil>_<manuscrit>_<image>. Un appareil qui ne l'a pas
+// la récupère à la demande (graphicImageUrl). Le stockage D1 gratuit étant limité (500 Mo, voir
+// worker/sync-worker.js), le serveur refuse au-delà d'un budget (507) : on s'arrête alors une
+// heure et on prévient une fois — la sauvegarde GitHub reste disponible.
+// ═══════════════════════════════════════════════════════
+let _imgSyncBlockedUntil = 0, _imgBudgetWarned = false;
+const IMG_SYNC_BLOCK_MS = 60 * 60 * 1000;
+function imageRemoteKey(docId, imageId, profileId) {
+  return 'img_' + (profileId || (typeof _currentProfileId !== 'undefined' ? _currentProfileId : '')) + '_' + docId + '_' + imageId;
+}
+function imageSyncReady() {
+  return typeof getSyncKey === 'function' && !!getSyncKey() && typeof fetchWithTimeout === 'function' && typeof SYNC_WORKER_URL !== 'undefined';
+}
+function imageSyncUrl(key) { return SYNC_WORKER_URL + '?key=' + encodeURIComponent(key); }
+
+async function markGraphicImageSynced(imageId) {
+  const db = await plumeImagesDb();
+  const tx = db.transaction('images', 'readwrite');
+  const rec = await tx.store.get(imageId);
+  if (rec && !rec.synced) await tx.store.put({ ...rec, synced: true });
+  await tx.done;
+}
+
+// Envoie une image chiffrée au serveur (une seule fois). Renvoie true si elle y est.
+async function pushGraphicImage(imageId) {
+  if (!imageSyncReady() || Date.now() < _imgSyncBlockedUntil) return false;
+  try {
+    const db = await plumeImagesDb();
+    const rec = await db.get('images', imageId);
+    if (!rec || !rec.enc) return false;
+    if (rec.synced) return true;
+    const body = JSON.stringify({ v: 1, w: rec.width, h: rec.height, mime: rec.mime, data: imgBytesToBase64(imgToBytes(rec.data)) });
+    const resp = await fetchWithTimeout(imageSyncUrl(imageRemoteKey(rec.docId, imageId)), {
+      method: 'PUT', timeoutMs: 120000, body,
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getSyncKey(), 'X-Plume-Base-Version': '0' }
+    });
+    if (resp.ok || resp.status === 409) { await markGraphicImageSynced(imageId); return true; }
+    if (resp.status === 507) {
+      _imgSyncBlockedUntil = Date.now() + IMG_SYNC_BLOCK_MS;
+      if (!_imgBudgetWarned && typeof toast === 'function') { _imgBudgetWarned = true; toast("Le stockage de synchronisation des images est plein : elles restent sur cet appareil. Utilisez la sauvegarde GitHub pour les déplacer.", 'error'); }
+    }
+    return false;
+  } catch (e) { return false; }
+}
+let _imgPushChain = Promise.resolve();
+// File d'attente : une image à la fois (pas de rafale de gros envois).
+function queueGraphicImagePush(imageId) {
+  _imgPushChain = _imgPushChain.then(() => pushGraphicImage(imageId)).catch(() => false);
+  return _imgPushChain;
+}
+// Envoie toutes les images pas encore synchronisées d'un manuscrit (appelée à l'ouverture).
+async function syncUpGraphicImages(docId) {
+  if (!imageSyncReady()) return 0;
+  const recs = await getAllGraphicImagesForDocument(docId);
+  let sent = 0;
+  for (const rec of recs) if (rec.enc && !rec.synced && await queueGraphicImagePush(rec.id)) sent++;
+  return sent;
+}
+async function countUnsyncedGraphicImages(docId) {
+  const recs = await getAllGraphicImagesForDocument(docId);
+  return recs.filter(r => !r.synced).length;
+}
+
+// Récupère une image absente de cet appareil. Le contexte (manuscrit, profil) est celui du manuscrit ouvert.
+async function pullGraphicImage(imageId) {
+  if (!imageSyncReady() || typeof _currentDocumentId === 'undefined' || !_currentDocumentId || !imagesCanEncrypt()) return null;
+  try {
+    const resp = await fetchWithTimeout(imageSyncUrl(imageRemoteKey(_currentDocumentId, imageId)), {
+      timeoutMs: 120000, headers: { 'Authorization': 'Bearer ' + getSyncKey() }
+    });
+    if (!resp.ok) return null;
+    const obj = await resp.json();
+    if (!obj || !obj.data) return null;
+    return await restoreGraphicImage({ id: imageId, docId: _currentDocumentId, cipherBytes: imgBase64ToBytes(obj.data), mime: obj.mime, width: obj.w, height: obj.h, refCount: 1, synced: true });
+  } catch (e) { return null; }
+}
+
+// Supprime l'image du serveur (meilleur effort). Un échec réseau est mémorisé et retenté au démarrage.
+const IMG_DELETES_KEY = 'plume_img_remote_deletes';
+function pendingImageDeletes() { try { const v = JSON.parse(localStorage.getItem(IMG_DELETES_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+async function deleteRemoteGraphicImage(docId, imageId, profileId) {
+  if (typeof getSyncKey !== 'function' || !getSyncKey()) return false;
+  const key = imageRemoteKey(docId, imageId, profileId);
+  try {
+    const resp = await fetchWithTimeout(imageSyncUrl(key), { method: 'DELETE', timeoutMs: 20000, headers: { 'Authorization': 'Bearer ' + getSyncKey() } });
+    if (resp.ok) return true;
+    if (resp.status === 400 || resp.status === 405) return false; // ancienne version du Worker : rien à retenter
+  } catch (e) { /* hors-ligne : retenté plus tard */ }
+  const list = new Set(pendingImageDeletes()); list.add(key);
+  try { localStorage.setItem(IMG_DELETES_KEY, JSON.stringify([...list])); } catch (e) { /* stockage plein */ }
+  return false;
+}
+async function retryPendingImageDeletes() {
+  if (typeof getSyncKey !== 'function' || !getSyncKey()) return;
+  for (const key of pendingImageDeletes()) {
+    try {
+      const resp = await fetchWithTimeout(imageSyncUrl(key), { method: 'DELETE', timeoutMs: 20000, headers: { 'Authorization': 'Bearer ' + getSyncKey() } });
+      if (resp.ok || resp.status === 400 || resp.status === 405) {
+        const rest = pendingImageDeletes().filter(k => k !== key);
+        localStorage.setItem(IMG_DELETES_KEY, JSON.stringify(rest));
+      }
+    } catch (e) { return; }
+  }
 }
