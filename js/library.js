@@ -223,6 +223,7 @@ async function syncReconcileKey(key) {
     const merged = key === 'profiles' ? mergeProfilesIndex(local, remote) : mergeDocList(local, remote);
     await writeLocalOnly(key, merged);
     setSyncVersion(key, version);
+    if (isDocListKey(key)) await purgeTombstonedDocs(key, merged);
     // La fusion apporte-t-elle quelque chose que le serveur n'a pas ? Si oui,
     // on le lui renvoie ; sinon on n'écrit rien (pas de version inutile).
     if (JSON.stringify(merged) !== JSON.stringify(remote)) queueSyncPush(key, merged);
@@ -838,7 +839,16 @@ async function openDocument(docId) {
   if (!stored || !stored._enc) { toast('Manuscrit introuvable.', 'error'); return; }
   const dec = await Crypto.decrypt(stored.data, _dataKey);
   if (!dec) { toast('Impossible de déchiffrer ce manuscrit.', 'error'); return; }
-  db = migrateDb(JSON.parse(dec));
+  let opened;
+  try { opened = migrateDb(JSON.parse(dec)); }
+  catch (e) {
+    // v9.26.0 (AUD-01-018) — manuscrit d'une version plus récente de Plume :
+    // on n'y touche pas, et on relance la recherche de mise à jour.
+    toast(e && e.message ? e.message : 'Impossible d\'ouvrir ce manuscrit.', 'error');
+    if (typeof checkForAppUpdate === 'function') checkForAppUpdate();
+    return;
+  }
+  db = opened;
   _currentDocumentId = docId;
   cur = 0;
   hideLibraryScreen();
@@ -899,7 +909,7 @@ async function deleteDocument(docId) {
   const title = entry.title || 'Sans titre';
   const ok = await showConfirmModal({
     title: 'Supprimer ce manuscrit ?',
-    message: `« ${title} » et tous ses chapitres seront effacés définitivement, sans possibilité de récupération.`,
+    message: `« ${title} » et tous ses chapitres seront effacés définitivement, sur tous vos appareils, sans possibilité de récupération.`,
     confirmLabel: 'Supprimer définitivement',
     danger: true,
     requireText: title
@@ -911,9 +921,15 @@ async function deleteDocument(docId) {
   // pu devenir périmée pendant l'attente de la confirmation ci-dessus).
   await mutateDocList(freshList => {
     freshList.documents = freshList.documents.filter(d => d.id !== docId);
+    // v9.26.0 (AUD-01-008) — pierre tombale : les autres appareils retirent
+    // l'entrée et leur copie, et ne la ressuscitent plus à la fusion.
+    freshList.deleted = mergeTombstones(freshList.deleted, [{ id: docId, at: Date.now() }], Date.now());
   });
+  // La suppression doit partir tout de suite (l'index est sinon différé de 2 min) :
+  // un appareil qui se synchroniserait entre-temps ressusciterait l'entrée.
+  if (typeof flushPendingSyncPushes === 'function') flushPendingSyncPushes();
   await renderLibraryScreen();
-  toast('Manuscrit supprimé définitivement', 'success');
+  toast('Manuscrit supprimé définitivement (sur tous vos appareils)', 'success');
 }
 
 async function backToLibrary() {
@@ -1087,7 +1103,20 @@ async function libSyncManuscript(docId, opts) {
     // Persisté à chaque appel désormais (plus seulement au premier envoi) :
     // gistSyncedImageIds doit rester à jour localement pour éviter de
     // renvoyer les mêmes images indéfiniment.
-    await persistManuscriptData(docId, mData);
+    // v9.26.0 (audit AUD-01-007) — NE PAS réécrire la copie lue AVANT l'envoi
+    // réseau : pendant ces secondes l'éditeur a pu enregistrer de nouveaux
+    // mots, que cette réécriture aurait écrasés. On relit le manuscrit tel
+    // qu'il est MAINTENANT et on n'y ajoute que les deux informations de la
+    // sauvegarde ; l'éditeur ouvert sur ce manuscrit les reçoit aussi en
+    // mémoire (sinon son prochain enregistrement les effacerait).
+    const fresh = await loadManuscriptData(docId);
+    fresh.gistId = mData.gistId;
+    if (newImageIds.length) fresh.gistSyncedImageIds = Array.from(new Set([...(fresh.gistSyncedImageIds || []), ...newImageIds]));
+    if (_currentDocumentId === docId && db) {
+      db.gistId = fresh.gistId;
+      if (newImageIds.length) db.gistSyncedImageIds = fresh.gistSyncedImageIds;
+    }
+    await persistManuscriptData(docId, fresh);
     await mutateDocList(list => {
       const entry = list.documents.find(d => d.id === docId);
       if (entry) entry.lastGistSync = Date.now();

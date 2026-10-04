@@ -46,6 +46,11 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// v9.26.0 — Redemande au navigateur de chercher une nouvelle version de
+// l'application (appelée quand un manuscrit vient d'une version plus récente).
+function checkForAppUpdate() {
+  try { if (_swRegistration && _swRegistration.update) _swRegistration.update(); } catch (e) { /* sans effet */ }
+}
 function showUpdateBanner() {
   // Mise à jour repérée juste après le chargement : on l'applique sans
   // attendre (voir la note en haut de ce fichier) — la page se recharge

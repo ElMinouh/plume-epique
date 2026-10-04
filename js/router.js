@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.25.0';
+const APP_VERSION = '9.26.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -312,18 +312,63 @@ function removeConflictPausedKey(key) {
 // Aucun manuscrit ne peut disparaître par fusion ; pour un même manuscrit,
 // l'entrée la plus récemment modifiée l'emporte.
 // ═══════════════════════════════════════════════════════
+// v9.26.0 (audit AUD-01-008) — SUPPRESSIONS : l'index porte désormais une liste
+// `deleted` ([{ id, at }], « pierres tombales »). Sans elle, la fusion ne
+// savait qu'AJOUTER : un manuscrit supprimé sur un appareil revenait de
+// l'autre, en entrée fantôme (donnée supprimée, entrée impossible à retirer).
+// Une pierre tombale l'emporte sur toute entrée de même id ; elle est
+// conservée DOC_TOMBSTONE_TTL_MS (un appareil resté hors ligne moins longtemps
+// l'apprendra) puis oubliée.
+const DOC_TOMBSTONE_TTL_MS = 90 * 24 * 3600 * 1000;
+function mergeTombstones(a, b, now) {
+  const byId = new Map();
+  for (const t of [].concat(a || [], b || [])) {
+    if (!t || !t.id) continue;
+    if (now - (t.at || 0) > DOC_TOMBSTONE_TTL_MS) continue;
+    const prev = byId.get(t.id);
+    if (!prev || (t.at || 0) < (prev.at || 0)) byId.set(t.id, { id: t.id, at: t.at || now });
+  }
+  return Array.from(byId.values());
+}
 function mergeDocList(local, remote) {
   if (!remote || !Array.isArray(remote.documents)) return local;
   if (!local || !Array.isArray(local.documents)) return remote;
+  const now = Date.now();
+  const deleted = mergeTombstones(local.deleted, remote.deleted, now);
+  const gone = new Set(deleted.map(t => t.id));
   const byId = new Map();
-  for (const d of remote.documents) if (d && d.id) byId.set(d.id, d);
+  for (const d of remote.documents) if (d && d.id && !gone.has(d.id)) byId.set(d.id, d);
   for (const d of local.documents) {
-    if (!d || !d.id) continue;
+    if (!d || !d.id || gone.has(d.id)) continue;
     const other = byId.get(d.id);
     if (!other) { byId.set(d.id, d); continue; }
     byId.set(d.id, (d.lastModified || 0) >= (other.lastModified || 0) ? d : other);
   }
-  return { ...remote, documents: Array.from(byId.values()) };
+  return { ...remote, documents: Array.from(byId.values()), deleted };
+}
+// Efface la copie LOCALE des manuscrits supprimés ailleurs (pierres tombales
+// reçues). Jamais le manuscrit actuellement ouvert (on ne retire pas le tapis
+// sous l'utilisateur : il sera purgé à la prochaine fusion). Écriture locale
+// seulement : le serveur a déjà reçu la suppression de l'appareil d'origine.
+async function purgeTombstonedDocs(listKey, list) {
+  try {
+    if (!list || !Array.isArray(list.deleted) || !list.deleted.length || !isDocListKey(listKey)) return false;
+    const pid = listKey.slice('doclist_'.length);
+    let purged = false;
+    for (const t of list.deleted) {
+      if (typeof _currentDocumentId !== 'undefined' && _currentDocumentId === t.id) continue;
+      const dk = 'doc_' + pid + '_' + t.id;
+      const existing = await readLocalOnly(dk);
+      if (existing === undefined || existing === null) continue;
+      await writeLocalOnly(dk, null);
+      removePendingSyncKey(dk); removeConflictPausedKey(dk);
+      clearTimeout(_pushDebounceTimers[dk]); delete _pushDebounceTimers[dk]; delete _pendingSince[dk]; delete _pendingPayload[dk];
+      if (typeof cleanupDocumentSideData === 'function') { try { await cleanupDocumentSideData(pid, t.id); } catch (e) { /* best effort */ } }
+      purged = true;
+    }
+    if (purged && typeof onRemoteVersionAdopted === 'function') onRemoteVersionAdopted(listKey);
+    return purged;
+  } catch (e) { return false; }
 }
 function isDocListKey(key) { return typeof key === 'string' && key.startsWith('doclist_'); }
 
@@ -520,6 +565,7 @@ async function syncPush(key, payload, attempt = 0) {
           ? mergeProfilesIndex(payload, pulled.data)
           : mergeDocList(payload, pulled.data);
         await writeLocalOnly(key, merged);
+        if (isDocListKey(key)) await purgeTombstonedDocs(key, merged);
         return await syncPush(key, merged, attempt + 1);
       }
 
@@ -965,6 +1011,7 @@ async function loadData(key) {
         } else {
           await writeLocalOnly(key, remote);
           setSyncVersion(key, remoteVersion);
+          if (isDocListKey(key)) purgeTombstonedDocs(key, remote);
         }
       } catch(e) { /* en cas de doute, on ne remplace rien */ }
     });
@@ -976,6 +1023,7 @@ async function loadData(key) {
   if (remote !== undefined && remote !== null) {
     if (idbStore) await idbStore.put('data', remote, key);
     if (remoteVersion !== null) setSyncVersion(key, remoteVersion);
+    if (isDocListKey(key)) purgeTombstonedDocs(key, remote);
     return remote;
   }
   return local ?? null;
