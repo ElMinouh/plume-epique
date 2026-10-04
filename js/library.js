@@ -1339,6 +1339,7 @@ async function openLibrarySystemPanel(preselectDocId) {
   document.getElementById('lib-sync-key-change-btn').textContent = '✏️ Changer la clé';
   document.getElementById('lib-sync-key-status').textContent = '';
   renderLastSyncStatus();
+    renderSyncUsage();
   await renderConflictBackups();
 
   document.getElementById('library-system-overlay').classList.add('active');
@@ -1594,6 +1595,25 @@ function renderLastSyncStatus() {
   const when = formatRelativeDate(status.ts).replace('Modifié ', '');
   if (status.ok) { el.textContent = '✅ Dernière synchro réussie : ' + when; el.style.color = 'var(--success)'; }
   else { el.textContent = '⚠️ Dernière tentative de synchro échouée (' + when + ') — l\'app continue de fonctionner en local, réessai automatique à la prochaine sauvegarde.'; el.style.color = 'var(--danger)'; }
+}
+// v9.29.0 (audit AUD-01-016) — occupation du stockage de synchronisation, lue auprès du Worker
+// (nombres et octets seulement) : de quoi voir venir un dépassement avant qu'il ne bloque la synchro.
+function formatMo(octets) {
+  if (octets > 0 && octets < 0.05 * 1024 * 1024) return '< 0,1 Mo';
+  return (octets / (1024 * 1024)).toFixed(octets < 10 * 1024 * 1024 ? 1 : 0).replace('.', ',') + ' Mo';
+}
+async function renderSyncUsage() {
+  const el = document.getElementById('lib-sync-usage');
+  if (!el) return;
+  el.textContent = '';
+  if (!getSyncKey()) return;
+  try {
+    const resp = await fetchWithTimeout(SYNC_WORKER_URL + '?key=__usage__', { headers: { 'Authorization': 'Bearer ' + getSyncKey() }, timeoutMs: 8000 });
+    if (!resp.ok) return;
+    const u = await resp.json();
+    if (u.storage !== 'd1') { el.textContent = '☁ Stockage de synchronisation : ancien mode (KV).'; return; }
+    el.textContent = `☁ Serveur : ${u.manuscripts} manuscrit(s), images ${formatMo(u.imagesBytes)} sur ${formatMo(u.imagesBudget)} de budget, ${formatMo(u.totalBytes)} au total (limite gratuite de la base : ${formatMo(u.dbLimit)}).`;
+  } catch (e) { /* mesure purement informative */ }
 }
 function closeLibrarySystemPanel() {
   document.getElementById('library-system-overlay').classList.remove('active');

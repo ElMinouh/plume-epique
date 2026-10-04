@@ -1,6 +1,6 @@
 name: Tests automatisés
 
-# Rôle : jusqu'ici, "npm test" (143 tests) n'était lancé que manuellement.
+# Rôle : "npm test" (suite Vitest, ~300 tests) est lancé automatiquement.
 # Ce workflow le relance automatiquement à chaque push et à chaque pull
 # request sur main — une régression est détectée avant même de s'en
 # apercevoir, sans rien changer à la façon dont les tests sont écrits.
@@ -17,9 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Récupérer le dépôt
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Installer Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: 'npm'
@@ -27,3 +27,9 @@ jobs:
         run: npm ci
       - name: Lancer les tests
         run: npm test
+      # v9.29.0 (audit AUD-01-015) — alertes de sécurité des dépendances de PRODUCTION (librairies de vendor/).
+      # Non bloquant : une alerte sans correctif disponible ne doit pas empêcher de livrer ; elle reste visible
+      # dans le journal et Dependabot propose les mises à jour.
+      - name: Audit de sécurité des dépendances de production
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true

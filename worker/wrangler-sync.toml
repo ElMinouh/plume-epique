@@ -28,3 +28,8 @@ id = "9abfbc1017d245ef8def8a6ac8c72418"
 binding = "DB"
 database_name = "plume-sync"
 database_id = "f6c1beed-fcc1-4bed-9a59-e06d603a0e93"
+
+# v9.29.0 (audit AUD-01-016) - journaux Cloudflare (Workers Logs) : une ligne JSON par requete, sans
+# aucun contenu de texte (voir logEvent dans le Worker). Consultation : dashboard > Workers > Logs.
+[observability]
+enabled = true

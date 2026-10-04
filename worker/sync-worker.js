@@ -75,7 +75,7 @@ const _authFails = new Map(); // adresse -> { count, since }
 const MAX_BODY_BYTES = 20 * 1024 * 1024;
 const ID = '[A-Za-z0-9_-]{1,80}';
 const KEY_PATTERN = new RegExp(
-  '^(profiles|main|__ping__' +
+  '^(profiles|main|__ping__|__usage__' +
   '|(doclist|data|libsettings)_' + ID +
   '|(doc|aichat)_' + ID + '_' + ID +
   '|img_' + ID + '_' + ID + '_' + ID + ')$'
@@ -83,6 +83,7 @@ const KEY_PATTERN = new RegExp(
 // v9.28.0 — Budget des IMAGES synchronisées dans D1 (limite gratuite de la base : 500 Mo, partagés avec
 // tous les textes) : au-delà, les nouvelles images sont refusées (507) ; les textes restent acceptés.
 const IMG_BUDGET_BYTES = 350 * 1024 * 1024;
+const D1_DB_LIMIT_BYTES = 500 * 1024 * 1024; // limite de la base D1 du plan gratuit (information affichée)
 
 function timingSafeEqual(a, b) {
   const enc = new TextEncoder();
@@ -139,6 +140,7 @@ function kvStore(env) {
     },
     async version(key) { return (await this.read(key)).version; },
     async imagesBytes() { return 0; }, // pas de budget en mode KV (valeur limitée à 25 Mio, pas de base partagée)
+    async usage() { return { storage: 'kv' }; },
     async remove(key) { await env.PLUME_SYNC.delete(key); },
     async write(key, body, current) {
       await env.PLUME_SYNC.put(key, body, { metadata: { v: current + 1 } });
@@ -178,6 +180,20 @@ function d1Store(env) {
       const r = await db.prepare("SELECT COALESCE(SUM(LENGTH(data)), 0) AS n FROM sync_chunks WHERE k >= 'img_' AND k < 'img`'").first();
       return r ? r.n : 0;
     },
+    // Occupation du stockage (panneau « Système » de l'application) : nombres et octets, jamais de contenu.
+    async usage() {
+      const n = async sql => { const r = await db.prepare(sql).first(); return r ? Object.values(r)[0] : 0; };
+      return {
+        storage: 'd1',
+        keys: await n('SELECT COUNT(*) FROM sync_meta'),
+        manuscripts: await n("SELECT COUNT(*) FROM sync_meta WHERE k >= 'doc_' AND k < 'doc`'"),
+        images: await n("SELECT COUNT(*) FROM sync_meta WHERE k >= 'img_' AND k < 'img`'"),
+        imagesBytes: await this.imagesBytes(),
+        imagesBudget: IMG_BUDGET_BYTES,
+        totalBytes: await n('SELECT COALESCE(SUM(LENGTH(data)), 0) FROM sync_chunks'),
+        dbLimit: D1_DB_LIMIT_BYTES
+      };
+    },
     async remove(key) {
       await db.batch([
         db.prepare('DELETE FROM sync_chunks WHERE k = ?1').bind(key),
@@ -216,8 +232,7 @@ function d1Store(env) {
   };
 }
 
-export default {
-  async fetch(request, env) {
+async function handleRequest(request, env) {
     const url = new URL(request.url);
     const key = url.searchParams.get('key');
 
@@ -272,6 +287,13 @@ export default {
     // Clé technique réservée, utilisée uniquement par le bouton "Vérifier"
     // de l'app (ne lit ni n'écrit rien de réel — sert juste à confirmer que
     // la clé fournie est acceptée).
+    if (key === '__usage__' && request.method === 'GET') {
+      try {
+        return new Response(JSON.stringify(await store.usage()), { headers: { ...cors, 'Content-Type': 'application/json' } });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: { message: 'Mesure indisponible.' } }), { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } });
+      }
+    }
     if (key === '__ping__') {
       return new Response(JSON.stringify({ ok: true }), { headers: { ...cors, 'Content-Type': 'application/json' } });
     }
@@ -402,5 +424,24 @@ export default {
     return new Response(JSON.stringify({ error: { message: 'Méthode non supportée.' } }), {
       status: 405, headers: { ...cors, 'Content-Type': 'application/json' }
     });
+}
+
+// v9.29.0 (audit AUD-01-016) — UNE ligne JSON par requête dans les journaux Cloudflare (Workers Logs) :
+// méthode, famille de clé (profiles, doc, doclist, img…), code de réponse, durée, version. JAMAIS le
+// contenu, ni l'identifiant de profil ou de manuscrit, ni la clé de synchronisation.
+function logEvent(evt) { try { console.log(JSON.stringify(evt)); } catch (e) { /* le journal ne doit jamais casser une requête */ } }
+export default {
+  async fetch(request, env) {
+    const t0 = Date.now();
+    const key = new URL(request.url).searchParams.get('key') || '';
+    const fam = key.split('_')[0] || 'aucune';
+    try {
+      const res = await handleRequest(request, env);
+      logEvent({ evt: 'sync', m: request.method, fam, st: res.status, ms: Date.now() - t0, ver: res.headers.get('X-Plume-Version'), store: env.DB ? 'd1' : 'kv' });
+      return res;
+    } catch (e) {
+      logEvent({ evt: 'sync', m: request.method, fam, st: 'exception', ms: Date.now() - t0, err: String((e && e.message) || e).slice(0, 120) });
+      throw e;
+    }
   }
 };

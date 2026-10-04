@@ -15,3 +15,8 @@ compatibility_date = "2026-07-28"
 #     sans elle le relais refuse tout appel (fail-closed).
 # Un déploiement Wrangler ne touche pas aux secrets ; ils ne se déclarent
 # jamais dans ce fichier (qui est dans le dépôt Git).
+
+# v9.29.0 (audit AUD-01-016) - journaux Cloudflare (Workers Logs) : une ligne JSON par requete, sans
+# aucun contenu de texte (voir logEvent dans le Worker). Consultation : dashboard > Workers > Logs.
+[observability]
+enabled = true

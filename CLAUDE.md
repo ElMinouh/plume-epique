@@ -52,6 +52,10 @@ export-format-utils.js, database.js, memory.js
 
 Écrans basculés via classes CSS sur `<body>` (ex: `graphicnovel-mode`), pas de routing URL — `router.js` gère le routage de données, pas d'URL.
 
+### vendor/ (librairies tierces)
+
+Toutes les librairies (DOMPurify, Chart.js, jsPDF, docx, mammoth, odf-kit…) sont **servies localement** depuis `vendor/` (versions exactes, voir `vendor/LISEZMOI.md`) : aucun CDN, CSP `script-src 'self'`. Ajouter/mettre à jour une librairie = fichier dans `vendor/` + `index.html` + `CORE_ASSETS` (`sw.js`) + `package.json` (dependencies) ; un test vérifie la cohérence.
+
 ### worker/ (Cloudflare Workers)
 
 Deux workers indépendants. Deux voies de déploiement coexistent :
@@ -62,7 +66,7 @@ Deux workers indépendants. Deux voies de déploiement coexistent :
 **L'édition manuelle via le dashboard Cloudflare (humain cliquant dans l'interface web) reste dépréciée.**
 
 - `worker.js` + `wrangler-ai.toml` — relais IA. **Utilise actuellement Google Gemini** (`gemini-3.6-flash`), migré de Mistral le 2026-09-11 (rate limits du free tier). Secret `MISTRAL_API_KEY`/clé Gemini uniquement dans le dashboard Cloudflare.
-- `sync-worker.js` + `wrangler-sync.toml` — sync multi-appareils via KV (binding `PLUME_SYNC`, nom figé en dur dans le code). Écritures versionnées, 409 si écriture obsolète, gated par secret `SYNC_KEY`.
+- `sync-worker.js` + `wrangler-sync.toml` — sync multi-appareils. **Stockage Cloudflare D1** (base `plume-sync`, binding `DB`, schéma `worker/sync-schema.sql`) depuis la v9.23.0 ; l'ancien KV (`PLUME_SYNC`) n'est plus lu qu'en repli pendant la transition. Écritures versionnées et conditionnelles (409 si base périmée), valeurs découpées en morceaux (limite D1 de 2 Mo), clés autorisées en liste blanche (`profiles`, `doclist_*`, `doc_*`, `libsettings_*`, `aichat_*`, `data_*`, `img_*`), DELETE réservé aux `img_*`, budget d'images 350 Mo (507), `__ping__`/`__usage__`, journaux JSON sans contenu. Gated par secret `SYNC_KEY` (le Worker IA exige la même).
 
 ### PWA (sw.js)
 
@@ -117,7 +121,7 @@ Les deux doivent être bumpés ensemble à chaque release (contextes différents
   Lots regroupés de façon cohérente techniquement et économes en tokens (plan issu de
   l'audit AUD-01, fichiers dans `Claude outputs/Audit-01/`).
 - **Les conversations se font UNIQUEMENT en français** dans ce projet, quelle que soit la session.
-- **README.md est partiellement obsolète** — ne pas s'y fier pour l'état courant : le titre affiche encore v9.1.1, il décrit Mistral comme fournisseur IA (c'est Gemini depuis le 2026-09-11), et indique la section roman graphique comme "pas commencée" alors qu'elle est le focus principal du développement récent. Vérifier les faits sensibles au temps dans le code (`router.js` APP_VERSION, `worker/worker.js` modèle IA, `git log`) plutôt que dans le README. Le contenu architectural/historique du README reste utile.
+- **Documentation** : `README.md` est à jour (v9.29.0) ; l'ancien README est archivé dans `docs/HISTORIQUE.md` (périmé sur l'IA, le stockage et le roman graphique). Exploitation, décisions d'architecture et bilan de l'audit : `docs/EXPLOITATION.md`, `docs/DECISIONS.md`, `docs/BILAN-AUDIT-01.md`. Vérifier malgré tout les faits sensibles au temps dans le code (`APP_VERSION`, `git log`).
 - **Ordre de chargement des scripts = dépendance critique** : ajouter un fichier `js/*.js` sans respecter l'ordre dans `index.html` (et sans l'ajouter à `CORE_ASSETS` dans `sw.js`) casse l'app silencieusement.
 - **Incident de perte de données** (v8.1.0, 2026-07-27) : la sync ne comparait que "hash identique vs différent", jamais "plus récent" → toutes les profils sauf le plus ancien ont disparu sur plusieurs appareils. Corrigé avec des numéros de version + sécurités `mergeProfilesIndex` + test de non-régression `tests/vitest/sync-versioning.test.js`. À lire avant de toucher `syncPush`/`syncPull`/fusion d'index de profils.
 - Pas d'outil de lint/format configuré — ne pas inventer de commande lint.

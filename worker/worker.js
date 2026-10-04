@@ -39,8 +39,7 @@ function jsonError(status, message, headers) {
   });
 }
 
-export default {
-  async fetch(request, env) {
+async function handleRequest(request, env) {
     const requestOrigin = request.headers.get('Origin');
     const corsHeaders = {
       'Access-Control-Allow-Origin': isAllowedOrigin(requestOrigin) && requestOrigin ? requestOrigin : ALLOWED_ORIGIN,
@@ -196,6 +195,21 @@ export default {
       return new Response(JSON.stringify({ error: { message: e.message } }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
+    }
+}
+
+// v9.29.0 (audit AUD-01-016) — journal : code de réponse et durée seulement, jamais le texte envoyé à l'IA.
+function logEvent(evt) { try { console.log(JSON.stringify(evt)); } catch (e) { /* sans effet */ } }
+export default {
+  async fetch(request, env) {
+    const t0 = Date.now();
+    try {
+      const res = await handleRequest(request, env);
+      logEvent({ evt: 'ai', m: request.method, st: res.status, ms: Date.now() - t0 });
+      return res;
+    } catch (e) {
+      logEvent({ evt: 'ai', m: request.method, st: 'exception', ms: Date.now() - t0, err: String((e && e.message) || e).slice(0, 120) });
+      throw e;
     }
   }
 };

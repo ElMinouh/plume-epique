@@ -7,6 +7,8 @@ export default defineConfig({
     // applicatif (mêmes variables globales `db`/`cur`/etc. que l'app réelle),
     // exécuté dans l'ordre — comme l'ancienne suite tests/test-runner.html.
     fileParallelism: false,
-    testTimeout: 20000
+    testTimeout: 20000,
+    // Les journaux structurés des Workers (une ligne JSON par requête) ne sont pas du bruit à afficher en test.
+    onConsoleLog(log) { if (log.startsWith('{"evt":')) return false; }
   }
 });
