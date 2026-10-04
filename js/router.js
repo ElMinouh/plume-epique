@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.26.0';
+const APP_VERSION = '9.26.1';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -869,6 +869,15 @@ function scheduleSyncPush(key, payload) {
   const isDoc = key.startsWith('doc_');
   const isIndex = key.startsWith('doclist_');
   if (!isDoc && !isIndex) { queueSyncPush(key, payload); return; }
+  // v9.26.1 — Contenu supprimé (null) : rien à envoyer, et surtout rien à marquer
+  // « dû » (la suppression d'un manuscrit passait par ici et laissait une clé
+  // fantôme dans la file de reprise, nettoyée seulement au réessai suivant).
+  if (payload === null || payload === undefined) {
+    if (_pushDebounceTimers[key]) { clearTimeout(_pushDebounceTimers[key]); delete _pushDebounceTimers[key]; }
+    delete _pendingSince[key]; delete _pendingPayload[key];
+    removePendingSyncKey(key);
+    return;
+  }
   // Une clé en pause de conflit ne doit JAMAIS faire progresser un compteur :
   // syncPush() bloque de toute façon ces tentatives (rien n'est perdu).
   if (isConflictPaused(key)) { queueSyncPush(key, payload); return; }

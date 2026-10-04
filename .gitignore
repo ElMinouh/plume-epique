@@ -6,3 +6,7 @@ Claude outputs/
 
 # Sauvegardes locales du stockage de synchro (données chiffrées, jamais versionnées).
 backups-kv/
+
+# Etat local des tests de bout en bout (base D1 locale jetable).
+.wrangler-test/
+worker/.wrangler/

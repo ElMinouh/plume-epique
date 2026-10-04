@@ -116,6 +116,14 @@ describe('Suppression propagée entre deux appareils (AUD-01-008)', () => {
     expect(serveur.deleted.map(t => t.id)).toEqual(['m1']);
   });
 
+  it('supprimer un manuscrit ne laisse aucune clé fantôme dans la file de reprise', async () => {
+    const s = makeServer();
+    const a = makeDevice(s.serverFetch);
+    await creer(a, 'm1', 'texte');
+    await a.deleteDocument('m1'); await settle();
+    expect(a.getPendingSyncKeys()).toEqual([]);
+  });
+
   it('le manuscrit actuellement ouvert n\'est pas effacé sous les pieds de l\'utilisateur', async () => {
     const s = makeServer();
     const a = makeDevice(s.serverFetch), b = makeDevice(s.serverFetch);
