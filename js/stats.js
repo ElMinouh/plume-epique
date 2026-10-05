@@ -1,4 +1,10 @@
 'use strict';
+// v9.34.0 (AUD-02-020) — champ d'objectif vidé ou invalide : on ne change rien (avant, 500/3000/12000
+// étaient enregistrés dès qu'on effaçait le champ pour retaper une valeur).
+function readGoalInput(el) {
+  const n = parseInt(el.value, 10);
+  return n >= 1 ? n : null;
+}
 function updateDailyStats() {
   // Garde db.chapters (v9.15.0) : undefined pour un roman graphique — cette
   // fonction est spécifique aux manuscrits texte, gnUpdateDailyStats()
@@ -49,7 +55,7 @@ function getWordsInLastNDays(n, totalW) {
   // `db.sessionStats` n'ont eux jamais zéro l'heure — cutoffKey doit rester
   // sur la même convention (voir aussi computeWritingStreak() ci-dessous).
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-n);
-  const cutoffKey = cutoff.toISOString().slice(0,10);
+  const cutoffKey = dateKey(cutoff);
   const before = Object.entries(db.sessionStats||{}).filter(([k]) => k < cutoffKey).sort((a,b)=>b[0].localeCompare(a[0]));
   const baseline = before.length ? before[0][1] : 0;
   return Math.max(0, totalW - baseline);
@@ -128,10 +134,10 @@ function computeWritingStreak() {
   if (!(todayKey in stats)) d.setDate(d.getDate()-1);
   let streak = 0;
   for (let i = 0; i < 3650; i++) {
-    const key = d.toISOString().slice(0,10);
+    const key = dateKey(d);
     if (!(key in stats)) break;
     const prev = new Date(d); prev.setDate(prev.getDate()-1);
-    const prevKey = prev.toISOString().slice(0,10);
+    const prevKey = dateKey(prev);
     const prevTotal = (prevKey in stats) ? stats[prevKey] : 0;
     if (stats[key] > prevTotal) { streak++; d = prev; }
     else break;
@@ -166,7 +172,7 @@ function renderStats() {
     {v:streak+(streak>1?' jours':' jour'),l:'Série en cours'},{v:bestHourLabel,l:'Meilleur moment'}
   ].map(s=>`<div class="stat-card"><div class="stat-val">${s.v}</div><div class="stat-label">${s.l}</div></div>`).join('');
   const days=[],counts=[];
-  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const key=d.toISOString().slice(0,10);days.push(d.toLocaleDateString('fr',{weekday:'short'}));counts.push(db.sessionStats?.[key]||0);}
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const key=dateKey(d);days.push(d.toLocaleDateString('fr',{weekday:'short'}));counts.push(db.sessionStats?.[key]||0);}
   if(sessionChart){sessionChart.data.labels=days;sessionChart.data.datasets[0].data=counts;sessionChart.update();}
   else{const ctx=document.getElementById('sessionChart').getContext('2d');sessionChart=new Chart(ctx,{type:'bar',data:{labels:days,datasets:[{label:'Mots',data:counts,backgroundColor:'rgba(192,57,43,.5)',borderColor:'#c0392b',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});}
 }

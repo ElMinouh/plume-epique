@@ -69,6 +69,54 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// ═══════════════════════════════════════════════════════
+// COMPTAGE DE MOTS ET DATE LOCALE (v9.34.0, audit AUD-02-005 / 006)
+// Déplacés ici (avant dans router.js) pour être chargés — et donc testés — par la vraie
+// suite : le harnais de test en avait une copie qui masquait les défauts.
+//
+// Comptage : même convention que Word. Une « suite de caractères entre deux espaces »
+// compte pour un mot si elle contient au moins une lettre ou un chiffre. Ainsi « l'homme »,
+// « peut-être » et « cœur » valent 1 (l'ancien comptage coupait aux apostrophes, aux
+// traits d'union et au « œ ») ; les espaces insécables que l'éditeur insère (&nbsp;, avant
+// « ! » ou « : ») ne sont plus comptés comme un mot « nbsp » ; un tiret de dialogue seul non plus.
+// ═══════════════════════════════════════════════════════
+function getWordCount(t) {
+  const plain = String(t || '').replace(/<[^>]*>/g, ' ')
+    .replace(/&(?:nbsp|#160|#xa0);/gi, ' ').replace(/&(?:amp|lt|gt|quot|#39|apos);/gi, '')
+    .replace(/[   ]/g, ' ');
+  let n = 0;
+  for (const w of plain.split(/\s+/)) if (/[\p{L}\p{N}]/u.test(w)) n++;
+  return n;
+}
+// Ancien comptage, conservé UNIQUEMENT pour recaler l'historique des statistiques (rebaseWordStats).
+function legacyWordCount(t) {
+  const m = (t || '').replace(/<[^>]*>/g, ' ').match(/[a-zA-Z0-9À-ÿ]+/g);
+  return m ? m.length : 0;
+}
+// Clé de date JJ locale (AAAA-MM-JJ). L'ancienne clé passait par toISOString() (UTC) : en France le
+// « jour » changeait à 1 h ou 2 h du matin, décalant objectif journalier, série et graphique.
+function dateKey(d) {
+  d = d || new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function getTodayKey() { return dateKey(new Date()); }
+// Le nouveau comptage change les totaux : sans recalage, les objectifs hebdomadaire et mensuel
+// (total d'aujourd'hui moins total d'avant la période) seraient faux pendant 7 à 30 jours. Une seule
+// fois par manuscrit, on décale TOUT l'historique du même écart (les écarts entre jours sont conservés).
+function rebaseWordStats(data) {
+  if (!data || data.wordCountRebased) return data;
+  data.wordCountRebased = true;
+  const stats = data.sessionStats;
+  if (!stats || !Object.keys(stats).length) return data;
+  let oldT = 0, newT = 0;
+  const add = c => { oldT += legacyWordCount(c); newT += getWordCount(c); };
+  if (data.docType === 'roman_graphique') (data.pages || []).forEach(p => (p.elements || []).forEach(el => { if (el.type === 'text') add(el.content); }));
+  else (data.chapters || []).forEach(ch => add(ch.content));
+  const offset = newT - oldT;
+  if (offset) for (const k of Object.keys(stats)) if (typeof stats[k] === 'number') stats[k] = Math.max(0, stats[k] + offset);
+  return data;
+}
+
 function genChapterId() {
   return (crypto.randomUUID ? crypto.randomUUID() : 'ch_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
 }
@@ -152,7 +200,7 @@ function DEFAULT_DB_GRAPHIC() {
     trash: [], history:{}, plugins:{}, customGabarits: [],
     darkMode:true, gistId:'', sessionStats:{},
     accentPalette:'rouge-violet', paperMode:false,
-    projectType:'fantasy'
+    projectType:'fantasy', wordCountRebased:true
   };
 }
 
@@ -323,6 +371,7 @@ function migrateDb(data) {
     });
   }
   data._schemaVersion = SCHEMA_VERSION;
+  rebaseWordStats(data);
   return data;
 }
 
@@ -338,5 +387,5 @@ const DEFAULT_DB = () => ({
   darkMode:true, gistId:'', dailyGoal:500, weeklyGoal:3000, monthlyGoal:12000, sessionStats:{}, sprint:null, trash:[],
   accentPalette:'rouge-violet', paperMode:false, editorFont:'palatino', wordGoal:0,
   hourlyActivity: new Array(24).fill(0),
-  projectType:'fantasy'
+  projectType:'fantasy', wordCountRebased:true
 });

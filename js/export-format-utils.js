@@ -45,7 +45,7 @@ function escapeXml(s) {
 // du fragment obtenu (inoffensif : odf-kit l'ignore, comme tout attribut
 // qu'il ne reconnaît pas).
 function toXhtmlSafe(html) {
-  const clean = DOMPurify.sanitize(html || '<p></p>');
+  const clean = DOMPurify.sanitize(stripAnalysisMarks(html) || '<p></p>');
   const doc = new DOMParser().parseFromString(`<div>${clean}</div>`, 'text/html');
   const wrapper = doc.body.firstChild;
   const serializer = new XMLSerializer();

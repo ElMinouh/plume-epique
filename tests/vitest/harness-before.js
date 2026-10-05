@@ -12,7 +12,7 @@
 // doit déjà exister à ce moment précis.
 'use strict';
 function debounce(fn, delay) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), delay); }; }
-function getTodayKey() { return new Date().toISOString().slice(0,10); }
+// getTodayKey() : défini dans schema.js (v9.34.0)
 function getPlainText(html) { return (html||'').replace(/<br\s*\/?>/gi,'\n').replace(/<\/p>/gi,'\n').replace(/<[^>]*>/g,'').trim(); }
 let _switching = false;
 let tensionChart = null, dialogChart = null, sessionChart = null;

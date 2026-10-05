@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.33.0';
+const APP_VERSION = '9.34.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1071,8 +1071,7 @@ const tabDescriptions = {
 // UTILITAIRES
 // ═══════════════════════════════════════════════════════
 function debounce(fn, delay) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), delay); }; }
-function getTodayKey() { return new Date().toISOString().slice(0,10); }
-function getWordCount(t) { const m=(t||'').replace(/<[^>]*>/g,' ').match(/[a-zA-Z0-9À-ÿ]+/g); return m?m.length:0; }
+// getTodayKey() / getWordCount() / dateKey() : voir schema.js (v9.34.0)
 function getPlainText(html) { return (html||'').replace(/<br\s*\/?>/gi,'\n').replace(/<\/p>/gi,'\n').replace(/<[^>]*>/g,'').trim(); }
 
 const save = async () => {
@@ -1303,9 +1302,9 @@ function wireAppEventListenersOnce(){
   document.getElementById('fr-next-btn').addEventListener('click',frNext);
   document.getElementById('fr-replace-btn').addEventListener('click',frReplaceOne);
   document.getElementById('fr-replace-all-btn').addEventListener('click',frReplaceAll);
-  document.getElementById('daily-goal-input').addEventListener('input',e=>{db.dailyGoal=parseInt(e.target.value)||500;debouncedSave();updateDailyStats();});
-  document.getElementById('weekly-goal-input').addEventListener('input',e=>{db.weeklyGoal=parseInt(e.target.value)||3000;debouncedSave();updateGoalsUI();});
-  document.getElementById('monthly-goal-input').addEventListener('input',e=>{db.monthlyGoal=parseInt(e.target.value)||12000;debouncedSave();updateGoalsUI();});
+  document.getElementById('daily-goal-input').addEventListener('input',e=>{const v=readGoalInput(e.target);if(v===null)return;db.dailyGoal=v;debouncedSave();updateDailyStats();});
+  document.getElementById('weekly-goal-input').addEventListener('input',e=>{const v=readGoalInput(e.target);if(v===null)return;db.weeklyGoal=v;debouncedSave();updateGoalsUI();});
+  document.getElementById('monthly-goal-input').addEventListener('input',e=>{const v=readGoalInput(e.target);if(v===null)return;db.monthlyGoal=v;debouncedSave();updateGoalsUI();});
   document.getElementById('manuscript-goal-input').addEventListener('input',e=>{db.wordGoal=parseInt(e.target.value)||0;debouncedSave();updateEstimatedFinishDate();});
   document.getElementById('project-type-sel').addEventListener('change',e=>selectProjectType(e.target.value));
   document.getElementById('chapter-notes-toggle-btn').addEventListener('click',()=>{

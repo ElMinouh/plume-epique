@@ -494,6 +494,41 @@
   assert(db.history['f1'].some(s => /^Manuel — Avant restauration/.test(s.label) && s.content === '<p>Texte récent à ne pas perdre.</p>'),
     'restoreSnapshot() garde l\'état écrasé comme copie manuelle « Avant restauration »');
 
+  // ── v9.34.0 (AUD-02-005 / 006 / 007 / 020 / 021) — chiffres exacts ──
+  group('schema.js — comptage de mots et date locale (v9.34.0)');
+  assert(getWordCount('<p>Mon cœur et ma sœur.</p>') === 5, 'cœur / sœur comptent pour un mot chacun');
+  assert(getWordCount("<p>L'homme, peut-être.</p>") === 2, "« L'homme » et « peut-être » comptent pour un mot chacun");
+  assert(getWordCount('<p>Bonjour&nbsp;! Salut&nbsp;:</p>') === 2, 'les espaces insécables (&nbsp;) ne sont pas comptés comme un mot « nbsp »');
+  assert(getWordCount('<p>— Bonjour, dit-il.</p>') === 2, 'un tiret de dialogue seul n\'est pas un mot');
+  assert(getWordCount('') === 0 && getWordCount(null) === 0, 'texte vide ou nul : 0 mot');
+  assert(dateKey(new Date(2026, 9, 5, 0, 30)) === '2026-10-05' && dateKey(new Date(2026, 0, 3, 23, 59)) === '2026-01-03', 'dateKey() donne la date LOCALE (00 h 30 reste le jour même)');
+  const rb = rebaseWordStats({ docType:'texte', chapters:[{ content:'<p>Mon cœur, l\'homme.</p>' }], sessionStats:{ '2026-10-01': 10, '2026-10-02': 20 } });
+  // ancien : Mon c ur l homme = 5 (« cœur » coupé en 2, l'homme en 2) ; nouveau : 3 → décalage de -2 sur tout l'historique
+  assert(rb.sessionStats['2026-10-01'] === 8 && rb.sessionStats['2026-10-02'] === 18 && rb.wordCountRebased === true, 'rebaseWordStats() décale tout l\'historique du même écart');
+  const rb2 = rebaseWordStats(JSON.parse(JSON.stringify(rb)));
+  assert(rb2.sessionStats['2026-10-02'] === 18, 'rebaseWordStats() ne s\'applique qu\'une fois par manuscrit');
+  assert(DEFAULT_DB().wordCountRebased === true, 'un nouveau manuscrit n\'est jamais recalé (compté avec le nouveau comptage dès l\'origine)');
+
+  group('editor.js — mots faibles et surlignages d\'analyse (v9.34.0)');
+  db = { chapters:[{ id:'w1', title:'W', content:'', tension:20, status:'draft', tags:[] }], history:{}, trash:[], weakWords:['déjà', 'très', '(juste'], sessionStats:{} };
+  cur = 0;
+  document.getElementById('writer').innerHTML = '<p class="très">Il est déjà là, très très tôt, juste</p><p>Rien.</p>';
+  analyzeStyle();
+  const marked = [...document.getElementById('writer').querySelectorAll('mark')].map(m => m.textContent);
+  assert(marked.join('|') === 'déjà|très|très', 'mots faibles accentués trouvés, un mot à parenthèse ne fait plus planter, le nom de classe n\'est pas touché');
+  assert(document.getElementById('writer').querySelector('p').className === 'très', 'l\'analyse ne modifie pas les attributs HTML');
+  liveCounter();
+  assert(!/<mark/i.test(db.chapters[0].content), 'les surlignages d\'analyse ne sont jamais enregistrés dans le manuscrit');
+  assert(!/<mark/i.test(toXhtmlSafe('<p>un <mark>très</mark> mot</p>')), 'ni exportés');
+  analyzeStyle(); analyzeStyle();
+  assert(document.getElementById('writer').querySelectorAll('mark mark').length === 0, 'relancer l\'analyse n\'imbrique pas les surlignages');
+
+  group('stats.js — champ d\'objectif vidé (v9.34.0)');
+  const goalEl = document.createElement('input');
+  goalEl.value = ''; assert(readGoalInput(goalEl) === null, 'champ vidé : aucune valeur enregistrée');
+  goalEl.value = '0'; assert(readGoalInput(goalEl) === null, 'valeur 0 : refusée');
+  goalEl.value = '1200'; assert(readGoalInput(goalEl) === 1200, 'valeur valide : acceptée');
+
   group('editor.js — Annuler / Rétablir');
   db = { chapters:[{ id:'u1', title:'Chapitre Undo', content:'Contenu initial', tension:20, status:'draft', tags:[] }], history:{}, trash:[], weakWords:[] };
   cur = 0;

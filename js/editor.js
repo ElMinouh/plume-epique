@@ -69,7 +69,7 @@ function redoEdit() {
 function applyUndoState(st) {
   const w = document.getElementById('writer');
   w.innerHTML = st.stack[st.index];
-  db.chapters[cur].content = w.innerHTML;
+  db.chapters[cur].content = stripAnalysisMarks(w.innerHTML);
   updateDailyStats(); debouncedSave();
   updateUndoRedoButtons();
 }
@@ -118,7 +118,7 @@ function flushCurrentChapter() {
   // sans condition par le raccourci global Ctrl+S.
   if (!document.getElementById('writer') || !db.chapters || !db.chapters[cur]) return;
   const src = currentChapterSource();
-  db.chapters[cur].content = src.html;
+  db.chapters[cur].content = stripAnalysisMarks(src.html);
   db.chapters[cur].title = src.title || db.chapters[cur].title;
   if (st) db.chapters[cur].status = st.value;
 }
@@ -128,7 +128,7 @@ function focusLiveSync() {
   updateFocusCount();
   const ch = db.chapters && db.chapters[cur];
   if (!ch) return;
-  ch.content = document.getElementById('focus-writer').innerHTML;
+  ch.content = stripAnalysisMarks(document.getElementById('focus-writer').innerHTML);
   updateDailyStats();
   debouncedSave();
 }
@@ -215,7 +215,7 @@ function updateChapterWordGoalProgress() {
 }
 function liveCounter() {
   if (_switching) return;
-  db.chapters[cur].content = document.getElementById('writer').innerHTML;
+  db.chapters[cur].content = stripAnalysisMarks(document.getElementById('writer').innerHTML);
   // v9.4.1 — saveCursorForResume() ne doit JAMAIS pouvoir empêcher
   // updateDailyStats()/debouncedSave() de s'exécuter : si elle échouait pour
   // une raison quelconque sur un manuscrit particulier, plus rien ne serait
@@ -724,20 +724,59 @@ function removeHighlight() {
 // ═══════════════════════════════════════════════════════
 // STYLE ANALYSIS (mots faibles surlignés)
 // ═══════════════════════════════════════════════════════
+// v9.34.0 (AUD-02-007 / 021) — l'analyse travaille sur les NŒUDS TEXTE (jamais sur le HTML brut, qui
+// pouvait toucher un nom de classe), avec des bornes de mot qui comprennent les accents (\b est ASCII :
+// « déjà » ou « été » n'étaient jamais trouvés) et des mots échappés (une parenthèse faisait planter).
+// Les surlignages <mark> sont une AIDE VISUELLE : ils ne sont jamais enregistrés ni exportés
+// (stripAnalysisMarks), ils disparaissent au changement de chapitre.
+function escapeRegExp(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function stripAnalysisMarks(html) { return String(html == null ? '' : html).replace(/<\/?mark\b[^>]*>/gi, ''); }
+function unwrapMarks(root) {
+  root.querySelectorAll('mark').forEach(m => {
+    const parent = m.parentNode;
+    while (m.firstChild) parent.insertBefore(m.firstChild, m);
+    parent.removeChild(m);
+    parent.normalize();
+  });
+}
+function weakWordsRegex(words) {
+  const list = (words || []).map(w => String(w).trim()).filter(Boolean).sort((a, b) => b.length - a.length);
+  if (!list.length) return null;
+  return new RegExp('(?<![\\p{L}\\p{N}_])(?:' + list.map(escapeRegExp).join('|') + ')(?![\\p{L}\\p{N}_])', 'giu');
+}
 function analyzeStyle() {
   checkpointNow();
   const writer = document.getElementById('writer');
-  let txt = writer.innerHTML;
-  db.weakWords.forEach(w => { txt = txt.replace(new RegExp(`\\b(${w})\\b`,'gi'),'<mark>$1</mark>'); });
-  writer.innerHTML = DOMPurify.sanitize(txt);
+  const re = weakWordsRegex(db.weakWords);
+  unwrapMarks(writer);
+  if (!re) { checkpointNow(); return; }
+  const nodes = [];
+  const walker = document.createTreeWalker(writer, NodeFilter.SHOW_TEXT);
+  let n; while ((n = walker.nextNode())) nodes.push(n);
+  nodes.forEach(node => {
+    const text = node.textContent;
+    re.lastIndex = 0;
+    let last = 0, m, frag = null;
+    while ((m = re.exec(text)) !== null) {
+      if (m[0] === '') { re.lastIndex++; continue; }
+      frag = frag || document.createDocumentFragment();
+      if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+      const mark = document.createElement('mark');
+      mark.textContent = m[0];
+      frag.appendChild(mark);
+      last = m.index + m[0].length;
+    }
+    if (!frag) return;
+    if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  });
   checkpointNow();
 }
 function clearStyle() {
   // Correction v6.0.0 : confirmation demandée avant de supprimer les surlignages.
   if (!confirm('Supprimer tous les surlignages de style (mots faibles) ? Le texte lui-même ne sera pas modifié.')) return;
   checkpointNow();
-  const writer = document.getElementById('writer');
-  writer.innerHTML = DOMPurify.sanitize(writer.innerHTML.replace(/<mark[^>]*>|<\/mark>/g,''));
+  unwrapMarks(document.getElementById('writer'));
   liveCounter();
   checkpointNow();
 }

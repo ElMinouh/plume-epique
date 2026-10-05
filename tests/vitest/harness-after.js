@@ -16,7 +16,7 @@ const _mockStore = new Map();
 async function persistData(key, payload) { _mockStore.set(key, payload); }
 async function loadData(key) { return _mockStore.has(key) ? _mockStore.get(key) : null; }
 function initApp() { /* stub : non testé ici, seule la logique profils l'est */ }
-function getWordCount(t) { const m=(t||'').replace(/<[^>]*>/g,' ').match(/[a-zA-Z0-9À-ÿ]+/g); return m?m.length:0; }
+// getWordCount() : défini dans schema.js (v9.34.0)
 async function enterLibrary() { /* stub : l'écran bibliothèque (DOM) n'est pas testé ici, voir createNewDocument()/openDocument() plus bas pour la logique réelle */ }
 // v9.3.0 — Depuis l'arbitrage de synchro à empreinte de contenu, library.js
 // crée toute enveloppe chiffrée de manuscrit via makeEncryptedEnvelope()
