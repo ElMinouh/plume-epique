@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.37.0';
+const APP_VERSION = '9.38.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1276,6 +1276,8 @@ function wireAppEventListenersOnce(){
 
   document.getElementById('wc-gen-btn').addEventListener('click',renderWordCloud);
   document.getElementById('tl-add-btn').addEventListener('click',addTimelineEvent);
+  document.getElementById('tl-cancel-edit-btn').addEventListener('click',cancelEditTimelineEvent);
+  document.getElementById('tl-sort-btn').addEventListener('click',sortTimelineByChapters);
 
   document.getElementById('snapshot-btn').addEventListener('click',()=>{flushCurrentChapter();takeSnapshot(cur,'Manuel — '+new Date().toLocaleString('fr'));save();renderHistoryTab();toast('Snapshot sauvegardé','success');});
   document.getElementById('open-diff-btn').addEventListener('click',()=>openDiffViewer());

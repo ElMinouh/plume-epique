@@ -197,7 +197,17 @@ function renderQuests(){
   c.querySelectorAll('[data-quest-check]').forEach(cb=>cb.addEventListener('click',e=>{e.stopPropagation();db.quests[parseInt(cb.dataset.questCheck)].done=cb.checked;save();}));
   c.querySelectorAll('[data-quest-idx]').forEach(el=>el.addEventListener('click',()=>showQuestEdit(parseInt(el.dataset.questIdx))));
 }
-function showQuestEdit(i){const q=db.quests[i],c=document.getElementById('quest-edit');c.innerHTML='';const ti=document.createElement('input');ti.className='field';ti.value=q.text;ti.addEventListener('input',()=>{db.quests[i].text=ti.value;debouncedSave();renderQuests();});const rl=document.createElement('label');rl.textContent='Récompense';rl.style.fontSize='.72rem';const ri=document.createElement('input');ri.className='field';ri.value=q.reward||'';ri.addEventListener('input',()=>{db.quests[i].reward=ri.value;debouncedSave();});const sl=document.createElement('label');sl.textContent='Étapes';sl.style.fontSize='.72rem';const sta=document.createElement('textarea');sta.className='field';sta.value=q.steps||'';sta.rows=4;sta.addEventListener('input',()=>{db.quests[i].steps=sta.value;debouncedSave();});c.append(ti,rl,ri,sl,sta);c.insertAdjacentHTML('beforeend',renderLinkPanel('quests',q.id));updateLinkItems();}
+function showQuestEdit(i){const q=db.quests[i],c=document.getElementById('quest-edit');c.innerHTML='';const ti=document.createElement('input');ti.className='field';ti.value=q.text;ti.addEventListener('input',()=>{db.quests[i].text=ti.value;debouncedSave();renderQuests();});const rl=document.createElement('label');rl.textContent='Récompense';rl.style.fontSize='.72rem';const ri=document.createElement('input');ri.className='field';ri.value=q.reward||'';ri.addEventListener('input',()=>{db.quests[i].reward=ri.value;debouncedSave();});const sl=document.createElement('label');sl.textContent='Étapes';sl.style.fontSize='.72rem';const sta=document.createElement('textarea');sta.className='field';sta.value=q.steps||'';sta.rows=4;sta.addEventListener('input',()=>{db.quests[i].steps=sta.value;debouncedSave();});ti.classList.add('u-flex-1');const hdr=document.createElement('div');hdr.className='u-d-flex u-jc-space-between u-gap-6px';const delBtn=document.createElement('button');delBtn.className='action-btn btn-sm u-bg-v-danger';delBtn.textContent='✕';delBtn.title='Supprimer cette entrée';delBtn.setAttribute('aria-label','Supprimer cette entrée');delBtn.addEventListener('click',()=>deleteQuest(q.id));hdr.append(ti,delBtn);c.append(hdr,rl,ri,sl,sta);c.insertAdjacentHTML('beforeend',renderLinkPanel('quests',q.id));updateLinkItems();}
+// v9.38.0 (audit AUD-02-011) — jusqu'ici une quête ne pouvait pas être supprimée. Même règle que pour un
+// personnage ou un lieu : confirmation, puis retrait des liens des autres éléments vers elle.
+async function deleteQuest(id){
+  const q=db.quests.find(x=>x.id===id); if(!q) return;
+  const ok=await showConfirmModal({title:`Supprimer « ${q.text||'cette entrée'} » ?`,message:"Les liens d'autres personnages/lieux/quêtes vers elle seront aussi retirés.",confirmLabel:'Supprimer définitivement',danger:true});
+  if(!ok) return;
+  removeAllLinksTo('quests',id);
+  const at=db.quests.findIndex(x=>x.id===id); if(at!==-1) db.quests.splice(at,1);
+  save();renderQuests();document.getElementById('quest-edit').innerHTML='';
+}
 function addQuest(){const i=document.getElementById('q-in');if(i.value.trim()){db.quests.push({id:genChapterId(),text:i.value.trim(),done:false});i.value='';save();renderQuests();}}
 
 // ═══════════════════════════════════════════════════════

@@ -594,6 +594,45 @@
   window.confirm = realConfirmD;
   assert(db.chapters[1].id === idRestore, 'restoreFromTrash() remet le chapitre à sa position d\'origine');
 
+  // ── v9.38.0 (AUD-02-011 / 012) — quêtes et chronologie ──
+  group('timeline.js — modifier, déplacer, trier, supprimer (v9.38.0)');
+  document.body.insertAdjacentHTML('beforeend', '<button id="tl-add-btn">+ Ajouter</button><button id="tl-cancel-edit-btn" class="u-d-none">Annuler</button><div id="quest-list"></div><div id="quest-edit"></div>');
+  const evA = { text:'A', date:'An 1', chapterId:'c3' }, evB = { text:'B', date:'An 2' }, evC = { text:'C', chapterId:'c1' }, evD = { text:'D', chapterId:'c3' }, evE = { text:'E', chapterId:'inconnu' };
+  const sortedTl = sortedTimelineByChapters([evA, evB, evC, evD, evE], [{ id:'c1' }, { id:'c2' }, { id:'c3' }]);
+  assert(sortedTl.map(e => e.text).join('') === 'CADBE', 'tri selon les chapitres : ordre des chapitres, ordre actuel à égalité, sans chapitre (ou chapitre disparu) à la fin');
+  db = { chapters:[{ id:'c1', title:'Un' }, { id:'c2', title:'Deux' }], timeline:[{ text:'X', date:'d1', chapterId:'c1' }, { text:'Y' }, { text:'Z' }], quests:[] };
+  moveTimelineEvent(0, 1);
+  assert(db.timeline.map(e => e.text).join('') === 'YXZ', 'moveTimelineEvent() déplace d\'un cran vers l\'avant');
+  moveTimelineEvent(0, -1);
+  assert(db.timeline.map(e => e.text).join('') === 'YXZ', 'déplacer le premier vers l\'arrière ne fait rien');
+  populateTimelineChapterSel();
+  startEditTimelineEvent(1);
+  assert(document.getElementById('tl-event-text').value === 'X' && document.getElementById('tl-event-date').value === 'd1' && document.getElementById('tl-chapter-sel').value === 'c1', 'startEditTimelineEvent() remplit le formulaire');
+  assert(!document.getElementById('tl-cancel-edit-btn').classList.contains('u-d-none') && document.getElementById('tl-add-btn').textContent.includes('Enregistrer'), 'le mode modification est visible (Enregistrer / Annuler)');
+  document.getElementById('tl-event-text').value = 'X modifié'; document.getElementById('tl-chapter-sel').value = 'c2';
+  addTimelineEvent();
+  assert(db.timeline.length === 3 && db.timeline[1].text === 'X modifié' && db.timeline[1].date === 'd1' && db.timeline[1].chapterId === 'c2', 'enregistrer remplace l\'événement sans en créer un nouveau');
+  assert(document.getElementById('tl-add-btn').textContent === '+ Ajouter' && document.getElementById('tl-cancel-edit-btn').classList.contains('u-d-none') && document.getElementById('tl-event-text').value === '', 'le formulaire revient en mode ajout');
+  startEditTimelineEvent(0); cancelEditTimelineEvent();
+  assert(db.timeline[0].text === 'Y' && document.getElementById('tl-event-text').value === '', 'annuler la modification ne change rien');
+  const realConfirmT = showConfirmModal;
+  showConfirmModal = async () => false; await deleteTimelineEvent(0);
+  assert(db.timeline.length === 3, 'suppression refusée à la confirmation : rien n\'est supprimé');
+  showConfirmModal = async () => true; await deleteTimelineEvent(0);
+  showConfirmModal = realConfirmT;
+  assert(db.timeline.length === 2 && db.timeline[0].text === 'X modifié', 'suppression confirmée : l\'événement disparaît');
+
+  group('database.js — suppression d\'une quête (v9.38.0)');
+  db = { chapters:[], chars:[{ id:'p1', name:'Marie', links:[{ type:'quests', id:'q1' }, { type:'quests', id:'q2' }] }], places:[], quests:[{ id:'q1', text:'Trouver l\'épée', links:[] }, { id:'q2', text:'Sauver Marie' }] };
+  showConfirmModal = async () => false; await deleteQuest('q1');
+  assert(db.quests.length === 2, 'suppression refusée : la quête reste');
+  showConfirmModal = async () => true; await deleteQuest('q1');
+  showConfirmModal = realConfirmT;
+  assert(db.quests.length === 1 && db.quests[0].id === 'q2', 'suppression confirmée : la quête disparaît');
+  assert(db.chars[0].links.length === 1 && db.chars[0].links[0].id === 'q2', 'les liens vers la quête supprimée sont retirés des autres éléments');
+  showQuestEdit(0);
+  assert(!!document.querySelector('#quest-edit button[aria-label="Supprimer cette entrée"]'), 'la fiche d\'une quête a un bouton de suppression');
+
   group('editor.js — Annuler / Rétablir');
   db = { chapters:[{ id:'u1', title:'Chapitre Undo', content:'Contenu initial', tension:20, status:'draft', tags:[] }], history:{}, trash:[], weakWords:[] };
   cur = 0;

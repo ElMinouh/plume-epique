@@ -1318,6 +1318,12 @@ body.library-mode #library-screen{display:block;}
    style-src sans 'unsafe-inline'). */
 .tl-empty-msg{opacity:.45;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);}
 .tl-del-btn{background:none;border:none;color:var(--accent);cursor:pointer;float:right;font-size:1rem;}
+/* v9.38.0 : actions de carte de la chronologie (déplacer, modifier, supprimer) */
+.tl-actions{display:flex;gap:2px;justify-content:flex-end;margin-bottom:2px;}
+.tl-act-btn{background:none;border:none;color:var(--accent);cursor:pointer;font-size:.9rem;padding:0 4px;line-height:1.2;}
+.tl-act-btn:disabled{opacity:.3;cursor:default;}
+.tl-act-btn:focus-visible{outline:2px solid var(--accent);border-radius:3px;}
+.tl-card.tl-editing{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent);}
 
 /* --- v7.20.0 : classe manquante pour l'étape 2/3 refaite proprement --- */
 .u-ovf-hidden{overflow:hidden}
