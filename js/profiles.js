@@ -186,6 +186,7 @@ function hideGate() { gateEl().style.display = 'none'; }
 // ── Bootstrap : décide quel écran afficher au démarrage ─────────────────
 async function bootProfiles() {
   const idx = await loadProfilesIndex();
+  if (idx && Array.isArray(idx.deletedProfiles) && idx.deletedProfiles.length) purgeTombstonedProfiles(idx); // v9.39.0 : copies locales des profils supprimés ailleurs
   if (idx && Array.isArray(idx.profiles) && idx.profiles.length) {
     // Le système de profils est actif : la migration a forcément déjà eu
     // lieu. L'ancienne clé mono-profil 'main' n'est donc plus nécessaire
@@ -581,7 +582,7 @@ async function adminDeleteProfile(pid) {
 
   const ok = await showConfirmModal({
     title: 'Supprimer ce profil ?',
-    message: `Cela effacera le profil « ${profil.name} » ET tous ses manuscrits, sans possibilité de récupération.`,
+    message: `Cela effacera le profil « ${profil.name} » ET tous ses manuscrits de tous vos appareils, sans possibilité de récupération. Les données chiffrées restent sur le serveur de synchronisation, illisibles sans le mot de passe du profil.`,
     confirmLabel: 'Supprimer définitivement',
     danger: true,
     requireText: profil.name
@@ -603,9 +604,12 @@ async function adminDeleteProfile(pid) {
   // de l'utilisateur (saisie du nom exact à retaper).
   await mutateProfilesIndex(freshIdx => {
     freshIdx.profiles = freshIdx.profiles.filter(p => p.id !== pid);
+    // v9.39.0 (AUD-02-015) : pierre tombale — sans elle, un autre appareil renvoyait le profil au serveur.
+    freshIdx.deletedProfiles = mergeTombstones(freshIdx.deletedProfiles, [{ id: pid, at: Date.now() }], Date.now());
   });
+  if (typeof flushPendingSyncPushes === 'function') flushPendingSyncPushes(true);
   renderManageProfiles();
-  toast('Profil supprimé définitivement', 'success');
+  toast('Profil supprimé de tous vos appareils', 'success');
 }
 
 function adminAddProfile() {

@@ -291,11 +291,11 @@ function launchLibraryTour() {
 }
 async function launchEditorFullTour() {
   const list = await loadDocList();
-  if (!list.documents.length) {
+  if (!liveDocuments(list).length) {
     toast('Créez ou ouvrez d\'abord un manuscrit pour lancer cette visite.', 'info');
     return;
   }
-  const sorted = list.documents.slice().sort((a,b) => b.lastModified - a.lastModified);
+  const sorted = liveDocuments(list).sort((a,b) => b.lastModified - a.lastModified);
   // Correction (bug rapporté, v7.40.0) : openDocument() ci-dessous appelle
   // initApp(), qui déclenche aussi (sans le vouloir) le parcours "premiers
   // pas" automatique (notifications.js) s'il n'a jamais été vu — les deux

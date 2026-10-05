@@ -400,7 +400,7 @@ async function openDocxImportModal(filename) {
   document.getElementById('docx-new-title').value = _docxImportTitleGuess;
   const list = await loadDocList();
   const sel = document.getElementById('docx-existing-select');
-  sel.innerHTML = list.documents.filter(d => d.docType !== 'roman_graphique').sort((a,b)=>b.lastModified-a.lastModified)
+  sel.innerHTML = liveDocuments(list).filter(d => d.docType !== 'roman_graphique').sort((a,b)=>b.lastModified-a.lastModified)
     .map(d => `<option value="${d.id}">${DOMPurify.sanitize(d.title || 'Sans titre')}</option>`).join('');
   setDocxImportMode('new');
   // v9.36.0 : proposition de découpage si des titres de chapitres sont détectés.
@@ -520,7 +520,29 @@ function importProjectLibrary(input) {
       if (!p._plumeLibraryExport || !p.documents) throw new Error('Ce fichier n\'est pas un export de bibliothèque Plume.');
       const newEntries = [];
       let added = 0;
+      // v9.39.0 (AUD-02-022) — manuscrits du fichier DÉJÀ présents (même identifiant, corbeille comprise) : par
+      // défaut on les ignore ; sinon importés en copies. Avant, réimporter un fichier dupliquait toute la bibliothèque.
+      const present = new Set(((await loadDocList()).documents || []).map(d => d.id));
+      const dupIds = Object.keys(p.documents).filter(id => present.has(id));
+      let skipIds = new Set();
+      if (dupIds.length) {
+        const ignore = await showConfirmModal({
+          title: dupIds.length + ' manuscrit(s) déjà présent(s)',
+          message: 'Ce fichier contient ' + dupIds.length + ' manuscrit(s) qui existent déjà dans votre bibliothèque. Les ignorer et n\'importer que les autres (recommandé) ? Annuler vous permettra de les importer en copies.',
+          confirmLabel: 'Ignorer les doublons'
+        });
+        if (ignore) skipIds = new Set(dupIds);
+        else {
+          const copies = await showConfirmModal({
+            title: 'Importer les doublons en copies ?',
+            message: dupIds.length + ' manuscrit(s) seront ajoutés une seconde fois, sous un nouvel identifiant.',
+            confirmLabel: 'Importer en copies'
+          });
+          if (!copies) { toast('Import annulé.', 'info'); return; }
+        }
+      }
       for (const oldId of Object.keys(p.documents)) {
+        if (skipIds.has(oldId)) continue;
         const oldEntry = (p.doclist && p.doclist.documents || []).find(d => d.id === oldId);
         const newId = genChapterId();
         let envelope = p.documents[oldId];
@@ -592,8 +614,10 @@ function importProjectLibrary(input) {
       }
       if (unreadable) {
         toast('⚠️ Import terminé, mais ces manuscrits semblent illisibles : ce fichier vient probablement d\'un autre profil.', 'error');
+      } else if (!added) {
+        toast('Aucun nouveau manuscrit : tous ceux du fichier sont déjà dans votre bibliothèque.', 'info');
       } else {
-        toast(added + ' manuscrit(s) importé(s) dans la bibliothèque.', 'success');
+        toast(added + ' manuscrit(s) importé(s) dans la bibliothèque.' + (skipIds.size ? ' ' + skipIds.size + ' doublon(s) ignoré(s).' : ''), 'success');
       }
       await renderLibraryScreen();
     } catch(err) {

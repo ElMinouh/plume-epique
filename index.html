@@ -77,6 +77,7 @@
   <h2 class="u-m-18px-0-2px">📚 Ma bibliothèque</h2>
   <div class="u-d-flex u-jc-space-between u-ai-center u-m-0-0-6px">
     <p class="u-fs-_78rem u-c-v-text-muted u-m-0" id="library-count"></p>
+    <button class="action-btn btn-sm u-bg-h7f8c8d u-d-none" id="library-trash-btn" title="Manuscrits supprimés, récupérables 30 jours">🗑️ Corbeille (0)</button>
     <div class="ch-view-toggle u-w-170px" role="group" aria-label="Vue de la bibliothèque">
       <button class="mode-indicator active" id="view-grid-btn" title="Vue grille">🔲 Grille</button>
       <button class="mode-indicator" id="view-shelf-btn" title="Vue en étagère">📚 Étagère</button>
@@ -339,6 +340,17 @@
       <button class="action-btn btn-sm u-bg-h7f8c8d" id="confirm-modal-cancel-btn">Annuler</button>
       <button class="action-btn btn-sm" id="confirm-modal-confirm-btn">Confirmer</button>
     </div>
+  </div>
+</div>
+
+<div id="doc-trash-overlay" role="dialog" aria-modal="true" aria-label="Corbeille des manuscrits">
+  <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-500px-92vw u-maxh-70vh u-d-flex u-fd-column u-gap-10px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+    <div class="u-d-flex u-jc-space-between u-ai-center">
+      <strong>🗑️ Corbeille (manuscrits supprimés)</strong>
+      <button class="action-btn btn-sm" id="doc-trash-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
+    </div>
+    <div class="u-fs-_7rem u-c-v-text-muted">Les manuscrits supprimés restent ici 30 jours, sur tous vos appareils, avant suppression définitive automatique.</div>
+    <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-6px" id="doc-trash-list"></div>
   </div>
 </div>
 
@@ -1091,7 +1103,7 @@
   <button id="lctx-cover" role="menuitem">🎨 Changer la couverture</button>
   <button id="lctx-export" role="menuitem">📤 Exporter</button>
   <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
-  <button id="lctx-del" role="menuitem" class="ch-menu-danger">🗑️ Supprimer</button>
+  <button id="lctx-del" role="menuitem" class="ch-menu-danger" title="Le manuscrit reste récupérable 30 jours dans la corbeille">🗑️ Mettre à la corbeille</button>
 </div>
 
 <!-- Menu "Plus d'actions" de la barre du haut de la bibliothèque (mobile

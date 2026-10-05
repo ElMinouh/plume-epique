@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.38.0';
+const APP_VERSION = '9.39.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -319,17 +319,7 @@ function removeConflictPausedKey(key) {
 // Une pierre tombale l'emporte sur toute entrée de même id ; elle est
 // conservée DOC_TOMBSTONE_TTL_MS (un appareil resté hors ligne moins longtemps
 // l'apprendra) puis oubliée.
-const DOC_TOMBSTONE_TTL_MS = 90 * 24 * 3600 * 1000;
-function mergeTombstones(a, b, now) {
-  const byId = new Map();
-  for (const t of [].concat(a || [], b || [])) {
-    if (!t || !t.id) continue;
-    if (now - (t.at || 0) > DOC_TOMBSTONE_TTL_MS) continue;
-    const prev = byId.get(t.id);
-    if (!prev || (t.at || 0) < (prev.at || 0)) byId.set(t.id, { id: t.id, at: t.at || now });
-  }
-  return Array.from(byId.values());
-}
+// mergeTombstones() et DOC_TOMBSTONE_TTL_MS : voir schema.js (v9.39.0, partagés avec la corbeille et les profils)
 function mergeDocList(local, remote) {
   if (!remote || !Array.isArray(remote.documents)) return local;
   if (!local || !Array.isArray(local.documents)) return remote;
@@ -435,15 +425,53 @@ function readVersionHeader(resp) {
 // retour — un profil en trop se resupprime en trois clics, un profil perdu
 // ne se récupère pas.
 // ═══════════════════════════════════════════════════════
+// v9.39.0 (audit AUD-02-015) — SUPPRESSION DE PROFIL : l'index porte désormais une liste `deletedProfiles`
+// ([{ id, at }], pierres tombales, comme `deleted` pour les manuscrits). Un profil supprimé volontairement par
+// un administrateur ne réapparaît plus quand un autre appareil renvoie sa copie ; sans pierre tombale, la règle
+// ci-dessus (rien ne disparaît par synchronisation) reste intacte. Seule une suppression volontaire en crée une.
 function mergeProfilesIndex(local, remote) {
   if (!remote || !Array.isArray(remote.profiles)) return local;
   if (!local || !Array.isArray(local.profiles)) return remote;
-  const merged = remote.profiles.slice();
+  const deleted = mergeTombstones(local.deletedProfiles, remote.deletedProfiles, Date.now());
+  const gone = new Set(deleted.map(t => t.id));
+  const merged = remote.profiles.filter(p => !(p && gone.has(p.id)));
   const seen = new Set(merged.map(p => p && p.id));
   for (const p of local.profiles) {
-    if (p && !seen.has(p.id)) { merged.push(p); seen.add(p.id); }
+    if (p && !seen.has(p.id) && !gone.has(p.id)) { merged.push(p); seen.add(p.id); }
   }
-  return { ...remote, profiles: merged };
+  const out = { ...remote, profiles: merged };
+  if (deleted.length) out.deletedProfiles = deleted;
+  return out;
+}
+// Efface la copie LOCALE des profils supprimés ailleurs (pierres tombales reçues) : liste de manuscrits,
+// manuscrits, historiques de chat, réglages, sauvegardes de conflit. Écriture locale seulement. Jamais le profil
+// actuellement ouvert (il sera purgé au prochain démarrage, une fois la session fermée).
+async function purgeTombstonedProfiles(index) {
+  try {
+    if (!index || !Array.isArray(index.deletedProfiles) || !index.deletedProfiles.length) return false;
+    let purged = false;
+    for (const t of index.deletedProfiles) {
+      if (typeof _currentProfileId !== 'undefined' && _currentProfileId === t.id) continue;
+      const pid = t.id;
+      const prefixes = ['doclist_' + pid, 'data_' + pid, 'libsettings_' + pid, 'doc_' + pid + '_', 'aichat_' + pid + '_', 'conflict_doc_' + pid + '_'];
+      let keys = [];
+      if (idbStore) keys = (await idbStore.getAllKeys('data')).filter(k => typeof k === 'string' && prefixes.some(p => k === p || k.startsWith(p)));
+      else keys = Object.keys(localStorage).filter(k => k.startsWith('plume_') && prefixes.some(p => k.slice('plume_'.length).startsWith(p))).map(k => k.slice('plume_'.length));
+      // Images locales des manuscrits de ce profil, avant d'oublier la liste.
+      const listKey = 'doclist_' + pid;
+      const list = keys.includes(listKey) ? await readLocalOnly(listKey) : null;
+      if (list && Array.isArray(list.documents) && typeof deleteAllGraphicImagesForDocument === 'function') {
+        for (const d of list.documents) { try { await deleteAllGraphicImagesForDocument(d.id, { localOnly: true, profileId: pid }); } catch (e) { /* best effort */ } }
+      }
+      for (const k of keys) {
+        await writeLocalOnly(k, null);
+        removePendingSyncKey(k); removeConflictPausedKey(k);
+        clearTimeout(_pushDebounceTimers[k]); delete _pushDebounceTimers[k]; delete _pendingSince[k]; delete _pendingPayload[k];
+        purged = true;
+      }
+    }
+    return purged;
+  } catch (e) { return false; }
 }
 // Sauvegarde locale uniquement (ne relance pas syncPush, sans quoi on
 // boucle) — utilisée pour ne jamais perdre la version distante écrasée.
@@ -1015,6 +1043,7 @@ async function loadData(key) {
           const merged = mergeProfilesIndex(local, remote);
           await writeLocalOnly(key, merged);
           setSyncVersion(key, remoteVersion);
+          purgeTombstonedProfiles(merged); // v9.39.0 : profils supprimés ailleurs
           // Des profils locaux absents du serveur ? On les y renvoie.
           if (JSON.stringify(merged) !== JSON.stringify(remote)) queueSyncPush(key, merged);
         } else {
@@ -1033,6 +1062,7 @@ async function loadData(key) {
     if (idbStore) await idbStore.put('data', remote, key);
     if (remoteVersion !== null) setSyncVersion(key, remoteVersion);
     if (isDocListKey(key)) purgeTombstonedDocs(key, remote);
+    if (key === 'profiles') purgeTombstonedProfiles(remote);
     return remote;
   }
   return local ?? null;
@@ -1398,6 +1428,7 @@ function wireAppEventListenersOnce(){
       if(document.getElementById('fr-panel').classList.contains('active'))closeFindReplace();
       if(document.getElementById('gist-history-overlay').classList.contains('active'))closeGistHistory();
       if(document.getElementById('trash-overlay').classList.contains('active'))closeTrash();
+      if(document.getElementById('doc-trash-overlay').classList.contains('active'))closeDocTrash();
       if(document.getElementById('reading-overlay').classList.contains('active'))exitReadingMode();
       if(document.getElementById('export-select-overlay').classList.contains('active'))closeExportSelect();
       if(document.getElementById('shortcuts-overlay').classList.contains('active'))closeShortcutsHelp();

@@ -117,6 +117,36 @@ function rebaseWordStats(data) {
   return data;
 }
 
+// ═══════════════════════════════════════════════════════
+// CORBEILLE DE MANUSCRITS (v9.39.0, audit AUD-02-014)
+// Supprimer un manuscrit le met à la corbeille 30 jours : l'entrée de l'index porte `trashedAt` (horodatage) et
+// reste dans `documents` ; son contenu chiffré reste sur l'appareil et sur le serveur. La fusion des index garde
+// l'entrée la plus récemment modifiée : mettre à la corbeille ou restaurer met `lastModified` à jour ; et modifier
+// le manuscrit depuis un appareil resté en retard le fait ressortir de la corbeille (jamais l'inverse : aucune perte).
+// Passé le délai, la suppression définitive est faite par la même voie qu'avant (pierre tombale `deleted`).
+// ═══════════════════════════════════════════════════════
+const DOC_TRASH_TTL_MS = 30 * 24 * 3600 * 1000;
+function liveDocuments(list) { return ((list && list.documents) || []).filter(d => d && !d.trashedAt); }
+function trashedDocuments(list) { return ((list && list.documents) || []).filter(d => d && d.trashedAt); }
+function docTrashDaysLeft(entry, now) {
+  return Math.max(0, Math.ceil((DOC_TRASH_TTL_MS - ((now || Date.now()) - (entry.trashedAt || 0))) / 86400000));
+}
+function expiredTrashedDocuments(list, now) {
+  return trashedDocuments(list).filter(d => (now || Date.now()) - d.trashedAt >= DOC_TRASH_TTL_MS);
+}
+
+// Pierres tombales (manuscrits supprimés `deleted`, profils supprimés `deletedProfiles`) : conservées 90 jours.
+const DOC_TOMBSTONE_TTL_MS = 90 * 24 * 3600 * 1000;
+function mergeTombstones(a, b, now) {
+  const byId = new Map();
+  for (const t of [].concat(a || [], b || [])) {
+    if (!t || !t.id) continue;
+    if (now - (t.at || 0) > DOC_TOMBSTONE_TTL_MS) continue;
+    const prev = byId.get(t.id);
+    if (!prev || (t.at || 0) < (prev.at || 0)) byId.set(t.id, { id: t.id, at: t.at || now });
+  }
+  return Array.from(byId.values());
+}
 function genChapterId() {
   return (crypto.randomUUID ? crypto.randomUUID() : 'ch_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
 }

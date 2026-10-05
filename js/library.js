@@ -503,8 +503,10 @@ function wireLibraryStaticUI() {
   document.getElementById('lctx-del').addEventListener('click', () => {
     const docId = _libraryCtxMenuDocId;
     closeLibraryCtxMenu();
-    if (docId) deleteDocument(docId);
+    if (docId) trashDocument(docId);
   });
+  document.getElementById('library-trash-btn').addEventListener('click', openDocTrash);
+  document.getElementById('doc-trash-close-btn').addEventListener('click', closeDocTrash);
   document.addEventListener('click', () => closeLibraryCtxMenu());
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
@@ -654,8 +656,13 @@ async function migrateLegacyDocumentIfNeeded() {
 }
 
 async function renderLibraryScreen() {
-  const list = await loadDocList();
-  const sorted = list.documents.slice().sort((a,b) => b.lastModified - a.lastModified);
+  let list = await loadDocList();
+  // v9.39.0 : les manuscrits dont les 30 jours de corbeille sont écoulés sont supprimés définitivement.
+  if (expiredTrashedDocuments(list).length) { await purgeExpiredDocTrash(list); list = await loadDocList(); }
+  const sorted = liveDocuments(list).sort((a,b) => b.lastModified - a.lastModified);
+  const nTrash = trashedDocuments(list).length;
+  const trashBtn = document.getElementById('library-trash-btn');
+  if (trashBtn) { trashBtn.classList.toggle('u-d-none', !nTrash); trashBtn.textContent = '🗑️ Corbeille (' + nTrash + ')'; }
 
   document.getElementById('library-profile-name').textContent = 'Bonjour, ' + (_currentProfile ? _currentProfile.name : '');
   document.getElementById('library-manage-profiles-btn').style.display = (_currentProfile && _currentProfile.role === 'admin') ? '' : 'none';
@@ -762,7 +769,7 @@ async function renderLibraryShelf(sorted) {
   if (!cont) return;
   if (!sorted) {
     const list = await loadDocList();
-    sorted = list.documents.slice().sort((a,b) => b.lastModified - a.lastModified);
+    sorted = liveDocuments(list).sort((a,b) => b.lastModified - a.lastModified);
   }
   const PER_ROW = 7;
   const items = [{ isNew:true }].concat(sorted.map((d, idx) => ({ d, isRecent: idx === 0 })));
@@ -932,19 +939,10 @@ async function sweepRemoteTombstones() {
   return done;
 }
 
-async function deleteDocument(docId) {
-  const list = await loadDocList();
-  const entry = list.documents.find(d => d.id === docId);
-  if (!entry) return;
-  const title = entry.title || 'Sans titre';
-  const ok = await showConfirmModal({
-    title: 'Supprimer ce manuscrit ?',
-    message: `« ${title} » et tous ses chapitres seront effacés définitivement, sur tous vos appareils, sans possibilité de récupération.`,
-    confirmLabel: 'Supprimer définitivement',
-    danger: true,
-    requireText: title
-  });
-  if (!ok) return;
+// Suppression DÉFINITIVE d'un manuscrit (v9.39.0 : seule la corbeille y mène, ou l'expiration de ses 30 jours).
+// Efface le contenu local, pose la pierre tombale dans l'index (les autres appareils retirent l'entrée et leur
+// copie), puis efface le contenu chiffré du serveur dès que la pierre tombale y est arrivée.
+async function performDocumentDeletion(docId) {
   await persistData(docDataKey(_currentProfileId, docId), null);
   await cleanupDocumentSideData(_currentProfileId, docId);
   // Copie rechargée à l'intérieur du verrou (pas celle lue plus haut, qui a
@@ -965,8 +963,82 @@ async function deleteDocument(docId) {
     try { await (_pushChains[docListKey(pid)] || Promise.resolve()); } catch (e) { /* sans effet */ }
     await deleteRemoteManuscript(pid, docId);
   })().catch(() => {});
+}
+// Suppression définitive depuis la corbeille — confirmation forte (retaper le titre exact), même principe que la
+// suppression de profil.
+async function deleteDocument(docId) {
+  const list = await loadDocList();
+  const entry = list.documents.find(d => d.id === docId);
+  if (!entry) return;
+  const title = entry.title || 'Sans titre';
+  const ok = await showConfirmModal({
+    title: 'Supprimer définitivement ce manuscrit ?',
+    message: `« ${title} » et tous ses chapitres seront effacés définitivement, sur tous vos appareils, sans possibilité de récupération.`,
+    confirmLabel: 'Supprimer définitivement',
+    danger: true,
+    requireText: title
+  });
+  if (!ok) return;
+  await performDocumentDeletion(docId);
   await renderLibraryScreen();
+  const trashOverlay = document.getElementById('doc-trash-overlay');
+  if (trashOverlay && trashOverlay.classList.contains('active')) await renderDocTrash();
   toast('Manuscrit supprimé définitivement (sur tous vos appareils)', 'success');
+}
+// v9.39.0 (AUD-02-014) — « Supprimer » met à la corbeille 30 jours (réversible : pas de retape du titre).
+async function trashDocument(docId) {
+  const list = await loadDocList();
+  const entry = list.documents.find(d => d.id === docId);
+  if (!entry) return;
+  const ok = await showConfirmModal({
+    title: 'Mettre ce manuscrit à la corbeille ?',
+    message: `« ${entry.title || 'Sans titre'} » ira à la corbeille pendant 30 jours : vous pourrez le restaurer depuis la bibliothèque, sur tous vos appareils. Passé ce délai, il sera supprimé définitivement.`,
+    confirmLabel: 'Mettre à la corbeille'
+  });
+  if (!ok) return;
+  await mutateDocList(l => {
+    const e = l.documents.find(d => d.id === docId);
+    if (e) { e.trashedAt = Date.now(); e.lastModified = Date.now(); }
+  });
+  if (typeof flushPendingSyncPushes === 'function') flushPendingSyncPushes(true);
+  await renderLibraryScreen();
+  toast('Manuscrit mis à la corbeille (30 jours)', 'success');
+}
+async function restoreDocumentFromTrash(docId) {
+  await mutateDocList(l => {
+    const e = l.documents.find(d => d.id === docId);
+    if (e) { delete e.trashedAt; e.lastModified = Date.now(); }
+  });
+  if (typeof flushPendingSyncPushes === 'function') flushPendingSyncPushes(true);
+  await renderLibraryScreen();
+  await renderDocTrash();
+  toast('Manuscrit restauré', 'success');
+}
+// Suppression définitive automatique des manuscrits dont les 30 jours sont écoulés. Renvoie leur nombre.
+async function purgeExpiredDocTrash(list) {
+  const expired = expiredTrashedDocuments(list || await loadDocList());
+  for (const d of expired) await performDocumentDeletion(d.id);
+  if (expired.length) toast(expired.length + ' manuscrit(s) supprimé(s) définitivement (30 jours écoulés)', 'info');
+  return expired.length;
+}
+function closeDocTrash() { document.getElementById('doc-trash-overlay').classList.remove('active'); }
+async function openDocTrash() {
+  await renderDocTrash();
+  document.getElementById('doc-trash-overlay').classList.add('active');
+}
+async function renderDocTrash() {
+  const listEl = document.getElementById('doc-trash-list');
+  const trashed = trashedDocuments(await loadDocList()).sort((a, b) => b.trashedAt - a.trashedAt);
+  if (!trashed.length) { listEl.innerHTML = '<div class="u-op-_5 u-p-16px u-ta-center u-fs-_82rem">La corbeille est vide.</div>'; return; }
+  listEl.innerHTML = trashed.map(d => `<div class="history-item u-cur-default">
+      <span>${escapeHtml(d.title || 'Sans titre')}<br><span class="u-op-_5 u-fs-_68rem">${d.docType === 'roman_graphique' ? (d.chapterCount || 0) + ' page(s)' : (d.chapterCount || 0) + ' chapitre(s)'} · ${d.wordCount || 0} mots — supprimé définitivement dans ${docTrashDaysLeft(d)} j</span></span>
+      <span class="u-d-flex u-gap-4px u-fsh-0">
+        <button class="action-btn btn-sm" data-doc-restore="${escapeHtml(d.id)}">↩ Restaurer</button>
+        <button class="action-btn btn-sm u-bg-v-danger" data-doc-purge="${escapeHtml(d.id)}">✕ Définitif</button>
+      </span>
+    </div>`).join('');
+  listEl.querySelectorAll('[data-doc-restore]').forEach(b => b.addEventListener('click', () => restoreDocumentFromTrash(b.dataset.docRestore)));
+  listEl.querySelectorAll('[data-doc-purge]').forEach(b => b.addEventListener('click', () => deleteDocument(b.dataset.docPurge)));
 }
 
 async function backToLibrary() {
@@ -1354,7 +1426,7 @@ async function openLibrarySystemPanel(preselectDocId) {
   document.getElementById('lib-auto-gist-interval').value = String(_libSettings.autoGistInterval ?? 15);
   document.getElementById('lib-cloud-status').textContent = '';
   const list = await loadDocList();
-  const sorted = list.documents.slice().sort((a,b)=>b.lastModified-a.lastModified);
+  const sorted = liveDocuments(list).sort((a,b)=>b.lastModified-a.lastModified);
   const optionsHtml = sorted.map(d => `<option value="${d.id}">${DOMPurify.sanitize(d.title || 'Sans titre')}</option>`).join('');
   const sel = document.getElementById('lib-system-doc-select');
   sel.innerHTML = optionsHtml;
