@@ -93,15 +93,44 @@ function isTypingTarget(el) {
 // ═══════════════════════════════════════════════════════
 // ÉDITEUR — isolation stricte par chapitre
 // ═══════════════════════════════════════════════════════
+// v9.33.0 (AUD-02-001) — le mode Focus a son propre champ de saisie (#focus-writer) : tant
+// qu'il est ouvert, c'est LUI qui porte le texte à jour, pas #writer (resté sur l'ancienne version).
+function isFocusActive() {
+  const o = document.getElementById('focus-overlay');
+  return !!(o && o.classList.contains('active'));
+}
+// Texte (HTML) et titre à jour du chapitre courant, quelle que soit la zone de saisie active.
+function currentChapterSource() {
+  const w = document.getElementById('writer'), t = document.getElementById('chapter-title');
+  if (isFocusActive()) {
+    const fw = document.getElementById('focus-writer'), ft = document.getElementById('focus-title');
+    if (fw) return { html: fw.innerHTML, title: ft ? ft.value.trim() : '' };
+  }
+  return { html: w ? w.innerHTML : null, title: t ? t.innerText.trim() : '' };
+}
+// Dernier état « propre » du chapitre affiché (juste après chargement ou instantané) : sert à ne
+// prendre un instantané en quittant un chapitre que si son texte a réellement changé.
+let _chapterBaseline = null;
 function flushCurrentChapter() {
-  const w = document.getElementById('writer'), t = document.getElementById('chapter-title'), st = document.getElementById('chapter-status-sel');
+  const st = document.getElementById('chapter-status-sel');
   // Garde db.chapters (v9.13.0) : undefined pour un roman graphique
   // (db.chapters[cur] plantait alors) — flushCurrentChapter est appelée
   // sans condition par le raccourci global Ctrl+S.
-  if (!w || !db.chapters || !db.chapters[cur]) return;
-  db.chapters[cur].content = w.innerHTML;
-  if (t) db.chapters[cur].title = t.innerText.trim() || db.chapters[cur].title;
+  if (!document.getElementById('writer') || !db.chapters || !db.chapters[cur]) return;
+  const src = currentChapterSource();
+  db.chapters[cur].content = src.html;
+  db.chapters[cur].title = src.title || db.chapters[cur].title;
   if (st) db.chapters[cur].status = st.value;
+}
+// Mode Focus : à chaque frappe, le texte part dans le manuscrit et l'enregistrement différé
+// est armé (comme dans l'éditeur normal) — avant, rien n'était gardé avant la sortie du Focus.
+function focusLiveSync() {
+  updateFocusCount();
+  const ch = db.chapters && db.chapters[cur];
+  if (!ch) return;
+  ch.content = document.getElementById('focus-writer').innerHTML;
+  updateDailyStats();
+  debouncedSave();
 }
 // ═══════════════════════════════════════════════════════
 // v9.27.0 (audit AUD-01-027) — TEXTE COLLÉ ET STYLES ÉTRANGERS
@@ -164,6 +193,7 @@ function loadChapter(i) {
   if (t) t.innerText = ch.title || '';
   if (s) s.value = ch.tension ?? 20;
   if (st) st.value = ch.status || 'draft';
+  _chapterBaseline = w.innerHTML;
   // v7.36.0 (ergonomie) — objectif de mots et notes de recherche, propres à
   // chaque chapitre (panneau "📓 Notes", replié par défaut).
   const wg = document.getElementById('chapter-word-goal-input');
@@ -552,7 +582,11 @@ function changeCh(i) {
   if (i === cur) return;
   commitUndoSnapshot();
   _switching = true;
-  flushCurrentChapter(); cur = i; renderChapterList(); loadChapter(cur); updateDailyStats();
+  flushCurrentChapter();
+  // v9.33.0 (AUD-02-008) — le chapitre quitté garde une copie de son état si son texte a changé
+  // (jusqu'ici seul le chapitre affiché toutes les 5 min avait un historique).
+  if (snapshotIfChangedSinceLoad('Changement de chapitre — ' + new Date().toLocaleString('fr'))) debouncedSave();
+  cur = i; renderChapterList(); loadChapter(cur); updateDailyStats();
   _switching = false;
   // v7.41.1 — Sur mobile, le panneau chapitres est un tiroir replié par
   // défaut (voir style.css/router.js) : on le referme après sélection pour

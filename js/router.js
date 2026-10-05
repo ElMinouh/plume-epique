@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.32.0';
+const APP_VERSION = '9.33.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1256,7 +1256,7 @@ function wireAppEventListenersOnce(){
 
   document.getElementById('focus-btn').addEventListener('click',enterFocus);
   document.getElementById('focus-close-btn').addEventListener('click',exitFocus);
-  document.getElementById('focus-writer').addEventListener('input',updateFocusCount);
+  document.getElementById('focus-writer').addEventListener('input',focusLiveSync);
 
   document.getElementById('ai-summary-btn').addEventListener('click',generateAISummary);
   document.getElementById('ai-panel-close').addEventListener('click',()=>document.getElementById('ai-summary-panel').classList.remove('active'));
@@ -1593,7 +1593,12 @@ async function onPageLeaving() {
   try {
     if (typeof _currentDocumentId !== 'undefined' && _currentDocumentId && !document.body.classList.contains('library-mode')) {
       if (document.body.classList.contains('graphicnovel-mode') && typeof saveGraphicNovel === 'function') await saveGraphicNovel(true);
-      else if (_unsavedChanges && typeof flushCurrentChapter === 'function') { flushCurrentChapter(); await save(); }
+      else if (_unsavedChanges && typeof flushCurrentChapter === 'function') {
+        flushCurrentChapter();
+        // v9.33.0 (AUD-02-008) — copie du chapitre à la fermeture/au masquage si son texte a changé.
+        if (typeof snapshotIfChangedSinceLoad === 'function') snapshotIfChangedSinceLoad('Fermeture — ' + new Date().toLocaleString('fr'));
+        await save();
+      }
     }
   } catch (e) { /* le masquage ne doit jamais lever d'erreur */ }
   flushPendingSyncPushes(true);

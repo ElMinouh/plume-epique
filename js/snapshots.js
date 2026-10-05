@@ -17,6 +17,16 @@ function takeSnapshot(chIdx, label) {
   db.history[key] = thinSnapshots(db.history[key], Date.now(), MAX_SNAPSHOTS);
   return true;
 }
+// v9.33.0 (AUD-02-008) — instantané du chapitre courant seulement si son texte a changé depuis son
+// chargement (ou son dernier instantané de ce type) : consulter un chapitre n'en crée aucun, donc
+// aucun gonflement du manuscrit. Appelée en quittant un chapitre et à la fermeture de la page.
+function snapshotIfChangedSinceLoad(label) {
+  const ch = db.chapters && db.chapters[cur];
+  if (!ch || typeof _chapterBaseline !== 'string' || ch.content === _chapterBaseline) return false;
+  const made = takeSnapshot(cur, label);
+  _chapterBaseline = ch.content;
+  return made;
+}
 // v9.25.0 — amincit en une fois tout l'historique d'un manuscrit (chapitres
 // ET pages de roman graphique) : appelée à l'ouverture, pour que les anciens
 // manuscrits alourdis par 30 copies serrées retrouvent un poids raisonnable
@@ -120,6 +130,10 @@ function restoreSnapshot(key, idx) {
   // ne convenait pas finalement — auparavant, seule une réouverture manuelle
   // de l'historique permettait de revenir en arrière.
   checkpointNow();
+  // v9.33.0 (AUD-02-009) — l'état qui va être écrasé est gardé comme copie MANUELLE (jamais
+  // purgée automatiquement) : la pile d'annulation ne survit pas à un rechargement de page.
+  flushCurrentChapter();
+  takeSnapshot(cur, 'Manuel — Avant restauration — ' + new Date().toLocaleString('fr'));
   db.chapters[cur].content = snap.content;
   db.chapters[cur].title = snap.title;
   loadChapter(cur);

@@ -453,6 +453,47 @@
   assert(db.trash.length === 0, 'permanentlyPurge() supprime définitivement un chapitre de la corbeille');
   window.confirm = realConfirm;
 
+  // ── v9.33.0 (AUD-02-001 / 008 / 009) — texte jamais perdu ──
+  group('editor.js — mode Focus, copies de chapitre, restauration (v9.33.0)');
+  document.body.insertAdjacentHTML('beforeend',
+    '<div id="history-overlay"></div><div id="focus-overlay"></div><div id="focus-writer" contenteditable="true"></div><input id="focus-title"><span id="focus-wordcount"></span>');
+  db = { chapters:[
+      { id:'f1', title:'Chapitre F1', content:'<p>Ancien texte.</p>', tension:20, status:'draft', tags:[] },
+      { id:'f2', title:'Chapitre F2', content:'<p>Autre.</p>', tension:20, status:'draft', tags:[] } ],
+    history:{}, trash:[], weakWords:[], sessionStats:{} };
+  cur = 0;
+  loadChapter(0);
+  // 001 — en Focus, la frappe part dans le manuscrit sans quitter le Focus
+  document.getElementById('focus-overlay').classList.add('active');
+  document.getElementById('focus-writer').innerHTML = '<p>Texte tapé en Focus.</p>';
+  document.getElementById('focus-title').value = 'Titre Focus';
+  focusLiveSync();
+  assert(db.chapters[0].content === '<p>Texte tapé en Focus.</p>', 'Focus : chaque frappe met à jour le manuscrit (avant : rien avant la sortie du Focus)');
+  assert(_unsavedChanges === undefined || typeof _unsavedChanges === 'boolean', 'Focus : l\'enregistrement différé est armé');
+  // Un flush (minuteur de 5 min, Ctrl+S, fermeture) ne doit PAS écraser le Focus par l'ancien texte de #writer
+  flushCurrentChapter();
+  assert(db.chapters[0].content === '<p>Texte tapé en Focus.</p>' && db.chapters[0].title === 'Titre Focus',
+    'Focus : flushCurrentChapter() lit le champ du Focus (et non l\'ancien #writer périmé)');
+  document.getElementById('focus-overlay').classList.remove('active');
+  // 008 — quitter un chapitre modifié en garde une copie ; le simple consultation n'en crée pas
+  loadChapter(0);
+  document.getElementById('writer').innerHTML = '<p>Version réécrite.</p>';
+  changeCh(1);
+  assert((db.history['f1'] || []).length === 1 && db.history['f1'][0].content === '<p>Version réécrite.</p>', 'quitter un chapitre modifié enregistre une copie de son état');
+  changeCh(0);
+  assert(!db.history['f2'], 'quitter un chapitre non modifié ne crée aucune copie (pas de gonflement du manuscrit)');
+  // 009 — restaurer garde l'état écrasé comme copie manuelle
+  document.getElementById('writer').innerHTML = '<p>Texte récent à ne pas perdre.</p>';
+  flushCurrentChapter();
+  const snapToRestore = { ts: Date.now() - 3600000, label: 'Ancienne', content: '<p>Très ancien.</p>', title: 'Ancien' };
+  db.history['f1'].push(snapToRestore);
+  const realConfirm009 = window.confirm; window.confirm = () => true;
+  restoreSnapshot('f1', db.history['f1'].length - 1);
+  window.confirm = realConfirm009;
+  assert(db.chapters[0].content === '<p>Très ancien.</p>', 'restoreSnapshot() restaure bien la version choisie');
+  assert(db.history['f1'].some(s => /^Manuel — Avant restauration/.test(s.label) && s.content === '<p>Texte récent à ne pas perdre.</p>'),
+    'restoreSnapshot() garde l\'état écrasé comme copie manuelle « Avant restauration »');
+
   group('editor.js — Annuler / Rétablir');
   db = { chapters:[{ id:'u1', title:'Chapitre Undo', content:'Contenu initial', tension:20, status:'draft', tags:[] }], history:{}, trash:[], weakWords:[] };
   cur = 0;

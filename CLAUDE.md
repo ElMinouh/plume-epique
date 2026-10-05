@@ -127,3 +127,4 @@ Les deux doivent être bumpés ensemble à chaque release (contextes différents
 - Pas d'outil de lint/format configuré — ne pas inventer de commande lint.
 - `vitest.config.js` : `fileParallelism: false` — les tests partagent un contexte d'app global (comme l'app réelle avec `db`/`cur`), s'exécutent dans l'ordre, ne pas les paralléliser mentalement.
 - `CLE-DE-SYNCHRONISATION-NE-PAS-PARTAGER.txt` — clé de sync locale, gitignored, ne jamais committer.
+- **Audit AUD-02 (fonctionnel, 2026-10-05)** : 22 constats, 7 lots (voir `Audits/Rapports/AUD-02-audit-fonctionnel.docx`, hors dépôt). Le protocole par lot ci-dessus s'applique à chaque lot, sans exception (rappelé le 2026-10-05) : explication des problèmes / pourquoi / solutions / difficulté AVANT de coder, validation de l'utilisateur, puis après livraison numéro de version attendue + méthode de vérification.
