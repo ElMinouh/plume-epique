@@ -277,7 +277,7 @@ async function exportPdf(chapters, title) {
   if (!chapters || !chapters.length) { toast('Aucun chapitre sélectionné.', 'error'); return; }
   try {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit:'mm', format:'a4' });
+    const doc = new jsPDF({ unit:'mm', format:'a4', compress:true });
     const L = PDF_LAYOUT;
     const pageWidth = doc.internal.pageSize.getWidth();
     doc.setFont('times', 'bold'); doc.setFontSize(24);
