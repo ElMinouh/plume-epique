@@ -1844,7 +1844,7 @@ async function gnExportPagesToCanvases(onPage) {
 }
 
 async function gnExportZip() {
-  if (typeof JSZip === 'undefined') { toast('Bibliothèque ZIP non chargée (vérifiez la connexion).', 'error'); return; }
+  if (typeof JSZip === 'undefined') { toast(EXPORT_LIB_MISSING, 'error'); return; }
   const zip = new JSZip();
   const ok = await gnExportPagesToCanvases(async (canvas, i) => {
     const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
@@ -1861,7 +1861,7 @@ async function gnExportZip() {
 }
 
 async function gnExportBookDocx() {
-  if (typeof docx === 'undefined') { toast('Lib DOCX non chargée (vérifiez la connexion).', 'error'); return; }
+  if (typeof docx === 'undefined') { toast(EXPORT_LIB_MISSING, 'error'); return; }
   const { Document, Packer, Paragraph, ImageRun, PageBreak } = docx;
   const children = [];
   const ok = await gnExportPagesToCanvases(async (canvas, i, total) => {
@@ -1882,7 +1882,7 @@ async function gnExportBookDocx() {
 }
 
 async function gnExportBookEpub() {
-  if (typeof JSZip === 'undefined') { toast('Bibliothèque EPUB non chargée (vérifiez la connexion).', 'error'); return; }
+  if (typeof JSZip === 'undefined') { toast(EXPORT_LIB_MISSING, 'error'); return; }
   const zip = new JSZip();
   zip.file('mimetype', 'application/epub+zip', { compression:'STORE' });
   zip.folder('META-INF').file('container.xml',
@@ -1949,7 +1949,7 @@ async function gnExportBookEpub() {
 }
 
 async function gnExportBookOdt() {
-  if (!window.odfKit || !window.odfKit.htmlToOdt) { toast('Bibliothèque ODT non chargée (vérifiez la connexion).', 'error'); return; }
+  if (!window.odfKit || !window.odfKit.htmlToOdt) { toast(EXPORT_LIB_MISSING, 'error'); return; }
   let html = `<h1>${escapeXml(db.title || 'Mon Roman graphique — Plume')}</h1>`;
   const ok = await gnExportPagesToCanvases(async canvas => {
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);

@@ -5,21 +5,84 @@
 // le `db` global — l'export se fait maintenant depuis la bibliothèque, pour
 // un manuscrit qui n'est pas forcément celui ouvert dans l'éditeur.
 // ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// v9.35.0 (audit AUD-02-003 / 013 / 017) — EXPORTS FIDÈLES
+//  • DOCX et PDF gardent gras, italique, souligné, titres et retours à la ligne (avant : texte brut,
+//    alors que l'EPUB et l'ODT gardaient le HTML) ;
+//  • « Chapitre N : » n'est plus ajouté devant un titre qui commence déjà par « Chapitre » ;
+//  • le fichier porte le nom du manuscrit (avant : roman_plume.* pour tous) ;
+//  • un seul message si un composant d'export manque (les librairies sont servies par le site, ce
+//    n'est jamais un problème de connexion).
+// ═══════════════════════════════════════════════════════
+const EXPORT_LIB_MISSING = "Composant d'export introuvable : rechargez la page et acceptez la mise à jour de l'application.";
+
+function exportChapterTitle(ch, i) {
+  const t = String((ch && ch.title) || '').trim();
+  if (!t) return `Chapitre ${i + 1}`;
+  return /^chapitre\b/i.test(t) ? t : `Chapitre ${i + 1} : ${t}`;
+}
+function exportFileName(title, ext) {
+  const base = String(title || '').replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().replace(/[. ]+$/, '').slice(0, 80);
+  return (base || 'manuscrit') + '.' + ext;
+}
+
+// Découpe le HTML d'un chapitre en blocs { heading: 0|1|2|3, runs: [{ text, bold, italic, underline, br }] }.
+// Un bloc = un paragraphe ou un titre ; les retours à la ligne internes sont des runs { br: true }.
+function htmlToExportBlocks(html) {
+  const clean = DOMPurify.sanitize(stripAnalysisMarks(html || ''));
+  const body = new DOMParser().parseFromString('<body>' + clean + '</body>', 'text/html').body;
+  const blocks = [];
+  const BLOCK = /^(p|div|h[1-6]|li|blockquote|pre)$/;
+  let current = null;
+  const open = heading => { current = { heading: heading || 0, runs: [] }; blocks.push(current); return current; };
+  const walk = (node, st, heading) => {
+    node.childNodes.forEach(child => {
+      if (child.nodeType === 3) {
+        const text = child.textContent.replace(/[\r\n\t]+/g, ' ');
+        if (!text || (!current && !text.trim())) return;
+        if (!current) open(heading);
+        current.runs.push({ text, bold: st.bold, italic: st.italic, underline: st.underline });
+        return;
+      }
+      if (child.nodeType !== 1) return;
+      const tag = child.tagName.toLowerCase();
+      if (tag === 'br') { if (!current) open(heading); current.runs.push({ br: true }); return; }
+      if (BLOCK.test(tag)) {
+        const level = /^h[1-3]$/.test(tag) ? Number(tag[1]) : (/^h[4-6]$/.test(tag) ? 3 : 0);
+        open(level || heading);
+        walk(child, level ? { ...st, bold: true } : st, level || heading);
+        current = null;
+        return;
+      }
+      const next = { ...st };
+      if (tag === 'strong' || tag === 'b') next.bold = true;
+      if (tag === 'em' || tag === 'i') next.italic = true;
+      if (tag === 'u') next.underline = true;
+      walk(child, next, heading);
+    });
+  };
+  walk(body, { bold: false, italic: false, underline: false }, 0);
+  return blocks;
+}
+
 async function exportDocx(chapters, title) {
-  if (typeof docx === 'undefined') { toast('Lib DOCX non chargée','error'); return; }
+  if (typeof docx === 'undefined') { toast(EXPORT_LIB_MISSING, 'error'); return; }
   if (!chapters || !chapters.length) { toast('Aucun chapitre sélectionné.','error'); return; }
   const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
+  const HEAD = [null, HeadingLevel.HEADING_2, HeadingLevel.HEADING_3, HeadingLevel.HEADING_3];
   const children = [new Paragraph({ text: title || 'Mon Roman — Plume', heading:HeadingLevel.TITLE })];
   chapters.forEach((ch, i) => {
-    children.push(new Paragraph({ text:`Chapitre ${i+1} : ${ch.title}`, heading:HeadingLevel.HEADING_1 }));
-    getPlainText(ch.content).split('\n').forEach(line => {
-      if (line.trim()) children.push(new Paragraph({ children:[new TextRun({ text:line.trim(), size:24 })] }));
-      else children.push(new Paragraph({}));
+    children.push(new Paragraph({ text: exportChapterTitle(ch, i), heading:HeadingLevel.HEADING_1 }));
+    htmlToExportBlocks(ch.content).forEach(block => {
+      const runs = block.runs.map(r => r.br
+        ? new TextRun({ break: 1 })
+        : new TextRun({ text: r.text, size: 24, bold: r.bold || undefined, italics: r.italic || undefined, underline: r.underline ? {} : undefined }));
+      children.push(new Paragraph(block.heading ? { heading: HEAD[block.heading], children: runs } : { children: runs }));
     });
     children.push(new Paragraph({}));
   });
   const blob = await Packer.toBlob(new Document({ sections:[{ children }] }));
-  saveAs(blob, 'roman_plume.docx'); toast('Export DOCX réussi !','success');
+  saveAs(blob, exportFileName(title, 'docx')); toast('Export DOCX réussi !','success');
 }
 
 function escapeXml(s) {
@@ -52,7 +115,7 @@ function toXhtmlSafe(html) {
   return Array.from(wrapper.childNodes).map(node => serializer.serializeToString(node)).join('');
 }
 async function exportEpub(chapters, title) {
-  if (typeof JSZip === 'undefined') { toast('Bibliothèque EPUB non chargée (vérifiez la connexion).', 'error'); return; }
+  if (typeof JSZip === 'undefined') { toast(EXPORT_LIB_MISSING, 'error'); return; }
   if (!chapters || !chapters.length) { toast('Aucun chapitre sélectionné.', 'error'); return; }
 
   const zip = new JSZip();
@@ -111,7 +174,7 @@ async function exportEpub(chapters, title) {
 </ncx>`);
 
   const blob = await zip.generateAsync({ type:'blob', mimeType:'application/epub+zip' });
-  saveAs(blob, 'roman_plume.epub');
+  saveAs(blob, exportFileName(title, 'epub'));
   toast('Export EPUB généré', 'success');
 }
 
@@ -122,16 +185,16 @@ async function exportEpub(chapters, title) {
 // dans SA PROPRE balise avant analyse, donc chaque chapitre est bien
 // conservé (vérifié dans le code source d'odf-kit avant ce correctif).
 async function exportOdt(chapters, title) {
-  if (!window.odfKit || !window.odfKit.htmlToOdt) { toast('Bibliothèque ODT non chargée (vérifiez la connexion).', 'error'); return; }
+  if (!window.odfKit || !window.odfKit.htmlToOdt) { toast(EXPORT_LIB_MISSING, 'error'); return; }
   if (!chapters || !chapters.length) { toast('Aucun chapitre sélectionné.','error'); return; }
   try {
     let html = `<h1>${escapeXml(title || 'Mon Roman — Plume')}</h1>`;
     chapters.forEach((ch, i) => {
-      html += `<h2>Chapitre ${i+1} : ${escapeXml(ch.title||'')}</h2>` + toXhtmlSafe(ch.content);
+      html += `<h2>${escapeXml(exportChapterTitle(ch, i))}</h2>` + toXhtmlSafe(ch.content);
     });
     const bytes = await window.odfKit.htmlToOdt(html, { pageFormat:'A4' });
     const blob = new Blob([bytes], { type:'application/vnd.oasis.opendocument.text' });
-    saveAs(blob, 'roman_plume.odt');
+    saveAs(blob, exportFileName(title, 'odt'));
     toast('Export ODT réussi !', 'success');
   } catch(e) {
     toast('Erreur export ODT : ' + e.message, 'error');
@@ -140,42 +203,101 @@ async function exportOdt(chapters, title) {
 
 // Export PDF (nouveau v7.15.0) — via jsPDF, déjà chargé dans le projet
 // (utilisé jusqu'ici pour le PDF de code de récupération de profil).
+// Mise en page d'un manuscrit en PDF (v9.35.0, AUD-02-003) : Times 12 pt, alinéa de première ligne,
+// chaque chapitre sur une nouvelle page, numéros de page. Les mots sont placés un par un pour
+// pouvoir mélanger romain / gras / italique sur une même ligne. N'utilise de jsPDF que :
+// setFont, setFontSize, getTextWidth, text, line, addPage, internal.pageSize.
+const PDF_LAYOUT = { margin: 25, bottom: 25, fontSize: 12, lineHeight: 6.4, indent: 8, headSizes: [12, 16, 14, 12.5] };
+function pdfFontStyle(r) { return r.bold && r.italic ? 'bolditalic' : r.bold ? 'bold' : r.italic ? 'italic' : 'normal'; }
+// Découpe les runs d'un bloc en « mots » stylés ; un retour à la ligne forcé devient { br: true }.
+function pdfTokens(runs) {
+  const tokens = [];
+  runs.forEach(r => {
+    if (r.br) { tokens.push({ br: true }); return; }
+    const parts = String(r.text).split(/(\s+)/);
+    parts.forEach(p => {
+      if (!p) return;
+      if (/^\s+$/.test(p)) { tokens.push({ space: true, style: pdfFontStyle(r) }); return; }
+      tokens.push({ text: p, style: pdfFontStyle(r), underline: !!r.underline });
+    });
+  });
+  return tokens;
+}
+// Écrit les blocs d'un chapitre à partir de la position y ; renvoie la nouvelle position y.
+function pdfWriteBlocks(doc, blocks, y, L) {
+  const pageW = doc.internal.pageSize.getWidth(), pageH = doc.internal.pageSize.getHeight();
+  const maxX = pageW - L.margin;
+  const ensure = need => { if (y + need > pageH - L.bottom) { doc.addPage(); y = L.margin; } };
+  blocks.forEach(block => {
+    const size = block.heading ? L.headSizes[block.heading] : L.fontSize;
+    const lineH = block.heading ? L.lineHeight * size / L.fontSize : L.lineHeight;
+    doc.setFontSize(size);
+    if (block.heading) y += 3;
+    const tokens = pdfTokens(block.runs);
+    const base = block.heading ? 'bold' : 'normal';
+    doc.setFont('times', base);
+    const spaceW = doc.getTextWidth(' ');
+    let x = L.margin + (block.heading ? 0 : L.indent);
+    let line = []; // segments de la ligne en cours : { text, style, underline, x, w }
+    let pendingSpace = false, empty = true;
+    const flush = () => {
+      ensure(lineH);
+      line.forEach(seg => {
+        doc.setFont('times', block.heading ? 'bold' : seg.style);
+        doc.text(seg.text, seg.x, y);
+        if (seg.underline) doc.line(seg.x, y + 0.7, seg.x + seg.w, y + 0.7);
+      });
+      y += lineH; line = []; x = L.margin; pendingSpace = false;
+    };
+    tokens.forEach(t => {
+      if (t.br) { flush(); empty = false; return; }
+      if (t.space) { pendingSpace = true; return; }
+      doc.setFont('times', block.heading ? 'bold' : t.style);
+      const w = doc.getTextWidth(t.text);
+      const gap = (pendingSpace && line.length) ? spaceW : 0;
+      if (line.length && x + gap + w > maxX) { flush(); }
+      const sx = line.length ? x + ((pendingSpace) ? spaceW : 0) : x;
+      const last = line[line.length - 1];
+      if (last && last.style === t.style && !!last.underline === t.underline && pendingSpace) {
+        last.text += ' ' + t.text; last.w = sx + w - last.x; // même style : un seul appel d'écriture
+      } else if (last && last.style === t.style && !!last.underline === t.underline && !pendingSpace) {
+        last.text += t.text; last.w = sx + w - last.x;
+      } else {
+        line.push({ text: t.text, style: t.style, underline: t.underline, x: sx, w });
+      }
+      x = sx + w; pendingSpace = false; empty = false;
+    });
+    if (line.length || empty) flush();
+    if (block.heading) y += 2;
+  });
+  return y;
+}
 async function exportPdf(chapters, title) {
-  if (!window.jspdf || !window.jspdf.jsPDF) { toast('Bibliothèque PDF non chargée (vérifiez la connexion).', 'error'); return; }
+  if (!window.jspdf || !window.jspdf.jsPDF) { toast(EXPORT_LIB_MISSING, 'error'); return; }
   if (!chapters || !chapters.length) { toast('Aucun chapitre sélectionné.', 'error'); return; }
   try {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit:'mm', format:'a4' });
+    const L = PDF_LAYOUT;
     const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 20;
-    const maxWidth = pageWidth - margin * 2;
-    let y = margin;
-
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
-    const titleLines = doc.splitTextToSize(title || 'Mon Roman — Plume', maxWidth);
-    doc.text(titleLines, pageWidth / 2, 60, { align:'center' });
-    doc.addPage();
-    y = margin;
-
+    doc.setFont('times', 'bold'); doc.setFontSize(24);
+    doc.text(doc.splitTextToSize(title || 'Mon Roman — Plume', pageWidth - L.margin * 2), pageWidth / 2, 90, { align:'center' });
     chapters.forEach((ch, i) => {
-      if (y + 12 > pageHeight - margin) { doc.addPage(); y = margin; }
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
-      doc.text(`Chapitre ${i+1} : ${ch.title||''}`, margin, y);
-      y += 10;
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
-      getPlainText(ch.content).split('\n').forEach(line => {
-        if (!line.trim()) { y += 5; return; }
-        doc.splitTextToSize(line.trim(), maxWidth).forEach(wrappedLine => {
-          if (y + 6 > pageHeight - margin) { doc.addPage(); y = margin; }
-          doc.text(wrappedLine, margin, y);
-          y += 6;
-        });
-      });
-      y += 8;
+      doc.addPage();
+      let y = L.margin + 10;
+      doc.setFont('times', 'bold'); doc.setFontSize(16);
+      doc.text(doc.splitTextToSize(exportChapterTitle(ch, i), pageWidth - L.margin * 2), pageWidth / 2, y, { align:'center' });
+      y += 14;
+      pdfWriteBlocks(doc, htmlToExportBlocks(ch.content), y, L);
     });
-
-    doc.save('roman_plume.pdf');
+    // Numéros de page (la page de titre n'est pas numérotée).
+    const pages = doc.getNumberOfPages();
+    doc.setFont('times', 'normal'); doc.setFontSize(10);
+    for (let p = 2; p <= pages; p++) {
+      doc.setPage(p);
+      doc.text(String(p - 1), pageWidth / 2, doc.internal.pageSize.getHeight() - 12, { align:'center' });
+    }
+    doc.save(exportFileName(title, 'pdf'));
     toast('Export PDF réussi !', 'success');
   } catch(e) {
     toast('Erreur export PDF : ' + e.message, 'error');
@@ -226,8 +348,8 @@ function importManuscriptFile(input) {
   const isOdt = /\.odt$/i.test(file.name);
   const isDocx = /\.docx$/i.test(file.name);
   if (!isOdt && !isDocx) { toast('Format non reconnu (.docx ou .odt attendu).', 'error'); input.value=''; return; }
-  if (isDocx && typeof mammoth === 'undefined') { toast('Bibliothèque DOCX non chargée (vérifiez la connexion).', 'error'); input.value=''; return; }
-  if (isOdt && (!window.odfKit || !window.odfKit.odtToHtml)) { toast('Bibliothèque ODT non chargée (vérifiez la connexion).', 'error'); input.value=''; return; }
+  if (isDocx && typeof mammoth === 'undefined') { toast(EXPORT_LIB_MISSING, 'error'); input.value=''; return; }
+  if (isOdt && (!window.odfKit || !window.odfKit.odtToHtml)) { toast(EXPORT_LIB_MISSING, 'error'); input.value=''; return; }
   _docxImportTitleGuess = file.name.replace(/\.(docx|odt)$/i, '').trim() || 'Chapitre importé';
   const convert = isOdt
     ? file.arrayBuffer().then(buf => window.odfKit.odtToHtml(new Uint8Array(buf), { fragment:true }))
@@ -242,7 +364,7 @@ async function openDocxImportModal(filename) {
   document.getElementById('docx-new-title').value = _docxImportTitleGuess;
   const list = await loadDocList();
   const sel = document.getElementById('docx-existing-select');
-  sel.innerHTML = list.documents.slice().sort((a,b)=>b.lastModified-a.lastModified)
+  sel.innerHTML = list.documents.filter(d => d.docType !== 'roman_graphique').sort((a,b)=>b.lastModified-a.lastModified)
     .map(d => `<option value="${d.id}">${DOMPurify.sanitize(d.title || 'Sans titre')}</option>`).join('');
   setDocxImportMode('new');
   document.getElementById('docx-import-overlay').classList.add('active');
@@ -284,6 +406,7 @@ async function confirmDocxImport() {
   if (!targetDocId) { toast('Aucun manuscrit disponible.', 'error'); closeDocxImportModal(); return; }
   try {
     const otherDb = await loadManuscriptData(targetDocId);
+    if (!Array.isArray(otherDb.chapters)) { toast("Un roman graphique n'accepte pas de chapitres.", 'error'); return; }
     otherDb.chapters.push(newChapter);
     await persistManuscriptData(targetDocId, otherDb);
     await touchDocListEntry(targetDocId, otherDb);

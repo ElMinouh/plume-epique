@@ -1669,6 +1669,8 @@ async function libExportCurrent() {
   if (!docId) { toast('Aucun manuscrit sélectionné.', 'error'); return; }
   try {
     const mData = await loadManuscriptData(docId);
+    // v9.35.0 (AUD-02-016) : un roman graphique n'a pas de chapitres, son export est dans son propre écran.
+    if (mData.docType === 'roman_graphique' || !Array.isArray(mData.chapters)) { toast("Ce manuscrit est un roman graphique : utilisez l'export de son écran (bouton Exporter).", 'info'); return; }
     openExportSelect(mData.chapters, mData.title);
   } catch(e) { toast('Erreur : ' + e.message, 'error'); }
 }
