@@ -31,6 +31,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
   tombales, images synchronisées une fois chacune (clés `img_*`, budget 350 Mo). Voir `docs/DECISIONS.md`.
 - **IA** : Worker `plume-epique-ai` (`worker/worker.js`) relayant vers **Google Gemini** ; clé de synchronisation
   obligatoire, taille bornée. Le texte envoyé transite en clair chez Google le temps du traitement (notice affichée).
+- **Suppression** : propagée par pierres tombales ; le serveur n'efface un manuscrit (et son historique de chat IA) que si l'index de bibliothèque le marque supprimé.
 - **Sauvegardes** : exports DOCX/EPUB/ODT/PDF/JSON, sauvegarde GitHub Gist chiffrée (par paquets), sauvegarde de
   7 jours de la base D1 (Time Travel), corbeille de 30 jours, historique espacé sur un mois.
 
@@ -80,6 +81,6 @@ foyer, etc.) : `docs/DECISIONS.md`.
 
 - Le quota d'écritures de la base D1 gratuite (100 000 lignes/jour) est **partagé par tout le compte Cloudflare** ;
   la limite de la base est de 500 Mo (dont 350 Mo réservés aux images). Voir `docs/EXPLOITATION.md`.
-- Les manuscrits supprimés laissent leur contenu **chiffré** sur le serveur (seules les images sont effacées).
+- Une suppression est propagée à tous les appareils et efface aussi le contenu chiffré du serveur ; la seule trace récupérable est la sauvegarde de 7 jours de la base D1 (Time Travel).
 - La question secrète de récupération est une porte plus faible que le mot de passe (décision documentée).
 - Pas de test automatisé en navigateur réel : les parcours complets sont vérifiés à la main sur copie locale.

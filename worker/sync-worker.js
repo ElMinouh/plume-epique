@@ -313,20 +313,26 @@ async function handleRequest(request, env) {
       });
     }
 
-    // v9.28.0 — Suppression d'une IMAGE synchronisée (manuscrit supprimé, image retirée). Réservée aux
-    // clés img_* : les textes se suppriment par pierre tombale (voir l'index de bibliothèque).
+    // Suppression côté serveur (v9.28.0 images ; v9.30.0 manuscrits et historiques IA).
+    //  • img_* : toujours permise (une image supprimée n'a plus de raison d'exister) ;
+    //  • doc_<profil>_<manuscrit> et aichat_<profil>_<manuscrit> : permises UNIQUEMENT si l'index de
+    //    bibliothèque du profil porte une pierre tombale pour ce manuscrit (voir mergeDocList côté
+    //    client) — un client défaillant ne peut donc pas effacer un manuscrit vivant ;
+    //  • tout le reste (profils, index, réglages) : jamais.
     if (request.method === 'DELETE') {
-      if (!key.startsWith('img_')) {
-        return new Response(JSON.stringify({ error: { message: 'Suppression non autorisée pour cette clé.' } }), {
-          status: 405, headers: { ...cors, 'Content-Type': 'application/json' }
-        });
+      const refus = (status, message) => new Response(JSON.stringify({ error: { message } }), {
+        status, headers: { ...cors, 'Content-Type': 'application/json' }
+      });
+      const texte = /^(doc|aichat)_([A-Za-z0-9-]{1,80})_([A-Za-z0-9-]{1,80})$/.exec(key);
+      if (!key.startsWith('img_') && !texte) return refus(405, 'Suppression non autorisée pour cette clé.');
+      if (texte) {
+        let index = null;
+        try { const cur = await store.read('doclist_' + texte[2]); index = cur.value ? JSON.parse(cur.value) : null; } catch (e) { /* index illisible : refus ci-dessous */ }
+        const marque = index && Array.isArray(index.deleted) && index.deleted.some(t => t && t.id === texte[3]);
+        if (!marque) return refus(403, "Suppression refusée : ce manuscrit n'est pas marqué supprimé dans la bibliothèque.");
       }
       try { await store.remove(key); }
-      catch (e) {
-        return new Response(JSON.stringify({ error: { message: 'Suppression refusée par le stockage.' } }), {
-          status: 500, headers: { ...cors, 'Content-Type': 'application/json' }
-        });
-      }
+      catch (e) { return refus(500, 'Suppression refusée par le stockage.'); }
       return new Response(JSON.stringify({ ok: true }), { headers: { ...cors, 'Content-Type': 'application/json' } });
     }
 

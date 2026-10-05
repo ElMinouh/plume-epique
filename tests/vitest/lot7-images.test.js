@@ -277,10 +277,10 @@ describe('C. Synchronisation des images entre appareils (D1)', () => {
 
 describe('Worker : clés img_* et suppression', () => {
   const call = (s, key, { method = 'GET', body, base = '0' } = {}) => s.serverFetch(`https://s/?key=${key}`, { method, body, headers: { Authorization: 'Bearer ' + SYNC_KEY, 'X-Plume-Base-Version': base } });
-  it('img_<profil>_<manuscrit>_<image> accepté ; DELETE réservé aux images', async () => {
+  it('img_<profil>_<manuscrit>_<image> accepté ; DELETE refusé pour les clés protégées', async () => {
     const s = makeServer();
     expect((await call(s, 'img_p1_d1_i1', { method: 'PUT', body: '{"v":1}' })).status).toBe(200);
-    expect((await call(s, 'doc_p1_d1', { method: 'DELETE' })).status).toBe(405);
+    expect((await call(s, 'doc_p1_d1', { method: 'DELETE' })).status).toBe(403); // v9.30.0 : permis seulement avec pierre tombale (voir lot9)
     expect((await call(s, 'profiles', { method: 'DELETE' })).status).toBe(405);
     expect((await call(s, 'img_p1_d1_i1', { method: 'DELETE' })).status).toBe(200);
     expect(await (await call(s, 'img_p1_d1_i1')).text()).toBe('null');

@@ -19,6 +19,7 @@ du code (dont l'historique est resté dans les commentaires et dans `docs/HISTOR
 | 12 | **CSP sans `unsafe-inline`** : ni script ni style en ligne ; couleurs via classes CSS | Défense en profondeur contre le XSS | Autoriser les styles en ligne |
 | 13 | **Relais IA protégé par la clé de synchronisation**, taille bornée | Empêcher l'usage de la clé Gemini par un tiers | Relais ouvert (limité par CORS seulement) |
 | 14 | **Une clé de synchronisation commune** à tous les profils d'un foyer | Usage familial ; simplicité | Un jeton par profil (plus d'isolation, plus de travail) |
+| 16 | **Effacement serveur d'un manuscrit supprimé conditionné à la pierre tombale** (vérifiée par le Worker lui-même), jamais pour profils/index/réglages | Tenir la promesse « supprimé définitivement » sans qu'un client défaillant puisse effacer un manuscrit vivant | DELETE libre sur tout `doc_*` ; ne rien effacer côté serveur |
 | 15 | **Les tests « en réel » restent manuels** sur copie locale (procédure du README) | Choix du propriétaire : pas d'outil de test navigateur à installer | Playwright en CI |
 
 ## Principes qui reviennent

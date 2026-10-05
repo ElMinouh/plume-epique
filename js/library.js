@@ -195,7 +195,9 @@ async function syncPushEntireLibrary() {
   } catch(e) { /* meilleure tentative uniquement */ }
   try { retryPendingSyncs(); } catch(e) { /* meilleure tentative uniquement */ }
   // v9.28.0 : suppressions d'images restées en attente (serveur injoignable lors de la suppression).
-  try { if (typeof retryPendingImageDeletes === 'function') retryPendingImageDeletes(); } catch(e) { /* meilleure tentative uniquement */ }
+  try { if (typeof retryPendingImageDeletes === 'function') await retryPendingImageDeletes(); } catch(e) { /* meilleure tentative uniquement */ }
+  // v9.30.0 : contenu des manuscrits déjà supprimés encore présent sur le serveur.
+  try { await sweepRemoteTombstones(); } catch(e) { /* meilleure tentative uniquement */ }
 }
 
 // v9.3.0 — Réconciliation explicite d'une clé : récupère la version du
@@ -905,6 +907,31 @@ async function cleanupDocumentSideData(profileId, docId, opts) {
   } catch(e) { /* best effort */ }
 }
 
+// v9.30.0 — Efface du serveur le contenu chiffré d'un manuscrit supprimé et son historique de chat IA. Le Worker
+// ne l'accepte que si l'index de bibliothèque qu'il détient porte la pierre tombale : on attend donc que la
+// suppression soit arrivée sur le serveur (voir deleteDocument). Renvoie true quand les deux clés sont parties.
+async function deleteRemoteManuscript(profileId, docId) {
+  const a = await deleteRemoteKey('doc_' + profileId + '_' + docId);
+  const b = await deleteRemoteKey('aichat_' + profileId + '_' + docId);
+  return a && b;
+}
+// Balayage au démarrage : manuscrits déjà supprimés (pierres tombales) dont le contenu serait resté sur le
+// serveur (suppression faite avant la v9.30.0, ou serveur injoignable à ce moment-là). Idempotent.
+const TOMBSTONE_SWEPT_KEY = 'plume_tombstones_swept';
+async function sweepRemoteTombstones() {
+  if (!getSyncKey() || !_currentProfileId) return 0;
+  let swept; try { swept = new Set(JSON.parse(localStorage.getItem(TOMBSTONE_SWEPT_KEY) || '[]')); } catch (e) { swept = new Set(); }
+  const list = await loadDocList();
+  let done = 0;
+  for (const t of (list.deleted || []).slice(0, 20)) {
+    const mark = _currentProfileId + ':' + t.id;
+    if (swept.has(mark)) continue;
+    if (await deleteRemoteManuscript(_currentProfileId, t.id)) { swept.add(mark); done++; }
+  }
+  if (done) { try { localStorage.setItem(TOMBSTONE_SWEPT_KEY, JSON.stringify([...swept])); } catch (e) { /* stockage plein */ } }
+  return done;
+}
+
 async function deleteDocument(docId) {
   const list = await loadDocList();
   const entry = list.documents.find(d => d.id === docId);
@@ -930,7 +957,14 @@ async function deleteDocument(docId) {
   });
   // La suppression doit partir tout de suite (l'index est sinon différé de 2 min) :
   // un appareil qui se synchroniserait entre-temps ressusciterait l'entrée.
-  if (typeof flushPendingSyncPushes === 'function') flushPendingSyncPushes();
+  if (typeof flushPendingSyncPushes === 'function') flushPendingSyncPushes(true);
+  // v9.30.0 — une fois la pierre tombale arrivée sur le serveur, on y efface aussi le contenu chiffré (en arrière-plan ;
+  // en cas d'échec, la suppression est retentée au prochain démarrage).
+  const pid = _currentProfileId;
+  (async () => {
+    try { await (_pushChains[docListKey(pid)] || Promise.resolve()); } catch (e) { /* sans effet */ }
+    await deleteRemoteManuscript(pid, docId);
+  })().catch(() => {});
   await renderLibraryScreen();
   toast('Manuscrit supprimé définitivement (sur tous vos appareils)', 'success');
 }

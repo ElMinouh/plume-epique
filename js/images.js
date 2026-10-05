@@ -384,30 +384,45 @@ async function pullGraphicImage(imageId) {
   } catch (e) { return null; }
 }
 
-// Supprime l'image du serveur (meilleur effort). Un échec réseau est mémorisé et retenté au démarrage.
+// Suppression côté serveur (meilleur effort). v9.30.0 : généralisée à toute clé que le Worker accepte de supprimer
+// (images, et manuscrits / historiques IA marqués supprimés dans l'index). Un échec réseau est mémorisé et retenté
+// au démarrage ; un refus 403 (la pierre tombale n'est pas encore arrivée sur le serveur) est retenté quelques
+// fois seulement.
 const IMG_DELETES_KEY = 'plume_img_remote_deletes';
-function pendingImageDeletes() { try { const v = JSON.parse(localStorage.getItem(IMG_DELETES_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
-async function deleteRemoteGraphicImage(docId, imageId, profileId) {
-  if (typeof getSyncKey !== 'function' || !getSyncKey()) return false;
-  const key = imageRemoteKey(docId, imageId, profileId);
+const REMOTE_DELETE_MAX_REFUSALS = 5;
+// Entrées { k: clé, n: refus déjà reçus } ; les anciennes entrées (simples chaînes) restent lisibles.
+function pendingRemoteDeleteEntries() {
+  try {
+    const v = JSON.parse(localStorage.getItem(IMG_DELETES_KEY) || '[]');
+    return (Array.isArray(v) ? v : []).map(e => typeof e === 'string' ? { k: e, n: 0 } : e).filter(e => e && e.k);
+  } catch (e) { return []; }
+}
+function pendingImageDeletes() { return pendingRemoteDeleteEntries().map(e => e.k); }
+function savePendingRemoteDeletes(entries) { try { localStorage.setItem(IMG_DELETES_KEY, JSON.stringify(entries)); } catch (e) { /* stockage plein */ } }
+function rememberRemoteDelete(key, refused) {
+  const list = pendingRemoteDeleteEntries();
+  const cur = list.find(e => e.k === key);
+  if (cur) { if (refused) cur.n = (cur.n || 0) + 1; } else list.push({ k: key, n: refused ? 1 : 0 });
+  savePendingRemoteDeletes(list.filter(e => (e.n || 0) < REMOTE_DELETE_MAX_REFUSALS));
+}
+function forgetRemoteDelete(key) { savePendingRemoteDeletes(pendingRemoteDeleteEntries().filter(e => e.k !== key)); }
+// Renvoie true si la clé n'existe plus sur le serveur (supprimée, ou déjà absente).
+async function deleteRemoteKey(key, opts) {
+  opts = opts || {};
+  if (typeof getSyncKey !== 'function' || !getSyncKey() || typeof fetchWithTimeout !== 'function') return false;
   try {
     const resp = await fetchWithTimeout(imageSyncUrl(key), { method: 'DELETE', timeoutMs: 20000, headers: { 'Authorization': 'Bearer ' + getSyncKey() } });
-    if (resp.ok) return true;
-    if (resp.status === 400 || resp.status === 405) return false; // ancienne version du Worker : rien à retenter
+    if (resp.ok) { forgetRemoteDelete(key); return true; }
+    if (resp.status === 400 || resp.status === 405) { forgetRemoteDelete(key); return false; } // ancienne version du Worker : rien à retenter
+    if (opts.remember !== false) rememberRemoteDelete(key, resp.status === 403);
+    return false;
   } catch (e) { /* hors-ligne : retenté plus tard */ }
-  const list = new Set(pendingImageDeletes()); list.add(key);
-  try { localStorage.setItem(IMG_DELETES_KEY, JSON.stringify([...list])); } catch (e) { /* stockage plein */ }
+  if (opts.remember !== false) rememberRemoteDelete(key, false);
   return false;
 }
+async function deleteRemoteGraphicImage(docId, imageId, profileId) {
+  return deleteRemoteKey(imageRemoteKey(docId, imageId, profileId));
+}
 async function retryPendingImageDeletes() {
-  if (typeof getSyncKey !== 'function' || !getSyncKey()) return;
-  for (const key of pendingImageDeletes()) {
-    try {
-      const resp = await fetchWithTimeout(imageSyncUrl(key), { method: 'DELETE', timeoutMs: 20000, headers: { 'Authorization': 'Bearer ' + getSyncKey() } });
-      if (resp.ok || resp.status === 400 || resp.status === 405) {
-        const rest = pendingImageDeletes().filter(k => k !== key);
-        localStorage.setItem(IMG_DELETES_KEY, JSON.stringify(rest));
-      }
-    } catch (e) { return; }
-  }
+  for (const e of pendingRemoteDeleteEntries()) await deleteRemoteKey(e.k);
 }
