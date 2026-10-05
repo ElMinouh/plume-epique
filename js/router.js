@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.36.0';
+const APP_VERSION = '9.37.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1267,6 +1267,7 @@ function wireAppEventListenersOnce(){
   document.getElementById('ai-names-btn').addEventListener('click',aiGenerateNames);
 
   document.getElementById('ai-chat-btn').addEventListener('click',toggleAiChat);
+  document.getElementById('ai-chat-ctx-chapter').addEventListener('change',updateAiChatContextNote);
   document.getElementById('ai-chat-close-btn').addEventListener('click',closeAiChat);
   document.getElementById('ai-chat-reset-btn').addEventListener('click',resetAiChatConversation);
   document.getElementById('ai-chat-send-btn').addEventListener('click',sendAiChatMessage);

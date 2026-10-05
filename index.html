@@ -562,7 +562,11 @@
         </div>
         <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-14px u-bd-1px-solid-v-border">
           <strong>🔍 Incohérences</strong>
-          <p class="u-fs-_75rem u-op-_7 u-m-5px-0">Croise Personnages & texte.</p>
+          <p class="u-fs-_75rem u-op-_7 u-m-5px-0">Croise Personnages & texte. L'écran indique toujours ce qui a été lu.</p>
+          <select id="ai-check-scope" class="field u-w-auto u-mb-6px" title="Portée de l'analyse">
+            <option value="chapter">Ce chapitre (comparé aux fiches)</option>
+            <option value="novel">Tout le roman (plusieurs appels IA)</option>
+          </select>
           <button class="action-btn btn-sm" id="ai-check-btn" title="Demander à l'IA de repérer des incohérences avec vos personnages">Analyser</button>
           <div class="u-mt-8px u-fs-_78rem u-lh-1_6" id="ai-check-result"></div>
         </div>
@@ -997,6 +1001,7 @@
       <label class="u-d-flex u-ai-center u-gap-6px u-fs-_68rem u-c-v-text-muted">
         <input type="checkbox" id="ai-chat-ctx-chapter" checked> Contexte : chapitre actuel
       </label>
+      <div class="u-fs-_66rem u-c-v-text-muted" id="ai-chat-ctx-note"></div>
       <label class="u-d-flex u-ai-center u-gap-6px u-fs-_68rem u-c-v-text-muted">
         <input type="checkbox" id="ai-chat-ctx-chars"> Contexte : fiche des personnages
       </label>

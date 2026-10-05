@@ -60,17 +60,157 @@ async function callClaude(prompt, maxTokens=1000, onChunk) {
   }
   return full;
 }
+// ═══════════════════════════════════════════════════════
+// v9.37.0 (audit AUD-02-002) — UNE IA QUI DIT CE QU'ELLE LIT
+// Avant : le résumé n'envoyait que les 3 000 premiers caractères du chapitre, et « Incohérences » les
+// 4 000 premiers caractères du roman mis bout à bout (≈ 650 mots), sans le dire. Désormais :
+//  • le texte est découpé en morceaux (le relais IA accepte au plus 30 000 caractères par demande) ;
+//  • le résumé lit le chapitre en entier (un résumé par morceau, puis une synthèse) ;
+//  • « Incohérences » : « Ce chapitre » (lu en entier, comparé aux fiches) ou « Tout le roman » en deux
+//    temps — 1) faits extraits par paquets de chapitres, 2) faits comparés entre eux — avec estimation,
+//    confirmation, progression, annulation et plafond d'appels ;
+//  • l'écran indique toujours la portion réellement lue.
+// ═══════════════════════════════════════════════════════
+const AI_CHUNK_CHARS = 12000;          // résumé / contrôle d'un chapitre : taille d'un morceau
+const AI_BATCH_CHARS = 20000;          // contrôle du roman : texte lu par appel (plusieurs chapitres courts, ou un morceau)
+const AI_FACTS_GROUP_CHARS = 24000;    // faits comparés par appel
+const AI_FACTS_EST_PER_BATCH = 4000;   // estimation (par excès) des faits renvoyés par paquet
+const AI_BIBLE_MAX_CHARS = 4000;       // fiches personnages transmises au plus
+const AI_CHAT_CHAPTER_CHARS = 8000;    // chapitre transmis au chat
+const AI_MAX_CALLS = 40;               // plafond d'appels pour une analyse du roman
+const AI_SECONDS_PER_CALL = 6;         // durée moyenne d'un appel (pour l'estimation affichée)
+let AI_RETRY_DELAY_MS = 3000;
+
+// Découpe un texte en morceaux d'au plus `maxChars`, en coupant de préférence entre paragraphes,
+// sinon à la fin d'une phrase, sinon à un espace.
+function aiChunkText(text, maxChars) {
+  const out = [];
+  let cur = '';
+  const push = () => { if (cur.trim()) out.push(cur.trim()); cur = ''; };
+  for (const para of String(text || '').split('\n')) {
+    let p = para;
+    while (p.length > maxChars) {
+      let cut = p.lastIndexOf('. ', maxChars);
+      if (cut < maxChars * 0.5) cut = p.lastIndexOf(' ', maxChars);
+      cut = cut < maxChars * 0.5 ? maxChars : cut + 1;
+      if (cur.length + cut + 1 > maxChars) push();
+      cur += (cur ? '\n' : '') + p.slice(0, cut);
+      p = p.slice(cut).trimStart();
+      push();
+    }
+    if (cur.length + p.length + 1 > maxChars) push();
+    cur += (cur ? '\n' : '') + p;
+  }
+  push();
+  return out;
+}
+// Fiches personnages, limitées pour ne jamais dépasser la taille acceptée par le relais.
+function aiBibleText() {
+  const full = (db.chars || []).map(c => `${c.name} (${c.role || '?'}): ${c.phys || ''} ${c.info || ''}`).join('\n');
+  return full.length > AI_BIBLE_MAX_CHARS ? full.slice(0, AI_BIBLE_MAX_CHARS) + '\n[fiches tronquées]' : full;
+}
+// Paquets de chapitres à lire pour l'extraction des faits : plusieurs chapitres courts par appel ; un chapitre
+// plus long que AI_BATCH_CHARS est découpé en plusieurs paquets. Chaque bloc est précédé de [Ch.N — titre].
+function aiNovelBatches(chapters) {
+  const batches = [];
+  let cur = null;
+  const open = () => { cur = { parts: [], chars: 0, from: null, to: null }; batches.push(cur); };
+  chapters.forEach((ch, i) => {
+    const text = getPlainText(ch.content);
+    if (!text.trim()) return;
+    const title = String(ch.title || '').trim() || 'sans titre';
+    const pieces = text.length > AI_BATCH_CHARS ? aiChunkText(text, AI_BATCH_CHARS) : [text];
+    pieces.forEach((piece, k) => {
+      const head = pieces.length > 1 ? `[Ch.${i + 1} — ${title} — partie ${k + 1}/${pieces.length}]` : `[Ch.${i + 1} — ${title}]`;
+      const block = head + '\n' + piece;
+      if (!cur || cur.chars + block.length > AI_BATCH_CHARS) open();
+      cur.parts.push(block);
+      cur.chars += block.length + 2;
+      if (cur.from === null) cur.from = i + 1;
+      cur.to = i + 1;
+    });
+  });
+  return batches.map(b => ({ text: b.parts.join('\n\n'), from: b.from, to: b.to }));
+}
+function aiNovelEstimate(chapters) {
+  const batches = aiNovelBatches(chapters);
+  const groups = Math.max(1, Math.ceil(batches.length * AI_FACTS_EST_PER_BATCH / AI_FACTS_GROUP_CHARS));
+  const calls = batches.length + groups;
+  const words = chapters.reduce((t, c) => t + getWordCount(c.content), 0);
+  return { batches, groups, calls, words, seconds: calls * AI_SECONDS_PER_CALL };
+}
+// Regroupe les listes de faits (une par paquet) en groupes d'au plus AI_FACTS_GROUP_CHARS.
+function aiPackFacts(factBlocks) {
+  const groups = [];
+  let cur = '';
+  factBlocks.forEach(block => {
+    const b = block.length > AI_FACTS_GROUP_CHARS ? block.slice(0, AI_FACTS_GROUP_CHARS) : block;
+    if (cur && cur.length + b.length + 2 > AI_FACTS_GROUP_CHARS) { groups.push(cur); cur = ''; }
+    cur += (cur ? '\n\n' : '') + b;
+  });
+  if (cur) groups.push(cur);
+  return groups;
+}
+// Un appel IA avec une nouvelle tentative après une courte pause (limite de débit passagère).
+async function aiCall(prompt, maxTokens, token) {
+  const stopped = () => token && token.cancelled;
+  if (stopped()) throw new Error('Analyse annulée.');
+  try { return await callClaude(prompt, maxTokens); }
+  catch (e) {
+    if (stopped()) throw new Error('Analyse annulée.');
+    await new Promise(r => setTimeout(r, AI_RETRY_DELAY_MS));
+    if (stopped()) throw new Error('Analyse annulée.');
+    return await callClaude(prompt, maxTokens);
+  }
+}
+// Zone de résultat : une ligne d'état (muted) puis le texte ; ou la progression avec un bouton Annuler.
+function aiShowProgress(el, text, token) {
+  el.innerHTML = '';
+  const line = document.createElement('div');
+  line.className = 'u-fs-_72rem u-c-v-text-muted';
+  line.textContent = text;
+  el.appendChild(line);
+  if (token) {
+    const btn = document.createElement('button');
+    btn.className = 'action-btn btn-sm u-mt-6px';
+    btn.textContent = 'Annuler';
+    btn.addEventListener('click', () => { token.cancelled = true; btn.disabled = true; line.textContent = 'Annulation…'; });
+    el.appendChild(btn);
+  }
+}
+function aiShowResult(el, scopeNote, body) {
+  el.innerHTML = `<div class="u-fs-_72rem u-c-v-text-muted u-mb-6px">${escapeHtml(scopeNote)}</div>` + DOMPurify.sanitize(String(body || '').replace(/\n/g, '<br>'));
+}
+
 async function generateAISummary() {
   await notifyThirdPartyDataUseOnce();
   flushCurrentChapter();
   const panel = document.getElementById('ai-summary-panel'), textEl = document.getElementById('ai-summary-text');
-  const txt = getPlainText(db.chapters[cur].content);
+  const ch = db.chapters[cur];
+  const txt = getPlainText(ch.content);
   if (txt.length < 50) { toast('Chapitre trop court.','error'); return; }
   panel.classList.add('active'); showAiLoader('ai-summary-text');
+  const chunks = aiChunkText(txt, AI_CHUNK_CHARS);
+  const words = getWordCount(ch.content);
   try {
-    const s = await callClaude(`Résume ce chapitre en 3-5 phrases concises en français.\n\nChapitre: "${db.chapters[cur].title}"\n\n${txt.substring(0,3000)}`, 1000,
-      partial => { textEl.innerText = partial; });
-    textEl.innerText = s; textEl.dataset.generated = s;
+    let s, note;
+    if (chunks.length === 1) {
+      s = await callClaude(`Résume ce chapitre en 3-5 phrases concises en français.\n\nChapitre: "${ch.title}"\n\n${chunks[0]}`, 1000,
+        partial => { textEl.innerText = partial; });
+      note = `Chapitre lu en entier (${words} mots).`;
+    } else {
+      const partials = [];
+      for (let i = 0; i < chunks.length; i++) {
+        textEl.innerText = `Lecture de la partie ${i + 1} sur ${chunks.length}…`;
+        partials.push(await aiCall(`Résume en 2-3 phrases, en français, la partie ${i + 1} sur ${chunks.length} du chapitre « ${ch.title} ».\n\n${chunks[i]}`, 500));
+      }
+      textEl.innerText = 'Synthèse…';
+      s = await callClaude(`Voici les résumés successifs des ${chunks.length} parties d'un même chapitre (« ${ch.title} »). Rédige un résumé unique en 3-5 phrases concises en français.\n\n${partials.map((p, i) => `Partie ${i + 1} : ${p}`).join('\n')}`, 1000,
+        partial => { textEl.innerText = partial; });
+      note = `Chapitre lu en entier (${words} mots, ${chunks.length} parties).`;
+    }
+    textEl.innerText = s + '\n\n— ' + note;
+    textEl.dataset.generated = s;
   } catch(e) { textEl.innerHTML = `<span class="u-c-v-danger">❌ ${escapeHtml(e.message)}</span>`; }
 }
 function copyAISummaryToChapter() {
@@ -89,18 +229,75 @@ async function aiContinueSuggestions() {
     el.innerHTML = DOMPurify.sanitize(r.replace(/\n/g,'<br>'));
   } catch(e) { el.innerHTML = `<span class="u-c-v-danger">❌ ${escapeHtml(e.message)}</span>`; }
 }
+let _aiCheckToken = null;
 async function aiCheckInconsistencies() {
   await notifyThirdPartyDataUseOnce();
   flushCurrentChapter();
-  const fullText = db.chapters.map(c=>getPlainText(c.content)).join('\n---\n');
-  if (fullText.trim().length < 100) { toast('Pas assez de texte.','error'); return; }
-  const bible = db.chars.map(c=>`${c.name} (${c.role||'?'}): ${c.phys||''} ${c.info||''}`).join('\n');
-  const el = document.getElementById('ai-check-result'); showAiLoader('ai-check-result');
+  const el = document.getElementById('ai-check-result');
+  const scopeSel = document.getElementById('ai-check-scope');
+  const scope = scopeSel ? scopeSel.value : 'chapter';
+  if (_aiCheckToken && !_aiCheckToken.done) { toast('Une analyse est déjà en cours.', 'error'); return; }
+  if (scope === 'novel') return aiCheckWholeNovel(el);
+  const ch = db.chapters[cur];
+  const text = getPlainText(ch.content);
+  if (text.trim().length < 100) { toast('Pas assez de texte.','error'); return; }
+  const chunks = aiChunkText(text, AI_CHUNK_CHARS);
+  const bible = aiBibleText();
+  const token = _aiCheckToken = { cancelled: false, done: false };
   try {
-    const r = await callClaude(`Personnages: ${bible||'(vide)'}\n\nTexte: ${fullText.substring(0,4000)}\n\nListe les incohérences potentielles en français (max 5 points).`, 600,
-      partial => { el.innerHTML = DOMPurify.sanitize(partial.replace(/\n/g,'<br>')); });
-    el.innerHTML = DOMPurify.sanitize(r.replace(/\n/g,'<br>'));
+    const results = [];
+    for (let i = 0; i < chunks.length; i++) {
+      aiShowProgress(el, chunks.length > 1 ? `Analyse de la partie ${i + 1} sur ${chunks.length}…` : 'Analyse du chapitre…', token);
+      const r = await aiCall(`Personnages: ${bible || '(vide)'}\n\nTexte${chunks.length > 1 ? ` (partie ${i + 1} sur ${chunks.length} du chapitre « ${ch.title} »)` : ` du chapitre « ${ch.title} »`}: ${chunks[i]}\n\nListe les incohérences potentielles avec les fiches des personnages, en français (max 5 points).`, 600, token);
+      results.push(chunks.length > 1 ? `Partie ${i + 1} :\n${r}` : r);
+    }
+    const words = getWordCount(ch.content);
+    aiShowResult(el, `Analysé : chapitre « ${ch.title || cur + 1} » lu en entier (${words} mots), comparé aux fiches des personnages. Les autres chapitres n'ont pas été comparés : choisissez « Tout le roman » pour cela.`, results.join('\n\n'));
   } catch(e) { el.innerHTML = `<span class="u-c-v-danger">❌ ${escapeHtml(e.message)}</span>`; }
+  finally { token.done = true; }
+}
+// Tout le roman, en deux temps : (1) faits extraits par paquets de chapitres, (2) faits comparés entre eux.
+async function aiCheckWholeNovel(el) {
+  const est = aiNovelEstimate(db.chapters);
+  if (!est.batches.length || est.words < 50) { toast('Pas assez de texte.', 'error'); return; }
+  if (est.calls > AI_MAX_CALLS) {
+    el.innerHTML = `<span class="u-c-v-danger">❌ Ce roman demanderait environ ${est.calls} appels IA (maximum ${AI_MAX_CALLS}). Analysez-le par chapitre.</span>`;
+    return;
+  }
+  const minutes = Math.max(1, Math.round(est.seconds / 60));
+  const ok = await showConfirmModal({
+    title: 'Analyser tout le roman ?',
+    message: `${db.chapters.length} chapitres, ${est.words} mots : environ ${est.calls} appels à l'IA, soit ${minutes} minute(s) environ. Le texte est envoyé en clair au service d'IA (Google). Vous pouvez annuler à tout moment.`,
+    confirmLabel: 'Analyser'
+  });
+  if (!ok) return;
+  const token = _aiCheckToken = { cancelled: false, done: false };
+  try {
+    const factBlocks = [];
+    let step = 0;
+    for (const b of est.batches) {
+      step++;
+      aiShowProgress(el, `Lecture des chapitres ${b.from}${b.to !== b.from ? ' à ' + b.to : ''} (étape ${step} sur ${est.batches.length + est.groups})…`, token);
+      const facts = await aiCall(`Pour chaque chapitre ci-dessous, liste les faits établis par le texte : âge, apparence, lieux, dates, liens entre personnages, événements clés. Au plus 10 puces par chapitre, 120 caractères maximum chacune, chaque puce préfixée par le numéro du chapitre, par exemple « [Ch.3] Marie a les yeux verts ». Français uniquement, sans commentaire.\n\n${b.text}`, 1200, token);
+      factBlocks.push(String(facts || '').trim());
+    }
+    const bible = aiBibleText();
+    let groups = aiPackFacts(factBlocks);
+    const maxGroups = Math.max(1, AI_MAX_CALLS - est.batches.length);
+    const limited = groups.length > maxGroups;
+    groups = groups.slice(0, maxGroups);
+    const results = [];
+    for (let g = 0; g < groups.length; g++) {
+      aiShowProgress(el, `Comparaison des faits (étape ${est.batches.length + g + 1} sur ${est.batches.length + groups.length})…`, token);
+      const r = await aiCall(`Personnages: ${bible || '(vide)'}\n\nVoici des faits relevés dans les chapitres d'un roman :\n${groups[g]}\n\nRepère les contradictions entre ces faits, ou avec les fiches des personnages (par exemple une couleur d'yeux, un âge, un lieu ou une date qui diffèrent d'un chapitre à l'autre). Pour chaque point, cite les chapitres concernés. Français, 8 points au plus ; si tout est cohérent, dis-le.`, 800, token);
+      results.push(groups.length > 1 ? `Groupe ${g + 1} :\n${r}` : r);
+    }
+    let note = `Analysé : ${db.chapters.length} chapitres en entier (${est.words} mots), en ${est.batches.length + groups.length} appels. Méthode : faits extraits par chapitre, puis comparés entre eux.`;
+    if (groups.length > 1) note += ' Le roman est long : la comparaison est faite par groupes de chapitres consécutifs, une contradiction entre deux groupes peut échapper.';
+    if (limited) note += ' Comparaison partielle (plafond d\'appels atteint).';
+    aiShowResult(el, note, results.join('\n\n'));
+  } catch(e) { el.innerHTML = `<span class="u-c-v-danger">❌ ${escapeHtml(e.message)}</span>`; }
+  finally { token.done = true; }
 }
 async function aiGenerateNames() {
   await notifyThirdPartyDataUseOnce();
@@ -183,6 +380,7 @@ async function openAiChat() {
   renderAiChatMessages();
   renderAiChatChips();
   document.getElementById('ai-chat-panel').classList.add('active');
+  updateAiChatContextNote();
   document.getElementById('ai-chat-input').focus();
 }
 function closeAiChat() { document.getElementById('ai-chat-panel').classList.remove('active'); }
@@ -200,14 +398,26 @@ async function resetAiChatConversation() {
 
 // Construit le prompt unique envoyé au relais IA : instructions + contextes
 // optionnels (chapitre, personnages) + historique récent + nouveau message.
+// v9.37.0 : indique à l'écran la portion du chapitre transmise au chat.
+function updateAiChatContextNote() {
+  const el = document.getElementById('ai-chat-ctx-note');
+  if (!el) return;
+  const cb = document.getElementById('ai-chat-ctx-chapter');
+  if (!cb || !cb.checked || !db.chapters || !db.chapters[cur]) { el.textContent = ''; return; }
+  const len = getPlainText(db.chapters[cur].content).length;
+  el.textContent = len > AI_CHAT_CHAPTER_CHARS
+    ? `Chapitre lu : les ${AI_CHAT_CHAPTER_CHARS} premiers caractères sur ${len} (début du chapitre).`
+    : 'Chapitre lu en entier.';
+}
 function buildAiChatPrompt(userMessage) {
+  updateAiChatContextNote();
   let ctx = '';
   if (document.getElementById('ai-chat-ctx-chapter')?.checked) {
-    const chapterText = getPlainText(db.chapters[cur].content).substring(0, 3000);
+    const chapterText = getPlainText(db.chapters[cur].content).substring(0, AI_CHAT_CHAPTER_CHARS);
     if (chapterText) ctx += `Chapitre actuel (« ${db.chapters[cur].title} ») :\n${chapterText}\n\n`;
   }
   if (document.getElementById('ai-chat-ctx-chars')?.checked) {
-    const bible = db.chars.map(c => `${c.name} (${c.role||'?'}) : ${c.phys||''} ${c.info||''}`).join('\n');
+    const bible = aiBibleText(); // v9.37.0 : bornée, pour ne jamais dépasser la taille acceptée par le relais
     if (bible) ctx += `Personnages :\n${bible}\n\n`;
   }
   // 16 derniers messages = 8 échanges environ, pour ne pas dépasser la
