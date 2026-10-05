@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.30.0';
+const APP_VERSION = '9.31.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -216,7 +216,7 @@ async function contentFingerprint(plaintext) {
 async function makeEncryptedEnvelope(plaintext) {
   return {
     _enc: true,
-    data: await Crypto.encrypt(plaintext, _dataKey),
+    data: await Crypto.encryptData(plaintext, _dataKey),
     _fp: await contentFingerprint(plaintext),
     _ts: Date.now()
   };

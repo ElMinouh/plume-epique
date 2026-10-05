@@ -173,7 +173,7 @@ async function loadAiChatHistoryIfNeeded() {
 }
 async function saveAiChatHistory() {
   try {
-    const cipher = await Crypto.encrypt(JSON.stringify(_aiChatHistory), _dataKey);
+    const cipher = await Crypto.encryptData(JSON.stringify(_aiChatHistory), _dataKey);
     await persistData(aiChatDataKey(_currentProfileId, _currentDocumentId), { _enc:true, data:cipher });
   } catch(e) { /* la persistance de l'historique ne doit jamais bloquer la conversation en cours */ }
 }

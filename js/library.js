@@ -1026,7 +1026,7 @@ async function loadLibSettings() {
 }
 async function saveLibSettings() {
   const payload = { autoGistInterval: _libSettings.autoGistInterval };
-  if (_cloudToken) payload.token = { _enc:true, data: await Crypto.encrypt(_cloudToken, _dataKey) };
+  if (_cloudToken) payload.token = { _enc:true, data: await Crypto.encryptData(_cloudToken, _dataKey) };
   await persistData(libSettingsKey(_currentProfileId), payload);
 }
 
@@ -1158,7 +1158,7 @@ async function libSyncManuscript(docId, opts) {
     // ailleurs dans le projet. Chiffré ici avec la même DEK que le stockage
     // local (exactement comme persistManuscriptData()) ; GitHub ne reçoit
     // désormais plus qu'un blob illisible sans le mot de passe du profil.
-    const cipher = await Crypto.encrypt(JSON.stringify(mData), _dataKey);
+    const cipher = await Crypto.encryptData(JSON.stringify(mData), _dataKey);
     files["plume.json"] = { content: JSON.stringify({ _enc:true, data:cipher }) };
     // Première requête : le manuscrit + le 1er paquet d'images ; puis un PATCH par paquet restant.
     // Les identifiants d'images réellement envoyés sont retenus au fur et à mesure : un échec au

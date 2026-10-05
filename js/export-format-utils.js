@@ -269,7 +269,7 @@ async function confirmDocxImport() {
     const dbData = DEFAULT_DB();
     dbData.title = title;
     dbData.chapters = [newChapter];
-    const cipher = await Crypto.encrypt(JSON.stringify(dbData), _dataKey);
+    const cipher = await Crypto.encryptData(JSON.stringify(dbData), _dataKey);
     await persistData(docDataKey(_currentProfileId, docId), { _enc:true, data:cipher });
     await mutateDocList(list => {
       list.documents.push({ id:docId, title, lastModified:Date.now(), chapterCount:1, wordCount:getWordCount(newChapter.content), wordGoal:0, cover:'auto' });
@@ -373,7 +373,7 @@ function importProjectLibrary(input) {
                 if (el.type === 'image' && el.imageId && idMap[el.imageId]) el.imageId = idMap[el.imageId];
               }));
               docData.gistSyncedImageIds = []; // nouveau manuscrit, jamais encore synchronisé
-              const cipher = await Crypto.encrypt(JSON.stringify(docData), _dataKey);
+              const cipher = await Crypto.encryptData(JSON.stringify(docData), _dataKey);
               envelope = { _enc:true, data:cipher };
               for (const img of imgList) {
                 const bytes = Uint8Array.from(atob(img.data), c => c.charCodeAt(0));

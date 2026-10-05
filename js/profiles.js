@@ -774,7 +774,7 @@ async function submitMigration(legacy, encrypted) {
   // manuscrit de la bibliothèque de ce nouvel administrateur.
   if (!dbData.title) dbData.title = 'Mon manuscrit';
   const docId = genChapterId();
-  await persistData(docDataKey(profil.id, docId), { _enc: true, data: await Crypto.encrypt(JSON.stringify(dbData), dek) });
+  await persistData(docDataKey(profil.id, docId), { _enc: true, data: await Crypto.encryptData(JSON.stringify(dbData), dek) });
   await persistData(docListKey(profil.id), { version:1, documents:[{
     id: docId, title: dbData.title, lastModified: Date.now(),
     chapterCount: (dbData.chapters||[]).length,

@@ -31,6 +31,7 @@ const Crypto = {
     return bytesToBase64(buf);
   },
   async decrypt(b64, password) {
+    if (typeof b64 === 'string' && b64.startsWith('v2:')) return this.decryptV2(b64.slice(3), password); // v9.31.0 : format v2 (clé de données)
     try {
       const buf = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
       const key = await this.deriveKey(password, buf.slice(0,16));
@@ -39,21 +40,64 @@ const Crypto = {
     } catch { return null; }
   },
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // FORMAT DE TEXTE « v2 » (v9.31.0, audit AUD-01-019)
+  // Jusqu'ici, chaque enregistrement d'un manuscrit refaisait un PBKDF2 à 310 000 itérations (sel aléatoire)
+  // — un calcul conçu pour des mots de passe faibles, inutile avec la clé de données (aléatoire, 256 bits) :
+  // ~30 ms par opération sur un PC (mesuré le 05/10/2026), bien plus sur un téléphone, ~160 ms de plus à
+  // l'ouverture d'un manuscrit de 3 Mo. Le format v2 dérive la clé UNE fois (HKDF) puis ne fait qu'un AES-GCM.
+  //
+  // Format : « v2: » + base64(iv 12 octets + texte chiffré). Le préfixe rend la chaîne auto-descriptive : aucune
+  // chaîne v1 (base64 pur, jamais de « : ») ne peut être confondue avec elle, et decrypt() choisit seul le bon
+  // chemin — tous les sites qui lisent des données chiffrées avec la clé de données lisent donc v2 sans changement.
+  //
+  // DÉPLOIEMENT EN DEUX TEMPS (un appareil resté sur une version plus ancienne ne sait PAS lire v2) :
+  //   • étape 1 (v9.31.0, ici) : tous les appareils LISENT v2 ; on continue d'ÉCRIRE v1 (writeV2 = false) ;
+  //   • étape 2 (version ultérieure, quand TOUS les appareils sont en ≥ 9.31.0) : writeV2 = true. Chaque
+  //     manuscrit passe alors en v2 à son prochain enregistrement (aucune migration en masse).
+  // Les enveloppes de clé protégées par MOT DE PASSE (wrapPwd, wrapAnswer, wrapCode) restent en v1 : PBKDF2 y est utile.
+  // ═══════════════════════════════════════════════════════════════════════
+  writeV2: false,
+  async encryptV2(plaintext, dek) {
+    const key = await this.derive(dek, 'plume-text-v2');
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(plaintext)));
+    const out = new Uint8Array(12 + ct.length);
+    out.set(iv); out.set(ct, 12);
+    return 'v2:' + bytesToBase64(out);
+  },
+  async decryptV2(b64, dek) {
+    try {
+      const buf = Uint8Array.from(atob(b64), ch => ch.charCodeAt(0));
+      const key = await this.derive(dek, 'plume-text-v2');
+      return new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(0, 12) }, key, buf.slice(12)));
+    } catch (e) { return null; }
+  },
+  // Point d'entrée UNIQUE pour chiffrer une donnée avec la clé de données du profil (manuscrits, historique du
+  // chat IA, réglages, Gist…) : le format dépend de `writeV2`.
+  encryptData(plaintext, dek) {
+    return this.writeV2 ? this.encryptV2(plaintext, dek) : this.encrypt(plaintext, dek);
+  },
+
   // ── Chiffrement d'OCTETS (images du roman graphique, v9.28.0) ──────────────
   // La clé AES-GCM est dérivée UNE FOIS de la clé de données du profil (HKDF-SHA256) et gardée
   // en mémoire : pas de PBKDF2 à 310 000 itérations par image (inutile : la clé de données est
   // déjà aléatoire et forte). Format : iv (12 octets) + texte chiffré.
-  _imgKey: { dek: null, key: null },
-  async imageKey(dek) {
-    if (this._imgKey.dek === dek && this._imgKey.key) return this._imgKey.key;
+  // Dérivation HKDF-SHA256 d'une clé AES-GCM à partir de la clé de données, par « domaine » (info) : une clé
+  // distincte pour les images et pour les textes (v2). Gardée en mémoire tant que la clé de données ne change pas.
+  _derived: {},
+  async derive(dek, info) {
+    const hit = this._derived[info];
+    if (hit && hit.dek === dek) return hit.key;
     const ikm = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(dek));
     const base = await crypto.subtle.importKey('raw', ikm, 'HKDF', false, ['deriveKey']);
     const key = await crypto.subtle.deriveKey(
-      { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(32), info: new TextEncoder().encode('plume-image-v1') },
+      { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(32), info: new TextEncoder().encode(info) },
       base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
-    this._imgKey = { dek, key };
+    this._derived[info] = { dek, key };
     return key;
   },
+  imageKey(dek) { return this.derive(dek, 'plume-image-v1'); },
   async encryptBytes(bytes, dek) {
     const key = await this.imageKey(dek);
     const iv = crypto.getRandomValues(new Uint8Array(12));
