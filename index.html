@@ -192,6 +192,9 @@
       <label class="u-fs-_75rem u-c-v-text-muted">Manuscrit de destination</label>
       <select id="docx-existing-select" class="field u-w-100pc u-mt-4px"></select>
     </div>
+    <div class="u-d-none u-mt-8px" id="docx-split-wrap">
+      <label class="u-fs-_8rem u-d-flex u-ai-center u-gap-6px u-cur-pointer"><input type="checkbox" id="docx-split-cb" checked> <span id="docx-split-label"></span></label>
+    </div>
     <button class="action-btn u-bg-h27ae60" id="docx-import-confirm-btn">Importer</button>
   </div>
 </div>
@@ -891,6 +894,7 @@
         <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-hc0392b" title="Outils d'écriture">🛠️<span class="tb-label"> Outils</span> ▾</button>
         <div class="toolbar-menu">
           <button id="insert-datetime-btn" title="Insérer la date et l'heure actuelles à l'endroit du curseur">🕐 Insérer date/heure</button>
+          <button id="split-chapter-btn" title="Couper le chapitre à l'endroit du curseur : la suite devient un nouveau chapitre">✂️ Scinder ici</button>
           <button id="analyze-btn" title="Surligner les mots faibles/répétitifs dans le texte">🔍 Analyser le style</button>
           <button id="clear-btn" title="Retirer les surlignages de style (le texte n'est pas modifié)">🧹 Nettoyer les surlignages</button>
           <button id="focus-btn" title="Passer en plein écran, sans distraction">🎯 Mode Focus</button>
@@ -968,10 +972,15 @@
       </div>
       <input id="fr-find-input" class="field" placeholder="Rechercher...">
       <input id="fr-replace-input" class="field" placeholder="Remplacer par...">
+      <div class="u-d-flex u-gap-10px u-fw-wrap u-fs-_72rem">
+        <label class="u-d-flex u-ai-center u-gap-6px u-cur-pointer" title="Distinguer majuscules et minuscules"><input type="checkbox" id="fr-case-cb"> Respecter la casse</label>
+        <label class="u-d-flex u-ai-center u-gap-6px u-cur-pointer" title="Ne pas trouver le texte à l'intérieur d'un autre mot"><input type="checkbox" id="fr-word-cb"> Mot entier</label>
+        <label class="u-d-flex u-ai-center u-gap-6px u-cur-pointer" title="« Tout remplacer » agit sur tous les chapitres (avec confirmation et copie de sauvegarde)"><input type="checkbox" id="fr-all-cb"> Tout le manuscrit</label>
+      </div>
       <div class="u-d-flex u-gap-6px u-fw-wrap u-ai-center">
         <button class="action-btn btn-sm" id="fr-next-btn" title="Aller à l'occurrence suivante">Suivant</button>
         <button class="action-btn btn-sm u-bg-h8e44ad" id="fr-replace-btn" title="Remplacer uniquement cette occurrence">Remplacer</button>
-        <button class="action-btn btn-sm u-bg-v-danger" id="fr-replace-all-btn" title="Remplacer toutes les occurrences du chapitre">Tout remplacer</button>
+        <button class="action-btn btn-sm u-bg-v-danger" id="fr-replace-all-btn" title="Remplacer toutes les occurrences (chapitre courant, ou tout le manuscrit si la case est cochée)">Tout remplacer</button>
       </div>
       <span class="u-fs-_7rem u-c-v-text-muted" id="fr-status">Aucun résultat</span>
       <div class="u-fs-_66rem u-c-v-text-muted">Ne remplace pas les occurrences qui chevauchent une mise en forme (gras/italique).</div>
@@ -1064,6 +1073,7 @@
   <button id="cctx-rename" role="menuitem">✏️ Renommer</button>
   <button id="cctx-tags" role="menuitem">🏷️ Tags</button>
   <button id="cctx-dup" role="menuitem">⧉ Dupliquer</button>
+  <button id="cctx-merge" role="menuitem" title="Ajouter le chapitre suivant à la fin de celui-ci (le suivant va à la corbeille)">⤵ Fusionner avec le suivant</button>
   <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
   <button id="cctx-del" role="menuitem" class="ch-menu-danger">✕ Supprimer</button>
 </div>

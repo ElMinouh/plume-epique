@@ -352,7 +352,7 @@
   frRoot.innerHTML = '<p>Le chat noir dort.</p><p>Le CHAT est content.</p>';
   assert(collectTextNodes(frRoot).length === 2, 'un nœud texte par paragraphe');
   const flatIdx = buildFlatIndex(frRoot);
-  assert(flatIdx.flat === 'Le chat noir dort.Le CHAT est content.', 'reconstitue le texte à plat dans l\'ordre des nœuds');
+  assert(flatIdx.flat === 'Le chat noir dort.\nLe CHAT est content.', 'reconstitue le texte à plat dans l\'ordre des nœuds, avec une coupure entre paragraphes (v9.36.0)');
   assert(findAllMatches(frRoot, 'chat').length === 2, 'trouve les 2 occurrences, insensible à la casse');
 
   group('memory.js — splitPassages() / extractKeywords() / scoreRelevance()');
@@ -528,6 +528,71 @@
   goalEl.value = ''; assert(readGoalInput(goalEl) === null, 'champ vidé : aucune valeur enregistrée');
   goalEl.value = '0'; assert(readGoalInput(goalEl) === null, 'valeur 0 : refusée');
   goalEl.value = '1200'; assert(readGoalInput(goalEl) === 1200, 'valeur valide : acceptée');
+
+  // ── v9.36.0 (AUD-02-004 / 010 / 018 / 019) — gestion des chapitres ──
+  group('export-format-utils.js — découpage d\'un fichier importé en chapitres (v9.36.0)');
+  const sp1 = splitImportedHtml('<p>Préface</p><h1>Un</h1><p>a</p><p>b</p><h1>Deux</h1><p>c <em>it</em></p>', 'Mon livre');
+  assert(sp1 && sp1.length === 3 && sp1[0].title === 'Mon livre' && sp1[1].title === 'Un' && sp1[2].title === 'Deux', 'titres de niveau 1 : un chapitre par titre, préface conservée');
+  assert(sp1[2].content === '<p>c <em>it</em></p>' && !/<h1/.test(sp1[1].content), 'la mise en forme est conservée et le titre n\'est pas répété dans le texte');
+  const sp2 = splitImportedHtml('<h1>Seul</h1><p>a</p><h2>S1</h2><p>b</p><h2>S2</h2><p>c</p>', 'T');
+  assert(sp2 && sp2.map(c => c.title).join('|') === 'T|S1|S2', 'un seul titre de niveau 1 : on se rabat sur le niveau 2 (le début devient le premier chapitre)');
+  const sp3 = splitImportedHtml('<p>Chapitre 1 : Départ</p><p>texte</p><p>CHAPITRE II</p><p>suite</p><p>Épilogue</p><p>fin</p>', 'T');
+  assert(sp3 && sp3.length === 3 && sp3[0].title === 'Chapitre 1 : Départ' && sp3[2].title === 'Épilogue', 'sans styles de titre : repère « Chapitre N », « Chapitre II », « Épilogue »');
+  assert(splitImportedHtml('<p>texte</p><h1>Un seul</h1><p>suite</p>', 'T') === null, 'moins de 2 chapitres détectés : pas de découpage');
+
+  group('findreplace.js — options et remplacement global (v9.36.0)');
+  const mkRoot = html => { const d = document.createElement('div'); d.innerHTML = html; return d; };
+  assert(findAllMatches(mkRoot('<p>Le lenny le LE</p>'), 'le').length === 4, 'sans option : insensible à la casse, trouve aussi dans « lenny »');
+  assert(findAllMatches(mkRoot('<p>Le lenny le LE</p>'), 'le', { matchCase: true }).length === 2, 'respecter la casse');
+  assert(findAllMatches(mkRoot('<p>Le lenny le LE</p>'), 'le', { wholeWord: true }).length === 3, 'mot entier');
+  assert(findAllMatches(mkRoot('<p>été déjà</p>'), 'été', { wholeWord: true }).length === 1 && findAllMatches(mkRoot('<p>étés</p>'), 'été', { wholeWord: true }).length === 0, 'mot entier avec lettres accentuées');
+  assert(findAllMatches(mkRoot('<p>fin.</p><p>Début</p>'), 'fin.Début').length === 0 && findAllMatches(mkRoot('<p>fin<br>début</p>'), 'findébut').length === 0, 'une occurrence ne traverse ni deux paragraphes ni un retour à la ligne');
+  assert(findAllMatches(mkRoot('<p>Ma <b>sœ</b>ur</p>'), 'sœur').length === 1, 'une occurrence à cheval sur une mise en forme est trouvée');
+  const rr = mkRoot('<p>Élara dit à <em>Élara</em> que élara</p>');
+  assert(replaceAllInRoot(rr, 'Élara', 'Elena', { matchCase: true }) === 2 && rr.textContent.includes('Elena dit à Elena que élara'), 'replaceAllInRoot() remplace toutes les occurrences correspondantes');
+  db = { chapters:[
+      { id:'g1', title:'G1', content:'<p>Élara arrive. Élara sourit.</p>', tension:20, status:'draft', tags:[] },
+      { id:'g2', title:'G2', content:'<p>Rien ici.</p>', tension:20, status:'draft', tags:[] },
+      { id:'g3', title:'G3', content:'<p>Élara part.</p>', tension:20, status:'draft', tags:[] } ],
+    history:{}, trash:[], weakWords:[], sessionStats:{} };
+  cur = 0; loadChapter(0);
+  const gp = planGlobalReplace('Élara', {});
+  assert(gp.total === 3 && gp.plan.length === 2 && gp.plan[0].index === 0 && gp.plan[1].index === 2, 'planGlobalReplace() compte par chapitre sans rien modifier');
+  assert(db.chapters[2].content === '<p>Élara part.</p>', 'le décompte ne modifie aucun chapitre');
+  const doneG = applyGlobalReplace(gp.plan, 'Élara', 'Elena', {});
+  assert(doneG === 3 && db.chapters[2].content === '<p>Elena part.</p>' && db.chapters[0].content.includes('Elena arrive. Elena sourit.'), 'applyGlobalReplace() remplace dans le chapitre ouvert et dans les autres');
+  assert(db.history['g3'] && /^Manuel — Avant remplacement global/.test(db.history['g3'][0].label) && db.history['g3'][0].content === '<p>Élara part.</p>' && !db.history['g2'], 'chaque chapitre modifié (et lui seul) garde une copie d\'avant');
+
+  group('editor.js — scinder, fusionner, duplication, corbeille (v9.36.0)');
+  db = { chapters:[
+      { id:'s1', title:'Chapitre S', content:'<p>Début du chapitre.</p><p>Suite <em>importante</em> ici.</p>', tension:30, status:'draft', tags:['a'], wordGoal:500, researchNotes:'notes' },
+      { id:'s2', title:'Chapitre T', content:'<p>Autre.</p>', tension:20, status:'draft', tags:[] } ],
+    history:{}, trash:[], weakWords:[], sessionStats:{} };
+  cur = 0; loadChapter(0);
+  const wr = document.getElementById('writer');
+  const emNode = wr.querySelector('em').firstChild;
+  const selS = window.getSelection(); selS.removeAllRanges();
+  const rg = document.createRange(); rg.setStart(emNode, 0); rg.collapse(true); selS.addRange(rg);
+  splitChapterAtCaret();
+  assert(db.chapters.length === 3 && db.chapters[1].title === 'Chapitre S (suite)' && cur === 0, 'splitChapterAtCaret() crée le chapitre suivant et reste sur le premier');
+  assert(db.chapters[0].content.includes('Début du chapitre.') && !db.chapters[0].content.includes('importante'), 'le texte avant le curseur reste dans le chapitre d\'origine');
+  assert(db.chapters[1].content.includes('<em>importante</em>') && db.chapters[1].content.includes('ici.'), 'le texte après le curseur (avec sa mise en forme) passe dans le nouveau chapitre');
+  assert((db.history['s1'] || []).some(s => /^Manuel — Avant scission/.test(s.label) && s.content.includes('importante')), 'une copie d\'avant la scission est gardée');
+  const realConfirmM = showConfirmModal; showConfirmModal = async () => true;
+  await mergeWithNext(0);
+  showConfirmModal = realConfirmM;
+  assert(db.chapters.length === 2 && db.chapters[0].content.includes('Début du chapitre.') && db.chapters[0].content.includes('importante'), 'mergeWithNext() recolle le chapitre suivant à la fin');
+  assert(db.trash.length === 1 && db.trash[0].chapter.title === 'Chapitre S (suite)' && db.trash[0].index === 1, 'le chapitre absorbé va à la corbeille avec sa position');
+  duplicateChapter(0);
+  assert(db.chapters[1].wordGoal === 500 && db.chapters[1].researchNotes === 'notes', 'duplicateChapter() copie l\'objectif de mots et les notes de recherche');
+  const idRestore = db.chapters[1].id;
+  const realConfirmD = window.confirm; window.confirm = () => true;
+  cur = 0;
+  deleteChapter(1);
+  assert(db.trash[db.trash.length - 1].index === 1, 'deleteChapter() mémorise la position d\'origine');
+  restoreFromTrash(db.trash.length - 1);
+  window.confirm = realConfirmD;
+  assert(db.chapters[1].id === idRestore, 'restoreFromTrash() remet le chapitre à sa position d\'origine');
 
   group('editor.js — Annuler / Rétablir');
   db = { chapters:[{ id:'u1', title:'Chapitre Undo', content:'Contenu initial', tension:20, status:'draft', tags:[] }], history:{}, trash:[], weakWords:[] };

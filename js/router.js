@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.35.1';
+const APP_VERSION = '9.36.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1231,6 +1231,8 @@ function wireAppEventListenersOnce(){
   document.getElementById('cctx-tags').addEventListener('click',()=>{const i=_ctxMenuChapterIdx;closeAllChapterMenus();if(i!==null)editChapterTags(i);});
   document.getElementById('cctx-dup').addEventListener('click',()=>{const i=_ctxMenuChapterIdx;closeAllChapterMenus();if(i!==null)duplicateChapter(i);});
   document.getElementById('cctx-del').addEventListener('click',()=>{const i=_ctxMenuChapterIdx;closeAllChapterMenus();if(i!==null)deleteChapter(i);});
+  document.getElementById('cctx-merge').addEventListener('click',()=>{const i=_ctxMenuChapterIdx;closeAllChapterMenus();if(i!==null)mergeWithNext(i);});
+  document.getElementById('split-chapter-btn').addEventListener('click',splitChapterAtCaret);
   document.getElementById('chapter-list').addEventListener('scroll',closeAllChapterMenus);
   window.addEventListener('resize',closeAllChapterMenus);
   // Bascule Liste / Fiches (corkboard) — nouveau v7.10.0 (Lot 6).
@@ -1299,6 +1301,7 @@ function wireAppEventListenersOnce(){
   document.getElementById('find-replace-btn').addEventListener('click',openFindReplace);
   document.getElementById('fr-panel-close').addEventListener('click',closeFindReplace);
   document.getElementById('fr-find-input').addEventListener('input',doFind);
+  ['fr-case-cb','fr-word-cb'].forEach(id=>document.getElementById(id).addEventListener('change',doFind));
   document.getElementById('fr-next-btn').addEventListener('click',frNext);
   document.getElementById('fr-replace-btn').addEventListener('click',frReplaceOne);
   document.getElementById('fr-replace-all-btn').addEventListener('click',frReplaceAll);

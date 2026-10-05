@@ -342,7 +342,43 @@ function toggleAllExportSelect() {
 //   - Nouveau manuscrit (avec titre à saisir)
 //   - Nouveau chapitre dans un manuscrit existant de la bibliothèque
 // ═══════════════════════════════════════════════════════
-let _docxImportHtml = null, _docxImportTitleGuess = '';
+// v9.36.0 (audit AUD-02-004) — DÉCOUPAGE À L'IMPORT. Un roman Word devenait un seul chapitre géant.
+// On repère les titres du fichier : le niveau de titre le plus haut présent (titre 1, sinon titre 2) ;
+// à défaut, les lignes courtes « Chapitre 3 », « Chapter 3 », « Prologue », « Épilogue ». Le texte avant le
+// premier titre devient un chapitre à part s'il n'est pas vide. Renvoie null si moins de 2 chapitres.
+function splitImportedHtml(html, firstTitle) {
+  const root = document.createElement('div');
+  root.innerHTML = html || '';
+  const nodes = Array.from(root.childNodes);
+  const isHeading = (n, tag) => n.nodeType === 1 && n.tagName.toLowerCase() === tag;
+  const textOf = n => (n.textContent || '').replace(/\s+/g, ' ').trim();
+  let test = null;
+  for (const tag of ['h1', 'h2']) {
+    if (nodes.filter(n => isHeading(n, tag) && textOf(n)).length >= 2) { test = n => isHeading(n, tag) && !!textOf(n); break; }
+  }
+  if (!test) {
+    const re = /^(chapitre|chapter)\s+([0-9]+|[ivxlcdm]+|[a-zéèêûîô-]+)\b|^(prologue|épilogue|epilogue)\s*$/i;
+    const asTitle = n => n.nodeType === 1 && /^(p|h[1-6])$/i.test(n.tagName) && textOf(n).length > 0 && textOf(n).length < 80 && re.test(textOf(n));
+    if (nodes.filter(asTitle).length >= 2) test = asTitle;
+  }
+  if (!test) return null;
+  const chapters = [];
+  let current = { title: firstTitle || 'Début', parts: [], preface: true };
+  nodes.forEach(n => {
+    if (test(n)) {
+      chapters.push(current);
+      current = { title: textOf(n), parts: [] };
+    } else if (n.nodeType === 1) current.parts.push(n.outerHTML);
+    else if (n.nodeType === 3 && n.textContent.trim()) current.parts.push('<p>' + escapeHtml(n.textContent) + '</p>');
+  });
+  chapters.push(current);
+  const out = chapters
+    .filter(c => !(c.preface && !c.parts.join('').replace(/<[^>]*>/g, '').trim()))
+    .map(c => ({ title: c.title, content: c.parts.join('') || '<p></p>' }));
+  return out.length >= 2 ? out : null;
+}
+
+let _docxImportHtml = null, _docxImportTitleGuess = '', _docxImportSplit = null;
 function importManuscriptFile(input) {
   const file = input.files[0]; if (!file) return;
   const isOdt = /\.odt$/i.test(file.name);
@@ -367,11 +403,21 @@ async function openDocxImportModal(filename) {
   sel.innerHTML = list.documents.filter(d => d.docType !== 'roman_graphique').sort((a,b)=>b.lastModified-a.lastModified)
     .map(d => `<option value="${d.id}">${DOMPurify.sanitize(d.title || 'Sans titre')}</option>`).join('');
   setDocxImportMode('new');
+  // v9.36.0 : proposition de découpage si des titres de chapitres sont détectés.
+  _docxImportSplit = splitImportedHtml(_docxImportHtml, _docxImportTitleGuess);
+  const splitWrap = document.getElementById('docx-split-wrap');
+  if (splitWrap) {
+    splitWrap.classList.toggle('u-d-none', !_docxImportSplit);
+    if (_docxImportSplit) {
+      document.getElementById('docx-split-cb').checked = true;
+      document.getElementById('docx-split-label').textContent = 'Découper en ' + _docxImportSplit.length + ' chapitres (titres détectés dans le fichier)';
+    }
+  }
   document.getElementById('docx-import-overlay').classList.add('active');
 }
 function closeDocxImportModal() {
   document.getElementById('docx-import-overlay').classList.remove('active');
-  _docxImportHtml = null;
+  _docxImportHtml = null; _docxImportSplit = null;
 }
 function setDocxImportMode(mode) {
   const isNew = mode === 'new';
@@ -383,18 +429,22 @@ function setDocxImportMode(mode) {
 async function confirmDocxImport() {
   if (!_docxImportHtml) { closeDocxImportModal(); return; }
   const isNew = document.getElementById('docx-mode-new-btn').classList.contains('active');
-  const newChapter = { id: genChapterId(), title: _docxImportTitleGuess, content: _docxImportHtml, tension:20, summary:'', status:'draft', tags:[] };
+  const mkChapter = (title, content) => ({ id: genChapterId(), title, content, tension:20, summary:'', status:'draft', tags:[], wordGoal:0, researchNotes:'' });
+  const splitCb = document.getElementById('docx-split-cb');
+  const newChapters = (_docxImportSplit && splitCb && splitCb.checked)
+    ? _docxImportSplit.map(c => mkChapter(c.title, c.content))
+    : [mkChapter(_docxImportTitleGuess, _docxImportHtml)];
 
   if (isNew) {
     const title = document.getElementById('docx-new-title').value.trim() || 'Nouveau manuscrit';
     const docId = genChapterId();
     const dbData = DEFAULT_DB();
     dbData.title = title;
-    dbData.chapters = [newChapter];
+    dbData.chapters = newChapters;
     const cipher = await Crypto.encryptData(JSON.stringify(dbData), _dataKey);
     await persistData(docDataKey(_currentProfileId, docId), { _enc:true, data:cipher });
     await mutateDocList(list => {
-      list.documents.push({ id:docId, title, lastModified:Date.now(), chapterCount:1, wordCount:getWordCount(newChapter.content), wordGoal:0, cover:'auto' });
+      list.documents.push({ id:docId, title, lastModified:Date.now(), chapterCount:newChapters.length, wordCount:newChapters.reduce((t, c) => t + getWordCount(c.content), 0), wordGoal:0, cover:'auto', docType:'texte' });
     });
     closeDocxImportModal();
     toast('Nouveau manuscrit créé depuis le fichier importé.', 'success');
@@ -407,11 +457,11 @@ async function confirmDocxImport() {
   try {
     const otherDb = await loadManuscriptData(targetDocId);
     if (!Array.isArray(otherDb.chapters)) { toast("Un roman graphique n'accepte pas de chapitres.", 'error'); return; }
-    otherDb.chapters.push(newChapter);
+    newChapters.forEach(c => otherDb.chapters.push(c));
     await persistManuscriptData(targetDocId, otherDb);
     await touchDocListEntry(targetDocId, otherDb);
     closeDocxImportModal();
-    toast(`Chapitre ajouté à « ${DOMPurify.sanitize(otherDb.title||'ce manuscrit')} ».`, 'success');
+    toast(newChapters.length > 1 ? `${newChapters.length} chapitres ajoutés à « ${DOMPurify.sanitize(otherDb.title||'ce manuscrit')} ».` : `Chapitre ajouté à « ${DOMPurify.sanitize(otherDb.title||'ce manuscrit')} ».`, 'success');
     await renderLibraryScreen();
   } catch(e) {
     toast('Erreur : ' + e.message, 'error');

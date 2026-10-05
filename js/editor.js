@@ -479,7 +479,9 @@ function duplicateChapter(i) {
   _switching = true;
   flushCurrentChapter();
   const orig = db.chapters[i];
-  const copy = { id: genChapterId(), title: (orig.title||'Chapitre') + ' (copie)', content: orig.content, tension: orig.tension, summary: orig.summary, status: 'draft', tags: [...(orig.tags||[])] };
+  const copy = { id: genChapterId(), title: (orig.title||'Chapitre') + ' (copie)', content: orig.content, tension: orig.tension, summary: orig.summary, status: 'draft', tags: [...(orig.tags||[])],
+    // v9.36.0 (AUD-02-018) : objectif de mots et notes de recherche suivent la copie.
+    wordGoal: orig.wordGoal || 0, researchNotes: orig.researchNotes || '' };
   db.chapters.splice(i+1, 0, copy);
   if (cur > i) cur++;
   renderChapterList(); loadChapter(cur);
@@ -498,7 +500,8 @@ function deleteChapter(i) {
   db.trash.push({
     chapter: JSON.parse(JSON.stringify(ch)),
     history: history ? JSON.parse(JSON.stringify(history)) : null,
-    deletedAt: Date.now()
+    deletedAt: Date.now(),
+    index: i // v9.36.0 (AUD-02-019) : position d'origine, pour la restauration
   });
   db.chapters.splice(i,1);
   if (db.history && ch.id) delete db.history[ch.id];
@@ -548,7 +551,10 @@ function renderTrashList() {
 function restoreFromTrash(i) {
   const item = db.trash[i];
   if (!item) return;
-  db.chapters.push(item.chapter);
+  // v9.36.0 (AUD-02-019) : retour à la position d'origine (bornée) ; le chapitre affiché reste le même.
+  const at = Number.isInteger(item.index) ? Math.min(Math.max(item.index, 0), db.chapters.length) : db.chapters.length;
+  db.chapters.splice(at, 0, item.chapter);
+  if (at <= cur) cur++;
   if (item.history) { if (!db.history) db.history = {}; db.history[item.chapter.id] = item.history; }
   db.trash.splice(i,1);
   renderChapterList(); renderTrashList(); updateTrashBadge(); save();
@@ -560,6 +566,69 @@ function permanentlyPurge(i) {
   db.trash.splice(i,1);
   if (item && item.chapter && item.chapter.id) gcOrphanTimelineLinks([item.chapter.id]);
   renderTrashList(); updateTrashBadge(); save();
+}
+// ═══════════════════════════════════════════════════════
+// SCINDER / FUSIONNER (v9.36.0, audit AUD-02-004)
+// Après l'import d'un roman existant (ou en cours d'écriture), il faut pouvoir couper un chapitre
+// à l'endroit du curseur et recoller deux chapitres. Les deux opérations gardent d'abord une copie
+// manuelle du chapitre dans ses versions ; la fusion envoie le chapitre absorbé à la corbeille
+// (30 jours) au lieu de le détruire.
+// ═══════════════════════════════════════════════════════
+function splitChapterAtCaret() {
+  const writer = document.getElementById('writer');
+  const sel = window.getSelection();
+  if (!db.chapters || !db.chapters[cur] || !writer || !sel || !sel.rangeCount || !writer.contains(sel.anchorNode)) {
+    toast('Placez d\'abord le curseur dans le texte, à l\'endroit où couper le chapitre.', 'error');
+    return;
+  }
+  const caret = sel.getRangeAt(0).cloneRange();
+  caret.collapse(true);
+  const tail = document.createRange();
+  tail.setStart(caret.startContainer, caret.startOffset);
+  tail.setEnd(writer, writer.childNodes.length);
+  const probe = document.createElement('div');
+  probe.appendChild(tail.cloneContents());
+  if (!probe.textContent.trim()) { toast('Il n\'y a rien après le curseur à déplacer dans un nouveau chapitre.', 'error'); return; }
+  commitUndoSnapshot();
+  _switching = true;
+  flushCurrentChapter();
+  const ch = db.chapters[cur];
+  takeSnapshot(cur, 'Manuel — Avant scission — ' + new Date().toLocaleString('fr'));
+  const holder = document.createElement('div');
+  holder.appendChild(tail.extractContents());
+  ch.content = stripAnalysisMarks(writer.innerHTML);
+  const baseTitle = String(ch.title || 'Chapitre').replace(/\s*\(suite\)\s*$/i, '');
+  const next = { id: genChapterId(), title: baseTitle + ' (suite)', content: stripAnalysisMarks(holder.innerHTML), tension: ch.tension, summary: '', status: 'draft', tags: [...(ch.tags || [])], wordGoal: 0, researchNotes: '' };
+  db.chapters.splice(cur + 1, 0, next);
+  renderChapterList(); loadChapter(cur); updateDailyStats();
+  _switching = false;
+  save();
+  toast(`Chapitre scindé : la suite est dans « ${next.title} ».`, 'success');
+}
+async function mergeWithNext(i) {
+  if (!db.chapters || i < 0 || i >= db.chapters.length - 1) { toast('Il n\'y a pas de chapitre suivant à fusionner.', 'error'); return; }
+  const a = db.chapters[i], b = db.chapters[i + 1];
+  const ok = await showConfirmModal({
+    title: 'Fusionner les deux chapitres ?',
+    message: `« ${b.title || 'Chapitre suivant'} » sera ajouté à la fin de « ${a.title || 'ce chapitre'} ». Le chapitre suivant ira à la corbeille (récupérable 30 jours).`,
+    confirmLabel: 'Fusionner'
+  });
+  if (!ok) return;
+  commitUndoSnapshot();
+  _switching = true;
+  flushCurrentChapter();
+  takeSnapshot(i, 'Manuel — Avant fusion — ' + new Date().toLocaleString('fr'));
+  const history = (db.history && b.id) ? db.history[b.id] : null;
+  if (!db.trash) db.trash = [];
+  db.trash.push({ chapter: JSON.parse(JSON.stringify(b)), history: history ? JSON.parse(JSON.stringify(history)) : null, deletedAt: Date.now(), index: i + 1 });
+  a.content = (a.content || '') + (b.content || '');
+  db.chapters.splice(i + 1, 1);
+  if (db.history && b.id) delete db.history[b.id];
+  if (cur === i + 1) cur = i; else if (cur > i + 1) cur--;
+  renderChapterList(); loadChapter(cur); updateDailyStats(); updateTrashBadge();
+  _switching = false;
+  save();
+  toast('Chapitres fusionnés. Le chapitre absorbé est dans la corbeille.', 'success');
 }
 function moveChapter(i, dir) {
   const j = dir==='up' ? i-1 : i+1;
