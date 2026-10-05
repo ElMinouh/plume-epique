@@ -52,12 +52,13 @@ const Crypto = {
   // chemin — tous les sites qui lisent des données chiffrées avec la clé de données lisent donc v2 sans changement.
   //
   // DÉPLOIEMENT EN DEUX TEMPS (un appareil resté sur une version plus ancienne ne sait PAS lire v2) :
-  //   • étape 1 (v9.31.0, ici) : tous les appareils LISENT v2 ; on continue d'ÉCRIRE v1 (writeV2 = false) ;
-  //   • étape 2 (version ultérieure, quand TOUS les appareils sont en ≥ 9.31.0) : writeV2 = true. Chaque
+  //   • étape 1 (v9.31.0) : tous les appareils LISENT v2 ; on continue d'ÉCRIRE v1 (writeV2 = false) ;
+  //   • étape 2 (v9.32.0, ACTIVÉE le 06/10/2026 sur confirmation du propriétaire que tous les appareils sont
+  //     en ≥ 9.31.0) : writeV2 = true. Retour arrière : le repasser à false (les v2 existants restent lisibles). Chaque
   //     manuscrit passe alors en v2 à son prochain enregistrement (aucune migration en masse).
   // Les enveloppes de clé protégées par MOT DE PASSE (wrapPwd, wrapAnswer, wrapCode) restent en v1 : PBKDF2 y est utile.
   // ═══════════════════════════════════════════════════════════════════════
-  writeV2: false,
+  writeV2: true,
   async encryptV2(plaintext, dek) {
     const key = await this.derive(dek, 'plume-text-v2');
     const iv = crypto.getRandomValues(new Uint8Array(12));

@@ -46,7 +46,7 @@ export-format-utils.js, database.js, memory.js
 - `editor.js` — CRUD chapitres, statuts brouillon/relecture/final, focus mode
 - `images.js` — assets images du roman graphique (poids, dédup, quota)
 - `ai.js` — appels IA (résumé, suite, incohérences...) via le Worker relais ; ne dépend que d'une forme de réponse normalisée `{content:[{type:'text', text}]}` — changer de fournisseur IA se fait uniquement dans `worker/worker.js`
-- `crypto.js` — AES-GCM, enveloppes de clés multi-profils ; **chiffrer avec la clé de données = `Crypto.encryptData`** (jamais `Crypto.encrypt` direct : réservé aux enveloppes protégées par mot de passe) ; format texte v2 (`v2:`) lu partout, écrit seulement si `Crypto.writeV2` (étape 2, voir `docs/EXPLOITATION.md` §11)
+- `crypto.js` — AES-GCM, enveloppes de clés multi-profils ; **chiffrer avec la clé de données = `Crypto.encryptData`** (jamais `Crypto.encrypt` direct : réservé aux enveloppes protégées par mot de passe) ; format texte v2 (`v2:`) lu ET écrit (`Crypto.writeV2 = true` depuis la v9.32.0 ; retour arrière : `false`, voir `docs/EXPLOITATION.md` §11)
 - `export-format-utils.js` — export DOCX/JSON chiffré/EPUB/ODT/PDF, backup GitHub Gist
 - `odf-loader.js` — seul module ESM, chargement dynamique d'odf-kit (déplacé hors du HTML à cause de la CSP, cf. ci-dessous)
 
@@ -121,7 +121,7 @@ Les deux doivent être bumpés ensemble à chaque release (contextes différents
   Lots regroupés de façon cohérente techniquement et économes en tokens (plan issu de
   l'audit AUD-01, fichiers dans `Claude outputs/Audit-01/`).
 - **Les conversations se font UNIQUEMENT en français** dans ce projet, quelle que soit la session.
-- **Documentation** : `README.md` est à jour (v9.31.0) ; l'ancien README est archivé dans `docs/HISTORIQUE.md` (périmé sur l'IA, le stockage et le roman graphique). Exploitation, décisions d'architecture et bilan de l'audit : `docs/EXPLOITATION.md`, `docs/DECISIONS.md`, `docs/BILAN-AUDIT-01.md`. Vérifier malgré tout les faits sensibles au temps dans le code (`APP_VERSION`, `git log`).
+- **Documentation** : `README.md` est à jour (v9.32.0) ; l'ancien README est archivé dans `docs/HISTORIQUE.md` (périmé sur l'IA, le stockage et le roman graphique). Exploitation, décisions d'architecture et bilan de l'audit : `docs/EXPLOITATION.md`, `docs/DECISIONS.md`, `docs/BILAN-AUDIT-01.md`. Vérifier malgré tout les faits sensibles au temps dans le code (`APP_VERSION`, `git log`).
 - **Ordre de chargement des scripts = dépendance critique** : ajouter un fichier `js/*.js` sans respecter l'ordre dans `index.html` (et sans l'ajouter à `CORE_ASSETS` dans `sw.js`) casse l'app silencieusement.
 - **Incident de perte de données** (v8.1.0, 2026-07-27) : la sync ne comparait que "hash identique vs différent", jamais "plus récent" → toutes les profils sauf le plus ancien ont disparu sur plusieurs appareils. Corrigé avec des numéros de version + sécurités `mergeProfilesIndex` + test de non-régression `tests/vitest/sync-versioning.test.js`. À lire avant de toucher `syncPush`/`syncPull`/fusion d'index de profils.
 - Pas d'outil de lint/format configuré — ne pas inventer de commande lint.

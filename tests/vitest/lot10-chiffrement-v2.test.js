@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // LOT 10 (v9.31.0) — FORMAT DE TEXTE « v2 » (AUD-01-019), ÉTAPE 1 : LECTURE
-// Tous les appareils savent LIRE v2 ; on continue d'ÉCRIRE v1 tant que Crypto.writeV2 est faux. Ces tests
-// verrouillent aussi l'étape 2 (writeV2 = true) pour qu'elle soit sûre le jour venu.
+// Étape 1 (9.31.0) : tous les appareils savent LIRE v2. Étape 2 (9.32.0) : Crypto.writeV2 est vrai par défaut, on ÉCRIT v2.
+// Les tests verrouillent la lecture croisée des deux formats et le retour arrière (writeV2 = false).
 // ═══════════════════════════════════════════════════════
 import { describe, it, expect, vi } from 'vitest';
 import { JSDOM } from 'jsdom';
@@ -58,12 +58,12 @@ describe('Format v2 : chiffrement et lecture', () => {
 });
 
 describe('Point d\'entrée d\'écriture : encryptData et writeV2', () => {
-  it('par défaut on écrit encore en v1 (étape 1) ; avec writeV2 = true on écrit en v2 (étape 2)', async () => {
+  it('par défaut on écrit en v2 (étape 2) ; writeV2 = false (retour arrière) écrit en v1', async () => {
     const ctx = makeCtx(), C = ctx.Crypto;
-    expect(C.writeV2).toBe(false);
-    expect((await C.encryptData('t', DEK)).startsWith('v2:')).toBe(false);
-    C.writeV2 = true;
+    expect(C.writeV2).toBe(true);
     expect((await C.encryptData('t', DEK)).startsWith('v2:')).toBe(true);
+    C.writeV2 = false;
+    expect((await C.encryptData('t', DEK)).startsWith('v2:')).toBe(false);
   });
   it('les enveloppes protégées par mot de passe (wrapPwd, wrapAnswer, wrapCode) restent en v1 quel que soit writeV2', () => {
     const src = read('js/profiles.js');
@@ -90,6 +90,7 @@ describe('Point d\'entrée d\'écriture : encryptData et writeV2', () => {
 describe('Étape 2 sans risque : tout ce qui lit des données chiffrées lit v2 et v1, en mélange', () => {
   it('manuscrit : enveloppe v1, enveloppe v2, relecture croisée ; l\'empreinte du contenu est la même', async () => {
     const ctx = makeCtx(), C = ctx.Crypto;
+    C.writeV2 = false;
     const env1 = await ctx.makeEncryptedEnvelope(manuscrit('même texte'));
     C.writeV2 = true;
     const env2 = await ctx.makeEncryptedEnvelope(manuscrit('même texte'));
@@ -104,6 +105,7 @@ describe('Étape 2 sans risque : tout ce qui lit des données chiffrées lit v2 
   });
   it('synchro : un appareil en v1 et un en v2 voient le MÊME contenu comme identique (pas de faux conflit)', async () => {
     const ctx = makeCtx(), C = ctx.Crypto;
+    C.writeV2 = false;
     const env1 = await ctx.makeEncryptedEnvelope(manuscrit('texte commun'));
     C.writeV2 = true;
     const env2 = await ctx.makeEncryptedEnvelope(manuscrit('texte commun'));
@@ -113,6 +115,7 @@ describe('Étape 2 sans risque : tout ce qui lit des données chiffrées lit v2 
   });
   it('un manuscrit v1 resauvegardé après le passage à v2 devient v2, sans perte', async () => {
     const ctx = makeCtx(), C = ctx.Crypto;
+    C.writeV2 = false;
     await ctx.persistData('doc_p1_m2', await ctx.makeEncryptedEnvelope(manuscrit('v1 d\'origine')));
     C.writeV2 = true;
     const ouvert = await ctx.loadManuscriptData('m2');

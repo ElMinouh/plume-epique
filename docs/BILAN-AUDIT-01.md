@@ -1,14 +1,14 @@
 # Bilan de remédiation — audit technique n°1 (octobre 2026)
 
-Base : v9.19.0 (note 56/100, maturité Bêta). État : **v9.31.0**. Documents d'origine : `Claude outputs/Audit-01/`
+Base : v9.19.0 (note 56/100, maturité Bêta). État : **v9.32.0**. Documents d'origine : `Claude outputs/Audit-01/`
 (non versionné). Les identifiants `AUD-01-xxx` sont ceux de l'audit.
 
 ## Résumé
 
 | Statut | Nombre |
 |---|---|
-| 🟢 Corrigé | 23 |
-| 🟡 Partiel | 2 |
+| 🟢 Corrigé | 24 |
+| 🟡 Partiel | 1 |
 | ⚪ Non traité par décision du propriétaire | 1 |
 | ✅ Clos / résolu autrement | 2 |
 
@@ -37,7 +37,7 @@ mémoire même bibliothèque affichée, pouvant écraser une restauration) — c
 | 016 | Aucune observabilité | 🟢 (journaux sans contenu, occupation du stockage dans Système) | 9.29.0 | `lot8-exploitation.test.js` |
 | 017 | Démarrage et requêtes sans délai maximal | 🟢 | 9.21.0 | `lot2-quota-reseau` |
 | 018 | Versions mixtes : schéma abaissé | 🟢 | 9.26.0 | `lot5-integrite-sync` |
-| 019 | PBKDF2 répété à chaque sauvegarde | 🟡 Étape 1 livrée (lecture du format v2 partout, point d'entrée unique `Crypto.encryptData`) ; **étape 2 (écriture v2) à activer** quand tous les appareils sont à jour — voir `docs/EXPLOITATION.md` §11 | 9.31.0 | `lot10-chiffrement-v2.test.js` |
+| 019 | PBKDF2 répété à chaque sauvegarde | 🟢 Étape 1 (lecture v2, 9.31.0) puis étape 2 (écriture v2, **activée en 9.32.0**) ; 27 ms → 0,1 ms par enveloppe (PC) | 9.31.0, 9.32.0 | `lot10-chiffrement-v2.test.js` ; test réel à deux appareils |
 | 020 | Rendu HTML sans assainissement | 🟢 | 9.27.0 (`escapeHtml`) | `lot6-durcissement.test.js` |
 | 021 | Documentation en dérive | 🟢 | 9.29.0 | ce dossier `docs/` + README |
 | 022 | Dépendances de développement : 4 alertes | 🟢 `npm audit` : 0 alerte (dev et production) ; alerte `docx`→`nanoid` documentée dans `vendor/LISEZMOI.md` | 9.30.0 | `npm audit` |
@@ -50,7 +50,7 @@ mémoire même bibliothèque affichée, pouvant écraser une restauration) — c
 
 ## Ce qui reste (pour un prochain audit)
 
-1. **AUD-01-001** : décision du propriétaire, à revoir si l'application sort du cercle familial. **AUD-01-019** : activer l'étape 2 (écriture v2) quand tous les appareils sont en ≥ 9.31.0.
+1. **AUD-01-001** : décision du propriétaire, à revoir si l'application sort du cercle familial.
 2. **Montée de version majeure de `docx`** (API différente) quand Dependabot la proposera.
 3. **Tests navigateur automatisés** : procédure manuelle documentée (README).
 4. **Quota D1 partagé** avec les autres projets du compte (surveiller `horizon-poi`).
