@@ -27,7 +27,7 @@ remplacées par des chemins relatifs vers les copies ci-dessus (c'est la seule m
 avec le retrait des lignes `sourceMappingURL`).
 
 ## Mettre à jour une librairie
-1. Changer la version dans `package.json` (section `dependencies`) — Dependabot la propose automatiquement.
+1. Changer la version dans `package.json` (section `dependencies`). Depuis le 06/10/2026 Dependabot ne propose plus ces bibliothèques (voir `.github/dependabot.yml`) : vérifier à la main, une fois par trimestre ou après une alerte, avec `npm outdated`, `npm audit` et les notes de version.
 2. Télécharger le fichier de la nouvelle version (même chemin que ci-dessus sur jsDelivr/unpkg), le placer ici sous
    le nouveau nom, mettre à jour `index.html` et `sw.js` (CORE_ASSETS), puis relancer `npm test` (un test vérifie la
    cohérence index.html ↔ sw.js ↔ vendor/ ↔ package.json).

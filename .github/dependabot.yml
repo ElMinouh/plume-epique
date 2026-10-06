@@ -1,27 +1,55 @@
-# Alerte et propose automatiquement une mise à jour (pull request) si une
-# faille de sécurité est découverte dans une dépendance — vitest, jsdom
-# (npm), ou les actions utilisées par les workflows (actions/checkout,
-# cloudflare/wrangler-action...). Gratuit, ne modifie jamais rien tout
-# seul : ça ouvre juste une pull request à examiner et fusionner soi-même.
+# Dependabot propose une pull request quand une dépendance a une nouvelle version. Gratuit, ne modifie jamais rien
+# tout seul : ça ouvre juste une pull request à examiner et fusionner soi-même.
+#
+# Réglage du 06/10/2026 (trop de courriers : 8 pull requests d'un coup, dont 4 en échec par construction) :
+#  • rythme MENSUEL au lieu d'hebdomadaire ;
+#  • les mises à jour des outils de test (vitest, jsdom, fake-indexeddb) sont REGROUPÉES en une seule pull request,
+#    celles des actions GitHub aussi ;
+#  • les 13 bibliothèques servies par le site (dossier vendor/) ne sont PLUS proposées : leurs fichiers sont des copies
+#    locales que Dependabot ne met pas à jour (il ne change que package.json, donc le test de cohérence
+#    package.json ↔ vendor/ échoue à chaque fois). Elles se mettent à jour à la main, selon la méthode de
+#    vendor/LISEZMOI.md, lors d'une vérification périodique (voir README, « Dépendances »).
+# Attention : les alertes de sécurité Dependabot et les mises à jour de sécurité sont désactivées sur ce dépôt (réglages GitHub) ;
+# la vérification périodique ci-dessus (npm audit, notes de version) en tient lieu.
 version: 2
 updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    groups:
+      outils-de-test:
+        dependency-type: "development"
     ignore:
       # v9.1.x — jsdom 30.0.0 embarque une version d'"undici" cassée
       # (TypeError: webidl.util.markAsUncloneable is not a function),
       # qui fait échouer les 143 tests sans rapport avec le code de
       # l'app elle-même (voir pull request #4, fermée sans fusion).
       # Seules les mises à jour MAJEURES de jsdom sont ignorées ici ;
-      # les correctifs mineurs/patchs (ex. 29.1.x → 29.1.y) continuent
-      # d'être proposés normalement. À retirer une fois jsdom 30.x
-      # stabilisé.
+      # les correctifs mineurs/patchs continuent d'être proposés.
+      # À retirer une fois jsdom 30.x stabilisé.
       - dependency-name: "jsdom"
         update-types: ["version-update:semver-major"]
+      # Bibliothèques de vendor/ : mises à jour à la main (voir plus haut).
+      - dependency-name: "chart.js"
+      - dependency-name: "d3"
+      - dependency-name: "docx"
+      - dependency-name: "dompurify"
+      - dependency-name: "fflate"
+      - dependency-name: "file-saver"
+      - dependency-name: "html2canvas"
+      - dependency-name: "idb"
+      - dependency-name: "jspdf"
+      - dependency-name: "jszip"
+      - dependency-name: "mammoth"
+      - dependency-name: "marked"
+      - dependency-name: "odf-kit"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    groups:
+      actions-ci:
+        patterns:
+          - "*"
