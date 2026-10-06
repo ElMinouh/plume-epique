@@ -9,8 +9,9 @@
 #    locales que Dependabot ne met pas à jour (il ne change que package.json, donc le test de cohérence
 #    package.json ↔ vendor/ échoue à chaque fois). Elles se mettent à jour à la main, selon la méthode de
 #    vendor/LISEZMOI.md, lors d'une vérification périodique (voir README, « Dépendances »).
-# Attention : les alertes de sécurité Dependabot et les mises à jour de sécurité sont désactivées sur ce dépôt (réglages GitHub) ;
-# la vérification périodique ci-dessus (npm audit, notes de version) en tient lieu.
+# Alertes de sécurité Dependabot : ACTIVÉES sur ce dépôt depuis le 06/10/2026 (un mail seulement en cas de vraie faille) ; les mises à jour de
+# sécurité automatiques (pull requests) restent désactivées. La vérification périodique ci-dessus (npm outdated, npm audit, notes de version)
+# complète les alertes.
 version: 2
 updates:
   - package-ecosystem: "npm"
