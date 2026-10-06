@@ -130,5 +130,6 @@ foyer, etc.) : `docs/DECISIONS.md`.
 - Le contrôle d'incohérences « tout le roman » compare des faits extraits chapitre par chapitre ; sur un roman très long, la
   comparaison se fait par groupes de chapitres consécutifs et une contradiction entre deux groupes peut échapper (signalé à l'écran).
 - La date d'une chronologie est un texte libre : le tri automatique se fait selon l'ordre des chapitres, pas selon la date.
+- **Dépendances** : les bibliothèques servies par le site sont dans `vendor/` (Dependabot ne les met pas à jour : ses PR de bibliothèques échouent au test de cohérence et se traitent à la main, méthode dans `vendor/LISEZMOI.md`). `docx` reste en 7.1.0 (la 9.x impose de réécrire l'export DOCX). `npm audit` signale 3 alertes modérées sur `mammoth` (outil en ligne de commande, absent du fichier servi) : sans effet sur le site.
 - La question secrète de récupération est une porte plus faible que le mot de passe (décision documentée).
 - Pas de test automatisé en navigateur réel : les parcours complets sont vérifiés à la main sur copie locale.

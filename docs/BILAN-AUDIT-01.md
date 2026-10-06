@@ -51,7 +51,7 @@ mémoire même bibliothèque affichée, pouvant écraser une restauration) — c
 ## Ce qui reste (pour un prochain audit)
 
 1. **AUD-01-001** : décision du propriétaire, à revoir si l'application sort du cercle familial.
-2. **Montée de version majeure de `docx`** (API différente) quand Dependabot la proposera.
+2. **Montée de version majeure de `docx`** (API différente) : la PR Dependabot #15 (7.1.0 → 9.8.1) a été fermée le 06/10/2026 ; à traiter dans un lot dédié (réécriture de `exportDocx` et de l'export DOCX du roman graphique).
 3. **Tests navigateur automatisés** : procédure manuelle documentée (README).
 4. **Quota D1 partagé** avec les autres projets du compte (surveiller `horizon-poi`).
 
