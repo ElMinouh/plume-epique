@@ -1,7 +1,7 @@
 'use strict';
 // Changez ce numéro de version à chaque mise à jour majeure des fichiers
 // pour forcer les navigateurs à récupérer la nouvelle version.
-const CACHE = 'plume-epique-v9.39.0';
+const CACHE = 'plume-epique-v9.39.1';
 
 const CORE_ASSETS = [
   './',
@@ -13,8 +13,8 @@ const CORE_ASSETS = [
   './js/tabs.js','./js/panels.js','./js/findreplace.js','./js/ai.js','./js/snapshots.js','./js/diff.js','./js/stats.js',
   './js/readability.js','./js/relations.js','./js/timeline.js','./js/fulltour.js','./js/tts.js','./js/wordcloud.js',
   './js/pluginSystem.js','./js/export-format-utils.js','./js/database.js','./js/memory.js','./js/odf-loader.js',
-  './vendor/dompurify-3.4.16.min.js','./vendor/chart-4.4.0.umd.min.js','./vendor/idb-8.0.3.umd.js','./vendor/docx-7.1.0.js','./vendor/file-saver-2.0.5.min.js','./vendor/d3-7.9.0.min.js','./vendor/jszip-3.10.1.min.js','./vendor/jspdf-4.2.1.umd.min.js','./vendor/html2canvas-1.4.1.min.js','./vendor/mammoth-1.11.0.browser.min.js',
-  './vendor/odf-kit-0.13.10.esm.js','./vendor/odf-kit-reader-0.13.10.esm.js','./vendor/odf-kit-document-0.13.10.esm.js','./vendor/fflate-0.8.3.esm.js','./vendor/marked-18.0.5.esm.js'
+  './vendor/dompurify-3.4.16.min.js','./vendor/chart-4.5.1.umd.min.js','./vendor/idb-8.0.3.umd.js','./vendor/docx-7.1.0.js','./vendor/file-saver-2.0.5.min.js','./vendor/d3-7.9.0.min.js','./vendor/jszip-3.10.1.min.js','./vendor/jspdf-4.2.1.umd.min.js','./vendor/html2canvas-1.4.1.min.js','./vendor/mammoth-1.11.0.browser.min.js',
+  './vendor/odf-kit-0.14.3.esm.js','./vendor/odf-kit-reader-0.14.3.esm.js','./vendor/odf-kit-document-0.14.3.esm.js','./vendor/fflate-0.8.3.esm.js','./vendor/marked-18.0.14.esm.js'
 ];
 
 // v9.27.0 : plus aucune librairie externe — elles sont toutes dans vendor/ (CORE_ASSETS).

@@ -25,6 +25,6 @@
 // htmlToOdt(html, {pageFormat}) et odtToHtml(bytes, {fragment}) inchangées,
 // vérifiées directement dans le paquet npm avant ce correctif.
 // v9.27.0 : modules servis par ce site (vendor/), plus par jsDelivr.
-import { htmlToOdt } from "../vendor/odf-kit-0.13.10.esm.js";
-import { odtToHtml } from "../vendor/odf-kit-reader-0.13.10.esm.js";
+import { htmlToOdt } from "../vendor/odf-kit-0.14.3.esm.js";
+import { odtToHtml } from "../vendor/odf-kit-reader-0.14.3.esm.js";
 window.odfKit = { htmlToOdt, odtToHtml };
