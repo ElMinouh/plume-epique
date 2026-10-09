@@ -163,7 +163,7 @@ async function saveGraphicNovel(immediate) {
       if (typeof flashSave === 'function') flashSave();
     } catch(e) {
       console.error('Échec de sauvegarde (roman graphique) :', e);
-      if (typeof toast === 'function') toast('⚠️ Échec de la sauvegarde : ' + (e && e.message ? e.message : e), 'error');
+      if (typeof toast === 'function') { toast('⚠️ Échec de la sauvegarde : ' + (e && e.message ? e.message : e) + '. Vos derniers ajouts ne sont peut-être pas enregistrés.', 'error', { sticky: true, kind: 'save' }); if (typeof markSaveFailed === 'function') markSaveFailed(); }
     }
   };
   if (immediate) { clearTimeout(_gnSaveTimer); await doSave(); return; }

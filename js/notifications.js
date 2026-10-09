@@ -1,14 +1,58 @@
 'use strict';
-function toast(msg, type='info') {
+// v9.42.0 (AUD-03-019) : avant, durée fixe de 3,2 s pour tout, minuteur jamais annulé (un message
+// récent était coupé par le minuteur du précédent), pas de fermeture manuelle — y compris pour
+// « Échec de la sauvegarde ». Désormais : info 4 s, succès 3 s, erreur 8 s ; ✕ pour les erreurs ;
+// pause au survol ; minuteur annulé à chaque nouveau message ; opts.sticky = reste jusqu'au ✕
+// (échec d'enregistrement, conflit de synchro, stockage plein) ; opts.kind identifie le message
+// (l'échec d'enregistrement est retiré tout seul au premier enregistrement réussi).
+let _toastTimer = null;
+function hideToast() {
   const el = document.getElementById('toast');
+  clearTimeout(_toastTimer); _toastTimer = null;
+  el.classList.remove('show', 'has-close'); delete el.dataset.kind;
+}
+function toast(msg, type='info', opts={}) {
+  const el = document.getElementById('toast');
+  clearTimeout(_toastTimer); _toastTimer = null;
   el.textContent = msg;
   el.style.borderLeftColor = type==='success'?'#27ae60':type==='error'?'#e74c3c':'#8e44ad';
-  el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 3200);
+  const closable = type === 'error' || !!opts.sticky;
+  el.classList.toggle('has-close', closable);
+  if (opts.kind) el.dataset.kind = opts.kind; else delete el.dataset.kind;
+  if (closable) {
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'toast-close'; btn.textContent = '✕';
+    btn.setAttribute('aria-label', 'Fermer ce message'); btn.title = 'Fermer ce message';
+    btn.addEventListener('click', hideToast);
+    el.appendChild(btn);
+  }
+  el.classList.add('show');
+  if (opts.sticky) return;
+  const ms = type === 'error' ? 8000 : type === 'success' ? 3000 : 4000;
+  const arm = () => { clearTimeout(_toastTimer); _toastTimer = setTimeout(hideToast, ms); };
+  el.onmouseenter = () => { clearTimeout(_toastTimer); };
+  el.onmouseleave = arm;
+  arm();
+}
+// v9.42.0 (AUD-03-019) : état d'échec d'enregistrement PERMANENT dans le pied de page, jusqu'au
+// prochain enregistrement réussi (avant : « Enregistré à 10:18 » restait affiché après l'échec).
+let _saveFailedSince = null;
+function markSaveFailed() {
+  const lbl = document.getElementById('autosave-label');
+  if (!_saveFailedSince) _saveFailedSince = new Date();
+  if (lbl) {
+    lbl.textContent = '⚠ Non enregistré depuis ' + _saveFailedSince.toLocaleTimeString('fr',{hour:'2-digit',minute:'2-digit'});
+    lbl.classList.add('save-failed');
+  }
 }
 function flashSave() {
   const ind = document.getElementById('save-indicator'), lbl = document.getElementById('autosave-label');
   if (ind) { ind.style.opacity=1; setTimeout(()=>ind.style.opacity=0, 700); }
-  if (lbl) lbl.textContent = 'Enregistré à ' + new Date().toLocaleTimeString('fr',{hour:'2-digit',minute:'2-digit'});
+  if (lbl) { lbl.classList.remove('save-failed'); lbl.textContent = 'Enregistré à ' + new Date().toLocaleTimeString('fr',{hour:'2-digit',minute:'2-digit'}); }
+  if (_saveFailedSince) {
+    _saveFailedSince = null;
+    if (document.getElementById('toast').dataset.kind === 'save') hideToast();
+  }
 }
 function showAiLoader(id) { document.getElementById(id).innerHTML = '<div class="ai-loader"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div>'; }
 
@@ -166,6 +210,7 @@ function showConfirmModal({ title, message, confirmLabel, danger, requireText } 
     confirmBtn.onclick = () => cleanup(true);
     overlay.onclick = (e) => { if (e.target === overlay) cleanup(false); };
     overlay.classList.add('active');
-    (requireText ? input : confirmBtn).focus();
+    // v9.42.0 (AUD-03-018) : pour une action destructrice, le focus va sur « Annuler » (Entrée ne supprime plus).
+    (requireText ? input : (danger ? document.getElementById('confirm-modal-cancel-btn') : confirmBtn)).focus();
   });
 }

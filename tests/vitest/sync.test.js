@@ -133,7 +133,7 @@ describe('Synchro réelle (router.js) — fetch mocké', () => {
     expect(backupKeys.length).toBe(1);
     expect(JSON.parse(ctx.localStorage.getItem(backupKeys[0]))).toEqual({ titre: 'Modifié depuis un autre appareil' });
     // L'utilisateur est prévenu qu'un arbitrage est nécessaire...
-    expect(ctx.toast).toHaveBeenCalledWith(expect.stringContaining('deux appareils'), 'error');
+    expect(ctx.toast).toHaveBeenCalledWith(expect.stringContaining('deux appareils'), 'error', expect.objectContaining({ sticky: true }));
     // ...et la synchronisation de CETTE clé est mise en pause dans l'attente
     // de sa décision (les autres clés continuent de se synchroniser).
     expect(ctx.isConflictPaused('doc_2')).toBe(true);

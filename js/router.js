@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.41.0';
+const APP_VERSION = '9.42.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -640,7 +640,7 @@ async function syncPush(key, payload, attempt = 0) {
       await persistConflictBackup(key, pulled.data);
       addConflictPausedKey(key);
       if (typeof onSyncConflictDetected === 'function') onSyncConflictDetected(key);
-      if (typeof toast === 'function') toast("Synchro : ce manuscrit a été modifié sur les deux appareils. Votre texte est intact — ouvrez « Système » pour comparer et choisir.", 'error');
+      if (typeof toast === 'function') toast("Synchro : ce manuscrit a été modifié sur les deux appareils. Votre texte est intact — ouvrez « Système » pour comparer et choisir.", 'error', { sticky: true, kind: 'conflict' });
       return;
     }
 
@@ -1104,6 +1104,61 @@ function debounce(fn, delay) { let t; return (...a) => { clearTimeout(t); t = se
 // getTodayKey() / getWordCount() / dateKey() : voir schema.js (v9.34.0)
 function getPlainText(html) { return (html||'').replace(/<br\s*\/?>/gi,'\n').replace(/<\/p>/gi,'\n').replace(/<[^>]*>/g,'').trim(); }
 
+
+// ═══════════════════════════════════════════════════════
+// ÉCHAP — UNE SEULE COUCHE À LA FOIS (v9.42.0, audit AUD-03-020)
+// Avant : Échap fermait en même temps toutes les fenêtres ouvertes (une confirmation ET le chat IA
+// derrière, etc.), par ~20 fermetures successives dans trois gestionnaires. Désormais cet arbitre
+// (phase de capture, donc avant les autres écouteurs) ferme la couche la plus haute puis coupe la
+// propagation. Il s'abstient (laisse faire les écouteurs propres) quand une visite guidée, une
+// bulle d'aide ou une fenêtre « roman graphique » (.gn-modal-overlay, a11y propre) est au-dessus.
+// Ordre = du plus haut au plus bas.
+// ═══════════════════════════════════════════════════════
+function _isOn(id, cls){ const el=document.getElementById(id); return !!el && el.classList.contains(cls||'active'); }
+function _escLayers(){
+  const byId = (id, close) => ({ open: () => _isOn(id), close });
+  return [
+    { open: () => _isOn('confirm-modal-overlay'), close: () => document.getElementById('confirm-modal-cancel-btn').click() },
+    { open: () => !!document.querySelector('.toolbar-menu.open'), close: () => {
+        document.querySelectorAll('.toolbar-menu.open').forEach(m => m.classList.remove('open'));
+        ['closeAllChapterMenus','closeLibraryCtxMenu','closeCoverPicker','closeLibraryTopbarMenu'].forEach(n => { if (typeof window[n] === 'function') window[n](); });
+      } },
+    byId('conflict-diff-overlay', () => closeConflictDiff()),
+    byId('docx-import-overlay', () => closeDocxImportModal()),
+    byId('export-select-overlay', () => closeExportSelect()),
+    byId('gist-history-overlay', () => closeGistHistory()),
+    byId('my-profile-overlay', () => closeMyProfile()),
+    byId('manage-profiles-overlay', () => closeManageProfiles()),
+    byId('library-system-overlay', () => closeLibrarySystemPanel()),
+    byId('doc-trash-overlay', () => closeDocTrash()),
+    byId('trash-overlay', () => closeTrash()),
+    byId('history-overlay', () => document.getElementById('history-overlay').classList.remove('active')),
+    byId('search-overlay', () => closeGlobalSearch()),
+    byId('shortcuts-overlay', () => closeShortcutsHelp()),
+    byId('reading-overlay', () => exitReadingMode()),
+    byId('focus-overlay', () => exitFocus()),
+    byId('ai-chat-panel', () => closeAiChat()),
+    byId('fr-panel', () => closeFindReplace()),
+    byId('lex-panel', () => document.getElementById('lex-panel').classList.remove('active')),
+    byId('tts-panel', () => document.getElementById('tts-panel').classList.remove('active')),
+    byId('ai-summary-panel', () => document.getElementById('ai-summary-panel').classList.remove('active')),
+    { open: () => { const p=document.getElementById('chapter-notes-panel'); return !!p && !p.classList.contains('u-d-none'); },
+      close: () => document.getElementById('chapter-notes-panel').classList.add('u-d-none') }
+  ];
+}
+function escapeArbiter(e){
+  if (e.key !== 'Escape') return;
+  if (document.querySelector('.gn-modal-overlay')) return;
+  if (typeof _fullTourActive !== 'undefined' && _fullTourActive) return;
+  const pop = document.getElementById('info-popover');
+  if (pop && getComputedStyle(pop).display !== 'none') return;
+  const top = _escLayers().find(l => { try { return l.open(); } catch(err) { return false; } });
+  if (!top) return;
+  top.close();
+  e.stopImmediatePropagation();
+}
+document.addEventListener('keydown', escapeArbiter, true);
+
 const save = async () => {
   if (!_currentProfileId || !_dataKey || !_currentDocumentId) return;
   // v9.4.2 — Incident du 14/08/2026 : une erreur ici (persistData,
@@ -1122,7 +1177,8 @@ const save = async () => {
     _unsavedChanges = false;
   } catch(e) {
     console.error('Échec de sauvegarde :', e);
-    if (typeof toast === 'function') toast('⚠️ Échec de la sauvegarde : ' + (e && e.message ? e.message : e) + '. Vos derniers mots ne sont peut-être pas enregistrés — copiez votre texte par précaution.', 'error');
+    if (typeof toast === 'function') toast('⚠️ Échec de la sauvegarde : ' + (e && e.message ? e.message : e) + '. Vos derniers mots ne sont peut-être pas enregistrés — copiez votre texte par précaution.', 'error', { sticky: true, kind: 'save' });
+    if (typeof markSaveFailed === 'function') markSaveFailed();
   }
 };
 // v7.5.0 : debouncedSave marque _unsavedChanges=true immédiatement (avant les
@@ -1418,38 +1474,9 @@ function wireAppEventListenersOnce(){
     if(e.key==='?' && e.target.tagName!=='INPUT' && e.target.tagName!=='TEXTAREA' && !e.target.isContentEditable){
       e.preventDefault();openShortcutsHelp();
     }
-    if(e.key==='Escape'){
-      if(document.getElementById('focus-overlay').classList.contains('active'))exitFocus();
-      if(document.getElementById('search-overlay').classList.contains('active'))closeGlobalSearch();
-      if(document.getElementById('history-overlay').classList.contains('active'))document.getElementById('history-overlay').classList.remove('active');
-      if(document.getElementById('ai-summary-panel').classList.contains('active'))document.getElementById('ai-summary-panel').classList.remove('active');
-      if(document.getElementById('tts-panel').classList.contains('active'))document.getElementById('tts-panel').classList.remove('active');
-      if(document.getElementById('lex-panel').classList.contains('active'))document.getElementById('lex-panel').classList.remove('active');
-      if(document.getElementById('fr-panel').classList.contains('active'))closeFindReplace();
-      if(document.getElementById('gist-history-overlay').classList.contains('active'))closeGistHistory();
-      if(document.getElementById('trash-overlay').classList.contains('active'))closeTrash();
-      if(document.getElementById('doc-trash-overlay').classList.contains('active'))closeDocTrash();
-      if(document.getElementById('reading-overlay').classList.contains('active'))exitReadingMode();
-      if(document.getElementById('export-select-overlay').classList.contains('active'))closeExportSelect();
-      if(document.getElementById('shortcuts-overlay').classList.contains('active'))closeShortcutsHelp();
-      if(document.getElementById('docx-import-overlay').classList.contains('active'))closeDocxImportModal();
-      if(document.getElementById('chapter-ctx-menu').classList.contains('open'))closeAllChapterMenus();
-      // v9.1.1 — Bug d'accessibilité rapporté (test clavier) : Échap ne
-      // fermait ni les menus déroulants de la barre d'outils, ni 6 fenêtres
-      // (Mon profil, Gérer les profils, Système bibliothèque, chat IA,
-      // notes de chapitre, confirmation) — simplement absentes de cette
-      // liste jusqu'ici.
-      document.querySelectorAll('.toolbar-menu.open').forEach(m=>m.classList.remove('open'));
-      if(document.getElementById('my-profile-overlay').classList.contains('active'))closeMyProfile();
-      if(document.getElementById('manage-profiles-overlay').classList.contains('active'))closeManageProfiles();
-      if(document.getElementById('library-system-overlay').classList.contains('active'))closeLibrarySystemPanel();
-      if(document.getElementById('ai-chat-panel').classList.contains('active'))closeAiChat();
-      if(!document.getElementById('chapter-notes-panel').classList.contains('u-d-none'))document.getElementById('chapter-notes-panel').classList.add('u-d-none');
-      // La modale de confirmation a besoin de résoudre sa promesse comme un
-      // vrai clic sur "Annuler" (showConfirmModal(), notifications.js) —
-      // simuler ce clic plutôt que retirer la classe directement.
-      if(document.getElementById('confirm-modal-overlay').classList.contains('active'))document.getElementById('confirm-modal-cancel-btn').click();
-    }
+    // Échap : géré par escapeArbiter() (une seule couche à la fois, voir plus haut).
+    // v9.42.0 (AUD-03-020) : le piège ne vise plus que les vraies modales (aria-modal="true") ;
+    // avant, une bulle d'aide ou un panneau flottant visible détournait Tab depuis la zone d'écriture.
     // v9.1.1 — Bug d'accessibilité rapporté (test clavier) : rien n'empêchait
     // Tab de faire sortir le focus d'une fenêtre ouverte vers la page
     // derrière. Générique : s'applique à toute fenêtre role="dialog"
@@ -1457,7 +1484,7 @@ function wireAppEventListenersOnce(){
     // et les futures sans rien à modifier ailleurs), boucle Tab/Maj+Tab à
     // l'intérieur de ses éléments focusables.
     if(e.key==='Tab'){
-      const openDialogs = Array.from(document.querySelectorAll('[role="dialog"]'))
+      const openDialogs = Array.from(document.querySelectorAll('[role="dialog"][aria-modal="true"]'))
         .filter(d => d.offsetWidth > 0 || d.offsetHeight > 0 || d.getClientRects().length > 0);
       if(openDialogs.length){
         const dialog = openDialogs.find(d => d.contains(document.activeElement)) || openDialogs[openDialogs.length-1];

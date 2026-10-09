@@ -5,7 +5,10 @@ function renderTabs(){
     if(!document.getElementById(id))return;
     const btn=document.createElement('button');
     btn.className='tab-btn';btn.textContent=tabLabels[id]||id;
-    btn.dataset.tabId=id;btn.setAttribute('role','tab');
+    btn.dataset.tabId=id;
+    // v9.42.0 (AUD-03-021) : ces boutons ouvrent/ferment un panneau (reclic = fermer) : motif « accordéon »
+    // (aria-expanded + aria-controls), pas « onglets » (role=tab sans tablist ni aria-selected).
+    btn.setAttribute('aria-expanded','false');btn.setAttribute('aria-controls',id);
     btn.setAttribute('draggable','true');
     btn.title=(tabDescriptions[id]?tabDescriptions[id]+' — ':'')+'Alt+← / Alt+→ pour réordonner au clavier';
     btn.addEventListener('click',()=>toggleTab(id,btn));
@@ -120,8 +123,9 @@ function openTabOrSubtab(id){
 function toggleTab(id,btn,forceOpen){
   const cont=document.getElementById('tab-container'),active=btn.classList.contains('active');
   document.querySelectorAll('.tab-btn,.tab-content').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.setAttribute('aria-expanded','false'));
   if(!active||forceOpen){
-    btn.classList.add('active');
+    btn.classList.add('active');btn.setAttribute('aria-expanded','true');
     const contentEl=document.getElementById(id);
     contentEl.classList.add('active');cont.classList.add('open');
     if(id==='tab-config'){renderWeakWords();initGoalUI();}

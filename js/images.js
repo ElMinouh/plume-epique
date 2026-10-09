@@ -346,7 +346,7 @@ async function pushGraphicImage(imageId) {
     if (resp.ok || resp.status === 409) { await markGraphicImageSynced(imageId); return true; }
     if (resp.status === 507) {
       _imgSyncBlockedUntil = Date.now() + IMG_SYNC_BLOCK_MS;
-      if (!_imgBudgetWarned && typeof toast === 'function') { _imgBudgetWarned = true; toast("Le stockage de synchronisation des images est plein : elles restent sur cet appareil. Utilisez la sauvegarde GitHub pour les déplacer.", 'error'); }
+      if (!_imgBudgetWarned && typeof toast === 'function') { _imgBudgetWarned = true; toast("Le stockage de synchronisation des images est plein : elles restent sur cet appareil. Utilisez la sauvegarde GitHub pour les déplacer.", 'error', { sticky: true, kind: 'quota' }); }
     }
     return false;
   } catch (e) { return false; }

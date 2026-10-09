@@ -254,7 +254,7 @@ async function syncReconcileKey(key) {
   setSyncVersion(key, version);
   await persistConflictBackup(key, remote);
   addConflictPausedKey(key);
-  if (typeof toast === 'function') toast("Synchro : un manuscrit a été modifié sur les deux appareils. Ouvrez « Système » pour comparer et choisir.", 'error');
+  if (typeof toast === 'function') toast("Synchro : un manuscrit a été modifié sur les deux appareils. Ouvrez « Système » pour comparer et choisir.", 'error', { sticky: true, kind: 'conflict' });
 }
 
 // v9.3.0 — Points d'accroche appelés par router.js pour rafraîchir l'écran
@@ -517,14 +517,7 @@ function wireLibraryStaticUI() {
   document.getElementById('library-trash-btn').addEventListener('click', openDocTrash);
   document.getElementById('doc-trash-close-btn').addEventListener('click', closeDocTrash);
   document.addEventListener('click', () => closeLibraryCtxMenu());
-  document.addEventListener('keydown', e => {
-    if (e.key !== 'Escape') return;
-    closeLibraryCtxMenu();
-    if (document.getElementById('library-system-overlay').classList.contains('active')) closeLibrarySystemPanel();
-    if (document.getElementById('docx-import-overlay').classList.contains('active')) closeDocxImportModal();
-    if (document.getElementById('export-select-overlay').classList.contains('active')) closeExportSelect();
-    if (document.getElementById('gist-history-overlay').classList.contains('active')) closeGistHistory();
-  });
+  // v9.42.0 (AUD-03-020) : Échap est arbitré par escapeArbiter() (router.js), une couche à la fois.
 
   // ── Panneau Système : bibliothèque entière (v7.13.0, Lot 10) ─────────
   document.getElementById('library-system-btn').addEventListener('click', () => openLibrarySystemPanel());

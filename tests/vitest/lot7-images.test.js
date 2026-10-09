@@ -257,7 +257,7 @@ describe('C. Synchronisation des images entre appareils (D1)', () => {
     const rec = (await a.getAllGraphicImagesForDocument('doc1'))[0];
     expect(rec.synced).toBe(false);
     expect(s.d1.count('sync_meta')).toBe(0);
-    expect(a.toast).toHaveBeenCalledWith(expect.stringMatching(/stockage de synchronisation des images est plein/), 'error');
+    expect(a.toast).toHaveBeenCalledWith(expect.stringMatching(/stockage de synchronisation des images est plein/), 'error', expect.objectContaining({ sticky: true }));
     a.toast.mockClear();
     await a.pushGraphicImage(imageId);          // bloqué 1 h : pas de nouvelle tentative ni de nouveau message
     expect(a.toast).not.toHaveBeenCalled();

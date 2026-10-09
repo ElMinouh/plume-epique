@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.41.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.42.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -43,6 +43,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 - **Bibliothèque** : manuscrits multiples, **corbeille de manuscrits de 30 jours** (restauration sur tous les appareils),
   profils multiples (suppression de profil propagée à tous les appareils).
 - **Premiers pas** (v9.41.0) : le premier écran propose « clé de la famille » ou « écrire sur cet appareil seulement » ; la configuration de la sauvegarde GitHub est **facultative** (bulle « Plus tard », panneau Système toujours fermable, rappel discret dans la bibliothèque) ; une seule bulle d'aide à la fois ; un clic sur un type de projet le crée.
+- **Retours et clavier** (v9.42.0) : messages temporaires de 3 à 8 s avec ✕ pour les erreurs (pause au survol) ; un échec d'enregistrement reste affiché (message fixe + « ⚠ Non enregistré depuis hh:mm » dans le pied de page) jusqu'au prochain enregistrement réussi ; Échap ferme **une seule couche** à la fois ; Tab n'est piégé que dans les vraies fenêtres modales ; les confirmations de suppression mettent le focus sur « Annuler ».
 - **Roman graphique** : pages libres (images + texte), gabarits, cadrage, calques, corbeille de pages, exports.
 
 ## Fonctionnement en bref
@@ -74,7 +75,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 
 ```bash
 npm install
-npm test            # Vitest : ~440 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
+npm test            # Vitest : ~460 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
 ```
 
 Pas de build, pas de linter. Les tests partagent un contexte applicatif global : `fileParallelism: false`.
