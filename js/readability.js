@@ -43,9 +43,9 @@ function renderAnalytics() {
   document.getElementById('analytics-bars').innerHTML = db.chapters.map((ch,i) => {
     const wc=getWordCount(ch.content), pct=Math.round(wc/maxCh*100);
     return `<div class="chapter-bar-row"><span class="u-minw-70px u-ovf-hidden u-tovf-ellipsis u-ws-nowrap" title="${DOMPurify.sanitize(ch.title)}">Ch.${i+1}</span>
-      <div class="u-fg-1 u-bg-v-item-bg u-br-4px u-h-8px u-ovf-hidden">
+      <div class="u-fg-1 u-bg-v-item-bg u-br-1 u-h-8px u-ovf-hidden">
         <div class="chapter-bar-fill" data-pct="${pct}"></div></div>
-      <span class="u-minw-45px u-ta-right u-fs-_7rem">${wc} m.</span></div>`;
+      <span class="u-minw-45px u-ta-right u-fs-xs">${wc} m.</span></div>`;
   }).join('');
   // v7.20.0 : la largeur de chaque barre et la couleur du score Flesch sont des
   // valeurs calculées ; elles sont posées via la propriété CSSOM (`.style.x = …`,
@@ -57,7 +57,7 @@ function renderAnalytics() {
   document.getElementById('analytics-flesch').innerHTML = `
     <div class="flesch-score">${flesch}</div>
     <div><div class="u-fwt-700 flesch-label">${flLabel}</div>
-    <div class="u-fs-_7rem u-op-_7">/100 — Plus élevé = plus lisible</div></div>`;
+    <div class="u-fs-xs u-op-_7">/100 — Plus élevé = plus lisible</div></div>`;
   document.querySelectorAll('#analytics-flesch .flesch-score, #analytics-flesch .flesch-label')
     .forEach(el => { el.style.color = flColor; });
   let totalDialog=0, totalNarration=0;

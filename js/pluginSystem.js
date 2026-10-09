@@ -77,7 +77,7 @@ function renderPlugins() {
           <span class="plugin-slider"></span>
         </label>
       </h4>
-      <div class="u-fs-_74rem u-op-_7">${plugin.description}</div>`;
+      <div class="u-fs-sm u-op-_7">${plugin.description}</div>`;
     const runBtn = document.createElement('button'); runBtn.className='action-btn btn-sm'; runBtn.textContent='▶ Exécuter';
     const resultDiv = document.createElement('div'); resultDiv.className='plugin-result';
     runBtn.addEventListener('click', async () => {

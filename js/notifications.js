@@ -213,7 +213,7 @@ function showConfirmModal({ title, message, confirmLabel, danger, requireText } 
     document.getElementById('confirm-modal-message').textContent = message || '';
     const confirmBtn = document.getElementById('confirm-modal-confirm-btn');
     confirmBtn.textContent = confirmLabel || 'Confirmer';
-    confirmBtn.classList.toggle('u-bg-v-danger', !!danger);
+    confirmBtn.classList.toggle('btn-danger', !!danger);
     const inputWrap = document.getElementById('confirm-modal-input-wrap');
     const input = document.getElementById('confirm-modal-input');
     input.value = ''; input.onkeydown = null;
@@ -258,7 +258,7 @@ function showPromptModal({ title, message, label, value, confirmLabel } = {}) {
     document.getElementById('confirm-modal-input-label').textContent = label || '';
     input.oninput = null; input.value = value || '';
     confirmBtn.textContent = confirmLabel || 'Enregistrer';
-    confirmBtn.classList.remove('u-bg-v-danger'); confirmBtn.disabled = false;
+    confirmBtn.classList.remove('btn-danger'); confirmBtn.disabled = false;
     cancelBtn.classList.remove('u-d-none');
     const cleanup = r => { overlay.classList.remove('active'); input.onkeydown = null; resolve(r); };
     cancelBtn.onclick = () => cleanup(null);
@@ -280,7 +280,7 @@ function showInfoModal({ title, message, confirmLabel } = {}) {
     document.getElementById('confirm-modal-input-wrap').classList.add('u-d-none');
     input.oninput = null; input.onkeydown = null;
     confirmBtn.textContent = confirmLabel || 'J\'ai compris';
-    confirmBtn.classList.remove('u-bg-v-danger'); confirmBtn.disabled = false;
+    confirmBtn.classList.remove('btn-danger'); confirmBtn.disabled = false;
     cancelBtn.classList.add('u-d-none');
     const cleanup = () => { overlay.classList.remove('active'); cancelBtn.classList.remove('u-d-none'); resolve(true); };
     confirmBtn.onclick = cleanup; cancelBtn.onclick = cleanup;

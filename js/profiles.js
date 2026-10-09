@@ -595,7 +595,7 @@ async function renderManageProfiles() {
       <div class="mp-name">${DOMPurify.sanitize(p.name)}${isAdmin ? ' <span class="mp-badge">admin</span>' : ''}${isMe ? ' <span class="mp-you">vous</span>' : ''}</div>
       <div class="mp-actions">
         <button class="action-btn btn-sm" data-rename="${p.id}">✏️ Renommer</button>
-        ${(!isMe) ? `<button class="action-btn btn-sm u-bg-v-danger" data-del="${p.id}">🗑️</button>` : ''}
+        ${(!isMe) ? `<button class="action-btn btn-danger btn-sm" data-del="${p.id}">🗑️</button>` : ''}
       </div>
     </div>`;
   }).join('');

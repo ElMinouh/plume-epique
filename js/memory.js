@@ -101,7 +101,7 @@ async function queryNarrativeMemory() {
   const passages = searchNarrativeIndex(query, 6);
 
   if (!passages.length) {
-    resultsEl.innerHTML = '<div class="u-op-_6 u-fs-_82rem u-p-10px">Aucun passage pertinent trouvé pour cette question.</div>';
+    resultsEl.innerHTML = '<div class="u-op-75 u-fs-base u-p-10px">Aucun passage pertinent trouvé pour cette question.</div>';
     return;
   }
 
@@ -123,14 +123,14 @@ async function queryNarrativeMemory() {
     resultsEl.appendChild(answerCard);
 
     const sourcesTitle = document.createElement('div');
-    sourcesTitle.className = 'u-fs-_72rem u-fwt-700 u-c-v-text-muted u-mt-4px';
+    sourcesTitle.className = 'u-fs-sm u-fwt-700 u-c-v-text-muted u-mt-4px';
     sourcesTitle.textContent = 'Passages sources :';
     resultsEl.appendChild(sourcesTitle);
 
     passages.forEach((p, i) => {
       const card = document.createElement('div');
-      card.className = 'u-bg-v-item-bg u-bd-1px-solid-v-border u-br-8px u-p-10px u-fs-_76rem u-lh-1_55 u-cur-pointer';
-      card.innerHTML = `<div class="u-fwt-700 u-c-v-accent u-mb-4px">${DOMPurify.sanitize(p.chTitle)} <span class="u-op-_5">· score: ${p.score}</span></div><div class="u-op-_8">${DOMPurify.sanitize(p.text.substring(0, 200))}${p.text.length>200?'…':''}</div>`;
+      card.className = 'u-bg-v-item-bg u-bd-1px-solid-v-border u-br-2 u-p-10px u-fs-sm u-lh-1_55 u-cur-pointer';
+      card.innerHTML = `<div class="u-fwt-700 u-c-v-accent u-mb-4px">${DOMPurify.sanitize(p.chTitle)} <span class="u-op-72">· score: ${p.score}</span></div><div class="u-op-_8">${DOMPurify.sanitize(p.text.substring(0, 200))}${p.text.length>200?'…':''}</div>`;
       if (p.chId) {
         card.title = 'Cliquer pour aller à ce chapitre';
         card.addEventListener('click', () => {
@@ -143,7 +143,7 @@ async function queryNarrativeMemory() {
     });
 
   } catch(e) {
-    resultsEl.innerHTML = `<div class="u-c-v-danger u-fs-_82rem u-p-10px">❌ Erreur IA: ${escapeHtml(e.message)}</div>`;
+    resultsEl.innerHTML = `<div class="u-c-v-danger u-fs-base u-p-10px">❌ Erreur IA: ${escapeHtml(e.message)}</div>`;
   }
 }
 

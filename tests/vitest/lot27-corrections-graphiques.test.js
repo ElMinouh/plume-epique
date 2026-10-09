@@ -40,12 +40,12 @@ describe('AUD-04-004 — vue Fiches : le fond de statut ne vaut que pour la past
 });
 
 describe('AUD-04-008 — textes colorés', () => {
-  it('les textes d\'accent utilisent --accent-text, pas --accent', () => {
+  it('les titres et repères colorés utilisent --title (ou --title-on-dark sur fond toujours sombre), pas --accent', () => {
     for (const sel of ['#writer h3,#focus-writer h3', '.stat-card .stat-val', '.search-result-item .sr-chapter', '#lex-panel-title',
-      '.reading-chapter h2', '.tl-card strong', '.analytics-card .av', '.flesch-score', '.library-new-icon']) {
+      '.reading-chapter h2', '.tl-card strong', '.analytics-card .av', '.flesch-score', '#document-title']) {
       const line = css.split('\n').find(l => l.startsWith(sel));
       expect(line, sel).toBeTruthy();
-      expect(line, sel).toContain('color:var(--accent-text)');
+      expect(line, sel).toMatch(/color:var\(--title(-on-dark)?\)/);
     }
   });
   it('jetons de texte de succès / danger ≥ 4,5:1 sur clair, papier et sombre', () => {
@@ -114,9 +114,9 @@ describe('AUD-04-021 — bouton Bibliothèque de la barre mobile', () => {
 });
 
 describe('version', () => {
-  it('APP_VERSION et le cache du service worker sont identiques (9.49.0)', () => {
+  it('APP_VERSION et le cache du service worker sont identiques (9.50.0)', () => {
     const v = read('js/router.js').match(/const APP_VERSION = '([^']+)'/)[1];
-    expect(v).toBe('9.49.0');
+    expect(v).toBe('9.50.0');
     expect(read('sw.js')).toContain("'plume-epique-v" + v + "'");
   });
 });

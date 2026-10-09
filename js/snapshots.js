@@ -63,7 +63,7 @@ setInterval(() => {
 // snapshots — factorisé (audit v7.35.0) : c'était auparavant dupliqué à
 // l'identique entre renderHistoryTab() et openDiffViewer().
 function snapshotRowHtml(snap) {
-  return `<span>${DOMPurify.sanitize(snap.label)}</span><span class="u-op-_5 u-fs-_7rem">${getWordCount(snap.content)} mots</span>`;
+  return `<span>${DOMPurify.sanitize(snap.label)}</span><span class="u-op-72 u-fs-xs">${getWordCount(snap.content)} mots</span>`;
 }
 
 // Correction (audit v7.35.0) : cet onglet ("🔖 Versions") affichait une liste
@@ -76,7 +76,7 @@ function snapshotRowHtml(snap) {
 function renderHistoryTab() {
   const key = db.chapters[cur]?.id, snaps = (key && db.history[key]) || [];
   const list = document.getElementById('snapshot-list');
-  list.innerHTML = snaps.length ? '' : '<div class="u-op-_5 u-fs-_8rem u-p-10px">Aucune version pour ce chapitre.</div>';
+  list.innerHTML = snaps.length ? '' : '<div class="u-op-72 u-fs-base u-p-10px">Aucune version pour ce chapitre.</div>';
   snaps.forEach((snap, i) => {
     const el = document.createElement('div');
     el.className = 'history-item';
@@ -96,7 +96,7 @@ function openDiffViewer(preselectIdx) {
   const key = db.chapters[cur]?.id, snaps = (key && db.history[key]) || [];
   document.getElementById('history-chapter-name').textContent = db.chapters[cur].title;
   const list = document.getElementById('history-list');
-  list.innerHTML = snaps.length ? '' : '<div class="u-op-_5 u-fs-_8rem">Aucune version.</div>';
+  list.innerHTML = snaps.length ? '' : '<div class="u-op-72 u-fs-base">Aucune version.</div>';
   const rows = [];
   snaps.forEach((snap, i) => {
     const el = document.createElement('div');

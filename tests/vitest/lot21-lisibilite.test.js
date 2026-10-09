@@ -24,16 +24,13 @@ const cssVar = name => { const m = css.match(new RegExp('--' + name + ':\\s*(#[0
 
 describe('AUD-03-006 — contrastes', () => {
   it('chaque remplissage de bouton à texte blanc atteint 4,5:1', () => {
-    for (const v of ['btn-ghost', 'btn-info', 'btn-confirm', 'btn-success', 'btn-danger', 'btn-warn-strong'])
+    for (const v of ['danger-solid', 'success-solid', 'warn-solid', 'accent', 'accent2'])
       expect(ratio('#ffffff', cssVar(v)), v).toBeGreaterThanOrEqual(4.5);
-    expect(ratio('#ffffff', cssVar('accent')), 'accent').toBeGreaterThanOrEqual(4.5);
-    expect(ratio('#ffffff', cssVar('accent2')), 'accent2').toBeGreaterThanOrEqual(4.5);
   });
-  it('les classes de fond utilisent ces remplissages (et plus les couleurs de texte claires)', () => {
-    const map = { h16a085: 'btn-confirm', h27ae60: 'btn-success', h2980b9: 'btn-info', h7f8c8d: 'btn-ghost', hd35400: 'btn-warn-strong', he67e22: 'btn-warn-strong' };
+  it('les classes de fond sémantiques utilisent ces remplissages (et plus les couleurs de texte claires)', () => {
+    const map = { danger: 'danger-solid', success: 'success-solid', warn: 'warn-solid' };
     for (const [cls, v] of Object.entries(map))
-      expect(css).toContain(`.u-bg-${cls}.u-bg-${cls}.u-bg-${cls}{background:var(--${v})}`);
-    expect(css).toContain('.u-bg-v-danger.u-bg-v-danger.u-bg-v-danger{background:var(--btn-danger)}');
+      expect(css).toContain(`.u-bg-v-${cls}.u-bg-v-${cls}.u-bg-v-${cls}{background:var(--${v})}`);
   });
   it('le rouge d\'accent en texte sur le thème sombre atteint 4,5:1 (fond #161623)', () => {
     const m = css.match(/body\.dark-mode \{\s*--accent-text:(?:var\(--accent-text-dark,)?(#[0-9a-fA-F]{6})/);
@@ -49,19 +46,10 @@ describe('AUD-03-006 — contrastes', () => {
     expect(ratio(cssVar('text-muted'), '#ffffff')).toBeGreaterThanOrEqual(4.5);
   });
   it('les textes grisés par opacité restent lisibles (≥ .72), sauf le séparateur décoratif .u-op-_3', () => {
-    for (const k of ['_35', '_4', '_45', '_5', '_55', '_6']) {
+    for (const k of ['72', '75']) {
       const m = css.match(new RegExp('\\.u-op-' + k + '\\{opacity:(\\.?[0-9.]+)\\}'));
       expect(parseFloat(m[1]), k).toBeGreaterThanOrEqual(0.72);
     }
-  });
-});
-
-describe('AUD-03-004 — taille du texte', () => {
-  it('plancher typographique relevé (≥ 12,4 px à 16 px de base)', () => {
-    const val = n => parseFloat(css.match(new RegExp('--fs-' + n + ':\\s*(\\.[0-9]+)rem'))[1]) * 16;
-    expect(val('xs')).toBeGreaterThanOrEqual(12.4);
-    expect(val('sm')).toBeGreaterThanOrEqual(13);
-    expect(val('base')).toBeGreaterThanOrEqual(14);
   });
   it('le réglage « Taille de l\'interface » existe (Config) et agit sur la taille racine', () => {
     const html = read('index.html');

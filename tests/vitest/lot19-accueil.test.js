@@ -25,7 +25,7 @@ describe('AUD-03-001 — configuration initiale facultative et fermable', () => 
     expect(lib).toContain("setup-tour-later-btn");
   });
   it('un rappel discret remplace la bulle bloquante', () => {
-    expect(read('index.html')).toMatch(/hidden class="action-btn btn-sm u-bg-hd35400" id="library-github-reminder"/);
+    expect(read('index.html')).toMatch(/hidden class="action-btn btn-warn btn-sm" id="library-github-reminder"/);
     expect(lib).toContain('function renderGithubReminder()');
   });
 });

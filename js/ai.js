@@ -167,7 +167,7 @@ async function aiCall(prompt, maxTokens, token) {
 function aiShowProgress(el, text, token) {
   el.innerHTML = '';
   const line = document.createElement('div');
-  line.className = 'u-fs-_72rem u-c-v-text-muted';
+  line.className = 'u-fs-sm u-c-v-text-muted';
   line.textContent = text;
   el.appendChild(line);
   if (token) {
@@ -179,7 +179,7 @@ function aiShowProgress(el, text, token) {
   }
 }
 function aiShowResult(el, scopeNote, body) {
-  el.innerHTML = `<div class="u-fs-_72rem u-c-v-text-muted u-mb-6px">${escapeHtml(scopeNote)}</div>` + DOMPurify.sanitize(String(body || '').replace(/\n/g, '<br>'));
+  el.innerHTML = `<div class="u-fs-sm u-c-v-text-muted u-mb-6px">${escapeHtml(scopeNote)}</div>` + DOMPurify.sanitize(String(body || '').replace(/\n/g, '<br>'));
 }
 
 async function generateAISummary() {
@@ -468,7 +468,7 @@ function renderAiChatMessages() {
   const cont = document.getElementById('ai-chat-messages');
   if (!cont) return;
   if (!_aiChatHistory.length) {
-    cont.innerHTML = `<p class="u-fs-_72rem u-c-v-text-muted u-m-0">Posez une question, demandez une suite, une reformulation…</p>`;
+    cont.innerHTML = `<p class="u-fs-sm u-c-v-text-muted u-m-0">Posez une question, demandez une suite, une reformulation…</p>`;
     return;
   }
   const showReplace = !!_aiChatPendingReplaceRange;

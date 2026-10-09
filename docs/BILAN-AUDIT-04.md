@@ -5,7 +5,7 @@ Base : v9.48.0. Document d'origine : `Audit-04` (rapport `.docx` + `.csv`, hors 
 | Lot | Version | Constats | Contenu | Statut |
 |---|---|---|---|---|
 | 1 | 9.49.0 | 004, 008, 009, 010, 021 | Fiches : fond de statut limité à la pastille ; textes d'accent en `--accent-text`, gris de métadonnées plus foncés, jetons `--success-text` / `--danger-text` ; 5 palettes d'accent revues (texte d'accent par thème) ; 20 couvertures assombries au besoin (texte blanc ≥ 4,5:1) ; bouton Bibliothèque mobile stylé | livré |
-| 2 | — | 029, 012, 005, 013, 006, 014 | Jetons, rôles de couleur, système de boutons, états | à venir |
+| 2 | 9.50.0 | 029, 012, 005, 013, 006, 014 | Échelles (rayons, ombres, voile, durées) ; jetons par rôle, un seul jeu de couleurs de bouton ; titres en couleur de repère (`--title`) ; variantes de boutons et barre d'outils neutre ; états actifs teintés ; focus, sélection, scrollbars, `color-scheme` ; 14 classes utilitaires jamais définies, enfin définies | livré |
 | 3 | — | 002, 003, 023 | Icônes SVG locales | à venir |
 | 4 | — | 001, 007, 018, 022, 030 | Marque, thème clair, surfaces, connexion, logo vectoriel | à venir |
 | 5 | — | 016, 015 | Typographie embarquée, mouvement | à venir |

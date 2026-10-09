@@ -78,6 +78,7 @@ Deux workers indépendants. Deux voies de déploiement coexistent :
 - Fonctions/variables : camelCase. Convention "privé" par préfixe underscore (`_currentDocumentId`, `_dataKey`) — pas de vraie privacité JS (peu de classes ES)
 - Constantes : SCREAMING_SNAKE_CASE (`APP_VERSION`, `IDB_NAME`, `SCHEMA_VERSION`)
 - CSS : classes utilitaires `u-*` (`u-d-flex`, `u-gap-8px`) et `gate-*` — **aucun style inline** (imposé par la CSP, voir plus bas)
+- **Échelles CSS (v9.50.0, AUD-04-012)** : rayons `--r-1/2/3` + `--radius-pill`, ombres `--elev-1..4`, voile `--scrim`, durées `--t-fast/base/slow` ; couleurs par rôle (`--danger-solid`, `--success-solid`, `--warn-solid`, `--title`, `--accent-text`). Boutons : `.action-btn` = primaire, variantes `btn-secondary` / `btn-ghost` / `btn-danger` / `btn-warn` — jamais de classe `u-bg-*` sur un bouton. Le test `lot28-jetons-boutons.test.js` échoue si une valeur sort de l'échelle ou si une classe `u-*` utilisée n'est pas définie.
 - Module roman graphique : préfixe `_gn` pour tout global de module (`_gnActivePage`, `_gnUndoStack`, `_gnDrag`) — à réutiliser pour toute nouvelle feature isolée
 - Commentaires abondants en français, documentant le *pourquoi* (historique de bugs, post-mortems) — convention forte à préserver
 

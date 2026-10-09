@@ -1065,12 +1065,12 @@ async function openDocTrash() {
 async function renderDocTrash() {
   const listEl = document.getElementById('doc-trash-list');
   const trashed = trashedDocuments(await loadDocList()).sort((a, b) => b.trashedAt - a.trashedAt);
-  if (!trashed.length) { listEl.innerHTML = '<div class="u-op-_5 u-p-16px u-ta-center u-fs-_82rem">La corbeille est vide.</div>'; return; }
+  if (!trashed.length) { listEl.innerHTML = '<div class="u-op-72 u-p-16px u-ta-center u-fs-base">La corbeille est vide.</div>'; return; }
   listEl.innerHTML = trashed.map(d => `<div class="history-item u-cur-default">
-      <span>${escapeHtml(d.title || 'Sans titre')}<br><span class="u-op-_5 u-fs-_68rem">${d.docType === 'roman_graphique' ? (d.chapterCount || 0) + ' page(s)' : (d.chapterCount || 0) + ' chapitre(s)'} · ${d.wordCount || 0} mots — supprimé définitivement dans ${docTrashDaysLeft(d)} j</span></span>
+      <span>${escapeHtml(d.title || 'Sans titre')}<br><span class="u-op-72 u-fs-xs">${d.docType === 'roman_graphique' ? (d.chapterCount || 0) + ' page(s)' : (d.chapterCount || 0) + ' chapitre(s)'} · ${d.wordCount || 0} mots — supprimé définitivement dans ${docTrashDaysLeft(d)} j</span></span>
       <span class="u-d-flex u-gap-4px u-fsh-0">
         <button class="action-btn btn-sm" data-doc-restore="${escapeHtml(d.id)}">↩ Restaurer</button>
-        <button class="action-btn btn-sm u-bg-v-danger" data-doc-purge="${escapeHtml(d.id)}">✕ Définitif</button>
+        <button class="action-btn btn-danger btn-sm" data-doc-purge="${escapeHtml(d.id)}">✕ Définitif</button>
       </span>
     </div>`).join('');
   listEl.querySelectorAll('[data-doc-restore]').forEach(b => b.addEventListener('click', () => restoreDocumentFromTrash(b.dataset.docRestore)));
@@ -1382,13 +1382,13 @@ async function libOpenGistHistory(docId) {
   try { mData = await loadManuscriptData(docId); } catch(e) { toast(e.message, 'error'); return; }
   if (!mData.gistId) { toast("Ce manuscrit n'a pas encore de Gist.", 'error'); return; }
   const listEl = document.getElementById('gist-history-list');
-  listEl.innerHTML = '<div class="u-p-10px u-op-_6">Chargement…</div>';
+  listEl.innerHTML = '<div class="u-p-10px u-op-75">Chargement…</div>';
   document.getElementById('gist-history-overlay').classList.add('active');
   try {
     const resp = await fetchWithTimeout(`https://api.github.com/gists/${mData.gistId}/commits`, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const commits = await resp.json();
-    if (!commits.length) { listEl.innerHTML = '<div class="u-p-10px u-op-_6">Aucun historique.</div>'; return; }
+    if (!commits.length) { listEl.innerHTML = '<div class="u-p-10px u-op-75">Aucun historique.</div>'; return; }
     listEl.innerHTML = '';
     commits.slice().reverse().forEach((c, i) => {
       const date = new Date(c.committed_at).toLocaleString('fr');
@@ -1581,21 +1581,21 @@ async function renderConflictBackups() {
   const deleteAllBtn = document.getElementById('lib-conflict-delete-all');
   if (deleteAllBtn) deleteAllBtn.classList.toggle('u-d-none', rows.length === 0);
   if (!rows.length) {
-    cont.innerHTML = `<p class="u-fs-_68rem u-c-v-text-muted u-m-0">Aucune sauvegarde de conflit en attente.</p>`;
+    cont.innerHTML = `<p class="u-fs-xs u-c-v-text-muted u-m-0">Aucune sauvegarde de conflit en attente.</p>`;
     return;
   }
 
   cont.innerHTML = rows.map(b => `
-    <div class="u-d-flex u-ai-center u-gap-8px u-p-10px u-br-8px u-bd-1px-solid-v-border${b.awaiting ? ' conflict-row-awaiting' : ''}">
+    <div class="u-d-flex u-ai-center u-gap-8px u-p-10px u-br-2 u-bd-1px-solid-v-border${b.awaiting ? ' conflict-row-awaiting' : ''}">
       <div class="u-flex-1 u-minw-0">
-        <p class="u-fs-_8rem u-m-0">${DOMPurify.sanitize(b.title || 'Sans titre')}
+        <p class="u-fs-base u-m-0">${DOMPurify.sanitize(b.title || 'Sans titre')}
           ${b.awaiting ? '<span class="mp-badge conflict-badge-awaiting">En attente de votre choix</span>' : ''}
         </p>
-        <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-0">Détectée le ${new Date(b.ts).toLocaleString('fr')}</p>
-        ${b.awaiting ? '<p class="u-fs-_66rem u-c-v-text-muted u-m-2px-0-0">Synchro de ce manuscrit en pause jusqu\'à votre décision.</p>' : ''}
+        <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-0">Détectée le ${new Date(b.ts).toLocaleString('fr')}</p>
+        ${b.awaiting ? '<p class="u-fs-xs u-c-v-text-muted u-m-2px-0-0">Synchro de ce manuscrit en pause jusqu\'à votre décision.</p>' : ''}
       </div>
       <button class="action-btn btn-sm" data-conflict-compare="${b.key}" data-conflict-docid="${b.docId}" title="Comparer les deux versions avant de choisir">🔍 Comparer</button>
-      <button class="action-btn btn-sm u-bg-hc0392b" data-conflict-delete="${b.key}" data-conflict-docid="${b.docId}" title="Supprimer cette sauvegarde">🗑️</button>
+      <button class="action-btn btn-danger btn-sm" data-conflict-delete="${b.key}" data-conflict-docid="${b.docId}" title="Supprimer cette sauvegarde">🗑️</button>
     </div>`).join('');
   cont.querySelectorAll('[data-conflict-delete]').forEach(btn => {
     btn.addEventListener('click', () => deleteConflictBackup(btn.dataset.conflictDelete, btn.dataset.conflictDocid));

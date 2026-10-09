@@ -333,7 +333,7 @@ function openExportSelect(chapters, title, onlyIdx) {
   _exportSelectTitle = title || '';
   const listEl = document.getElementById('export-select-list');
   listEl.innerHTML = _exportSelectChapters.map((ch,i) =>
-    `<label class="u-d-flex u-ai-center u-gap-8px u-fs-_82rem u-p-4px-0 u-cur-pointer">
+    `<label class="u-d-flex u-ai-center u-gap-8px u-fs-base u-p-4px-0 u-cur-pointer">
       <input type="checkbox" class="export-select-cb" data-idx="${i}"${(onlyIdx === undefined || onlyIdx === i) ? ' checked' : ''}>
       ${DOMPurify.sanitize(ch.title||('Chapitre '+(i+1)))}
     </label>`

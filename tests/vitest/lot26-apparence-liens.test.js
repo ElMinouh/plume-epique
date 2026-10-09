@@ -110,8 +110,8 @@ describe('AUD-03-029 — roman graphique', () => {
     expect(gn).toContain('id="gn-export-menu-btn"');
     expect(gn).toMatch(/id="gn-export-menu"[\s\S]*id="gn-export-btn"[\s\S]*id="gn-export-book-btn"/);
     expect(gn).not.toContain('>Exporter le PDF<');
-    expect(gn).toContain('class="action-btn btn-sm u-bg-h7f8c8d gn-mt-sm" id="gn-page-history-btn"');
-    expect(gn).toContain('class="action-btn btn-sm u-bg-h7f8c8d gn-mt-sm" id="gn-save-gabarit-btn"');
+    expect(gn).toContain('class="action-btn btn-secondary btn-sm gn-mt-sm" id="gn-page-history-btn"');
+    expect(gn).toContain('class="action-btn btn-secondary btn-sm gn-mt-sm" id="gn-save-gabarit-btn"');
   });
   it('texte d\'information des images : court, sans jargon, détail en infobulle', () => {
     expect(gn).toContain('🖼️ Images : ${size} Mo · ${where}');

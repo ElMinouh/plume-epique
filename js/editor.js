@@ -538,16 +538,16 @@ function closeTrash() { document.getElementById('trash-overlay').classList.remov
 function renderTrashList() {
   const listEl = document.getElementById('trash-list');
   if (!db.trash || !db.trash.length) {
-    listEl.innerHTML = '<div class="u-op-_5 u-p-16px u-ta-center u-fs-_82rem">La corbeille est vide.</div>';
+    listEl.innerHTML = '<div class="u-op-72 u-p-16px u-ta-center u-fs-base">La corbeille est vide.</div>';
     return;
   }
   listEl.innerHTML = db.trash.map((t,i) => {
     const daysLeft = Math.max(0, 30 - Math.floor((Date.now()-t.deletedAt)/86400000));
     return `<div class="history-item u-cur-default">
-      <span>${DOMPurify.sanitize(t.chapter.title||'Sans titre')}<br><span class="u-op-_5 u-fs-_68rem">Supprimé le ${new Date(t.deletedAt).toLocaleDateString('fr')} — purge auto dans ${daysLeft}j</span></span>
+      <span>${DOMPurify.sanitize(t.chapter.title||'Sans titre')}<br><span class="u-op-72 u-fs-xs">Supprimé le ${new Date(t.deletedAt).toLocaleDateString('fr')} — purge auto dans ${daysLeft}j</span></span>
       <span class="u-d-flex u-gap-4px u-fsh-0">
         <button class="action-btn btn-sm" data-restore="${i}">↩ Restaurer</button>
-        <button class="action-btn btn-sm u-bg-v-danger" data-purge="${i}">✕ Définitif</button>
+        <button class="action-btn btn-danger btn-sm" data-purge="${i}">✕ Définitif</button>
       </span>
     </div>`;
   }).join('');
@@ -941,7 +941,7 @@ function enterReadingMode() {
   // ici affichée là où elle est le plus utile (avant de commencer à lire).
   const totalW = db.chapters.reduce((s,c)=>s+getWordCount(c.content),0);
   const minutes = Math.ceil(totalW/200);
-  const readingTimeHtml = `<p class="u-fs-_78rem u-c-v-text-muted u-ta-center u-m-0-0-14px">≈ ${minutes} min de lecture (${totalW} mots)</p>`;
+  const readingTimeHtml = `<p class="u-fs-sm u-c-v-text-muted u-ta-center u-m-0-0-14px">≈ ${minutes} min de lecture (${totalW} mots)</p>`;
   container.innerHTML = readingTimeHtml + db.chapters.map((ch,i) =>
     `<div class="reading-chapter"><h2>${DOMPurify.sanitize(ch.title||('Chapitre '+(i+1)))}</h2>${DOMPurify.sanitize(ch.content||'<p><em>(chapitre vide)</em></p>')}</div>`
   ).join('<hr class="reading-divider">');

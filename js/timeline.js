@@ -10,7 +10,7 @@ let _tlEditIndex = null; // index de l'événement en cours de modification (nul
 
 function renderTimeline() {
   const el=document.getElementById('timeline-events'); el.innerHTML='';
-  if(!db.timeline.length){ el.innerHTML='<p class="u-op-_45 u-pos-absolute u-top-50pc u-left-50pc u-transform-center-abs">Aucun événement.</p>'; return; }
+  if(!db.timeline.length){ el.innerHTML='<p class="u-op-72 u-pos-absolute u-top-50pc u-left-50pc u-transform-center-abs">Aucun événement.</p>'; return; }
   const w=Math.max(700,db.timeline.length*180);
   document.getElementById('timeline-track').style.width=w+'px';
   db.timeline.forEach((evt,i)=>{

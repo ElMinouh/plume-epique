@@ -16,7 +16,7 @@ function renderLibrary(k){
     .map((item,i)=>({item,i}))
     .filter(({item})=>!filter||(item.name||'').toLowerCase().includes(filter))
     .map(({item,i})=>`<div class="chapter-item" data-type="${k}" data-idx="${i}" role="listitem" tabindex="0">${DOMPurify.sanitize(item.name)}</div>`).join('')
-    || `<div class="u-op-_5 u-fs-_78rem u-p-10px u-ta-center">${filter?'Aucun résultat.':'Aucun élément pour le moment.'}</div>`;
+    || `<div class="u-op-72 u-fs-sm u-p-10px u-ta-center">${filter?'Aucun résultat.':'Aucun élément pour le moment.'}</div>`;
   c.querySelectorAll('.chapter-item').forEach(el=>{el.addEventListener('click',()=>showEdit(el.dataset.type,parseInt(el.dataset.idx)));el.addEventListener('keydown',e=>{if(e.key==='Enter')showEdit(el.dataset.type,parseInt(el.dataset.idx));});});
   // v7.36.0 — la vue Cartes (si active) reste synchronisée avec la liste,
   // même principe que le Corkboard des chapitres et l'étagère de la
@@ -88,7 +88,7 @@ function showEdit(k,i){
   const hdr=document.createElement('div');hdr.className='u-d-flex u-jc-space-between u-gap-6px';
   const nameInput=document.createElement('input');nameInput.className='field';nameInput.style.fontWeight='700';nameInput.value=item.name;
   nameInput.addEventListener('input',()=>{db[k][i].name=nameInput.value;debouncedSave();renderLibrary(k);});
-  const delBtn=document.createElement('button');delBtn.className='action-btn btn-sm';delBtn.style.background='#e74c3c';delBtn.textContent='✕';
+  const delBtn=document.createElement('button');delBtn.className='action-btn btn-sm btn-danger';delBtn.textContent='✕';
   delBtn.addEventListener('click', async () => {
     // Correction (audit) : suppression jusqu'ici sans confirmation (seul
     // point de suppression de l'app dans ce cas), et sans nettoyer les liens
@@ -169,7 +169,7 @@ function navigateToLink(targetType,targetId){
 }
 function renderLinkPanel(type,id){
   const item=db[type].find(x=>x.id===id);
-  let html=`<div class="u-mt-12px u-bdt-1px-solid-v-border u-pt-10px"><strong class="u-fs-_8rem">🔗 Liens</strong><div id="link-list" class="u-m-6px-0">`;
+  let html=`<div class="u-mt-12px u-bdt-1px-solid-v-border u-pt-10px"><strong class="u-fs-base">🔗 Liens</strong><div id="link-list" class="u-m-6px-0">`;
   (item.links||[]).forEach((l,i)=>{const target=(db[l.type]||[]).find(x=>x.id===l.id);if(target)html+=`<span class="link-badge" data-nav-type="${l.type}" data-nav-id="${l.id}">${l.label?'<em class="link-rel">'+DOMPurify.sanitize(l.label)+'</em> ':''}${DOMPurify.sanitize(target.name||target.text)}<button data-remove-type="${type}" data-remove-from="${id}" data-remove-link="${i}" class="u-bg-none u-bd-none u-c-hfff u-cur-pointer u-ml-3px">×</button></span>`;});
   html+=`</div><div class="form-row u-mt-6px"><select id="link-type-sel" class="field"><option value="chars">Perso</option><option value="places">Lieu</option><option value="quests">Quête</option></select><select id="link-item-sel" class="field"></select></div><div class="form-row u-mt-6px"><input id="link-label-input" class="field u-flex-1" maxlength="40" placeholder="Relation (facultatif) : frère de, ennemi de…" aria-label="Nature de la relation"><button class="action-btn btn-sm" data-link-from-type="${type}" data-link-from-id="${id}" title="Ajouter ce lien">+ Ajouter le lien</button></div></div>`;
   return html;
@@ -193,11 +193,11 @@ function renderQuests(){
     .map((q,i)=>({q,i}))
     .filter(({q})=>!filter||(q.text||'').toLowerCase().includes(filter))
     .map(({q,i})=>`<div class="chapter-item" data-quest-idx="${i}" role="listitem" tabindex="0"><input type="checkbox" ${q.done?'checked':''} data-quest-check="${i}"> ${DOMPurify.sanitize(q.text)}</div>`).join('')
-    || `<div class="u-op-_5 u-fs-_78rem u-p-10px u-ta-center">${filter?'Aucun résultat.':'Aucune quête pour le moment.'}</div>`;
+    || `<div class="u-op-72 u-fs-sm u-p-10px u-ta-center">${filter?'Aucun résultat.':'Aucune quête pour le moment.'}</div>`;
   c.querySelectorAll('[data-quest-check]').forEach(cb=>cb.addEventListener('click',e=>{e.stopPropagation();db.quests[parseInt(cb.dataset.questCheck)].done=cb.checked;save();}));
   c.querySelectorAll('[data-quest-idx]').forEach(el=>el.addEventListener('click',()=>showQuestEdit(parseInt(el.dataset.questIdx))));
 }
-function showQuestEdit(i){const q=db.quests[i],c=document.getElementById('quest-edit');c.innerHTML='';const ti=document.createElement('input');ti.className='field';ti.value=q.text;ti.addEventListener('input',()=>{db.quests[i].text=ti.value;debouncedSave();renderQuests();});const rl=document.createElement('label');rl.textContent='Récompense';rl.style.fontSize='.72rem';const ri=document.createElement('input');ri.className='field';ri.value=q.reward||'';ri.addEventListener('input',()=>{db.quests[i].reward=ri.value;debouncedSave();});const sl=document.createElement('label');sl.textContent='Étapes';sl.style.fontSize='.72rem';const sta=document.createElement('textarea');sta.className='field';sta.value=q.steps||'';sta.rows=4;sta.addEventListener('input',()=>{db.quests[i].steps=sta.value;debouncedSave();});ti.classList.add('u-flex-1');const hdr=document.createElement('div');hdr.className='u-d-flex u-jc-space-between u-gap-6px';const delBtn=document.createElement('button');delBtn.className='action-btn btn-sm u-bg-v-danger';delBtn.textContent='✕';delBtn.title='Supprimer cette entrée';delBtn.setAttribute('aria-label','Supprimer cette entrée');delBtn.addEventListener('click',()=>deleteQuest(q.id));hdr.append(ti,delBtn);c.append(hdr,rl,ri,sl,sta);c.insertAdjacentHTML('beforeend',renderLinkPanel('quests',q.id));updateLinkItems();}
+function showQuestEdit(i){const q=db.quests[i],c=document.getElementById('quest-edit');c.innerHTML='';const ti=document.createElement('input');ti.className='field';ti.value=q.text;ti.addEventListener('input',()=>{db.quests[i].text=ti.value;debouncedSave();renderQuests();});const rl=document.createElement('label');rl.textContent='Récompense';rl.style.fontSize='.72rem';const ri=document.createElement('input');ri.className='field';ri.value=q.reward||'';ri.addEventListener('input',()=>{db.quests[i].reward=ri.value;debouncedSave();});const sl=document.createElement('label');sl.textContent='Étapes';sl.style.fontSize='.72rem';const sta=document.createElement('textarea');sta.className='field';sta.value=q.steps||'';sta.rows=4;sta.addEventListener('input',()=>{db.quests[i].steps=sta.value;debouncedSave();});ti.classList.add('u-flex-1');const hdr=document.createElement('div');hdr.className='u-d-flex u-jc-space-between u-gap-6px';const delBtn=document.createElement('button');delBtn.className='action-btn btn-sm btn-danger';delBtn.textContent='✕';delBtn.title='Supprimer cette entrée';delBtn.setAttribute('aria-label','Supprimer cette entrée');delBtn.addEventListener('click',()=>deleteQuest(q.id));hdr.append(ti,delBtn);c.append(hdr,rl,ri,sl,sta);c.insertAdjacentHTML('beforeend',renderLinkPanel('quests',q.id));updateLinkItems();}
 // v9.38.0 (audit AUD-02-011) — jusqu'ici une quête ne pouvait pas être supprimée. Même règle que pour un
 // personnage ou un lieu : confirmation, puis retrait des liens des autres éléments vers elle.
 async function deleteQuest(id){

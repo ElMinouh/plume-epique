@@ -318,7 +318,7 @@ function openNewDocumentTypeModal() {
         </div>
       </div>
       <div class="gn-modal-actions">
-        <button class="action-btn u-bg-h7f8c8d" id="gn-type-cancel" type="button">Annuler</button>
+        <button class="action-btn btn-secondary" id="gn-type-cancel" type="button">Annuler</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -536,8 +536,8 @@ function gnRenderPageProps() {
   if (!box) return;
   const page = db.pages[_gnActivePage];
   box.innerHTML = `<label class="gn-color-lbl">Fond <input type="color" id="gn-page-bg-picker" value="${page.background || '#f4ecd8'}"></label>
-    <button class="action-btn btn-sm u-bg-h7f8c8d gn-mt-sm" id="gn-page-history-btn" title="Versions précédentes de cette page (instantané automatique toutes les 5 minutes)">🕓 Historique de la page</button>
-    <button class="action-btn btn-sm u-bg-h7f8c8d gn-mt-sm" id="gn-save-gabarit-btn" title="Enregistrer la disposition de cette page (positions et styles, sans le contenu ni les images) comme gabarit réutilisable">💾 Enregistrer comme gabarit</button>
+    <button class="action-btn btn-secondary btn-sm gn-mt-sm" id="gn-page-history-btn" title="Versions précédentes de cette page (instantané automatique toutes les 5 minutes)">🕓 Historique de la page</button>
+    <button class="action-btn btn-secondary btn-sm gn-mt-sm" id="gn-save-gabarit-btn" title="Enregistrer la disposition de cette page (positions et styles, sans le contenu ni les images) comme gabarit réutilisable">💾 Enregistrer comme gabarit</button>
     <div class="gn-storage-info" id="gn-storage-info" aria-live="polite"></div>`;
   document.getElementById('gn-page-bg-picker').addEventListener('input', e => {
     page.background = e.target.value;
@@ -1114,7 +1114,7 @@ async function gnRephraseSelectedText(elId) {
   if (!b) return;
   b.innerHTML = `<div class="gn-ai-result">${DOMPurify.sanitize(result).replace(/\n/g,'<br>')}</div>
     <div class="gn-modal-actions gn-mt-sm">
-      <button class="action-btn btn-sm u-bg-h7f8c8d" id="gn-ai-rephrase-cancel">Ignorer</button>
+      <button class="action-btn btn-secondary btn-sm" id="gn-ai-rephrase-cancel">Ignorer</button>
       <button class="action-btn btn-sm" id="gn-ai-rephrase-apply">Appliquer</button>
     </div>`;
   document.getElementById('gn-ai-rephrase-cancel').addEventListener('click', () => { b.hidden = true; b.innerHTML = ''; });
@@ -1662,7 +1662,7 @@ function gnExportProgress(show, label, onCancel) {
       <h3>Génération du PDF</h3>
       <div class="ai-loader"><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span></div>
       <p class="gn-modal-sub" id="gn-export-label"></p>
-      <button class="action-btn u-bg-h7f8c8d" id="gn-export-cancel-btn" type="button" title="Interrompt l'export en cours, aucun fichier ne sera généré">Annuler</button>
+      <button class="action-btn btn-secondary" id="gn-export-cancel-btn" type="button" title="Interrompt l'export en cours, aucun fichier ne sera généré">Annuler</button>
     </div>`;
     document.body.appendChild(el);
   }
@@ -1780,7 +1780,7 @@ function gnOpenExportOptionsModal() {
         </select>
       </div>
       <div class="gn-modal-actions">
-        <button class="action-btn u-bg-h7f8c8d" id="gn-export-opts-cancel" type="button">Annuler</button>
+        <button class="action-btn btn-secondary" id="gn-export-opts-cancel" type="button">Annuler</button>
         <button class="action-btn" id="gn-export-opts-go" type="button">Générer le PDF</button>
       </div>
     </div>`;
@@ -2000,7 +2000,7 @@ function gnOpenBookExportModal() {
         </select>
       </div>
       <div class="gn-modal-actions">
-        <button class="action-btn u-bg-h7f8c8d" id="gn-export-book-cancel" type="button">Annuler</button>
+        <button class="action-btn btn-secondary" id="gn-export-book-cancel" type="button">Annuler</button>
         <button class="action-btn" id="gn-export-book-go" type="button">Générer</button>
       </div>
     </div>`;
@@ -2091,7 +2091,7 @@ function gnOpenTrashModal() {
       <p class="gn-modal-sub">Pages et éléments supprimés, récupérables pendant 30 jours.</p>
       <div class="gn-trash-list" id="gn-trash-list"></div>
       <div class="gn-modal-actions">
-        <button class="action-btn u-bg-h7f8c8d" id="gn-trash-close-btn" type="button">Fermer</button>
+        <button class="action-btn btn-secondary" id="gn-trash-close-btn" type="button">Fermer</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -2116,16 +2116,16 @@ function gnRenderTrashList() {
   if (!list) return;
   const entries = (db.trash || []).map((t, i) => ({ t, i })).filter(e => e.t.kind === 'gn-page' || e.t.kind === 'gn-element');
   if (!entries.length) {
-    list.innerHTML = '<div class="u-op-_5 u-p-16px u-ta-center u-fs-_82rem">La corbeille est vide.</div>';
+    list.innerHTML = '<div class="u-op-72 u-p-16px u-ta-center u-fs-base">La corbeille est vide.</div>';
     return;
   }
   list.innerHTML = entries.slice().reverse().map(({ t, i }) => {
     const daysLeft = Math.max(0, 30 - Math.floor((Date.now() - t.deletedAt) / 86400000));
     return `<div class="history-item u-cur-default">
-      <span>${gnTrashEntryLabel(t)}<br><span class="u-op-_5 u-fs-_68rem">Supprimé le ${new Date(t.deletedAt).toLocaleDateString('fr')} — purge auto dans ${daysLeft}j</span></span>
+      <span>${gnTrashEntryLabel(t)}<br><span class="u-op-72 u-fs-xs">Supprimé le ${new Date(t.deletedAt).toLocaleDateString('fr')} — purge auto dans ${daysLeft}j</span></span>
       <span class="u-d-flex u-gap-4px u-fsh-0">
         <button class="action-btn btn-sm" data-restore="${i}">↩ Restaurer</button>
-        <button class="action-btn btn-sm u-bg-v-danger" data-purge="${i}">✕ Définitif</button>
+        <button class="action-btn btn-danger btn-sm" data-purge="${i}">✕ Définitif</button>
       </span>
     </div>`;
   }).join('');
@@ -2215,7 +2215,7 @@ function gnOpenPageHistoryModal() {
       <p class="gn-modal-sub">Instantané automatique toutes les 5 minutes. Pas de comparaison visuelle : la restauration remplace directement le contenu de la page.</p>
       <div class="gn-trash-list" id="gn-history-list"></div>
       <div class="gn-modal-actions">
-        <button class="action-btn u-bg-h7f8c8d" id="gn-history-close-btn" type="button">Fermer</button>
+        <button class="action-btn btn-secondary" id="gn-history-close-btn" type="button">Fermer</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -2234,7 +2234,7 @@ function gnRenderPageHistoryList() {
   const page = db.pages[_gnActivePage];
   const snaps = (page && page.id && db.history && db.history[page.id]) || [];
   if (!snaps.length) {
-    list.innerHTML = '<div class="u-op-_5 u-p-16px u-ta-center u-fs-_82rem">Aucun historique pour cette page.</div>';
+    list.innerHTML = '<div class="u-op-72 u-p-16px u-ta-center u-fs-base">Aucun historique pour cette page.</div>';
     return;
   }
   list.innerHTML = snaps.map((snap, i) => `

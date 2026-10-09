@@ -18,7 +18,7 @@ describe('AUD-03-015 — barre d\'outils regroupée', () => {
   it('Structure, Focus direct, Outils réduit, Rechercher, ✨ Mots ; plus de menu « Paragraphe »', () => {
     expect(html).toContain('id="tb-structure-btn"');
     expect(html).not.toMatch(/Mettre en forme le paragraphe/);
-    expect(html).toMatch(/<button class="action-btn btn-sm u-bg-h34495e" id="focus-btn"/);
+    expect(html).toMatch(/<button class="action-btn btn-sm" id="focus-btn"/);
     for (const id of ['fmt-title-btn', 'fmt-para-btn', 'split-chapter-btn', 'insert-datetime-btn']) {
       const i = html.indexOf(`id="${id}"`);
       expect(html.lastIndexOf('id="tb-structure-btn"', i), id).toBeGreaterThan(html.lastIndexOf('id="tb-tools-btn"', i));

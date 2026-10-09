@@ -41,7 +41,7 @@
       <img src="icons/icon-32.png" class="topbar-logo" alt="" width="32" height="32">
       <div class="u-d-flex u-fd-column u-gap-2px">
         <span id="library-profile-name"></span>
-        <span class="u-fs-_65rem u-op-_35" id="library-version-label"></span>
+        <span class="u-fs-xs u-op-72" id="library-version-label"></span>
       </div>
       <!-- v9.2.3 — Demande explicite de l'utilisateur : un indicateur visible
            dès l'entrée dans la bibliothèque (sans avoir à ouvrir Système),
@@ -53,10 +53,10 @@
            configurée sur cet appareil. -->
       <button hidden id="library-sync-status-badge" title="Statut de la synchronisation">
         <i class="u-fs-1rem" id="library-sync-status-icon"></i>
-        <span class="u-fs-_75rem" id="library-sync-status-text"></span>
+        <span class="u-fs-sm" id="library-sync-status-text"></span>
       </button>
       <!-- v9.41.0 (AUD-03-001) : rappel discret, remplace la bulle bloquante de configuration. -->
-      <button hidden class="action-btn btn-sm u-bg-hd35400" id="library-github-reminder" title="Ouvrir Système pour configurer la sauvegarde GitHub">⚠ Sauvegarde GitHub non configurée</button>
+      <button hidden class="action-btn btn-warn btn-sm" id="library-github-reminder" title="Ouvrir Système pour configurer la sauvegarde GitHub">⚠ Sauvegarde GitHub non configurée</button>
     </div>
     <!-- v9.48.0 (AUD-03-028) : trois éléments sobres au lieu de sept boutons de six couleurs. -->
     <div class="u-d-flex u-gap-6px u-fw-wrap u-ai-center" id="library-topbar-actions">
@@ -88,8 +88,8 @@
   </div>
   <h2 class="u-m-18px-0-2px">📚 Ma bibliothèque</h2>
   <div class="u-d-flex u-jc-space-between u-ai-center u-m-0-0-6px">
-    <p class="u-fs-_78rem u-c-v-text-muted u-m-0" id="library-count"></p>
-    <button class="action-btn btn-sm u-bg-h7f8c8d u-d-none" id="library-trash-btn" title="Manuscrits supprimés, récupérables 30 jours">🗑️ Corbeille (0)</button>
+    <p class="u-fs-sm u-c-v-text-muted u-m-0" id="library-count"></p>
+    <button class="action-btn btn-secondary btn-sm u-d-none" id="library-trash-btn" title="Manuscrits supprimés, récupérables 30 jours">🗑️ Corbeille (0)</button>
     <div class="ch-view-toggle u-w-170px" role="group" aria-label="Vue de la bibliothèque">
       <button class="mode-indicator active" id="view-grid-btn" title="Vue grille">🔲 Grille</button>
       <button class="mode-indicator" id="view-shelf-btn" title="Vue en étagère">📚 Étagère</button>
@@ -103,10 +103,10 @@
      désormais pour toute la bibliothèque, plus seulement un manuscrit.
      Remplace l'ancien onglet "📦 Backup" de l'éditeur (retiré). -->
 <div id="library-system-overlay" role="dialog" aria-modal="true" aria-label="Système et sauvegardes">
-  <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-480px-92vw u-maxh-85vh u-ovy-auto u-d-flex u-fd-column u-gap-14px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+  <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-480px-92vw u-maxh-85vh u-ovy-auto u-d-flex u-fd-column u-gap-14px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>💾 Système & Sauvegardes</strong>
-      <button class="action-btn btn-sm" id="library-system-close-btn" title="Fermer cette fenêtre">✕</button>
+      <button class="action-btn btn-ghost btn-sm" id="library-system-close-btn" title="Fermer cette fenêtre">✕</button>
     </div>
 
     <!-- v9.45.0 (AUD-03-026) : trois onglets au lieu d'une longue page de six blocs ; UNE seule liste de manuscrits
@@ -117,40 +117,40 @@
       <button class="subtab-btn lib-systab" role="tab" aria-selected="false" aria-controls="lib-sys-sync" id="lib-systab-sync" data-systab="sync">🔄 Synchronisation <span class="mp-badge u-d-none" id="lib-systab-conflict-count">0</span></button>
     </div>
 
-    <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border" id="lib-sys-doc-zone">
-      <label class="u-fs-_8rem u-fwt-700" for="lib-system-doc-select">📖 Manuscrit concerné</label>
+    <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border" id="lib-sys-doc-zone">
+      <label class="u-fs-base u-fwt-700" for="lib-system-doc-select">📖 Manuscrit concerné</label>
       <select id="lib-system-doc-select" class="field u-w-100pc u-mt-6px"></select>
     </div>
 
     <div class="lib-sys-pane active" role="tabpanel" id="lib-sys-files" aria-labelledby="lib-systab-files">
-      <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
-        <strong class="u-fs-_8rem">Ce manuscrit</strong>
+      <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
+        <strong class="u-fs-base">Ce manuscrit</strong>
       <div class="export-row u-jc-flex-start u-mt-8px">
-        <button class="action-btn btn-sm u-bg-h2980b9" id="lib-export-btn" title="Exporter ce manuscrit (choix du format ensuite)">📤 Exporter</button>
-        <button class="action-btn btn-sm u-bg-hd35400" id="lib-import-doc-trigger-btn" title="Importer un fichier Word (.docx) ou OpenDocument (.odt)">📥 Importer (DOCX/ODT)</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-export-btn" title="Exporter ce manuscrit (choix du format ensuite)">📤 Exporter</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-import-doc-trigger-btn" title="Importer un fichier Word (.docx) ou OpenDocument (.odt)">📥 Importer (DOCX/ODT)</button>
         <input class="u-d-none" type="file" id="lib-import-doc-file" accept=".docx,.odt">
       </div>
       </div>
-      <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
-      <strong class="u-fs-_8rem">📚 Bibliothèque entière</strong><br>
+      <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
+      <strong class="u-fs-base">📚 Bibliothèque entière</strong><br>
       <div class="export-row u-jc-flex-start u-mt-8px">
-        <button class="action-btn btn-sm u-bg-h27ae60" id="lib-export-json-btn" title="Télécharger tous les manuscrits dans un seul fichier de sauvegarde">💾 Export JSON (tout)</button>
-        <button class="action-btn btn-sm u-bg-he67e22" id="lib-import-json-trigger-btn" title="Charger un fichier de sauvegarde JSON (ajoute les manuscrits sans écraser l'existant)">📥 Import JSON (tout)</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-export-json-btn" title="Télécharger tous les manuscrits dans un seul fichier de sauvegarde">💾 Export JSON (tout)</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-import-json-trigger-btn" title="Charger un fichier de sauvegarde JSON (ajoute les manuscrits sans écraser l'existant)">📥 Import JSON (tout)</button>
         <input class="u-d-none" type="file" id="lib-import-json-file" accept=".json">
       </div>
-      <p class="u-fs-_66rem u-c-v-text-muted u-m-6px-0-0">⚠️ Ce fichier ne peut être réimporté que dans le <strong>même profil</strong> (ex. après réinstallation) — un import dans un autre profil produit des manuscrits illisibles.</p>
+      <p class="u-fs-xs u-c-v-text-muted u-m-6px-0-0">⚠️ Ce fichier ne peut être réimporté que dans le <strong>même profil</strong> (ex. après réinstallation) — un import dans un autre profil produit des manuscrits illisibles.</p>
       </div>
     </div>
 
     <div class="lib-sys-pane" role="tabpanel" id="lib-sys-github" aria-labelledby="lib-systab-github">
-      <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
-      <strong class="u-fs-_8rem">☁️ Sauvegarde GitHub — un seul jeton d'accès pour tout le compte</strong><br>
+      <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
+      <strong class="u-fs-base">☁️ Sauvegarde GitHub — un seul jeton d'accès pour tout le compte</strong><br>
       <div class="u-d-flex u-gap-6px u-mt-6px">
         <input type="password" id="lib-gh-token" class="field u-flex-1" placeholder="Jeton d'accès GitHub" title="Mémorisé automatiquement (chiffré)">
-        <button class="action-btn btn-sm u-bg-h16a085 u-fsh-0" id="lib-verify-token-btn" title="Vérifier que ce jeton d'accès est valide auprès de GitHub">✅ Vérifier</button>
+        <button class="action-btn btn-secondary btn-sm u-fsh-0" id="lib-verify-token-btn" title="Vérifier que ce jeton d'accès est valide auprès de GitHub">✅ Vérifier</button>
       </div>
-      <p class="u-fs-_72rem u-m-6px-0-0" id="lib-token-status" aria-live="polite"></p>
-      <div class="u-d-flex u-ai-center u-gap-8px u-mt-8px u-fs-_75rem u-fw-wrap">
+      <p class="u-fs-sm u-m-6px-0-0" id="lib-token-status" aria-live="polite"></p>
+      <div class="u-d-flex u-ai-center u-gap-8px u-mt-8px u-fs-sm u-fw-wrap">
         Sauvegarde auto (toute la bibliothèque) :
         <select id="lib-auto-gist-interval" class="field u-w-auto" title="Fréquence de la sauvegarde GitHub automatique de toute la bibliothèque">
           <option value="0">Désactivée</option>
@@ -159,41 +159,41 @@
           <option value="60">Toutes les 60 min</option>
         </select>
       </div>
-      <p class="u-fs-_68rem u-c-v-text-muted u-m-6px-0-0">Se déclenche aussi au changement de manuscrit, au retour à la bibliothèque, et quand l'onglet perd le focus.</p>
-      <p class="u-fs-_72rem u-c-v-accent u-m-6px-0-0" id="lib-cloud-status" aria-live="polite"></p>
+      <p class="u-fs-xs u-c-v-text-muted u-m-6px-0-0">Se déclenche aussi au changement de manuscrit, au retour à la bibliothèque, et quand l'onglet perd le focus.</p>
+      <p class="u-fs-sm u-c-v-accent u-m-6px-0-0" id="lib-cloud-status" aria-live="polite"></p>
 
       </div>
-      <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
-        <strong class="u-fs-_8rem">Sauvegarde GitHub du manuscrit choisi ci-dessus</strong>
+      <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
+        <strong class="u-fs-base">Sauvegarde GitHub du manuscrit choisi ci-dessus</strong>
       <div class="export-row u-jc-flex-start u-mt-8px">
-        <button class="action-btn btn-sm u-bg-h2980b9" id="lib-sync-cloud-btn" title="Envoyer une sauvegarde chiffrée de ce manuscrit vers GitHub">🔄 Sauver</button>
-        <button class="action-btn btn-sm u-bg-h34495e" id="lib-load-cloud-btn" title="Récupérer la dernière sauvegarde GitHub de ce manuscrit">📥 Charger</button>
-        <button class="action-btn btn-sm u-bg-h16a085" id="lib-gist-history-btn" title="Voir les anciennes versions sauvegardées de ce manuscrit">🕐 Versions</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-sync-cloud-btn" title="Envoyer une sauvegarde chiffrée de ce manuscrit vers GitHub">🔄 Sauver</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-load-cloud-btn" title="Récupérer la dernière sauvegarde GitHub de ce manuscrit">📥 Charger</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-gist-history-btn" title="Voir les anciennes versions sauvegardées de ce manuscrit">🕐 Versions</button>
       </div>
-      <p class="u-fs-_68rem u-c-v-text-muted u-m-6px-0-0" id="lib-doc-gist-status"></p>
+      <p class="u-fs-xs u-c-v-text-muted u-m-6px-0-0" id="lib-doc-gist-status"></p>
       </div>
     </div>
 
     <div class="lib-sys-pane" role="tabpanel" id="lib-sys-sync" aria-labelledby="lib-systab-sync">
-      <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
+      <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
       <div class="u-d-flex u-ai-center u-jc-space-between u-gap-8px">
-        <strong class="u-fs-_8rem">🛟 Sauvegardes de conflit <span class="mp-badge u-d-none" id="lib-conflict-count">0</span></strong>
-        <button class="action-btn btn-sm u-d-none" id="lib-conflict-delete-all" title="Supprimer toutes les sauvegardes de conflit">🗑️ Tout supprimer</button>
+        <strong class="u-fs-base">🛟 Sauvegardes de conflit <span class="mp-badge u-d-none" id="lib-conflict-count">0</span></strong>
+        <button class="action-btn btn-danger btn-sm u-d-none" id="lib-conflict-delete-all" title="Supprimer toutes les sauvegardes de conflit">🗑️ Tout supprimer</button>
       </div>
-      <p class="u-fs-_68rem u-c-v-text-muted u-m-6px-0-8px">Versions distantes remplacées par un autre appareil. Conservées 7 jours, puis supprimées automatiquement.</p>
+      <p class="u-fs-xs u-c-v-text-muted u-m-6px-0-8px">Versions distantes remplacées par un autre appareil. Conservées 7 jours, puis supprimées automatiquement.</p>
       <div id="lib-conflict-list" class="u-d-flex u-fd-column u-gap-8px"></div>
       </div>
-      <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
-      <strong class="u-fs-_8rem">🔑 Clé de synchronisation</strong><br>
-      <p class="u-fs-_68rem u-c-v-text-muted u-m-6px-0-8px">Commune à cet appareil, valable pour tous les profils.</p>
+      <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
+      <strong class="u-fs-base">🔑 Clé de synchronisation</strong><br>
+      <p class="u-fs-xs u-c-v-text-muted u-m-6px-0-8px">Commune à cet appareil, valable pour tous les profils.</p>
       <div class="u-d-flex u-gap-6px">
         <input type="password" id="lib-sync-key-input" class="field u-flex-1" readonly>
         <button class="action-btn btn-sm u-fsh-0" id="lib-sync-key-reveal-btn" title="Afficher/masquer la clé">👁️</button>
-        <button class="action-btn btn-sm u-bg-h16a085 u-fsh-0" id="lib-sync-key-verify-btn" title="Vérifier que cette clé est acceptée par le Worker">✅ Vérifier</button>
+        <button class="action-btn btn-secondary btn-sm u-fsh-0" id="lib-sync-key-verify-btn" title="Vérifier que cette clé est acceptée par le Worker">✅ Vérifier</button>
       </div>
-      <p class="u-fs-_72rem u-m-6px-0-0" id="lib-sync-key-status" aria-live="polite"></p>
-      <p class="u-fs-_68rem u-m-4px-0-0" id="lib-last-sync-status" aria-live="polite"></p>
-      <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-0" id="lib-sync-usage" aria-live="polite"></p>
+      <p class="u-fs-sm u-m-6px-0-0" id="lib-sync-key-status" aria-live="polite"></p>
+      <p class="u-fs-xs u-m-4px-0-0" id="lib-last-sync-status" aria-live="polite"></p>
+      <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-0" id="lib-sync-usage" aria-live="polite"></p>
       <button class="action-btn btn-sm u-as-flex-start u-mt-6px" id="lib-sync-key-change-btn">✏️ Changer la clé</button>
     </div>
       </div>
@@ -203,56 +203,56 @@
 
 <!-- IMPORT MANUSCRIT (DOCX/ODT) OVERLAY (v7.12.0, généralisé v7.13.0, Lot 10) -->
 <div id="docx-import-overlay" role="dialog" aria-modal="true" aria-label="Importer un document">
-  <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-420px-92vw u-maxh-80vh u-d-flex u-fd-column u-gap-12px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+  <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-420px-92vw u-maxh-80vh u-d-flex u-fd-column u-gap-12px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>📥 Importer « <span id="docx-import-filename"></span> »</strong>
-      <button class="action-btn btn-sm" id="docx-import-close-btn" title="Annuler l'import">✕</button>
+      <button class="action-btn btn-ghost btn-sm" id="docx-import-close-btn" title="Annuler l'import">✕</button>
     </div>
     <div class="ch-view-toggle" role="group" aria-label="Destination de l'import">
       <button class="mode-indicator active" id="docx-mode-new-btn" title="Créer un nouveau manuscrit à partir de ce fichier">📖 Nouveau manuscrit</button>
       <button class="mode-indicator" id="docx-mode-existing-btn" title="Ajouter comme chapitre à un manuscrit déjà existant">📑 Chapitre existant</button>
     </div>
     <div id="docx-new-fields">
-      <label class="u-fs-_75rem u-c-v-text-muted">Titre du nouveau manuscrit</label>
+      <label class="u-fs-sm u-c-v-text-muted">Titre du nouveau manuscrit</label>
       <input type="text" id="docx-new-title" class="field u-w-100pc u-mt-4px">
     </div>
     <div class="u-d-none" id="docx-existing-fields">
-      <label class="u-fs-_75rem u-c-v-text-muted">Manuscrit de destination</label>
+      <label class="u-fs-sm u-c-v-text-muted">Manuscrit de destination</label>
       <select id="docx-existing-select" class="field u-w-100pc u-mt-4px"></select>
     </div>
     <div class="u-d-none u-mt-8px" id="docx-split-wrap">
-      <label class="u-fs-_8rem u-d-flex u-ai-center u-gap-6px u-cur-pointer"><input type="checkbox" id="docx-split-cb" checked> <span id="docx-split-label"></span></label>
+      <label class="u-fs-base u-d-flex u-ai-center u-gap-6px u-cur-pointer"><input type="checkbox" id="docx-split-cb" checked> <span id="docx-split-label"></span></label>
     </div>
-    <button class="action-btn u-bg-h27ae60" id="docx-import-confirm-btn">Importer</button>
+    <button class="action-btn" id="docx-import-confirm-btn">Importer</button>
   </div>
 </div>
 
 <!-- OVERLAY : Mon profil -->
 <div id="my-profile-overlay" role="dialog" aria-modal="true" aria-label="Mon profil">
-  <div class="u-bg-v-glass u-br-16px u-p-22px u-w-min-420px-92vw u-maxh-82vh u-ovy-auto u-d-flex u-fd-column u-gap-12px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+  <div class="u-bg-v-glass u-br-3 u-p-22px u-w-min-420px-92vw u-maxh-82vh u-ovy-auto u-d-flex u-fd-column u-gap-12px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>👤 Mon profil</strong>
-      <button class="action-btn btn-sm" id="my-profile-close-btn" title="Fermer cette fenêtre">✕</button>
+      <button class="action-btn btn-ghost btn-sm" id="my-profile-close-btn" title="Fermer cette fenêtre">✕</button>
     </div>
-    <label class="u-fs-12px u-c-v-text-muted">Nom du profil</label>
+    <label class="u-fs-sm u-c-v-text-muted">Nom du profil</label>
     <div class="u-d-flex u-gap-6px">
       <input id="mp-my-name" class="field u-flex-1">
       <button class="action-btn btn-sm" id="mp-save-name-btn" title="Enregistrer le nouveau nom">Enregistrer</button>
     </div>
     <hr class="u-bdc-v-border u-m-6px-0">
-    <strong class="u-fs-_85rem">🔑 Changer le mot de passe</strong>
+    <strong class="u-fs-base">🔑 Changer le mot de passe</strong>
     <input id="mp-old-pwd" type="password" class="field" placeholder="Mot de passe actuel" autocomplete="current-password">
     <input id="mp-new-pwd" type="password" class="field" placeholder="Nouveau mot de passe" autocomplete="new-password">
     <input id="mp-new-pwd2" type="password" class="field" placeholder="Confirmer le nouveau mot de passe" autocomplete="new-password">
-    <button class="action-btn btn-sm u-bg-h8e44ad u-as-flex-start" id="mp-save-pwd-btn" title="Enregistrer le nouveau mot de passe">Modifier le mot de passe</button>
+    <button class="action-btn btn-secondary btn-sm u-as-flex-start" id="mp-save-pwd-btn" title="Enregistrer le nouveau mot de passe">Modifier le mot de passe</button>
     <hr class="u-bdc-v-border u-m-6px-0">
-    <strong class="u-fs-_85rem">❔ Question de sécurité</strong>
+    <strong class="u-fs-base">❔ Question de sécurité</strong>
     <select id="mp-my-question" class="field"></select>
     <input id="mp-my-answer" class="field" placeholder="Nouvelle réponse">
     <button class="action-btn btn-sm u-as-flex-start" id="mp-save-question-btn" title="Utile pour récupérer votre compte en cas de mot de passe oublié">Mettre à jour la question</button>
     <hr class="u-bdc-v-border u-m-6px-0">
-    <strong class="u-fs-_85rem">⏱️ Rester connecté sur cet appareil</strong>
-    <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-6px">Évite de retaper le mot de passe pendant cette durée. Se déconnecter l'annule immédiatement.</p>
+    <strong class="u-fs-base">⏱️ Rester connecté sur cet appareil</strong>
+    <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-6px">Évite de retaper le mot de passe pendant cette durée. Se déconnecter l'annule immédiatement.</p>
     <select id="mp-session-duration" class="field">
       <option value="0">Ne pas rester connecté</option>
       <option value="60">1 heure</option>
@@ -268,13 +268,13 @@
 
 <!-- OVERLAY : Gestion des profils (admin) -->
 <div id="manage-profiles-overlay" role="dialog" aria-modal="true" aria-label="Gestion des profils">
-  <div class="u-bg-v-glass u-br-16px u-p-22px u-w-min-480px-92vw u-maxh-80vh u-d-flex u-fd-column u-gap-12px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+  <div class="u-bg-v-glass u-br-3 u-p-22px u-w-min-480px-92vw u-maxh-80vh u-d-flex u-fd-column u-gap-12px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>🛡️ Gestion des profils</strong>
-      <button class="action-btn btn-sm" id="manage-profiles-close-btn" title="Fermer cette fenêtre">✕</button>
+      <button class="action-btn btn-ghost btn-sm" id="manage-profiles-close-btn" title="Fermer cette fenêtre">✕</button>
     </div>
     <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-8px" id="manage-profiles-list"></div>
-    <button class="action-btn u-bg-h8e44ad u-as-flex-start" id="manage-add-profile-btn" title="Créer un nouveau profil pour une autre personne">➕ Ajouter un profil</button>
+    <button class="action-btn btn-secondary u-as-flex-start" id="manage-add-profile-btn" title="Créer un nouveau profil pour une autre personne">➕ Ajouter un profil</button>
   </div>
 </div>
 
@@ -292,16 +292,16 @@
   <div id="history-box">
     <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>🕐 Historique du chapitre : <span id="history-chapter-name"></span></strong>
-      <button class="action-btn btn-sm" id="history-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
+      <button class="action-btn btn-ghost btn-sm" id="history-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
     </div>
     <div class="u-d-flex u-gap-10px u-fg-1 u-ov-hidden u-minh-0">
       <div class="u-w-220px u-fsh-0 u-d-flex u-fd-column u-gap-6px">
-        <strong class="u-fs-_78rem">Versions</strong>
+        <strong class="u-fs-sm">Versions</strong>
         <div id="history-list"></div>
-        <button class="action-btn btn-sm u-bg-v-danger" id="history-restore-btn" disabled title="Remplacer le contenu actuel par cette ancienne version">↩ Restaurer cette version</button>
+        <button class="action-btn btn-danger btn-sm" id="history-restore-btn" disabled title="Remplacer le contenu actuel par cette ancienne version">↩ Restaurer cette version</button>
       </div>
       <div class="u-fg-1 u-d-flex u-fd-column u-gap-6px u-minw-0">
-        <strong class="u-fs-_78rem">Aperçu / Diff</strong>
+        <strong class="u-fs-sm">Aperçu / Diff</strong>
         <div id="history-diff">Sélectionnez une version…</div>
       </div>
     </div>
@@ -314,11 +314,11 @@
 <!-- PARCOURS "PREMIERS PAS" (nouveau v7.36.0, ergonomie) — 4 bulles montrées
      une seule fois par profil, à la première ouverture d'un manuscrit. -->
 <div id="onboarding-tour-bubble" role="dialog" aria-label="Premiers pas">
-  <p class="u-fs-_82rem u-m-0-0-10px" id="onboarding-tour-text"></p>
+  <p class="u-fs-base u-m-0-0-10px" id="onboarding-tour-text"></p>
   <div class="u-d-flex u-ai-center u-jc-space-between">
-    <span class="u-fs-_68rem u-c-v-text-muted" id="onboarding-tour-counter"></span>
+    <span class="u-fs-xs u-c-v-text-muted" id="onboarding-tour-counter"></span>
     <div class="u-d-flex u-gap-6px">
-      <button class="action-btn btn-sm u-bg-h7f8c8d" id="onboarding-tour-skip-btn">Passer</button>
+      <button class="action-btn btn-secondary btn-sm" id="onboarding-tour-skip-btn">Passer</button>
       <button class="action-btn btn-sm" id="onboarding-tour-next-btn">Suivant</button>
     </div>
   </div>
@@ -328,9 +328,9 @@
      bouton, elle avance toute seule au fil des vrais clics (bouton Système,
      puis champ token + Vérifier) — voir maybeStartSetupTour() dans library.js. -->
 <div id="setup-tour-bubble" role="dialog" aria-label="Configuration initiale">
-  <p class="u-fs-_68rem u-c-v-accent u-m-0-0-4px" id="setup-tour-counter"></p>
-  <p class="u-fs-_82rem u-m-0" id="setup-tour-text"></p>
-  <div class="u-d-flex u-jc-flex-start u-mt-8px"><button class="action-btn btn-sm u-bg-h7f8c8d" id="setup-tour-later-btn">Plus tard</button></div>
+  <p class="u-fs-xs u-c-v-accent u-m-0-0-4px" id="setup-tour-counter"></p>
+  <p class="u-fs-base u-m-0" id="setup-tour-text"></p>
+  <div class="u-d-flex u-jc-flex-start u-mt-8px"><button class="action-btn btn-secondary btn-sm" id="setup-tour-later-btn">Plus tard</button></div>
 </div>
 
 <!-- VISITE GUIDÉE COMPLÈTE (nouveau v7.39.0) : ne s'affiche jamais toute
@@ -338,67 +338,67 @@
      voir fulltour.js. -->
 <div id="full-tour-spotlight" aria-hidden="true"></div>
 <div id="full-tour-bubble" role="dialog" aria-label="Visite guidée">
-  <p class="u-fs-_68rem u-c-v-accent u-m-0-0-4px" id="full-tour-counter"></p>
-  <strong class="u-fs-_92rem" id="full-tour-title"></strong>
-  <p class="u-fs-_82rem u-m-8px-0-0" id="full-tour-text"></p>
+  <p class="u-fs-xs u-c-v-accent u-m-0-0-4px" id="full-tour-counter"></p>
+  <strong class="u-fs-base" id="full-tour-title"></strong>
+  <p class="u-fs-base u-m-8px-0-0" id="full-tour-text"></p>
   <div class="full-tour-nav">
-    <button class="action-btn btn-sm u-bg-h7f8c8d" id="full-tour-prev-btn">← Précédent</button>
-    <button class="action-btn btn-sm" id="full-tour-quit-btn">Quitter</button>
+    <button class="action-btn btn-secondary btn-sm" id="full-tour-prev-btn">← Précédent</button>
+    <button class="action-btn btn-ghost btn-sm" id="full-tour-quit-btn">Quitter</button>
     <button class="action-btn btn-sm" id="full-tour-next-btn">Suivant</button>
   </div>
 </div>
 
 <!-- POPOVER D'AIDE CONTEXTUELLE ⓘ (nouveau v7.39.0) — voir fulltour.js -->
 <div id="info-popover" role="dialog" aria-label="Aide">
-  <strong class="u-fs-_92rem" id="info-popover-title"></strong>
-  <p class="u-fs-_82rem u-m-8px-0-0" id="info-popover-text"></p>
+  <strong class="u-fs-base" id="info-popover-title"></strong>
+  <p class="u-fs-base u-m-8px-0-0" id="info-popover-text"></p>
 </div>
 
 <div id="confirm-modal-overlay" role="dialog" aria-modal="true" aria-label="Confirmation">
-  <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-360px-92vw u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+  <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-360px-92vw u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-ai-center u-gap-8px u-mb-8px">
-      <strong class="u-fs-_92rem" id="confirm-modal-title">Confirmer</strong>
+      <strong class="u-fs-base" id="confirm-modal-title">Confirmer</strong>
     </div>
-    <p class="u-fs-_82rem u-c-v-text-muted u-m-0-0-12px" id="confirm-modal-message"></p>
+    <p class="u-fs-base u-c-v-text-muted u-m-0-0-12px" id="confirm-modal-message"></p>
     <div id="confirm-modal-input-wrap" class="u-mb-12px u-d-none">
-      <label class="u-fs-_72rem u-c-v-text-muted u-d-block u-mb-4px" id="confirm-modal-input-label" for="confirm-modal-input"></label>
+      <label class="u-fs-sm u-c-v-text-muted u-d-block u-mb-4px" id="confirm-modal-input-label" for="confirm-modal-input"></label>
       <input id="confirm-modal-input" class="field u-w-100pc" autocomplete="off">
     </div>
     <div class="u-d-flex u-gap-8px u-jc-flex-end">
-      <button class="action-btn btn-sm u-bg-h7f8c8d" id="confirm-modal-cancel-btn">Annuler</button>
+      <button class="action-btn btn-secondary btn-sm" id="confirm-modal-cancel-btn">Annuler</button>
       <button class="action-btn btn-sm" id="confirm-modal-confirm-btn">Confirmer</button>
     </div>
   </div>
 </div>
 
 <div id="doc-trash-overlay" role="dialog" aria-modal="true" aria-label="Corbeille des manuscrits">
-  <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-500px-92vw u-maxh-70vh u-d-flex u-fd-column u-gap-10px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+  <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-500px-92vw u-maxh-70vh u-d-flex u-fd-column u-gap-10px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>🗑️ Corbeille (manuscrits supprimés)</strong>
-      <button class="action-btn btn-sm" id="doc-trash-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
+      <button class="action-btn btn-ghost btn-sm" id="doc-trash-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
     </div>
-    <div class="u-fs-_7rem u-c-v-text-muted">Les manuscrits supprimés restent ici 30 jours, sur tous vos appareils, avant suppression définitive automatique.</div>
+    <div class="u-fs-xs u-c-v-text-muted">Les manuscrits supprimés restent ici 30 jours, sur tous vos appareils, avant suppression définitive automatique.</div>
     <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-6px" id="doc-trash-list"></div>
   </div>
 </div>
 
 <div id="trash-overlay" role="dialog" aria-modal="true" aria-label="Corbeille">
-  <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-500px-92vw u-maxh-70vh u-d-flex u-fd-column u-gap-10px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+  <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-500px-92vw u-maxh-70vh u-d-flex u-fd-column u-gap-10px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>🗑️ Corbeille (chapitres supprimés)</strong>
-      <button class="action-btn btn-sm" id="trash-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
+      <button class="action-btn btn-ghost btn-sm" id="trash-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
     </div>
-    <div class="u-fs-_7rem u-c-v-text-muted">Les chapitres supprimés restent ici 30 jours avant suppression définitive automatique.</div>
+    <div class="u-fs-xs u-c-v-text-muted">Les chapitres supprimés restent ici 30 jours avant suppression définitive automatique.</div>
     <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-6px" id="trash-list"></div>
   </div>
 </div>
 
 <!-- AIDE-MÉMOIRE DES RACCOURCIS CLAVIER (nouveau v7.5.0) -->
 <div id="shortcuts-overlay" role="dialog" aria-modal="true" aria-label="Aide et raccourcis">
-  <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-420px-92vw u-maxh-75vh u-ovy-auto u-d-flex u-fd-column u-gap-4px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+  <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-420px-92vw u-maxh-75vh u-ovy-auto u-d-flex u-fd-column u-gap-4px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center u-mb-6px">
       <strong>❔ Aide et raccourcis</strong>
-      <button class="action-btn btn-sm" id="shortcuts-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
+      <button class="action-btn btn-ghost btn-sm" id="shortcuts-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
     </div>
     <!-- v9.47.0 (AUD-03-024) : un seul point d'entrée pour l'aide (avant : bulles « premiers pas », visites, ⓘ sur ~30 boutons). -->
     <div class="u-d-flex u-fd-column u-gap-6px u-mb-8px">
@@ -406,7 +406,7 @@
       <button class="action-btn btn-sm u-flex-1 u-ta-left" id="help-tour-btn">🎓 Visite guidée complète</button>
       <button class="action-btn btn-sm u-flex-1 u-ta-left" id="help-privacy-btn">🔒 Confidentialité et IA</button>
     </div>
-    <strong class="u-fs-_8rem u-c-v-text-muted">Raccourcis clavier</strong>
+    <strong class="u-fs-base u-c-v-text-muted">Raccourcis clavier</strong>
     <div class="shortcut-row"><span>Gras</span><span class="shortcut-key">Ctrl+B</span></div>
     <div class="shortcut-row"><span>Italique</span><span class="shortcut-key">Ctrl+I</span></div>
     <div class="shortcut-row"><span>Souligné</span><span class="shortcut-key">Ctrl+U</span></div>
@@ -418,36 +418,36 @@
     <div class="shortcut-row"><span>Exporter le manuscrit</span><span class="shortcut-key">Ctrl+E</span></div>
     <div class="shortcut-row"><span>Fermer la fenêtre active</span><span class="shortcut-key">Échap</span></div>
     <div class="shortcut-row"><span>Afficher cette aide</span><span class="shortcut-key">?</span></div>
-    <p class="u-fs-_68rem u-c-v-text-muted u-m-8px-0-0" id="app-version-label">Plume</p>
+    <p class="u-fs-xs u-c-v-text-muted u-m-8px-0-0" id="app-version-label">Plume</p>
   </div>
 </div>
 
 <!-- EXPORT SELECT OVERLAY (nouveau v6.2.0) -->
 <div id="export-select-overlay" role="dialog" aria-modal="true" aria-label="Sélection des chapitres à exporter">
-  <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-420px-92vw u-maxh-75vh u-d-flex u-fd-column u-gap-10px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+  <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-420px-92vw u-maxh-75vh u-d-flex u-fd-column u-gap-10px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>Chapitres à exporter</strong>
-      <button class="action-btn btn-sm" id="export-select-close-btn" title="Fermer cette fenêtre">✕</button>
+      <button class="action-btn btn-ghost btn-sm" id="export-select-close-btn" title="Fermer cette fenêtre">✕</button>
     </div>
-    <button class="action-btn btn-sm u-bg-h7f8c8d u-as-flex-start" id="export-select-toggle-btn" title="Cocher ou décocher tous les chapitres d'un coup">Tout (dé)sélectionner</button>
+    <button class="action-btn btn-secondary btn-sm u-as-flex-start" id="export-select-toggle-btn" title="Cocher ou décocher tous les chapitres d'un coup">Tout (dé)sélectionner</button>
     <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-4px" id="export-select-list"></div>
     <div class="u-d-flex u-gap-6px u-fw-wrap">
-      <button class="action-btn u-bg-h2980b9 u-flex-1" id="export-select-docx-btn" title="Télécharger les chapitres sélectionnés au format Word">📄 DOCX</button>
-      <button class="action-btn u-bg-h7d5ba6 u-flex-1" id="export-select-odt-btn" title="Télécharger les chapitres sélectionnés au format OpenDocument">📃 ODT</button>
-      <button class="action-btn u-bg-hc0392b u-flex-1" id="export-select-pdf-btn" title="Télécharger les chapitres sélectionnés au format PDF">📕 PDF</button>
-      <button class="action-btn u-bg-h9b59b6 u-flex-1" id="export-select-epub-btn" title="Télécharger les chapitres sélectionnés au format livre numérique">📚 EPUB</button>
+      <button class="action-btn btn-secondary u-flex-1" id="export-select-docx-btn" title="Télécharger les chapitres sélectionnés au format Word">📄 DOCX</button>
+      <button class="action-btn btn-secondary u-flex-1" id="export-select-odt-btn" title="Télécharger les chapitres sélectionnés au format OpenDocument">📃 ODT</button>
+      <button class="action-btn btn-secondary u-flex-1" id="export-select-pdf-btn" title="Télécharger les chapitres sélectionnés au format PDF">📕 PDF</button>
+      <button class="action-btn btn-secondary u-flex-1" id="export-select-epub-btn" title="Télécharger les chapitres sélectionnés au format livre numérique">📚 EPUB</button>
     </div>
   </div>
 </div>
 
 <!-- GIST HISTORY OVERLAY (nouveau v6.1.0) -->
 <div id="gist-history-overlay" role="dialog" aria-modal="true" aria-label="Versions de la sauvegarde GitHub">
-  <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-500px-92vw u-maxh-70vh u-d-flex u-fd-column u-gap-10px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
+  <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-500px-92vw u-maxh-70vh u-d-flex u-fd-column u-gap-10px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>🕐 Versions de la sauvegarde GitHub</strong>
-      <button class="action-btn btn-sm" id="gist-history-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
+      <button class="action-btn btn-ghost btn-sm" id="gist-history-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
     </div>
-    <div class="u-fs-_7rem u-c-v-text-muted">Cliquez sur une version pour la charger (remplace le projet actuel).</div>
+    <div class="u-fs-xs u-c-v-text-muted">Cliquez sur une version pour la charger (remplace le projet actuel).</div>
     <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-6px" id="gist-history-list"></div>
   </div>
 </div>
@@ -458,19 +458,19 @@
 <!-- TTS/DICTÉE PANEL -->
 <div id="tts-panel" role="dialog" aria-label="Lecture à voix haute">
   <div class="u-d-flex u-jc-space-between u-ai-center">
-    <strong class="u-fs-_82rem">🎙️ Voix</strong>
+    <strong class="u-fs-base">🎙️ Voix</strong>
     <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="tts-close-btn" title="Fermer">×</button>
   </div>
-  <div class="u-fs-_75rem u-c-v-text-muted">Lecture à voix haute</div>
+  <div class="u-fs-sm u-c-v-text-muted">Lecture à voix haute</div>
   <div class="tts-row">
     <button class="voice-btn u-bg-v-success u-c-hfff" id="tts-play-btn" aria-label="Lire" title="Lire le chapitre à voix haute">▶</button>
     <button class="voice-btn u-bg-v-warn u-c-hfff" id="tts-pause-btn" aria-label="Pause" title="Mettre la lecture en pause">⏸</button>
     <button class="voice-btn u-bg-v-danger u-c-hfff" id="tts-stop-btn" aria-label="Arrêter" title="Arrêter la lecture">⏹</button>
     <div class="u-fg-1">
-      <select id="tts-voice-sel" class="field u-fs-_7rem u-p-4px" aria-label="Voix"></select>
+      <select id="tts-voice-sel" class="field u-fs-xs u-p-4px" aria-label="Voix"></select>
     </div>
   </div>
-  <div class="u-d-flex u-ai-center u-gap-6px u-fs-_72rem">
+  <div class="u-d-flex u-ai-center u-gap-6px u-fs-sm">
     Vitesse : <input class="u-fg-1" type="range" id="tts-rate" min="0.5" max="2" step="0.1" value="1" aria-label="Vitesse de lecture">
     <span id="tts-rate-val">1×</span>
   </div>
@@ -517,11 +517,11 @@
     </div>
     <div id="chapter-sidebar-body">
       <div class="u-d-flex u-gap-6px u-mb-6px">
-        <button class="action-btn btn-sm u-bg-h7f8c8d u-flex-1" id="back-to-library-btn" title="Retourner à la liste de tous vos manuscrits">📚 Ma bibliothèque</button>
+        <button class="action-btn btn-secondary btn-sm u-flex-1" id="back-to-library-btn" title="Retourner à la liste de tous vos manuscrits">📚 Ma bibliothèque</button>
       </div>
       <div class="u-d-flex u-gap-6px">
         <button class="action-btn u-fg-1" id="add-chapter-btn" title="Ajouter un nouveau chapitre à ce manuscrit">+ Chapitre</button>
-        <button class="action-btn u-bg-h7f8c8d" id="open-trash-btn" title="Voir les chapitres supprimés (récupérables 30 jours)">🗑️<span class="trash-badge" id="trash-badge" aria-hidden="true"></span></button>
+        <button class="action-btn btn-secondary" id="open-trash-btn" title="Voir les chapitres supprimés (récupérables 30 jours)">🗑️<span class="trash-badge" id="trash-badge" aria-hidden="true"></span></button>
       </div>
       <div class="ch-view-toggle" role="group" aria-label="Vue des chapitres">
         <button class="mode-indicator active" id="view-list-btn" title="Liste des chapitres">☰ Liste</button>
@@ -531,7 +531,7 @@
            glisser-déposer est désactivé tant qu'un filtre est actif. -->
       <div hidden class="u-d-flex u-ai-center u-gap-6px" id="chapter-filter-wrap">
         <input id="chapter-filter" type="search" class="field u-flex-1" placeholder="🔍 Filtrer les chapitres…" aria-label="Filtrer les chapitres" title="Filtrer par titre ou par étiquette">
-        <span class="u-fs-_72rem u-c-v-text-muted" id="chapter-filter-count" aria-live="polite"></span>
+        <span class="u-fs-sm u-c-v-text-muted" id="chapter-filter-count" aria-live="polite"></span>
       </div>
       <div class="chapter-list-container" id="chapter-list" role="list"></div>
       <div class="sidebar-stats">
@@ -561,12 +561,12 @@
            panneau chapitres, masqué quand on écrit), celui-ci reste
            accessible en un tap même en plein milieu d'un long chapitre,
            puisque toute cette barre est désormais collante au défilement. -->
-      <button class="action-btn btn-sm u-bg-h34495e u-d-none" id="toolbar-library-btn" title="Retour à la bibliothèque" aria-label="Retour à la bibliothèque">📚</button>
+      <button class="action-btn btn-sm u-d-none" id="toolbar-library-btn" title="Retour à la bibliothèque" aria-label="Retour à la bibliothèque">📚</button>
       <span class="u-w-1px u-h-20px u-bg-v-border u-m-0-4px u-d-none" id="toolbar-library-sep"></span>
       <!-- Mise en forme riche (nouveau V56) -->
-      <button class="action-btn btn-sm u-bg-h34495e" id="fmt-bold-btn" title="Gras (Ctrl+B)"><b>G</b></button>
-      <button class="action-btn btn-sm u-bg-h34495e" id="fmt-italic-btn" title="Italique (Ctrl+I)"><i>I</i></button>
-      <button class="action-btn btn-sm u-bg-h34495e" id="fmt-underline-btn" title="Souligné (Ctrl+U)"><u>S</u></button>
+      <button class="action-btn btn-sm" id="fmt-bold-btn" title="Gras (Ctrl+B)"><b>G</b></button>
+      <button class="action-btn btn-sm" id="fmt-italic-btn" title="Italique (Ctrl+I)"><i>I</i></button>
+      <button class="action-btn btn-sm" id="fmt-underline-btn" title="Souligné (Ctrl+U)"><u>S</u></button>
       <!-- v9.5.0 — Surlignage manuel du texte (8 couleurs), à ne pas confondre
            avec le surlignage automatique des mots faibles (🔍 Analyser le
            style, dans le menu 🛠️ Outils) : classes CSS distinctes (hl-* vs
@@ -575,21 +575,21 @@
            mobile, ce menu profite automatiquement de la feuille fixée en bas
            d'écran déjà en place pour tous les autres menus de cette barre. -->
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h34495e" title="Surligner le texte sélectionné">🖍️<span class="tb-label"> Surligner</span> ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn" title="Surligner le texte sélectionné">🖍️<span class="tb-label"> Surligner</span> ▾</button>
         <div class="toolbar-menu hl-menu" role="menu">
           <button class="hl-swatch hl-swatch-none" data-hl="none" title="Retirer le surlignage" aria-label="Retirer le surlignage">✕</button>
-          <button class="hl-swatch u-bg-hc0392b" data-hl="rouge" title="Rouge" aria-label="Surligner en rouge"></button>
-          <button class="hl-swatch u-bg-hd35400" data-hl="orange" title="Orange" aria-label="Surligner en orange"></button>
-          <button class="hl-swatch u-bg-hf39c12" data-hl="jaune" title="Jaune" aria-label="Surligner en jaune"></button>
-          <button class="hl-swatch u-bg-h27ae60" data-hl="vert" title="Vert" aria-label="Surligner en vert"></button>
-          <button class="hl-swatch u-bg-h16a085" data-hl="sarcelle" title="Sarcelle" aria-label="Surligner en sarcelle"></button>
-          <button class="hl-swatch u-bg-h2980b9" data-hl="bleu" title="Bleu" aria-label="Surligner en bleu"></button>
-          <button class="hl-swatch u-bg-h8e44ad" data-hl="violet" title="Violet" aria-label="Surligner en violet"></button>
-          <button class="hl-swatch u-bg-hc2185b" data-hl="rose" title="Rose" aria-label="Surligner en rose"></button>
+          <button class="hl-swatch" data-hl="rouge" title="Rouge" aria-label="Surligner en rouge"></button>
+          <button class="hl-swatch" data-hl="orange" title="Orange" aria-label="Surligner en orange"></button>
+          <button class="hl-swatch" data-hl="jaune" title="Jaune" aria-label="Surligner en jaune"></button>
+          <button class="hl-swatch" data-hl="vert" title="Vert" aria-label="Surligner en vert"></button>
+          <button class="hl-swatch" data-hl="sarcelle" title="Sarcelle" aria-label="Surligner en sarcelle"></button>
+          <button class="hl-swatch" data-hl="bleu" title="Bleu" aria-label="Surligner en bleu"></button>
+          <button class="hl-swatch" data-hl="violet" title="Violet" aria-label="Surligner en violet"></button>
+          <button class="hl-swatch" data-hl="rose" title="Rose" aria-label="Surligner en rose"></button>
         </div>
       </div>
-      <button class="action-btn btn-sm u-bg-h34495e" id="undo-btn" title="Annuler (Ctrl+Z)" disabled>↶</button>
-      <button class="action-btn btn-sm u-bg-h34495e" id="redo-btn" title="Rétablir (Ctrl+Y)" disabled>↷</button>
+      <button class="action-btn btn-sm" id="undo-btn" title="Annuler (Ctrl+Z)" disabled>↶</button>
+      <button class="action-btn btn-sm" id="redo-btn" title="Rétablir (Ctrl+Y)" disabled>↷</button>
       <span class="u-w-1px u-h-20px u-bg-v-border u-m-0-4px"></span>
 
       <!-- Barre d'outils regroupée en menus déroulants (v7.4.0) : moins de
@@ -597,7 +597,7 @@
       <!-- v9.47.0 (AUD-03-015) : barre regroupée — « Structure » (ex-Paragraphe + Scinder + date/heure), « Focus » en bouton
            direct, « Outils » réduit à l'analyse, la lecture, la voix, le sprint et l'export ; plus aucune icône ⓘ ici. -->
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h34495e" id="tb-structure-btn" title="Structure : titres, paragraphes, scinder le chapitre">¶<span class="tb-label"> Structure</span> ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn" id="tb-structure-btn" title="Structure : titres, paragraphes, scinder le chapitre">¶<span class="tb-label"> Structure</span> ▾</button>
         <div class="toolbar-menu">
           <button id="fmt-title-btn" title="Transformer la ligne en sous-titre">Titre</button>
           <button id="fmt-para-btn" title="Revenir à un paragraphe normal">Paragraphe normal</button>
@@ -606,10 +606,10 @@
         </div>
       </div>
 
-      <button class="action-btn btn-sm u-bg-h34495e" id="focus-btn" title="Écrire en plein écran, sans distraction (Échap pour quitter)">🎯<span class="tb-label"> Focus</span></button>
+      <button class="action-btn btn-sm" id="focus-btn" title="Écrire en plein écran, sans distraction (Échap pour quitter)">🎯<span class="tb-label"> Focus</span></button>
 
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-hc0392b" id="tb-tools-btn" title="Outils d'écriture">🛠️<span class="tb-label"> Outils</span> ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn" id="tb-tools-btn" title="Outils d'écriture">🛠️<span class="tb-label"> Outils</span> ▾</button>
         <div class="toolbar-menu">
           <button id="analyze-btn" title="Surligner les mots faibles/répétitifs dans le texte">🔍 Analyser le style</button>
           <button id="clear-btn" title="Retirer les surlignages de style (le texte n'est pas modifié)">🧹 Nettoyer les surlignages</button>
@@ -623,7 +623,7 @@
       </div>
 
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h1a1a2e" id="tb-search-btn" title="Rechercher du texte">🔎<span class="tb-label"> Rechercher</span> ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn" id="tb-search-btn" title="Rechercher du texte">🔎<span class="tb-label"> Rechercher</span> ▾</button>
         <div class="toolbar-menu">
           <button id="global-search-btn" title="Rechercher un mot dans tout le projet">Dans tout le projet</button>
           <button id="find-replace-btn" title="Rechercher et remplacer du texte dans ce chapitre">Ici, avec remplacement</button>
@@ -634,7 +634,7 @@
            bloc vers IA & Mémoire → IA sur mobile (voir relocateLexToolsForMobile()
            dans router.js). Sur PC, ce wrapper reste ici, inchangé. -->
       <div id="lex-tools-wrapper" class="u-d-flex u-ai-center u-gap-6px">
-        <button class="action-btn btn-sm u-bg-h16a085" id="lex-tools-toggle-btn" title="Synonymes et antonymes" aria-label="Synonymes et antonymes" aria-expanded="false">✨<span class="tb-label"> Mots</span> ▾</button>
+        <button class="action-btn btn-sm" id="lex-tools-toggle-btn" title="Synonymes et antonymes" aria-label="Synonymes et antonymes" aria-expanded="false">✨<span class="tb-label"> Mots</span> ▾</button>
         <div class="u-d-flex u-gap-6px" id="lex-tools-group">
           <select id="search-mode" class="field u-w-auto" aria-label="Mode dictionnaire" title="Choisir entre synonymes et antonymes">
             <option value="syn">✨ Synonymes</option><option value="ant">🌑 Antonymes</option>
@@ -645,7 +645,7 @@
       </div>
     </div>
     <div class="u-d-flex u-ai-center u-gap-10px u-mb-6px" id="chapter-title-row">
-      <div class="u-fs-1_45rem u-fwt-700 u-c-v-accent u-outline-none u-minh-28px u-fg-1" id="chapter-title" contenteditable="true" role="textbox" aria-label="Titre" title="Cliquez pour renommer ce chapitre"></div>
+      <div class="u-fs-1_45rem u-fwt-700 u-c-title u-outline-none u-minh-28px u-fg-1" id="chapter-title" contenteditable="true" role="textbox" aria-label="Titre" title="Cliquez pour renommer ce chapitre"></div>
       <button class="mode-indicator u-fsh-0" id="chapter-notes-toggle-btn" title="Objectif de mots et notes de recherche pour ce chapitre">📓 Notes</button>
       <select id="chapter-status-sel" class="field u-w-auto u-fsh-0" aria-label="Statut du chapitre" title="Statut d'avancement de ce chapitre">
         <option value="draft">📝 Brouillon</option>
@@ -655,11 +655,11 @@
     </div>
     <div id="chapter-notes-panel" class="u-d-none u-mb-10px">
       <div class="u-d-flex u-ai-center u-gap-8px u-mb-6px">
-        <label class="u-fs-_75rem u-c-v-text-muted" for="chapter-word-goal-input">🎯 Objectif de mots (ce chapitre)</label>
+        <label class="u-fs-sm u-c-v-text-muted" for="chapter-word-goal-input">🎯 Objectif de mots (ce chapitre)</label>
         <input type="number" id="chapter-word-goal-input" class="field u-w-90px" min="0" step="100" placeholder="0">
-        <span class="u-fs-_72rem u-c-v-text-muted" id="chapter-word-goal-progress"></span>
+        <span class="u-fs-sm u-c-v-text-muted" id="chapter-word-goal-progress"></span>
       </div>
-      <label class="u-fs-_75rem u-c-v-text-muted u-d-block u-mb-4px" for="chapter-research-notes">📓 Notes de recherche</label>
+      <label class="u-fs-sm u-c-v-text-muted u-d-block u-mb-4px" for="chapter-research-notes">📓 Notes de recherche</label>
       <textarea id="chapter-research-notes" class="field u-w-100pc" rows="3" placeholder="Prononciation, faits historiques, références..."></textarea>
     </div>
     <div id="writer" contenteditable="true" role="textbox" aria-multiline="true"
@@ -667,11 +667,11 @@
     <div id="corkboard-view" class="corkboard u-d-none" role="list" aria-label="Tableau de fiches des chapitres"></div>
     <div id="ai-summary-panel" role="dialog" aria-label="Résumé IA">
       <div class="u-d-flex u-jc-space-between u-ai-center">
-        <strong class="u-fs-_82rem">✨ Résumé IA</strong>
+        <strong class="u-fs-base">✨ Résumé IA</strong>
         <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="ai-panel-close" title="Fermer">×</button>
       </div>
       <div id="ai-summary-text" aria-live="polite"></div>
-      <button class="action-btn btn-sm u-bg-h8e44ad" id="ai-summary-copy" title="Copier ce résumé dans le presse-papier">📋 Copier résumé</button>
+      <button class="action-btn btn-secondary btn-sm" id="ai-summary-copy" title="Copier ce résumé dans le presse-papier">📋 Copier résumé</button>
     </div>
 
     <div id="lex-panel" role="dialog" aria-label="Synonymes et antonymes">
@@ -679,45 +679,45 @@
         <span id="lex-panel-title">✨ Synonymes</span>
         <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="lex-panel-close" aria-label="Fermer" title="Fermer">×</button>
       </div>
-      <div class="u-fs-_7rem u-c-v-text-muted" id="lex-panel-word"></div>
+      <div class="u-fs-xs u-c-v-text-muted" id="lex-panel-word"></div>
       <div id="lex-words"></div>
-      <div class="u-fs-_68rem u-c-v-text-muted">Cliquer sur un mot pour l'insérer à la position du curseur</div>
+      <div class="u-fs-xs u-c-v-text-muted">Cliquer sur un mot pour l'insérer à la position du curseur</div>
     </div>
 
     <div id="fr-panel" role="dialog" aria-label="Rechercher et remplacer">
       <div class="u-d-flex u-jc-space-between u-ai-center">
-        <strong class="u-fs-_82rem">🔁 Rechercher / Remplacer</strong>
+        <strong class="u-fs-base">🔁 Rechercher / Remplacer</strong>
         <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="fr-panel-close" aria-label="Fermer" title="Fermer">×</button>
       </div>
       <input id="fr-find-input" class="field" placeholder="Rechercher...">
       <input id="fr-replace-input" class="field" placeholder="Remplacer par...">
-      <div class="u-d-flex u-gap-10px u-fw-wrap u-fs-_72rem">
+      <div class="u-d-flex u-gap-10px u-fw-wrap u-fs-sm">
         <label class="u-d-flex u-ai-center u-gap-6px u-cur-pointer" title="Distinguer majuscules et minuscules"><input type="checkbox" id="fr-case-cb"> Respecter la casse</label>
         <label class="u-d-flex u-ai-center u-gap-6px u-cur-pointer" title="Ne pas trouver le texte à l'intérieur d'un autre mot"><input type="checkbox" id="fr-word-cb"> Mot entier</label>
         <label class="u-d-flex u-ai-center u-gap-6px u-cur-pointer" title="« Tout remplacer » agit sur tous les chapitres (avec confirmation et copie de sauvegarde)"><input type="checkbox" id="fr-all-cb"> Tout le manuscrit</label>
       </div>
       <div class="u-d-flex u-gap-6px u-fw-wrap u-ai-center">
         <button class="action-btn btn-sm" id="fr-next-btn" title="Aller à l'occurrence suivante">Suivant</button>
-        <button class="action-btn btn-sm u-bg-h8e44ad" id="fr-replace-btn" title="Remplacer uniquement cette occurrence">Remplacer</button>
-        <button class="action-btn btn-sm u-bg-v-danger" id="fr-replace-all-btn" title="Remplacer toutes les occurrences (chapitre courant, ou tout le manuscrit si la case est cochée)">Tout remplacer</button>
+        <button class="action-btn btn-secondary btn-sm" id="fr-replace-btn" title="Remplacer uniquement cette occurrence">Remplacer</button>
+        <button class="action-btn btn-danger btn-sm" id="fr-replace-all-btn" title="Remplacer toutes les occurrences (chapitre courant, ou tout le manuscrit si la case est cochée)">Tout remplacer</button>
       </div>
-      <span class="u-fs-_7rem u-c-v-text-muted" id="fr-status">Aucun résultat</span>
-      <div class="u-fs-_66rem u-c-v-text-muted">Ne remplace pas les occurrences qui chevauchent une mise en forme (gras/italique).</div>
+      <span class="u-fs-xs u-c-v-text-muted" id="fr-status">Aucun résultat</span>
+      <div class="u-fs-xs u-c-v-text-muted">Ne remplace pas les occurrences qui chevauchent une mise en forme (gras/italique).</div>
     </div>
 
     <div id="ai-chat-panel" role="dialog" aria-label="Assistant IA">
       <div class="u-d-flex u-jc-space-between u-ai-center">
-        <strong class="u-fs-_82rem">🤖 Assistant IA</strong>
+        <strong class="u-fs-base">🤖 Assistant IA</strong>
         <div class="u-d-flex u-gap-4px">
           <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1rem" id="ai-chat-reset-btn" title="Nouvelle conversation">🔄</button>
           <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="ai-chat-close-btn" aria-label="Fermer" title="Fermer">×</button>
         </div>
       </div>
-      <label class="u-d-flex u-ai-center u-gap-6px u-fs-_68rem u-c-v-text-muted">
+      <label class="u-d-flex u-ai-center u-gap-6px u-fs-xs u-c-v-text-muted">
         <input type="checkbox" id="ai-chat-ctx-chapter" checked> Contexte : chapitre actuel
       </label>
-      <div class="u-fs-_66rem u-c-v-text-muted" id="ai-chat-ctx-note"></div>
-      <label class="u-d-flex u-ai-center u-gap-6px u-fs-_68rem u-c-v-text-muted">
+      <div class="u-fs-xs u-c-v-text-muted" id="ai-chat-ctx-note"></div>
+      <label class="u-d-flex u-ai-center u-gap-6px u-fs-xs u-c-v-text-muted">
         <input type="checkbox" id="ai-chat-ctx-chars"> Contexte : fiche des personnages
       </label>
       <div id="ai-chat-messages"></div>
@@ -730,18 +730,18 @@
 
     <div id="mode-bar">
       <div id="save-indicator" aria-hidden="true"></div>
-      <span class="u-fs-_7rem u-c-v-text-muted" id="autosave-label"></span>
+      <span class="u-fs-xs u-c-v-text-muted" id="autosave-label"></span>
       <button hidden class="mode-indicator" id="sprint-chip" title="Sprint en cours : ouvrir Config → Sprint"><span aria-hidden="true">⏱</span> <span id="sprint-chip-time">25:00</span> · <span id="sprint-chip-words">+0</span> mots</button>
       <span class="u-d-flex u-ai-center u-gap-4px" id="sync-status-dot-wrap" title="État de la dernière synchronisation">
         <span id="sync-status-dot" aria-hidden="true"></span>
-        <span class="u-fs-_66rem u-c-v-text-muted" id="sync-status-label"></span>
+        <span class="u-fs-xs u-c-v-text-muted" id="sync-status-label"></span>
       </span>
       <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre"><span aria-hidden="true">🌙</span><span class="mb-label"> Nuit</span></button>
       <button class="mode-indicator" id="dictate-btn" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro"><span aria-hidden="true">🎤</span><span class="mb-label"> Dictée</span></button>
       <button class="mode-indicator" id="ai-chat-btn" title="Discuter avec l'assistant IA"><span aria-hidden="true">🤖</span><span class="mb-label"> IA</span></button>
-      <span class="u-fs-_7rem u-c-v-text-muted" id="dictate-status"></span>
+      <span class="u-fs-xs u-c-v-text-muted" id="dictate-status"></span>
       <span id="dictate-preview" aria-live="polite"></span>
-      <button class="u-d-none u-bg-linear-gradient-135deg-v-acc-1qh64 u-c-hfff u-bd-none u-p-5px-14px u-br-20px u-cur-pointer u-fs-_72rem u-fwt-700 u-ff-inherit u-shadow-0-2px-8px-rgb19257433" id="install-app-btn" title="Installer Plume comme application sur cet ordinateur">📲 Installer sur le bureau</button>
+      <button class="u-d-none u-bg-linear-gradient-135deg-v-acc-1qh64 u-c-hfff u-bd-none u-p-5px-14px u-br-pill u-cur-pointer u-fs-sm u-fwt-700 u-ff-inherit u-shadow-elev-1" id="install-app-btn" title="Installer Plume comme application sur cet ordinateur">📲 Installer sur le bureau</button>
       <button id="shortcuts-hint-btn" class="mode-indicator u-ml-auto u-p-2px-8px" title="Aide et raccourcis clavier (touche ?)" aria-label="Aide et raccourcis">❔<span class="mb-label"> Aide</span></button>
     </div>
   </div>
@@ -751,7 +751,7 @@
   <div id="panel-resizer" role="separator" aria-orientation="vertical" aria-label="Redimensionner le volet (flèches gauche/droite)" tabindex="0" aria-valuemin="320"></div>
   <div id="panel-head">
     <strong id="panel-title"></strong>
-    <button class="action-btn btn-sm u-bg-h7f8c8d" id="panel-close-btn" title="Fermer le volet (Échap)" aria-label="Fermer le volet"><span class="pc-x" aria-hidden="true">✕ Fermer</span><span class="pc-back">← Retour au texte</span></button>
+    <button class="action-btn btn-secondary btn-sm" id="panel-close-btn" title="Fermer le volet (Échap)" aria-label="Fermer le volet"><span class="pc-x" aria-hidden="true">✕ Fermer</span><span class="pc-back">← Retour au texte</span></button>
   </div>
 
   <!-- CATÉGORIE : Univers narratif (nouveau v7.4.0 — regroupe 5 anciens onglets) -->
@@ -820,8 +820,8 @@
         <input id="tl-event-date" class="field u-w-105px" placeholder="Date / Moment">
         <select id="tl-chapter-sel" class="field u-maxw-135px"></select>
         <button class="action-btn btn-sm" id="tl-add-btn" title="Ajouter cet événement à la chronologie">+ Ajouter</button>
-        <button class="action-btn btn-sm u-bg-h7f8c8d u-d-none" id="tl-cancel-edit-btn" title="Abandonner la modification en cours">Annuler</button>
-        <button class="action-btn btn-sm u-bg-h7f8c8d" id="tl-sort-btn" title="Classer les événements selon l'ordre des chapitres (ceux sans chapitre vont à la fin)">↕ Trier selon les chapitres</button>
+        <button class="action-btn btn-secondary btn-sm u-d-none" id="tl-cancel-edit-btn" title="Abandonner la modification en cours">Annuler</button>
+        <button class="action-btn btn-secondary btn-sm" id="tl-sort-btn" title="Classer les événements selon l'ordre des chapitres (ceux sans chapitre vont à la fin)">↕ Trier selon les chapitres</button>
       </div>
       <div id="timeline-container">
         <div id="timeline-track">
@@ -835,10 +835,10 @@
       <div id="graph-controls">
         <button class="action-btn btn-sm" id="graph-rebuild-btn" title="Reconstruire le graphe des relations entre personnages, lieux et quêtes">🔄 Reconstruire</button>
         <div class="graph-legend">
-          <span><span class="legend-dot u-bg-hc0392b"></span>Perso</span>
-          <span><span class="legend-dot u-bg-h2980b9"></span>Lieu</span>
-          <span><span class="legend-dot u-bg-h27ae60"></span><span id="graph-legend-quest-label">Quête</span></span>
-          <span><span class="legend-dot u-bg-hf39c12"></span>Chapitre</span>
+          <span><span class="legend-dot legend-chars"></span>Perso</span>
+          <span><span class="legend-dot legend-places"></span>Lieu</span>
+          <span><span class="legend-dot legend-quests"></span><span id="graph-legend-quest-label">Quête</span></span>
+          <span><span class="legend-dot legend-chapters"></span>Chapitre</span>
         </div>
       </div>
       <div id="graph-container"><svg id="graph-svg"></svg></div>
@@ -854,34 +854,34 @@
 
     <div id="tab-ai" class="subtab-content active" role="tabpanel">
       <div class="u-d-flex u-gap-10px u-fw-wrap">
-        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-14px u-bd-1px-solid-v-border">
+        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-14px u-bd-1px-solid-v-border">
           <strong>✨ Résumé du chapitre</strong>
-          <p class="u-fs-_75rem u-op-_7 u-m-5px-0">Résumé en 3-5 phrases du chapitre ouvert.</p>
+          <p class="u-fs-sm u-op-_7 u-m-5px-0">Résumé en 3-5 phrases du chapitre ouvert.</p>
           <button class="action-btn btn-sm" id="ai-summary-btn" title="Demander à l'IA un résumé du chapitre">Résumer</button>
         </div>
-        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-14px u-bd-1px-solid-v-border">
+        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-14px u-bd-1px-solid-v-border">
           <strong>💬 Discuter de la sélection</strong>
-          <p class="u-fs-_75rem u-op-_7 u-m-5px-0">Envoie le texte sélectionné dans l'éditeur au chat IA.</p>
+          <p class="u-fs-sm u-op-_7 u-m-5px-0">Envoie le texte sélectionné dans l'éditeur au chat IA.</p>
           <button class="action-btn btn-sm" id="ai-selection-to-chat-btn" title="Envoyer le passage sélectionné à l'assistant IA">Discuter</button>
         </div>
-        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-14px u-bd-1px-solid-v-border">
+        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-14px u-bd-1px-solid-v-border">
           <strong>💡 Continuation</strong>
-          <p class="u-fs-_75rem u-op-_7 u-m-5px-0">3 façons de poursuivre.</p>
+          <p class="u-fs-sm u-op-_7 u-m-5px-0">3 façons de poursuivre.</p>
           <button class="action-btn btn-sm" id="ai-continue-btn" title="Demander à l'IA 3 idées pour poursuivre le chapitre">Générer</button>
-          <div class="u-mt-8px u-fs-_78rem u-lh-1_6" id="ai-continue-result"></div>
+          <div class="u-mt-8px u-fs-sm u-lh-1_6" id="ai-continue-result"></div>
         </div>
-        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-14px u-bd-1px-solid-v-border">
+        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-14px u-bd-1px-solid-v-border">
           <strong>🔍 Incohérences</strong>
-          <p class="u-fs-_75rem u-op-_7 u-m-5px-0">Croise Personnages & texte. L'écran indique toujours ce qui a été lu.</p>
+          <p class="u-fs-sm u-op-_7 u-m-5px-0">Croise Personnages & texte. L'écran indique toujours ce qui a été lu.</p>
           <select id="ai-check-scope" class="field u-w-100pc u-mb-6px" title="Portée de l'analyse" aria-describedby="ai-check-scope-help">
             <option value="chapter">Ce chapitre</option>
             <option value="novel">Tout le roman</option>
           </select>
-          <p class="u-fs-_72rem u-op-_7 u-m-0-0-6px" id="ai-check-scope-help">Un chapitre : comparé aux fiches. Tout le roman : plusieurs appels IA.</p>
+          <p class="u-fs-sm u-op-_7 u-m-0-0-6px" id="ai-check-scope-help">Un chapitre : comparé aux fiches. Tout le roman : plusieurs appels IA.</p>
           <button class="action-btn btn-sm" id="ai-check-btn" title="Demander à l'IA de repérer des incohérences avec vos personnages">Analyser</button>
-          <div class="u-mt-8px u-fs-_78rem u-lh-1_6" id="ai-check-result"></div>
+          <div class="u-mt-8px u-fs-sm u-lh-1_6" id="ai-check-result"></div>
         </div>
-        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-14px u-bd-1px-solid-v-border">
+        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-14px u-bd-1px-solid-v-border">
           <strong>✨ Générateur de noms</strong>
           <div class="u-d-flex u-gap-6px u-m-6px-0 u-fw-wrap">
             <select id="name-genre-sel" class="field u-w-auto">
@@ -893,15 +893,15 @@
             </select>
           </div>
           <button class="action-btn btn-sm" id="ai-names-btn" title="Demander à l'IA de proposer des noms de personnages">Générer</button>
-          <div class="u-mt-8px u-fs-_78rem u-lh-1_8" id="ai-names-result"></div>
+          <div class="u-mt-8px u-fs-sm u-lh-1_8" id="ai-names-result"></div>
         </div>
         <!-- v9.2.3 — Point d'ancrage mobile uniquement : sur PC, reste vide
              (Synonymes/Antonymes reste dans la barre d'outils). Sur mobile,
              router.js y déplace #lex-tools-wrapper au chargement (voir
              relocateLexToolsForMobile()). -->
-        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-14px u-bd-1px-solid-v-border u-d-none" id="ia-lex-tools-mount">
+        <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-14px u-bd-1px-solid-v-border u-d-none" id="ia-lex-tools-mount">
           <strong>✨ Synonymes / Antonymes</strong>
-          <p class="u-fs-_75rem u-op-_7 u-m-5px-0">Tapez un mot, choisissez synonymes ou antonymes.</p>
+          <p class="u-fs-sm u-op-_7 u-m-5px-0">Tapez un mot, choisissez synonymes ou antonymes.</p>
         </div>
       </div>
     </div>
@@ -909,15 +909,15 @@
     <div id="tab-memory" class="subtab-content" role="tabpanel">
       <div class="u-d-flex u-gap-8px u-ai-center u-fw-wrap u-mb-6px">
         <strong>&#129504; Memoire Narrative</strong>
-        <button class="action-btn btn-sm u-bg-h16a085" id="memory-index-btn" title="Analyser tout le roman pour permettre les recherches ci-dessous">&#128260; Indexer le roman</button>
-        <span class="u-fs-_72rem u-c-v-text-muted" id="memory-index-status"></span>
+        <button class="action-btn btn-secondary btn-sm" id="memory-index-btn" title="Analyser tout le roman pour permettre les recherches ci-dessous">&#128260; Indexer le roman</button>
+        <span class="u-fs-sm u-c-v-text-muted" id="memory-index-status"></span>
       </div>
       <div class="u-d-flex u-gap-8px u-mb-10px">
         <input id="memory-query-input" class="field u-flex-1" placeholder="Que portait Lea au ch.3 ? Ou est mentionne le chateau ?">
         <button class="action-btn" id="memory-query-btn" title="Poser une question sur le contenu du roman">&#128269; Interroger</button>
       </div>
       <div class="u-fg-1 u-ovy-auto u-d-flex u-fd-column u-gap-8px" id="memory-results">
-        <div class="u-op-_5 u-fs-_82rem u-ta-center u-p-20px">
+        <div class="u-op-72 u-fs-base u-ta-center u-p-20px">
           Indexez d'abord votre roman, puis posez n'importe quelle question sur votre texte.
         </div>
       </div>
@@ -941,7 +941,7 @@
     <div id="tab-wordcloud" class="subtab-content" role="tabpanel">
       <div id="wordcloud-controls">
         <button class="action-btn btn-sm" id="wc-gen-btn" title="Créer le nuage à partir des mots les plus fréquents">🔄 Générer</button>
-        <label class="u-fs-_78rem u-d-flex u-ai-center u-gap-4px u-cur-pointer">
+        <label class="u-fs-sm u-d-flex u-ai-center u-gap-4px u-cur-pointer">
           <input type="checkbox" id="wc-all-chapters"> Tout le projet
         </label>
       </div>
@@ -953,14 +953,14 @@
       <div id="analytics-global" class="analytics-grid"></div>
       <div class="u-d-flex u-gap-12px u-fw-wrap u-fg-1 u-ov-hidden">
         <div class="u-flex-1 u-minw-200px u-ovy-auto">
-          <strong class="u-fs-_82rem">Longueur par chapitre</strong>
+          <strong class="u-fs-base">Longueur par chapitre</strong>
           <div class="u-mt-8px" id="analytics-bars"></div>
         </div>
         <div class="u-flex-1 u-minw-200px">
-          <strong class="u-fs-_82rem">Lisibilité Flesch-Kincaid</strong>
+          <strong class="u-fs-base">Lisibilité Flesch-Kincaid</strong>
           <div id="analytics-flesch" class="flesch-gauge u-mt-10px"></div>
           <hr class="u-bdc-v-border u-m-10px-0">
-          <strong class="u-fs-_82rem">Densité dialogue vs narration</strong>
+          <strong class="u-fs-base">Densité dialogue vs narration</strong>
           <div class="u-h-140px u-mt-8px"><canvas id="dialogChart"></canvas></div>
         </div>
       </div>
@@ -968,7 +968,7 @@
 
     <div id="tab-map" class="subtab-content" role="tabpanel">
       <div class="db-grid">
-        <div><strong>Tension narrative</strong><br><small class="u-op-_6">Curseur dans la sidebar</small></div>
+        <div><strong>Tension narrative</strong><br><small class="u-op-75">Curseur dans la sidebar</small></div>
         <div class="u-h-280px"><canvas id="tensionChart"></canvas></div>
       </div>
     </div>
@@ -985,13 +985,13 @@
       <div class="u-d-flex u-gap-8px u-ai-center u-fw-wrap">
         <strong>Versions automatiques : chapitre courant</strong>
         <button class="action-btn btn-sm" id="snapshot-btn" title="Enregistrer une copie du chapitre actuel dans l'historique">📸 Enregistrer une version</button>
-        <button class="action-btn btn-sm u-bg-h2980b9" id="open-diff-btn" title="Comparer deux versions du chapitre">↔ Comparer versions</button>
+        <button class="action-btn btn-secondary btn-sm" id="open-diff-btn" title="Comparer deux versions du chapitre">↔ Comparer versions</button>
       </div>
       <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-5px" id="snapshot-list"></div>
     </div>
 
     <div id="tab-plugins" class="subtab-content" role="tabpanel">
-      <strong class="u-fs-_85rem">🔌 Plugins actifs</strong>
+      <strong class="u-fs-base">🔌 Plugins actifs</strong>
       <div class="u-d-grid u-gtc-repeat-auto-fill-minmax-200px-1fr u-gap-10px u-mt-10px" id="plugins-grid"></div>
     </div>
   </div>
@@ -1011,11 +1011,11 @@
         <option value="polar">Polar / thriller</option>
         <option value="essai">Essai / non-fiction</option>
       </select>
-      <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-0">Adapte le vocabulaire de l'app (ex. "Quêtes" → "Intrigues" pour un roman contemporain). N'affecte aucune donnée.</p>
+      <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-0">Adapte le vocabulaire de l'app (ex. "Quêtes" → "Intrigues" pour un roman contemporain). N'affecte aucune donnée.</p>
     </div>
     <hr class="u-bdc-v-border u-m-10px-0">
     <strong>🎨 Apparence</strong>
-    <div class="u-fs-_78rem u-c-v-text-muted u-m-10px-0-8px">Palette de couleurs</div>
+    <div class="u-fs-sm u-c-v-text-muted u-m-10px-0-8px">Palette de couleurs</div>
     <div class="u-d-flex u-gap-9px u-fw-wrap u-mb-14px" id="palette-picker">
       <button class="palette-swatch" data-palette="rouge-violet" title="Rouge &amp; Violet" aria-label="Rouge &amp; Violet"><span></span><span></span></button>
       <button class="palette-swatch" data-palette="bleu-ocean" title="Bleu Océan" aria-label="Bleu Océan"><span></span><span></span></button>
@@ -1023,26 +1023,26 @@
       <button class="palette-swatch" data-palette="rose-poudre" title="Rose Poudré" aria-label="Rose Poudré"><span></span><span></span></button>
       <button class="palette-swatch" data-palette="ardoise" title="Ardoise" aria-label="Ardoise"><span></span><span></span></button>
     </div>
-    <div class="u-fs-_78rem u-c-v-text-muted u-m-0-0-8px">Thème</div>
+    <div class="u-fs-sm u-c-v-text-muted u-m-0-0-8px">Thème</div>
     <div class="u-d-flex u-gap-8px u-mb-14px" id="theme-picker">
       <button class="mode-indicator" data-theme="light" title="Thème clair">☀️ Clair</button>
       <button class="mode-indicator" data-theme="dark" title="Thème sombre">🌙 Sombre</button>
       <button class="mode-indicator" data-theme="paper" title="Thème papier/sépia">📜 Papier</button>
     </div>
-    <div class="u-fs-_78rem u-c-v-text-muted u-m-0-0-8px">Police d'écriture</div>
+    <div class="u-fs-sm u-c-v-text-muted u-m-0-0-8px">Police d'écriture</div>
     <div class="u-d-flex u-fd-column u-gap-6px u-mb-6px" id="font-picker">
       <div class="font-option" data-font="palatino" tabindex="0" role="radio" title="Police par défaut"><span class="font-dot"></span><span class="u-ff-palatino-linotype-georgia-serif">Palatino / Georgia (défaut)</span></div>
       <div class="font-option" data-font="times" tabindex="0" role="radio" title="Times New Roman"><span class="font-dot"></span><span class="u-ff-times-new-roman-times-serif">Times New Roman</span></div>
       <div class="font-option" data-font="verdana" tabindex="0" role="radio" title="Verdana, sans-serif"><span class="font-dot"></span><span class="u-ff-verdana-arial-sans-serif">Verdana (sans-serif)</span></div>
       <div class="font-option" data-font="courier" tabindex="0" role="radio" title="Courier New, façon machine à écrire"><span class="font-dot"></span><span class="u-ff-courier-new-courier-monospace">Courier New (machine à écrire)</span></div>
     </div>
-    <div class="u-fs-_78rem u-c-v-text-muted u-m-10px-0-8px">Taille de l'interface</div>
+    <div class="u-fs-sm u-c-v-text-muted u-m-10px-0-8px">Taille de l'interface</div>
     <div class="u-d-flex u-gap-8px u-fw-wrap u-mb-6px" id="uiscale-picker" role="group" aria-label="Taille de l'interface">
       <button class="mode-indicator" data-scale="normal">Normale</button>
       <button class="mode-indicator" data-scale="grand">Grande</button>
       <button class="mode-indicator" data-scale="tres-grand">Très grande</button>
     </div>
-    <div class="u-fs-_78rem u-c-v-text-muted u-m-10px-0-8px">Largeur du texte</div>
+    <div class="u-fs-sm u-c-v-text-muted u-m-10px-0-8px">Largeur du texte</div>
     <div class="u-d-flex u-gap-8px u-fw-wrap u-mb-6px" id="textwidth-picker" role="group" aria-label="Largeur du texte">
       <button class="mode-indicator" data-width="etroite">Étroite</button>
       <button class="mode-indicator" data-width="normale">Normale</button>
@@ -1069,20 +1069,20 @@
         <input type="number" id="weekly-goal-input" class="field u-w-90px" min="100" step="100">
         <span>mots/semaine</span>
       </div>
-      <div class="u-bg-v-item-bg u-br-8px u-h-8px u-ov-hidden u-mt-4px">
-        <div class="u-h-100pc u-bg-linear-gradient-90deg-h2980b-edz37 u-br-8px u-tr-width-_5s u-w-0" id="week-goal-bar"></div>
+      <div class="u-bg-v-item-bg u-br-2 u-h-8px u-ov-hidden u-mt-4px">
+        <div class="u-h-100pc u-bg-linear-gradient-90deg-h2980b-edz37 u-br-2 u-tr-width u-w-0" id="week-goal-bar"></div>
       </div>
-      <span class="u-fs-_72rem u-c-v-text-muted" id="week-goal-label"></span>
+      <span class="u-fs-sm u-c-v-text-muted" id="week-goal-label"></span>
     </div>
     <div class="u-mt-10px">
       <div class="u-d-flex u-ai-center u-gap-8px">
         <input type="number" id="monthly-goal-input" class="field u-w-90px" min="100" step="100">
         <span>mots/mois</span>
       </div>
-      <div class="u-bg-v-item-bg u-br-8px u-h-8px u-ov-hidden u-mt-4px">
-        <div class="u-h-100pc u-bg-linear-gradient-90deg-h8e44a-10w4i u-br-8px u-tr-width-_5s u-w-0" id="month-goal-bar"></div>
+      <div class="u-bg-v-item-bg u-br-2 u-h-8px u-ov-hidden u-mt-4px">
+        <div class="u-h-100pc u-bg-linear-gradient-90deg-h8e44a-10w4i u-br-2 u-tr-width u-w-0" id="month-goal-bar"></div>
       </div>
-      <span class="u-fs-_72rem u-c-v-text-muted" id="month-goal-label"></span>
+      <span class="u-fs-sm u-c-v-text-muted" id="month-goal-label"></span>
     </div>
     <hr class="u-bdc-v-border u-m-10px-0">
     <strong>Objectif du manuscrit</strong>
@@ -1090,14 +1090,14 @@
       <input type="number" id="manuscript-goal-input" class="field u-w-90px" min="0" step="1000" placeholder="0">
       <span>mots au total</span>
     </div>
-    <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-0">0 = pas d'objectif. Affiché en barre de progression sur la carte de ce manuscrit dans la bibliothèque.</p>
-    <p class="u-fs-_78rem u-c-v-text-accent u-m-6px-0-0" id="finish-date-estimate"></p>
+    <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-0">0 = pas d'objectif. Affiché en barre de progression sur la carte de ce manuscrit dans la bibliothèque.</p>
+    <p class="u-fs-sm u-c-v-accent u-m-6px-0-0" id="finish-date-estimate"></p>
     <hr class="u-bdc-v-border u-m-10px-0">
     <strong>👤 Profil</strong>
     <div class="u-d-flex u-gap-8px u-mt-8px u-fw-wrap">
       <button class="action-btn btn-sm" id="my-profile-btn" title="Modifier votre nom, mot de passe ou question de sécurité">Mon profil</button>
-      <button class="action-btn btn-sm u-bg-h8e44ad" id="manage-profiles-btn" title="Ajouter, renommer ou supprimer des profils (administrateur)">Gérer les profils</button>
-      <button class="action-btn btn-sm u-bg-h7f8c8d" id="logout-btn" title="Fermer votre session">Se déconnecter</button>
+      <button class="action-btn btn-secondary btn-sm" id="manage-profiles-btn" title="Ajouter, renommer ou supprimer des profils (administrateur)">Gérer les profils</button>
+      <button class="action-btn btn-secondary btn-sm" id="logout-btn" title="Fermer votre session">Se déconnecter</button>
     </div>
     </div>
 
@@ -1106,7 +1106,7 @@
         <div class="u-fs-3rem u-fwt-700 u-ls-2px" id="sprint-timer" aria-live="polite">25:00</div>
         <div class="u-d-flex u-gap-8px u-jc-center u-m-12px-0">
           <button class="action-btn" id="sprint-start-btn" title="Démarrer un sprint d'écriture chronométré">▶ Démarrer</button>
-          <button class="action-btn u-bg-h7f8c8d" id="sprint-reset-btn" title="Remettre le chronomètre à zéro">↺ Reset</button>
+          <button class="action-btn btn-secondary" id="sprint-reset-btn" title="Remettre le chronomètre à zéro">↺ Reset</button>
         </div>
         Progression : <strong><span id="sprint-progress" aria-live="polite">0</span></strong> mots
       </div>
@@ -1124,8 +1124,8 @@
   <div id="focus-writer" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Écriture en mode focus" data-placeholder="Écrivez librement... (Échap pour quitter)"></div>
   <div id="focus-bar">
     <span id="focus-wordcount">0</span> mots
-    <span class="u-op-_3">|</span><span class="u-op-_55" id="focus-chapter-label"></span>
-    <span class="u-op-_3">|</span><span class="u-op-_4 u-fs-_68rem">Échap pour quitter</span>
+    <span class="u-op-_3">|</span><span class="u-op-72" id="focus-chapter-label"></span>
+    <span class="u-op-_3">|</span><span class="u-op-72 u-fs-xs">Échap pour quitter</span>
     <button id="focus-close-btn" title="Revenir à l'écriture normale">✕ Quitter</button>
   </div>
 </div>
@@ -1201,35 +1201,35 @@
 <!-- v9.2.0 — Modale de comparaison avant restauration d'une sauvegarde de
      conflit (voir compareConflictBackup() dans library.js). -->
 <div id="conflict-diff-overlay" role="dialog" aria-modal="true" aria-label="Comparer les deux versions">
-  <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-480px-92vw u-maxh-85vh u-ovy-auto">
+  <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-480px-92vw u-maxh-85vh u-ovy-auto">
     <div class="u-d-flex u-jc-space-between u-ai-center u-gap-8px">
       <strong>🔍 Modifié sur les deux appareils — <span id="conflict-diff-title"></span></strong>
       <!-- v9.3.0 — Demande explicite de l'utilisateur : pouvoir refermer pour
            y réfléchir et y revenir. Rien n'est écrasé entre-temps, la synchro
            de ce manuscrit reste en pause jusqu'à la décision. -->
-      <button class="action-btn btn-sm" id="conflict-diff-close-btn" title="Fermer sans choisir — vous pourrez y revenir" aria-label="Fermer sans choisir">✕</button>
+      <button class="action-btn btn-ghost btn-sm" id="conflict-diff-close-btn" title="Fermer sans choisir — vous pourrez y revenir" aria-label="Fermer sans choisir">✕</button>
     </div>
 
     <div class="u-d-flex u-gap-10px u-fw-wrap u-mt-12px">
-      <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-12px u-bd-1px-solid-v-border">
-        <p class="u-fs-_72rem u-c-v-text-muted u-m-0">💻 Cet appareil</p>
-        <p class="u-fs-_9rem u-fwt-700 u-m-4px-0-2px" id="conflict-diff-local-words"></p>
-        <p class="u-fs-_68rem u-c-v-text-muted u-m-0" id="conflict-diff-local-date"></p>
+      <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-12px u-bd-1px-solid-v-border">
+        <p class="u-fs-sm u-c-v-text-muted u-m-0">💻 Cet appareil</p>
+        <p class="u-fs-base u-fwt-700 u-m-4px-0-2px" id="conflict-diff-local-words"></p>
+        <p class="u-fs-xs u-c-v-text-muted u-m-0" id="conflict-diff-local-date"></p>
       </div>
-      <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-12px u-bd-1px-solid-v-border">
-        <p class="u-fs-_72rem u-c-v-text-muted u-m-0">📱 Autre appareil</p>
-        <p class="u-fs-_9rem u-fwt-700 u-m-4px-0-2px" id="conflict-diff-remote-words"></p>
-        <p class="u-fs-_68rem u-c-v-text-muted u-m-0" id="conflict-diff-remote-date"></p>
+      <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-12px u-bd-1px-solid-v-border">
+        <p class="u-fs-sm u-c-v-text-muted u-m-0">📱 Autre appareil</p>
+        <p class="u-fs-base u-fwt-700 u-m-4px-0-2px" id="conflict-diff-remote-words"></p>
+        <p class="u-fs-xs u-c-v-text-muted u-m-0" id="conflict-diff-remote-date"></p>
       </div>
     </div>
 
-    <p class="u-fs-_68rem u-c-v-text-muted u-m-12px-0-0">Rouge = présent uniquement sur cet appareil. Vert = présent uniquement sur l'autre appareil.</p>
-    <div id="conflict-diff-content" class="u-fs-_82rem u-mt-8px u-mb-14px"></div>
+    <p class="u-fs-xs u-c-v-text-muted u-m-12px-0-0">Rouge = présent uniquement sur cet appareil. Vert = présent uniquement sur l'autre appareil.</p>
+    <div id="conflict-diff-content" class="u-fs-base u-mt-8px u-mb-14px"></div>
     <div class="u-d-flex u-gap-8px u-fw-wrap">
       <button class="action-btn" id="conflict-diff-keep-local-btn" title="Conserver la version de cet appareil et l'envoyer à l'autre">💻 Garder cet appareil</button>
-      <button class="action-btn u-bg-h2980b9" id="conflict-diff-keep-backup-btn" title="Adopter la version de l'autre appareil">📱 Garder l'autre appareil</button>
+      <button class="action-btn btn-secondary" id="conflict-diff-keep-backup-btn" title="Adopter la version de l'autre appareil">📱 Garder l'autre appareil</button>
     </div>
-    <p class="u-fs-_66rem u-c-v-text-muted u-m-10px-0-0">Fermer sans choisir ne perd rien : la synchronisation de ce manuscrit reste en pause jusqu'à votre décision.</p>
+    <p class="u-fs-xs u-c-v-text-muted u-m-10px-0-0">Fermer sans choisir ne perd rien : la synchronisation de ce manuscrit reste en pause jusqu'à votre décision.</p>
   </div>
 </div>
 
