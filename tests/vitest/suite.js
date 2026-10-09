@@ -440,18 +440,18 @@
   assert(db.chapters.length === 4 && db.chapters[1].title === 'Chapitre 1 (copie)', 'duplicateChapter() insère une copie juste après l\'original');
   assert(db.chapters[1].id !== db.chapters[0].id, 'la copie reçoit un ID distinct');
 
-  const realConfirm = window.confirm;
-  window.confirm = () => true;
-  deleteChapter(db.chapters.findIndex(c => c.id === newChapterId));
+  const realConfirm = showConfirmModal;
+  showConfirmModal = async () => true; // v9.44.0 : les confirmations passent par la modale de l'app
+  await deleteChapter(db.chapters.findIndex(c => c.id === newChapterId));
   assert(db.trash.length === 1 && db.trash[0].chapter.id === newChapterId, 'deleteChapter() déplace le chapitre vers la corbeille');
   assert(!db.chapters.some(c => c.id === newChapterId), 'le chapitre supprimé n\'est plus dans la liste active');
   restoreFromTrash(0);
   assert(db.chapters.some(c => c.id === newChapterId), 'restoreFromTrash() restaure le chapitre dans la liste active');
   assert(db.trash.length === 0, 'le chapitre restauré quitte la corbeille');
-  deleteChapter(db.chapters.findIndex(c => c.id === newChapterId));
-  permanentlyPurge(0);
+  await deleteChapter(db.chapters.findIndex(c => c.id === newChapterId));
+  await permanentlyPurge(0);
   assert(db.trash.length === 0, 'permanentlyPurge() supprime définitivement un chapitre de la corbeille');
-  window.confirm = realConfirm;
+  showConfirmModal = realConfirm;
 
   // ── v9.33.0 (AUD-02-001 / 008 / 009) — texte jamais perdu ──
   group('editor.js — mode Focus, copies de chapitre, restauration (v9.33.0)');
@@ -487,9 +487,9 @@
   flushCurrentChapter();
   const snapToRestore = { ts: Date.now() - 3600000, label: 'Ancienne', content: '<p>Très ancien.</p>', title: 'Ancien' };
   db.history['f1'].push(snapToRestore);
-  const realConfirm009 = window.confirm; window.confirm = () => true;
-  restoreSnapshot('f1', db.history['f1'].length - 1);
-  window.confirm = realConfirm009;
+  const realConfirm009 = showConfirmModal; showConfirmModal = async () => true;
+  await restoreSnapshot('f1', db.history['f1'].length - 1);
+  showConfirmModal = realConfirm009;
   assert(db.chapters[0].content === '<p>Très ancien.</p>', 'restoreSnapshot() restaure bien la version choisie');
   assert(db.history['f1'].some(s => /^Manuel — Avant restauration/.test(s.label) && s.content === '<p>Texte récent à ne pas perdre.</p>'),
     'restoreSnapshot() garde l\'état écrasé comme copie manuelle « Avant restauration »');
@@ -586,12 +586,12 @@
   duplicateChapter(0);
   assert(db.chapters[1].wordGoal === 500 && db.chapters[1].researchNotes === 'notes', 'duplicateChapter() copie l\'objectif de mots et les notes de recherche');
   const idRestore = db.chapters[1].id;
-  const realConfirmD = window.confirm; window.confirm = () => true;
+  const realConfirmD = showConfirmModal; showConfirmModal = async () => true;
   cur = 0;
-  deleteChapter(1);
+  await deleteChapter(1);
   assert(db.trash[db.trash.length - 1].index === 1, 'deleteChapter() mémorise la position d\'origine');
   restoreFromTrash(db.trash.length - 1);
-  window.confirm = realConfirmD;
+  showConfirmModal = realConfirmD;
   assert(db.chapters[1].id === idRestore, 'restoreFromTrash() remet le chapitre à sa position d\'origine');
 
   // ── v9.38.0 (AUD-02-011 / 012) — quêtes et chronologie ──
@@ -659,9 +659,9 @@
   document.getElementById('writer').innerHTML = '<p>Il était triste ce jour-là.</p>';
   analyzeStyle();
   assert(/<mark>triste<\/mark>/i.test(document.getElementById('writer').innerHTML), 'analyzeStyle() surligne les mots faibles configurés');
-  window.confirm = () => true;
-  clearStyle();
-  window.confirm = realConfirm;
+  const realConfirmCS = showConfirmModal; showConfirmModal = async () => true;
+  await clearStyle();
+  showConfirmModal = realConfirmCS;
   assert(!document.getElementById('writer').innerHTML.includes('<mark>'), 'clearStyle() retire les surlignages sans altérer le texte');
   assert(document.getElementById('writer').innerHTML.includes('triste'), 'le texte original reste intact après clearStyle()');
 

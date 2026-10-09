@@ -59,10 +59,9 @@
       <button hidden class="action-btn btn-sm u-bg-hd35400" id="library-github-reminder" title="Ouvrir Système pour configurer la sauvegarde GitHub">⚠ Sauvegarde GitHub non configurée</button>
     </div>
     <div class="u-d-flex u-gap-6px u-fw-wrap" id="library-topbar-actions">
-      <button class="action-btn btn-sm u-bg-h7f8c8d" id="library-home-btn" title="Retourner à l'écran de connexion">🏠 Accueil</button>
       <button class="action-btn btn-sm" id="library-my-profile-btn" title="Modifier votre nom, mot de passe ou question de sécurité">👤 Mon profil</button>
       <button class="action-btn btn-sm u-bg-h8e44ad" id="library-manage-profiles-btn" title="Ajouter, renommer ou supprimer des profils (administrateur)">🛡️ Gérer les profils</button>
-      <button class="action-btn btn-sm u-bg-h2980b9" id="library-system-btn" title="Sauvegardes, export/import et Gist pour toute la bibliothèque">💾 Système</button>
+      <button class="action-btn btn-sm u-bg-h2980b9" id="library-system-btn" title="Sauvegardes, export/import et sauvegarde GitHub pour toute la bibliothèque">💾 Système</button>
       <button class="action-btn btn-sm u-bg-h16a085" id="library-tour-btn" title="Revoir la visite guidée de cet écran">🎓 Visite de la bibliothèque</button>
       <button class="action-btn btn-sm u-bg-h16a085" id="library-full-tour-btn" title="Visite guidée complète de toutes les fonctions de l'éditeur">🎓 Visite complète</button>
       <button class="action-btn btn-sm u-bg-h7f8c8d" id="library-logout-btn" title="Fermer votre session">🚪 Déconnexion</button>
@@ -130,15 +129,15 @@
     </div>
 
     <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
-      <strong class="u-fs-_8rem">☁️ GitHub (compte) — un seul token pour tout le compte</strong><br>
+      <strong class="u-fs-_8rem">☁️ Sauvegarde GitHub — un seul jeton d'accès pour tout le compte</strong><br>
       <div class="u-d-flex u-gap-6px u-mt-6px">
-        <input type="password" id="lib-gh-token" class="field u-flex-1" placeholder="Token GitHub" title="Mémorisé automatiquement (chiffré)">
-        <button class="action-btn btn-sm u-bg-h16a085 u-fsh-0" id="lib-verify-token-btn" title="Vérifier que ce token est valide auprès de GitHub">✅ Vérifier</button>
+        <input type="password" id="lib-gh-token" class="field u-flex-1" placeholder="Jeton d'accès GitHub" title="Mémorisé automatiquement (chiffré)">
+        <button class="action-btn btn-sm u-bg-h16a085 u-fsh-0" id="lib-verify-token-btn" title="Vérifier que ce jeton d'accès est valide auprès de GitHub">✅ Vérifier</button>
       </div>
       <p class="u-fs-_72rem u-m-6px-0-0" id="lib-token-status" aria-live="polite"></p>
       <div class="u-d-flex u-ai-center u-gap-8px u-mt-8px u-fs-_75rem u-fw-wrap">
         Sauvegarde auto (toute la bibliothèque) :
-        <select id="lib-auto-gist-interval" class="field u-w-auto" title="Fréquence de la sauvegarde Gist automatique de toute la bibliothèque">
+        <select id="lib-auto-gist-interval" class="field u-w-auto" title="Fréquence de la sauvegarde GitHub automatique de toute la bibliothèque">
           <option value="0">Désactivée</option>
           <option value="15">Toutes les 15 min</option>
           <option value="30">Toutes les 30 min</option>
@@ -149,12 +148,12 @@
       <p class="u-fs-_72rem u-c-v-accent u-m-6px-0-0" id="lib-cloud-status" aria-live="polite"></p>
 
       <hr class="u-bdc-v-border u-m-10px-0">
-      <p class="u-fs-_68rem u-c-v-text-muted u-m-0-0-4px">Gist d'un manuscrit :</p>
+      <p class="u-fs-_68rem u-c-v-text-muted u-m-0-0-4px">Sauvegarde GitHub d'un manuscrit :</p>
       <select id="lib-gist-doc-select" class="field u-w-100pc"></select>
       <div class="export-row u-jc-flex-start u-mt-8px">
         <button class="action-btn btn-sm u-bg-h2980b9" id="lib-sync-cloud-btn" title="Envoyer une sauvegarde chiffrée de ce manuscrit vers GitHub">🔄 Sauver</button>
-        <button class="action-btn btn-sm u-bg-h34495e" id="lib-load-cloud-btn" title="Récupérer la dernière sauvegarde Gist de ce manuscrit">📥 Charger</button>
-        <button class="action-btn btn-sm u-bg-h16a085" id="lib-gist-history-btn" title="Voir les anciennes versions sauvegardées de ce manuscrit">🕐 Historique</button>
+        <button class="action-btn btn-sm u-bg-h34495e" id="lib-load-cloud-btn" title="Récupérer la dernière sauvegarde GitHub de ce manuscrit">📥 Charger</button>
+        <button class="action-btn btn-sm u-bg-h16a085" id="lib-gist-history-btn" title="Voir les anciennes versions sauvegardées de ce manuscrit">🕐 Versions</button>
       </div>
       <p class="u-fs-_68rem u-c-v-text-muted u-m-6px-0-0" id="lib-doc-gist-status"></p>
     </div>
@@ -226,7 +225,7 @@
     <button class="action-btn btn-sm u-as-flex-start" id="mp-save-question-btn" title="Utile pour récupérer votre compte en cas de mot de passe oublié">Mettre à jour la question</button>
     <hr class="u-bdc-v-border u-m-6px-0">
     <strong class="u-fs-_85rem">⏱️ Rester connecté sur cet appareil</strong>
-    <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-6px">Évite de retaper le mot de passe pendant cette durée. Se déconnecter ou cliquer sur Accueil l'annule immédiatement.</p>
+    <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-6px">Évite de retaper le mot de passe pendant cette durée. Se déconnecter l'annule immédiatement.</p>
     <select id="mp-session-duration" class="field">
       <option value="0">Ne pas rester connecté</option>
       <option value="60">1 heure</option>
@@ -270,13 +269,13 @@
     </div>
     <div class="u-d-flex u-gap-10px u-fg-1 u-ov-hidden u-minh-0">
       <div class="u-w-220px u-fsh-0 u-d-flex u-fd-column u-gap-6px">
-        <strong class="u-fs-_78rem">Snapshots</strong>
+        <strong class="u-fs-_78rem">Versions</strong>
         <div id="history-list"></div>
         <button class="action-btn btn-sm u-bg-v-danger" id="history-restore-btn" disabled title="Remplacer le contenu actuel par cette ancienne version">↩ Restaurer cette version</button>
       </div>
       <div class="u-fg-1 u-d-flex u-fd-column u-gap-6px u-minw-0">
         <strong class="u-fs-_78rem">Aperçu / Diff</strong>
-        <div id="history-diff">Sélectionnez un snapshot…</div>
+        <div id="history-diff">Sélectionnez une version…</div>
       </div>
     </div>
   </div>
@@ -406,13 +405,13 @@
 </div>
 
 <!-- GIST HISTORY OVERLAY (nouveau v6.1.0) -->
-<div id="gist-history-overlay" role="dialog" aria-modal="true" aria-label="Historique Gist">
+<div id="gist-history-overlay" role="dialog" aria-modal="true" aria-label="Versions de la sauvegarde GitHub">
   <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-500px-92vw u-maxh-70vh u-d-flex u-fd-column u-gap-10px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
-      <strong>🕐 Historique du Gist</strong>
+      <strong>🕐 Versions de la sauvegarde GitHub</strong>
       <button class="action-btn btn-sm" id="gist-history-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
     </div>
-    <div class="u-fs-_7rem u-c-v-text-muted">Cliquez sur une révision pour la charger (remplace le projet actuel).</div>
+    <div class="u-fs-_7rem u-c-v-text-muted">Cliquez sur une version pour la charger (remplace le projet actuel).</div>
     <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-6px" id="gist-history-list"></div>
   </div>
 </div>
@@ -579,10 +578,11 @@
         <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-10px u-p-14px u-bd-1px-solid-v-border">
           <strong>🔍 Incohérences</strong>
           <p class="u-fs-_75rem u-op-_7 u-m-5px-0">Croise Personnages & texte. L'écran indique toujours ce qui a été lu.</p>
-          <select id="ai-check-scope" class="field u-w-auto u-mb-6px" title="Portée de l'analyse">
-            <option value="chapter">Ce chapitre (comparé aux fiches)</option>
-            <option value="novel">Tout le roman (plusieurs appels IA)</option>
+          <select id="ai-check-scope" class="field u-w-100pc u-mb-6px" title="Portée de l'analyse" aria-describedby="ai-check-scope-help">
+            <option value="chapter">Ce chapitre</option>
+            <option value="novel">Tout le roman</option>
           </select>
+          <p class="u-fs-_72rem u-op-_7 u-m-0-0-6px" id="ai-check-scope-help">Un chapitre : comparé aux fiches. Tout le roman : plusieurs appels IA.</p>
           <button class="action-btn btn-sm" id="ai-check-btn" title="Demander à l'IA de repérer des incohérences avec vos personnages">Analyser</button>
           <div class="u-mt-8px u-fs-_78rem u-lh-1_6" id="ai-check-result"></div>
         </div>
@@ -688,8 +688,8 @@
 
     <div id="tab-history" class="subtab-content active" role="tabpanel">
       <div class="u-d-flex u-gap-8px u-ai-center u-fw-wrap">
-        <strong>Snapshots auto : chapitre courant</strong>
-        <button class="action-btn btn-sm" id="snapshot-btn" title="Enregistrer une copie du chapitre actuel dans l'historique">📸 Snapshot manuel</button>
+        <strong>Versions automatiques : chapitre courant</strong>
+        <button class="action-btn btn-sm" id="snapshot-btn" title="Enregistrer une copie du chapitre actuel dans l'historique">📸 Enregistrer une version</button>
         <button class="action-btn btn-sm u-bg-h2980b9" id="open-diff-btn" title="Comparer deux versions du chapitre">↔ Comparer versions</button>
       </div>
       <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-5px" id="snapshot-list"></div>
@@ -838,7 +838,6 @@
     <div id="chapter-sidebar-body">
       <div class="u-d-flex u-gap-6px u-mb-6px">
         <button class="action-btn btn-sm u-bg-h7f8c8d u-flex-1" id="back-to-library-btn" title="Retourner à la liste de tous vos manuscrits">📚 Ma bibliothèque</button>
-        <button class="action-btn btn-sm u-bg-h7f8c8d u-flex-1" id="editor-home-btn" title="Retourner à l'écran de connexion">🏠 Accueil</button>
       </div>
       <div class="u-d-flex u-gap-6px">
         <button class="action-btn u-fg-1" id="add-chapter-btn" title="Ajouter un nouveau chapitre à ce manuscrit">+ Chapitre</button>
@@ -1125,7 +1124,6 @@
   <button id="ltop-tour" role="menuitem">🎓 Visite de la bibliothèque</button>
   <button id="ltop-full-tour" role="menuitem">🎓 Visite complète</button>
   <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
-  <button id="ltop-home" role="menuitem">🏠 Accueil</button>
   <button id="ltop-logout" role="menuitem">🚪 Déconnexion</button>
 </div>
 

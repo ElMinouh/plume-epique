@@ -443,7 +443,6 @@ function wireLibraryStaticUI() {
   document.getElementById('library-my-profile-btn').addEventListener('click', openMyProfile);
   document.getElementById('library-manage-profiles-btn').addEventListener('click', openManageProfiles);
   document.getElementById('library-logout-btn').addEventListener('click', logout);
-  document.getElementById('library-home-btn').addEventListener('click', goHome);
   // Sélecteur de couverture (v7.9.0) — élément unique, câblé une seule fois.
   document.querySelectorAll('#cover-picker-menu .cover-swatch').forEach(btn => {
     btn.addEventListener('click', () => selectCover(btn.dataset.cover));
@@ -479,7 +478,6 @@ function wireLibraryStaticUI() {
   document.getElementById('ltop-system').addEventListener('click', () => { closeLibraryTopbarMenu(); openLibrarySystemPanel(); });
   document.getElementById('ltop-tour').addEventListener('click', () => { closeLibraryTopbarMenu(); launchLibraryTour(); });
   document.getElementById('ltop-full-tour').addEventListener('click', () => { closeLibraryTopbarMenu(); launchEditorFullTour(); });
-  document.getElementById('ltop-home').addEventListener('click', () => { closeLibraryTopbarMenu(); goHome(); });
   document.getElementById('ltop-logout').addEventListener('click', () => { closeLibraryTopbarMenu(); logout(); });
   document.addEventListener('click', () => closeLibraryTopbarMenu());
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLibraryTopbarMenu(); });
@@ -530,15 +528,15 @@ function wireLibraryStaticUI() {
   document.getElementById('lib-verify-token-btn').addEventListener('click', async () => {
     _cloudToken = document.getElementById('lib-gh-token').value.trim();
     const statusEl = document.getElementById('lib-token-status');
-    if (!_cloudToken) { statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Colle un token d\'abord.'; return; }
+    if (!_cloudToken) { statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Collez d\'abord votre jeton d\'accès.'; return; }
     statusEl.style.color = 'var(--text-muted)'; statusEl.textContent = '⏳ Vérification…';
     const ok = await libVerifyToken();
     if (ok) {
-      statusEl.style.color = 'var(--success)'; statusEl.textContent = `✅ Token valide (connecté en tant que @${ok}).`; saveLibSettings();
+      statusEl.style.color = 'var(--success)'; statusEl.textContent = `✅ Jeton valide (connecté en tant que @${ok}).`; saveLibSettings();
       renderGithubReminder();
       if (_setupTourActive) await endSetupTour();
     }
-    else { statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Token invalide ou refusé par GitHub.'; }
+    else { statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Jeton invalide ou refusé par GitHub.'; }
   });
   document.getElementById('lib-auto-gist-interval').addEventListener('change', e => { _libSettings.autoGistInterval = parseInt(e.target.value)||0; saveLibSettings(); scheduleLibraryAutoBackup(); });
   document.getElementById('lib-system-doc-select').addEventListener('change', e => refreshLibSystemDocStatus(e.target.value));
@@ -1163,7 +1161,7 @@ async function touchDocListEntry(docId, mData) {
 // pour ne pas rendre illisibles les sauvegardes déjà existantes.
 async function decryptGistContent(raw) {
   let parsed;
-  try { parsed = JSON.parse(raw); } catch(e) { throw new Error('Contenu du Gist illisible.'); }
+  try { parsed = JSON.parse(raw); } catch(e) { throw new Error('Contenu de la sauvegarde GitHub illisible.'); }
   if (parsed && parsed._enc && parsed.data) {
     const dec = await Crypto.decrypt(parsed.data, _dataKey);
     if (!dec) throw new Error('Déchiffrement impossible (profil différent de celui qui a créé cette sauvegarde ?).');
@@ -1284,7 +1282,7 @@ async function libSyncManuscript(docId, opts) {
     });
     return true;
   } catch(e) {
-    if (!opts.silent) toast('Erreur Gist : ' + e.message, 'error');
+    if (!opts.silent) toast('Erreur de sauvegarde GitHub : ' + e.message, 'error');
     return false;
   }
 }
@@ -1296,7 +1294,7 @@ async function libLoadManuscript(docId) {
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     const raw = data.files && data.files["plume.json"] && data.files["plume.json"].content;
-    if (!raw) throw new Error('Fichier introuvable dans ce Gist.');
+    if (!raw) throw new Error('Fichier introuvable dans cette sauvegarde GitHub.');
     const restored = migrateDb(await decryptGistContent(raw));
     restored.gistId = mData.gistId;
     // Images (Lot 7, audit #25) : réhydrate la base locale d'images à partir
@@ -1340,7 +1338,7 @@ async function libLoadManuscript(docId) {
     }
     await persistManuscriptData(docId, restored);
     await touchDocListEntry(docId, restored);
-    toast('Manuscrit restauré depuis le Gist.', 'success');
+    toast('Manuscrit restauré depuis la sauvegarde GitHub.', 'success');
     await renderLibraryScreen();
     refreshLibSystemDocStatus(docId);
   } catch(e) { toast('Erreur : ' + e.message, 'error'); }
@@ -1363,26 +1361,26 @@ async function libOpenGistHistory(docId) {
       const date = new Date(c.committed_at).toLocaleString('fr');
       const el = document.createElement('div');
       el.className = 'history-item';
-      el.innerHTML = `<span>${i===0?'🟢 Version actuelle':'Révision'} — ${date}</span>`;
+      el.innerHTML = `<span>${i===0?'🟢 Version actuelle':'Version'} — ${date}</span>`;
       el.addEventListener('click', () => libLoadGistRevision(docId, mData.gistId, c.version));
       listEl.appendChild(el);
     });
   } catch(e) { listEl.innerHTML = `<div class="u-p-10px u-c-v-danger">❌ ${escapeHtml(e.message)}</div>`; }
 }
 async function libLoadGistRevision(docId, gistId, sha) {
-  if (!confirm('Charger cette révision remplacera ce manuscrit. Continuer ?')) return;
+  if (!(await showConfirmModal({ title: 'Charger cette version ?', message: 'Cette version remplacera le contenu de ce manuscrit.', confirmLabel: 'Charger cette version', danger: true }))) return;
   try {
     const resp = await fetchWithTimeout(`https://api.github.com/gists/${gistId}/${sha}`, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     const raw = data.files && data.files["plume.json"] && data.files["plume.json"].content;
-    if (!raw) throw new Error('Fichier introuvable dans cette révision');
+    if (!raw) throw new Error('Fichier introuvable dans cette version');
     const restored = migrateDb(await decryptGistContent(raw));
     restored.gistId = gistId;
     await persistManuscriptData(docId, restored);
     await touchDocListEntry(docId, restored);
     closeGistHistory();
-    toast('Révision restaurée.', 'success');
+    toast('Version restaurée.', 'success');
     await renderLibraryScreen();
     refreshLibSystemDocStatus(docId);
   } catch(e) { toast('Erreur : ' + e.message, 'error'); }
@@ -1406,7 +1404,7 @@ async function syncAllLibraryManuscripts(reason) {
     const list = await loadDocList();
     let failures = 0;
     for (const entry of list.documents) { if (!(await libSyncManuscript(entry.id, { silent:true }))) failures++; }
-    if (failures > 0 && !_libBackupWarned) { _libBackupWarned = true; toast('⚠️ Sauvegarde Gist auto : '+failures+' manuscrit(s) en échec (token expiré ?).', 'error'); }
+    if (failures > 0 && !_libBackupWarned) { _libBackupWarned = true; toast('⚠️ Sauvegarde GitHub auto : '+failures+' manuscrit(s) en échec (jeton expiré ?).', 'error'); }
     else if (failures === 0) _libBackupWarned = false;
     if (document.body.classList.contains('library-mode')) await renderLibraryScreen();
   } finally { _libSyncing = false; }
@@ -1456,7 +1454,7 @@ async function openLibrarySystemPanel(preselectDocId) {
   document.getElementById('library-system-overlay').classList.add('active');
 
   if (_setupTourActive) {
-    showSetupBubble('#lib-gh-token', 'Collez ici votre token GitHub personnel, puis vérifiez-le : vos manuscrits seront alors sauvegardés automatiquement, à l\'abri d\'une panne ou d\'une perte d\'appareil.', 'Sauvegarde automatique');
+    showSetupBubble('#lib-gh-token', 'Collez ici votre jeton d\'accès GitHub personnel, puis vérifiez-le : vos manuscrits seront alors sauvegardés automatiquement, à l\'abri d\'une panne ou d\'une perte d\'appareil.', 'Sauvegarde automatique');
   }
 }
 
@@ -1650,7 +1648,7 @@ async function resolveConflictKeepBackup(key, docId) {
 }
 
 async function deleteConflictBackup(key, docId) {
-  if (!confirm('Supprimer définitivement cette sauvegarde de conflit ? La version de cet appareil sera conservée et synchronisée.')) return;
+  if (!(await showConfirmModal({ title: 'Supprimer cette sauvegarde de conflit ?', message: 'La version de cet appareil sera conservée et synchronisée.', confirmLabel: 'Supprimer la sauvegarde', danger: true }))) return;
   await removeConflictBackup(key);
   // v9.3.0 — Supprimer la sauvegarde revient à trancher en faveur de cet
   // appareil : la synchro de ce manuscrit doit donc reprendre, sinon elle
@@ -1740,7 +1738,7 @@ async function refreshLibSystemDocStatus(docId) {
     const entry = list.documents.find(d => d.id === docId);
     statusEl.textContent = mData.gistId
       ? `Gist : ${mData.gistId}${entry && entry.lastGistSync ? ' · dernière sauvegarde ' + formatRelativeDate(entry.lastGistSync).replace('Modifié ','') : ''}`
-      : 'Pas encore de Gist pour ce manuscrit (créé au premier "Sauver").';
+      : 'Pas encore de sauvegarde GitHub pour ce manuscrit (créée au premier « Sauver »).';
   } catch(e) { statusEl.textContent = ''; }
 }
 async function libExportCurrent() {

@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.43.0';
+const APP_VERSION = '9.44.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1265,7 +1265,6 @@ function wireAppEventListenersOnce(){
   document.getElementById('add-chapter-btn').addEventListener('click',addChapter);
   document.getElementById('document-title').addEventListener('blur',e=>updateDocumentTitle(e.target.innerText.trim()));
   document.getElementById('back-to-library-btn').addEventListener('click',backToLibrary);
-  document.getElementById('editor-home-btn').addEventListener('click',goHome);
   // v9.0.0 — Bouton "retour bibliothèque" toujours visible sur mobile (voir
   // index.html) : même fonction que #back-to-library-btn, pas de nouvelle
   // logique.
@@ -1420,6 +1419,9 @@ function wireAppEventListenersOnce(){
   document.getElementById('mp-save-name-btn').addEventListener('click',saveMyName);
   document.getElementById('mp-save-pwd-btn').addEventListener('click',saveMyPassword);
   document.getElementById('mp-save-question-btn').addEventListener('click',saveMyQuestion);
+  // v9.44.0 (AUD-03-023) : Entrée valide aussi dans « Mon profil ».
+  [['mp-my-name','mp-save-name-btn'],['mp-new-pwd2','mp-save-pwd-btn'],['mp-my-answer','mp-save-question-btn']].forEach(([i,b])=>
+    document.getElementById(i).addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); document.getElementById(b).click(); } }));
   document.getElementById('my-profile-close-btn').addEventListener('click',closeMyProfile);
   document.getElementById('manage-profiles-close-btn').addEventListener('click',closeManageProfiles);
   document.getElementById('manage-add-profile-btn').addEventListener('click',adminAddProfile);

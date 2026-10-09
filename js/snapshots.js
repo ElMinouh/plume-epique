@@ -76,7 +76,7 @@ function snapshotRowHtml(snap) {
 function renderHistoryTab() {
   const key = db.chapters[cur]?.id, snaps = (key && db.history[key]) || [];
   const list = document.getElementById('snapshot-list');
-  list.innerHTML = snaps.length ? '' : '<div class="u-op-_5 u-fs-_8rem u-p-10px">Aucun snapshot pour ce chapitre.</div>';
+  list.innerHTML = snaps.length ? '' : '<div class="u-op-_5 u-fs-_8rem u-p-10px">Aucune version pour ce chapitre.</div>';
   snaps.forEach((snap, i) => {
     const el = document.createElement('div');
     el.className = 'history-item';
@@ -96,7 +96,7 @@ function openDiffViewer(preselectIdx) {
   const key = db.chapters[cur]?.id, snaps = (key && db.history[key]) || [];
   document.getElementById('history-chapter-name').textContent = db.chapters[cur].title;
   const list = document.getElementById('history-list');
-  list.innerHTML = snaps.length ? '' : '<div class="u-op-_5 u-fs-_8rem">Aucun snapshot.</div>';
+  list.innerHTML = snaps.length ? '' : '<div class="u-op-_5 u-fs-_8rem">Aucune version.</div>';
   const rows = [];
   snaps.forEach((snap, i) => {
     const el = document.createElement('div');
@@ -121,8 +121,8 @@ function selectDiffSnapshot(key, idx, el, rows) {
   document.getElementById('history-restore-btn').onclick = () => restoreSnapshot(key, idx);
 }
 
-function restoreSnapshot(key, idx) {
-  if (!confirm('Restaurer cette version ? Le contenu actuel sera remplacé.')) return;
+async function restoreSnapshot(key, idx) {
+  if (!(await showConfirmModal({ title: 'Restaurer cette version ?', message: 'Le contenu actuel du chapitre sera remplacé. Une copie « Avant restauration » est conservée.', confirmLabel: 'Restaurer cette version' }))) return;
   const snap = db.history[key][idx];
   // v7.24.0 — checkpointNow() avant ET après (même schéma que formatText()) :
   // l'état d'avant-restauration ET la version restaurée deviennent chacun un

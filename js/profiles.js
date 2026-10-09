@@ -84,7 +84,11 @@ async function notifyThirdPartyDataUseOnce() {
   // la notice corrigée est réaffichée une fois, même aux profils qui avaient
   // vu l'ancienne (qui désignait le mauvais prestataire).
   if (!_currentProfile || _currentProfile.seenThirdPartyNoticeV2) return;
-  alert('ℹ️ À savoir : les fonctions IA (résumé, continuation, incohérences, noms, synonymes/antonymes, mémoire narrative, reformulation dans le roman graphique) envoient le texte concerné à Google (modèle Gemini, via le relais de Plume), et le plugin LanguageTool à LanguageTool.org, pour être traités. Ce texte n\'est jamais stocké en clair par Plume, mais transite en clair chez ces services le temps du traitement. Avec l\'offre gratuite de l\'API Gemini, Google peut conserver ces échanges et s\'en servir pour améliorer ses produits : n\'envoyez pas de passage que vous souhaitez garder strictement confidentiel.\n\nCe message ne s\'affichera plus.');
+  await showInfoModal({
+    title: 'Vos textes et l\'IA',
+    message: 'Les fonctions IA (résumé, continuation, incohérences, noms, synonymes, mémoire narrative, reformulation du roman graphique) envoient le texte concerné à Google (modèle Gemini) via le relais de Plume. Le correcteur LanguageTool envoie aussi le texte à LanguageTool.org.\n\nPlume ne stocke jamais ce texte en clair, mais il transite en clair chez ces services le temps du traitement. Avec l\'offre gratuite de Gemini, Google peut conserver ces échanges et s\'en servir pour améliorer ses produits : n\'envoyez pas un passage que vous voulez garder strictement confidentiel.',
+    confirmLabel: 'J\'ai compris'
+  });
   _currentProfile.seenThirdPartyNoticeV2 = true;
   await mutateProfilesIndex(idx => {
     const profil = idx.profiles.find(p => p.id === _currentProfileId);
@@ -99,7 +103,11 @@ async function notifyThirdPartyDataUseOnce() {
 // pour l'usage de services IA externes ci-dessus.
 async function notifyGistImageSyncOnce() {
   if (!_currentProfile || _currentProfile.seenGistImageNotice) return;
-  alert('ℹ️ À savoir : les images d\'un roman graphique restaient jusqu\'ici uniquement sur cet appareil. Désormais, la synchronisation Gist les envoie aussi (chiffrées avec la même clé que le reste de vos données) vers le Gist privé de ce manuscrit, pour qu\'elles suivent sur vos autres appareils.\n\nCe message ne s\'affichera plus.');
+  await showInfoModal({
+    title: 'Images du roman graphique',
+    message: 'Jusqu\'ici, les images d\'un roman graphique restaient uniquement sur cet appareil. Désormais, la sauvegarde GitHub les envoie aussi, chiffrées avec la même clé que le reste de vos données, vers la sauvegarde privée de ce manuscrit, pour qu\'elles suivent sur vos autres appareils.',
+    confirmLabel: 'J\'ai compris'
+  });
   _currentProfile.seenGistImageNotice = true;
   await mutateProfilesIndex(idx => {
     const profil = idx.profiles.find(p => p.id === _currentProfileId);
@@ -257,9 +265,42 @@ function renderSyncUnavailable() {
 }
 
 // ── Petits utilitaires d'écran ──────────────────────────────────────────
+// v9.44.0 (AUD-03-023) : chaque écran d'accueil est un vrai <form> (gestionnaires de mots de passe, sémantique) ;
+// Entrée dans un champ déclenche le bouton principal ; l'erreur affichée disparaît (et le champ perd son état
+// « invalide ») dès qu'on modifie un champ. Tous les boutons restent de type button : leurs gestionnaires de
+// clic existants font le travail, rien n'est soumis deux fois.
+function wireGateForm(form) {
+  form.querySelectorAll('button').forEach(b => { b.type = 'button'; });
+  form.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
+    const primary = form.querySelector('.gate-btn-primary');
+    if (!primary) return;
+    e.preventDefault();
+    primary.click();
+  });
+  form.addEventListener('input', e => {
+    const err = form.querySelector('.gate-err');
+    if (err) err.textContent = '';
+    if (e.target.removeAttribute) e.target.removeAttribute('aria-invalid');
+  });
+}
+// Affiche l'erreur À CÔTÉ du formulaire, marque le champ fautif et y place le curseur.
+function gateFail(errEl, fieldId, msg) {
+  errEl.textContent = msg;
+  const f = document.getElementById(fieldId);
+  if (f) { f.setAttribute('aria-invalid', 'true'); errEl.setAttribute('role', 'alert'); f.focus(); }
+}
+// Règle visible sous un champ mot de passe : « 12 caractères minimum » + compteur.
+function wirePasswordHint(inputId, hintId) {
+  const input = document.getElementById(inputId), hint = document.getElementById(hintId);
+  if (!input || !hint) return;
+  const upd = () => { const n = input.value.length; hint.textContent = n >= MIN_PASSWORD_LENGTH ? '✔ ' + n + ' caractères' : MIN_PASSWORD_LENGTH + ' caractères minimum (' + n + '/' + MIN_PASSWORD_LENGTH + ')'; hint.classList.toggle('ok', n >= MIN_PASSWORD_LENGTH); };
+  input.addEventListener('input', upd); upd();
+}
 function gateShell(innerHtml) {
   const g = gateEl();
-  g.innerHTML = `<div class="gate-card"><img src="icons/icon-192.png" class="gate-logo" alt="Plume" width="64" height="64">${innerHtml}</div>`;
+  g.innerHTML = `<div class="gate-card"><img src="icons/icon-192.png" class="gate-logo" alt="Plume" width="64" height="64"><form class="gate-form" novalidate>${innerHtml}</form></div>`;
+  wireGateForm(g.querySelector('form'));
   showGate();
 }
 function nameExists(idx, name, exceptId) {
@@ -287,7 +328,6 @@ function renderLoginScreen(idx) {
     <button id="login-add" class="gate-btn gate-btn-ghost">➕ Ajouter un profil</button>
   `);
   document.getElementById('login-btn').addEventListener('click', doLogin);
-  document.getElementById('login-pwd').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
   initPasswordToggle('login-pwd');
   document.getElementById('login-add').addEventListener('click', () => renderCreateProfile({ firstAdmin: false }));
   document.getElementById('login-forgot').addEventListener('click', () => {
@@ -313,13 +353,14 @@ async function doLogin() {
 // opts = { firstAdmin:bool, byAdmin:bool, migrationDb:objet|null }
 function renderCreateProfile(opts) {
   opts = opts || {};
-  const defaultName = opts.firstAdmin ? 'Cyril' : '';
+  const defaultName = '';
   gateShell(`
     <div class="gate-title"><i>👤</i> ${opts.firstAdmin ? 'Bienvenue — créez le profil administrateur' : 'Nouveau profil'}</div>
     <label class="gate-label">Nom du profil</label>
-    <input id="cp-name" type="text" class="gate-field" value="${DOMPurify.sanitize(defaultName)}" placeholder="Votre nom">
+    <input id="cp-name" type="text" class="gate-field" value="${DOMPurify.sanitize(defaultName)}" placeholder="Votre prénom ou pseudo" autocomplete="username">
     <label class="gate-label">Mot de passe</label>
-    <input id="cp-pwd" type="password" class="gate-field" placeholder="Mot de passe (12 caractères minimum)" autocomplete="new-password">
+    <input id="cp-pwd" type="password" class="gate-field" placeholder="Choisissez un mot de passe" autocomplete="new-password">
+    <div id="cp-pwd-hint" class="gate-hint"></div>
     <label class="gate-label">Confirmer le mot de passe</label>
     <input id="cp-pwd2" type="password" class="gate-field" placeholder="Répétez le mot de passe" autocomplete="new-password">
     <div class="gate-section">
@@ -335,6 +376,7 @@ function renderCreateProfile(opts) {
   document.getElementById('cp-submit').addEventListener('click', () => submitCreateProfile(opts));
   initPasswordToggle('cp-pwd');
   initPasswordToggle('cp-pwd2');
+  wirePasswordHint('cp-pwd', 'cp-pwd-hint');
   const cancel = document.getElementById('cp-cancel');
   if (cancel) cancel.addEventListener('click', async () => {
     if (opts.byAdmin) { hideGate(); openManageProfiles(); }
@@ -352,11 +394,11 @@ async function submitCreateProfile(opts) {
   const errEl = document.getElementById('cp-err');
   errEl.textContent = '';
 
-  if (!name) { errEl.textContent = 'Entrez un nom de profil.'; return; }
-  if (nameExists(idx, name)) { errEl.textContent = 'Ce nom de profil existe déjà.'; return; }
-  if (pwd.length < MIN_PASSWORD_LENGTH) { errEl.textContent = 'Mot de passe trop court (' + MIN_PASSWORD_LENGTH + ' caractères minimum).'; return; }
-  if (pwd !== pwd2) { errEl.textContent = 'Les deux mots de passe ne correspondent pas.'; return; }
-  if (!answer.trim()) { errEl.textContent = 'Entrez une réponse à la question de sécurité.'; return; }
+  if (!name) { gateFail(errEl, 'cp-name', 'Entrez un nom de profil.'); return; }
+  if (nameExists(idx, name)) { gateFail(errEl, 'cp-name', 'Ce nom de profil existe déjà.'); return; }
+  if (pwd.length < MIN_PASSWORD_LENGTH) { gateFail(errEl, 'cp-pwd', 'Mot de passe trop court (' + MIN_PASSWORD_LENGTH + ' caractères minimum).'); return; }
+  if (pwd !== pwd2) { gateFail(errEl, 'cp-pwd2', 'Les deux mots de passe ne correspondent pas.'); return; }
+  if (!answer.trim()) { gateFail(errEl, 'cp-answer', 'Entrez une réponse à la question de sécurité.'); return; }
 
   const dek = Crypto.genDataKey();
   const code = Crypto.genRecoveryCode();
@@ -444,7 +486,8 @@ function renderRecovery(profileId) {
       </div>
       <div class="gate-section">
         <label class="gate-label">Nouveau mot de passe</label>
-        <input id="rec-pwd" type="password" class="gate-field" placeholder="Nouveau mot de passe (12 caractères minimum)" autocomplete="new-password">
+        <input id="rec-pwd" type="password" class="gate-field" placeholder="Nouveau mot de passe" autocomplete="new-password">
+        <div id="rec-pwd-hint" class="gate-hint"></div>
         <label class="gate-label">Confirmer</label>
         <input id="rec-pwd2" type="password" class="gate-field" placeholder="Répétez" autocomplete="new-password">
       </div>
@@ -456,6 +499,7 @@ function renderRecovery(profileId) {
     document.getElementById('rec-back').addEventListener('click', () => renderLoginScreen(idx));
     initPasswordToggle('rec-pwd');
     initPasswordToggle('rec-pwd2');
+    wirePasswordHint('rec-pwd', 'rec-pwd-hint');
   });
 }
 
@@ -469,8 +513,8 @@ async function submitRecovery(profileId) {
   const errEl = document.getElementById('rec-err');
   errEl.textContent = '';
 
-  if (pwd.length < MIN_PASSWORD_LENGTH) { errEl.textContent = 'Nouveau mot de passe trop court (' + MIN_PASSWORD_LENGTH + ' caractères minimum).'; return; }
-  if (pwd !== pwd2) { errEl.textContent = 'Les deux mots de passe ne correspondent pas.'; return; }
+  if (pwd.length < MIN_PASSWORD_LENGTH) { gateFail(errEl, 'rec-pwd', 'Nouveau mot de passe trop court (' + MIN_PASSWORD_LENGTH + ' caractères minimum).'); return; }
+  if (pwd !== pwd2) { gateFail(errEl, 'rec-pwd2', 'Les deux mots de passe ne correspondent pas.'); return; }
 
   let dek = null;
   if (answer.trim()) dek = await Crypto.decrypt(profil.wrapAnswer, Crypto.normalize(answer));
@@ -503,17 +547,25 @@ async function openProfile(profil, dek) {
   await enterLibrary();
 }
 
-function logout() {
-  if (!confirm('Se déconnecter ? Les modifications non enregistrées seront perdues.')) return;
-  clearLocalSession();
-  location.reload();
-}
-
-// Bouton "Accueil" (bibliothèque + éditeur) : retour à l'écran de connexion.
-// Techniquement identique à logout() (aucun état sensible ne doit rester en
-// mémoire), mais formulé pour un usage de navigation plutôt que de sécurité.
-function goHome() {
-  if (!confirm('Retourner à l\'écran de connexion ? Les modifications non enregistrées seront perdues.')) return;
+// v9.44.0 (AUD-03-009) : « Accueil » (qui était la même chose que « Déconnexion ») est supprimé. L'application
+// enregistre automatiquement : on enregistre et on envoie ce qui est en attente AVANT de quitter, au lieu de
+// prévenir à tort d'une perte de modifications (boîte native du navigateur). Une confirmation
+// n'apparaît que si l'enregistrement vient réellement d'échouer. En bibliothèque, on n'enregistre pas : le dernier
+// manuscrit ouvert l'a déjà été en le quittant (et save() y changerait la date « Modifié »).
+async function logout() {
+  let incomplete = false;
+  try {
+    if (!document.body.classList.contains('library-mode') && _currentDocumentId) {
+      if (db.docType === 'roman_graphique') await saveGraphicNovel(true);
+      else { flushCurrentChapter(); await save(); }
+      if (typeof _saveFailedSince !== 'undefined' && _saveFailedSince) incomplete = true;
+    }
+    if (typeof flushPendingSyncPushes === 'function') flushPendingSyncPushes(true);
+  } catch (e) { incomplete = true; }
+  if (incomplete) {
+    const ok = await showConfirmModal({ title: 'Enregistrement incomplet', message: 'Vos derniers changements n\'ont peut-être pas pu être enregistrés. Se déconnecter quand même ?', confirmLabel: 'Se déconnecter quand même', danger: true });
+    if (!ok) return;
+  }
   clearLocalSession();
   location.reload();
 }
@@ -551,7 +603,7 @@ async function adminRenameProfile(pid) {
   const idx = await loadProfilesIndex();
   const profil = idx.profiles.find(p => p.id === pid);
   if (!profil) return;
-  const newName = prompt('Nouveau nom pour « ' + profil.name + ' » :', profil.name);
+  const newName = await showPromptModal({ title: 'Renommer le profil', message: 'Nouveau nom pour « ' + profil.name + ' ».', label: 'Nom du profil', value: profil.name, confirmLabel: 'Renommer' });
   if (!newName || !newName.trim()) return;
   const trimmed = newName.trim();
   // Correction (audit) : prompt() bloque le fil d'exécution, mais seulement
@@ -716,7 +768,7 @@ function renderMigration(legacy) {
     <div class="gate-title"><i>✨</i> Mise à jour : profils</div>
     <div class="gate-sub">Plume gère maintenant plusieurs profils. On sécurise vos données actuelles dans le profil administrateur.</div>
     <label class="gate-label">Nom du profil</label>
-    <input id="mig-name" type="text" class="gate-field" value="Cyril">
+    <input id="mig-name" type="text" class="gate-field" placeholder="Votre prénom ou pseudo">
     ${encrypted
       ? `<label class="gate-label">Votre mot de passe actuel</label>
          <input id="mig-oldpwd" type="password" class="gate-field" placeholder="Mot de passe actuel" autocomplete="current-password">`
@@ -744,7 +796,7 @@ async function submitMigration(legacy, encrypted) {
   const name = document.getElementById('mig-name').value.trim() || 'Cyril';
   const question = document.getElementById('mig-question').value;
   const answer = document.getElementById('mig-answer').value;
-  if (!answer.trim()) { errEl.textContent = 'Entrez une réponse à la question de sécurité.'; return; }
+  if (!answer.trim()) { gateFail(errEl, 'cp-answer', 'Entrez une réponse à la question de sécurité.'); return; }
 
   let dbData, pwd;
   if (encrypted) {

@@ -345,9 +345,9 @@ function reorderChapter(from, to) {
   _switching = false; save();
 }
 // Tags libres sur un chapitre (en plus du statut fixe), nouveau v7.8.0.
-function editChapterTags(i) {
+async function editChapterTags(i) {
   const current = (db.chapters[i].tags || []).join(', ');
-  const input = prompt('Tags de ce chapitre, séparés par des virgules :\nEx. POV Marie, Flashback', current);
+  const input = await showPromptModal({ title: 'Tags du chapitre', message: 'Séparez les tags par des virgules. Exemple : POV Marie, Flashback', label: 'Tags', value: current, confirmLabel: 'Enregistrer les tags' });
   if (input === null) return;
   const seen = new Set(); const clean = [];
   input.split(',').map(t => t.trim()).filter(Boolean).forEach(t => {
@@ -488,10 +488,10 @@ function duplicateChapter(i) {
   _switching = false; save();
   toast('Chapitre dupliqué', 'success');
 }
-function deleteChapter(i) {
+async function deleteChapter(i) {
   if (db.chapters.length <= 1) { toast('Impossible de supprimer le dernier chapitre.','error'); return; }
   const ch = db.chapters[i];
-  if (!confirm(`Déplacer « ${ch.title||'ce chapitre'} » vers la corbeille ? Il restera récupérable 30 jours.`)) return;
+  if (!(await showConfirmModal({ title: 'Mettre ce chapitre à la corbeille ?', message: `« ${ch.title||'Ce chapitre'} » restera récupérable 30 jours dans la corbeille.`, confirmLabel: 'Mettre à la corbeille', danger: true }))) return;
   commitUndoSnapshot();
   _switching = true;
   flushCurrentChapter();
@@ -560,8 +560,8 @@ function restoreFromTrash(i) {
   renderChapterList(); renderTrashList(); updateTrashBadge(); save();
   toast('Chapitre restauré','success');
 }
-function permanentlyPurge(i) {
-  if (!confirm('Supprimer définitivement ce chapitre ? Cette action est irréversible.')) return;
+async function permanentlyPurge(i) {
+  if (!(await showConfirmModal({ title: 'Supprimer définitivement ?', message: 'Ce chapitre sera supprimé pour toujours. Cette action est irréversible.', confirmLabel: 'Supprimer définitivement', danger: true }))) return;
   const item = db.trash[i];
   db.trash.splice(i,1);
   if (item && item.chapter && item.chapter.id) gcOrphanTimelineLinks([item.chapter.id]);
@@ -841,9 +841,9 @@ function analyzeStyle() {
   });
   checkpointNow();
 }
-function clearStyle() {
+async function clearStyle() {
   // Correction v6.0.0 : confirmation demandée avant de supprimer les surlignages.
-  if (!confirm('Supprimer tous les surlignages de style (mots faibles) ? Le texte lui-même ne sera pas modifié.')) return;
+  if (!(await showConfirmModal({ title: 'Retirer les surlignages ?', message: 'Tous les surlignages de style (mots faibles) seront retirés. Le texte lui-même ne sera pas modifié.', confirmLabel: 'Retirer les surlignages' }))) return;
   checkpointNow();
   unwrapMarks(document.getElementById('writer'));
   liveCounter();

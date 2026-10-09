@@ -207,7 +207,8 @@ function showConfirmModal({ title, message, confirmLabel, danger, requireText } 
     confirmBtn.classList.toggle('u-bg-v-danger', !!danger);
     const inputWrap = document.getElementById('confirm-modal-input-wrap');
     const input = document.getElementById('confirm-modal-input');
-    input.value = '';
+    input.value = ''; input.onkeydown = null;
+    document.getElementById('confirm-modal-cancel-btn').classList.remove('u-d-none');
     if (requireText) {
       inputWrap.classList.remove('u-d-none');
       document.getElementById('confirm-modal-input-label').textContent = `Tapez « ${requireText} » pour confirmer :`;
@@ -225,5 +226,57 @@ function showConfirmModal({ title, message, confirmLabel, danger, requireText } 
     overlay.classList.add('active');
     // v9.42.0 (AUD-03-018) : pour une action destructrice, le focus va sur « Annuler » (Entrée ne supprime plus).
     (requireText ? input : (danger ? document.getElementById('confirm-modal-cancel-btn') : confirmBtn)).focus();
+  });
+}
+
+
+// ═══════════════════════════════════════════════════════
+// SAISIE ET NOTICE DANS LA MÊME FENÊTRE QUE LES CONFIRMATIONS (v9.44.0, audit AUD-03-017)
+// Remplacent prompt() et alert() du navigateur (boîte grise, boutons « OK/Annuler », texte non relisible).
+//   const txt = await showPromptModal({ title, message, label, value, confirmLabel }); // string, ou null si annulé
+//   await showInfoModal({ title, message, confirmLabel });                              // notice, un seul bouton
+// Échap (escapeArbiter, router.js) clique sur « Annuler » : la promesse se résout dans les deux cas.
+// ═══════════════════════════════════════════════════════
+function showPromptModal({ title, message, label, value, confirmLabel } = {}) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('confirm-modal-overlay');
+    const input = document.getElementById('confirm-modal-input');
+    const confirmBtn = document.getElementById('confirm-modal-confirm-btn');
+    const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
+    document.getElementById('confirm-modal-title').textContent = title || 'Saisie';
+    document.getElementById('confirm-modal-message').textContent = message || '';
+    document.getElementById('confirm-modal-input-wrap').classList.remove('u-d-none');
+    document.getElementById('confirm-modal-input-label').textContent = label || '';
+    input.oninput = null; input.value = value || '';
+    confirmBtn.textContent = confirmLabel || 'Enregistrer';
+    confirmBtn.classList.remove('u-bg-v-danger'); confirmBtn.disabled = false;
+    cancelBtn.classList.remove('u-d-none');
+    const cleanup = r => { overlay.classList.remove('active'); input.onkeydown = null; resolve(r); };
+    cancelBtn.onclick = () => cleanup(null);
+    confirmBtn.onclick = () => cleanup(input.value);
+    input.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); cleanup(input.value); } };
+    overlay.onclick = e => { if (e.target === overlay) cleanup(null); };
+    overlay.classList.add('active');
+    input.focus(); input.select();
+  });
+}
+function showInfoModal({ title, message, confirmLabel } = {}) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('confirm-modal-overlay');
+    const confirmBtn = document.getElementById('confirm-modal-confirm-btn');
+    const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
+    const input = document.getElementById('confirm-modal-input');
+    document.getElementById('confirm-modal-title').textContent = title || 'Information';
+    document.getElementById('confirm-modal-message').textContent = message || '';
+    document.getElementById('confirm-modal-input-wrap').classList.add('u-d-none');
+    input.oninput = null; input.onkeydown = null;
+    confirmBtn.textContent = confirmLabel || 'J\'ai compris';
+    confirmBtn.classList.remove('u-bg-v-danger'); confirmBtn.disabled = false;
+    cancelBtn.classList.add('u-d-none');
+    const cleanup = () => { overlay.classList.remove('active'); cancelBtn.classList.remove('u-d-none'); resolve(true); };
+    confirmBtn.onclick = cleanup; cancelBtn.onclick = cleanup;
+    overlay.onclick = e => { if (e.target === overlay) cleanup(); };
+    overlay.classList.add('active');
+    confirmBtn.focus();
   });
 }

@@ -87,7 +87,7 @@ describe('Annuler + corbeille : une image affichée n\'est jamais détruite (AUD
     await putImage(ctx, 'IMG2', 5); // compteur dérivé : 5 alors qu\'un seul élément l\'utilise
     run(ctx, `db.pages.push({ id: 'p2', background: '#fff', elements: [ { id: 'e9', type: 'image', imageId: 'IMG2' } ] });
       db.trash = [{ kind: 'gn-element', pageId: 'p2', element: { id: 'e8', type: 'image', imageId: 'IMG2' }, deletedAt: Date.now() }];
-      window.confirm = () => true; gnPurgeTrashEntry(0);`);
+      showConfirmModal = async () => true; gnPurgeTrashEntry(0);`);
     await settle();
     const rec = await (await ctx.plumeImagesDb()).get('images', 'IMG2');
     expect(rec).toBeTruthy();

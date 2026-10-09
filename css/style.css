@@ -1709,3 +1709,14 @@ body:not(.dark-mode):not(.paper-mode) #library-screen .mode-indicator:not(.activ
 /* v9.43.0 — avec « Taille de l'interface » en Grande/Très grande, les deux boutons du haut du panneau des
    chapitres (« Ma bibliothèque » / « Accueil ») doivent pouvoir passer à la ligne au lieu d'être rognés. */
 #chapter-sidebar .action-btn{white-space:normal;min-width:0;}
+
+
+/* v9.44.0 (AUD-03-017) — la confirmation sert aussi aux saisies et aux notices : retours à la ligne du message conservés ;
+   (AUD-03-017) la classe u-jc-flex-end était utilisée par la modale mais n'existait pas (boutons non alignés à droite). */
+#confirm-modal-message{white-space:pre-line;}
+.u-jc-flex-end{justify-content:flex-end}
+/* AUD-03-023 — champs de formulaire d'accueil : règle visible sous le champ, champ en erreur. */
+.gate-form{display:flex;flex-direction:column;gap:inherit;}
+.gate-hint{font-size:var(--fs-xs);color:#9a95a8;margin-top:-4px;}
+.gate-hint.ok{color:#7fd8a0;}
+.gate-field[aria-invalid="true"]{border-color:#e8a09a;}

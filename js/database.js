@@ -67,9 +67,9 @@ function renderLibraryCards(type) {
     // v9.27.0 (AUD-01-013) — la couleur passe par une classe (.uni-card-c0 … c7, style.css) : un attribut
     // style="" est bloqué par la CSP (style-src sans 'unsafe-inline'), les cartes perdaient leur fond.
     const ci = colorIndexForId(item.id || String(i));
-    return `<div class="uni-card uni-card-c${ci}" data-idx="${i}" tabindex="0" role="listitem" title="${DOMPurify.sanitize(item.name||'Sans titre')}">
+    return `<div class="uni-card uni-card-c${ci}" data-idx="${i}" tabindex="0" role="listitem" title="${DOMPurify.sanitize(item.name||'Sans nom')}">
       <div class="uni-card-band"></div>
-      <div class="uni-card-title">${DOMPurify.sanitize(item.name||'Sans titre')}</div>
+      <div class="uni-card-title">${DOMPurify.sanitize(item.name||'Sans nom')}</div>
       <div class="uni-card-band"></div>
     </div>`;
   }).join('') + `<div class="uni-card uni-card-add" id="uni-card-add-${type}" tabindex="0" role="button" aria-label="Ajouter" title="Ajouter">+</div>`;
@@ -312,7 +312,7 @@ function addItem(k){
   // Correction (audit ergonomie v7.36.0) : auparavant prompt('Nom :') puis
   // il fallait recliquer pour ouvrir la fiche — création immédiate ("Sans
   // titre") et focus direct sur le champ nom, un seul clic suffit désormais.
-  db[k].push({id:genChapterId(),name:'Sans titre',info:''});
+  db[k].push({id:genChapterId(),name:'Sans nom',info:''});
   save();
   renderLibrary(k);
   const newIdx = db[k].length-1;

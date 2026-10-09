@@ -1755,7 +1755,7 @@ function gnOpenExportOptionsModal() {
           ${GN_PRINT_DPIS.map(d => `<option value="${d.key}"${d.key===300?' selected':''}>${d.label}</option>`).join('')}
         </select>
         <label class="gn-side-label" for="gn-export-bleed">Fond perdu</label>
-        <select id="gn-export-bleed" title="Marge supplémentaire massicotée par l'imprimeur — 3 mm est le standard, à confirmer avec ton imprimeur">
+        <select id="gn-export-bleed" title="Marge supplémentaire massicotée par l'imprimeur — 3 mm est le standard, à confirmer avec votre imprimeur">
           ${GN_PRINT_BLEEDS.map(b => `<option value="${b.key}"${b.key===3?' selected':''}>${b.label}</option>`).join('')}
         </select>
       </div>
@@ -2136,10 +2136,10 @@ function gnRestoreFromTrash(i) {
   gnRenderTrashList();
   gnRenderTrashBadge();
 }
-function gnPurgeTrashEntry(i) {
+async function gnPurgeTrashEntry(i) {
   const item = db.trash[i];
   if (!item) return;
-  if (!confirm('Supprimer définitivement ? Cette action est irréversible.')) return;
+  if (!(await showConfirmModal({ title: 'Supprimer définitivement ?', message: 'Cet élément sera supprimé pour toujours. Cette action est irréversible.', confirmLabel: 'Supprimer définitivement', danger: true }))) return;
   const ids = gnTrashEntryImageIds(item);
   db.trash.splice(i, 1);
   ids.forEach(id => gnReleaseImage(id)); // après retrait de l'entrée : recompte ce qui utilise encore l'image
@@ -2226,12 +2226,12 @@ function gnRenderPageHistoryList() {
     </div>`).join('');
   list.querySelectorAll('[data-restore-hist]').forEach(btn => btn.addEventListener('click', () => gnRestorePageSnapshot(parseInt(btn.dataset.restoreHist))));
 }
-function gnRestorePageSnapshot(i) {
+async function gnRestorePageSnapshot(i) {
   const page = db.pages[_gnActivePage];
   const snaps = (page && page.id && db.history && db.history[page.id]) || [];
   const snap = snaps[i];
   if (!snap) return;
-  if (!confirm('Restaurer cette version de la page ? Le contenu actuel de la page sera remplacé.')) return;
+  if (!(await showConfirmModal({ title: 'Restaurer cette version de la page ?', message: 'Le contenu actuel de la page sera remplacé (vous pourrez annuler avec Ctrl+Z).', confirmLabel: 'Restaurer cette version' }))) return;
   // Même principe que restoreSnapshot() dans snapshots.js : un point
   // d'annulation avant ET après la restauration (celui d'après vient de
   // saveGraphicNovel(true) plus bas), pour pouvoir faire Ctrl+Z si la

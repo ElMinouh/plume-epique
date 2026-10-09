@@ -389,7 +389,7 @@ function toggleAiChat() {
   if (panel.classList.contains('active')) closeAiChat(); else openAiChat();
 }
 async function resetAiChatConversation() {
-  if (_aiChatHistory.length && !confirm('Effacer cette conversation avec l\'assistant IA ? Le manuscrit ne sera pas modifié.')) return;
+  if (_aiChatHistory.length && !(await showConfirmModal({ title: 'Effacer la conversation ?', message: 'La conversation avec l\'assistant IA sera effacée. Le manuscrit ne sera pas modifié.', confirmLabel: 'Effacer la conversation', danger: true }))) return;
   _aiChatHistory = []; _aiChatPendingReplaceRange = null; _aiChatSelectionText = '';
   await saveAiChatHistory();
   renderAiChatMessages(); renderAiChatChips();

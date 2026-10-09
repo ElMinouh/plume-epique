@@ -186,7 +186,7 @@ describe('callClaude — clé de synchronisation requise (AUD-01-004)', () => {
 describe('Notice de confidentialité (AUD-01-012)', () => {
   it('ne cite plus Mistral et nomme Google', () => {
     const src = read('js/profiles.js');
-    const start = src.indexOf('async function notifyThirdPartyDataUseOnce'); const notice = src.slice(src.indexOf("alert(", start), src.indexOf('Ce message ne s', start));
+    const start = src.indexOf('async function notifyThirdPartyDataUseOnce'); const notice = src.slice(src.indexOf('showInfoModal(', start), src.indexOf('seenThirdPartyNoticeV2 = true', start));
     expect(notice).not.toMatch(/Mistral/);
     expect(notice).toMatch(/Google/);
     expect(src).toMatch(/seenThirdPartyNoticeV2/);

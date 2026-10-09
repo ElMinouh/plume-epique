@@ -89,7 +89,7 @@ const FULL_TOUR_STEPS_REST = [
   { subtab:'tab-map', title:'🏗️ Structure (tension narrative)',
     text:"Une courbe qui représente la tension de votre histoire chapitre après chapitre. Le curseur « Tension » dans la colonne de gauche règle la valeur du chapitre que vous êtes en train d'écrire." },
   { subtab:'tab-history', title:'🔖 Versions',
-    text:"Plume enregistre automatiquement des copies de chaque chapitre au fil de l'écriture (« snapshots »). Cet onglet permet de consulter ou de restaurer une version antérieure si vous changez d'avis, ou de comparer deux versions entre elles." },
+    text:"Plume enregistre automatiquement des copies de chaque chapitre au fil de l'écriture (« versions »). Cet onglet permet de consulter ou de restaurer une version antérieure si vous changez d'avis, ou de comparer deux versions entre elles." },
   { subtab:'tab-plugins', title:'🔌 Plugins',
     text:"Des modules complémentaires que vous pouvez activer ou désactiver selon vos besoins, sans jamais toucher au reste de l'application." },
   { subtab:'tab-config-main', title:'⚙️ Réglages',
