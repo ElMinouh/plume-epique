@@ -30,26 +30,26 @@ let _libraryViewMode = 'grid';
 // 10 choix + « Automatique » (couleurs actuelles de l'interface).
 const COVER_PALETTES = {
   'rouge-violet':   { label:'Rouge & Violet',   a:'#c0392b', b:'#8e44ad' },
-  'bleu-ocean':     { label:'Bleu Océan',        a:'#2980b9', b:'#16a085' },
-  'emeraude':       { label:'Émeraude',          a:'#27ae60', b:'#2c3e50' },
-  'rose-poudre':    { label:'Rose Poudré',       a:'#c2185b', b:'#d4af37' },
-  'ardoise':        { label:'Ardoise',           a:'#34495e', b:'#7f8c8d' },
-  'coucher-soleil': { label:'Coucher de Soleil', a:'#f39c12', b:'#e74c3c' },
+  'bleu-ocean':     { label:'Bleu Océan',        a:'#277ab1', b:'#12836d' },
+  'emeraude':       { label:'Émeraude',          a:'#1d8448', b:'#2c3e50' },
+  'rose-poudre':    { label:'Rose Poudré',       a:'#c2185b', b:'#8b7324' },
+  'ardoise':        { label:'Ardoise',           a:'#34495e', b:'#6d7879' },
+  'coucher-soleil': { label:'Coucher de Soleil', a:'#a0660b', b:'#cf4435' },
   'nuit-etoilee':   { label:'Nuit Étoilée',      a:'#16213e', b:'#6a3093' },
   'sepia':          { label:'Sépia',             a:'#6d4c41', b:'#3e2723' },
-  'corail':         { label:'Corail',            a:'#ee5a6f', b:'#f29263' },
-  'lavande':        { label:'Lavande',           a:'#8e7cc3', b:'#5b3a8e' },
+  'corail':         { label:'Corail',            a:'#c74b5d', b:'#a46343' },
+  'lavande':        { label:'Lavande',           a:'#7a6aa7', b:'#5b3a8e' },
   // v7.36.0 (ergonomie) — 10 couvertures supplémentaires, avec un motif léger
   // en surimpression (voir classes .cover-motif-* dans style.css) plutôt que
   // des dégradés unis pour certaines d'entre elles.
   'foret-mystique': { label:'Forêt Mystique',      a:'#1b4332', b:'#081c15', motif:'hachures' },
-  'or-et-nuit':     { label:'Or et Nuit',          a:'#1a1a3e', b:'#c9a227', motif:'etoiles' },
-  'terre-cuite':    { label:'Terre Cuite',         a:'#c98a5e', b:'#7a4a2b', motif:'lin' },
-  'glacier':        { label:'Glacier',             a:'#a9d6e5', b:'#468faf', motif:'givre' },
+  'or-et-nuit':     { label:'Or et Nuit',          a:'#1a1a3e', b:'#8c711b', motif:'etoiles' },
+  'terre-cuite':    { label:'Terre Cuite',         a:'#9c6b49', b:'#7a4a2b', motif:'lin' },
+  'glacier':        { label:'Glacier',             a:'#3a7896', b:'#3d7d99', motif:'givre' },
   'vin-profond':    { label:'Vin Profond',         a:'#5e1a33', b:'#2c0a17', motif:'grain' },
   'encre-de-chine': { label:'Encre de Chine',      a:'#2b2b2b', b:'#0a0a0a', motif:'pinceau' },
-  'aurore':         { label:'Aurore',              a:'#e07a9e', b:'#5b2a86', motif:'vagues' },
-  'bronze-antique': { label:'Bronze Antique',      a:'#a97142', b:'#4a3220', motif:'croisillons' },
+  'aurore':         { label:'Aurore',              a:'#aa5c78', b:'#5b2a86', motif:'vagues' },
+  'bronze-antique': { label:'Bronze Antique',      a:'#9e6a3e', b:'#4a3220', motif:'croisillons' },
   'jade':           { label:'Jade',                a:'#0b6e4f', b:'#093824' },
   'poussiere-etoiles': { label:'Poussière d\'étoiles', a:'#241654', b:'#4b2e83', motif:'etoiles' }
 };

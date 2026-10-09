@@ -1,0 +1,15 @@
+# Suivi de remédiation — audit graphique, esthétique et direction artistique n°4 (octobre 2026)
+
+Base : v9.48.0. Document d'origine : `Audit-04` (rapport `.docx` + `.csv`, hors dépôt, dans `Claude outputs/Audit-04/`). 30 constats (29 réels + 1 observation de couverture), note 51/100, plan en 7 lots. Protocole par lot : voir `CLAUDE.md`.
+
+| Lot | Version | Constats | Contenu | Statut |
+|---|---|---|---|---|
+| 1 | 9.49.0 | 004, 008, 009, 010, 021 | Fiches : fond de statut limité à la pastille ; textes d'accent en `--accent-text`, gris de métadonnées plus foncés, jetons `--success-text` / `--danger-text` ; 5 palettes d'accent revues (texte d'accent par thème) ; 20 couvertures assombries au besoin (texte blanc ≥ 4,5:1) ; bouton Bibliothèque mobile stylé | livré |
+| 2 | — | 029, 012, 005, 013, 006, 014 | Jetons, rôles de couleur, système de boutons, états | à venir |
+| 3 | — | 002, 003, 023 | Icônes SVG locales | à venir |
+| 4 | — | 001, 007, 018, 022, 030 | Marque, thème clair, surfaces, connexion, logo vectoriel | à venir |
+| 5 | — | 016, 015 | Typographie embarquée, mouvement | à venir |
+| 6 | — | 017, 019, 011, 020, 026 | Composition, roman graphique, étagère, rappel, modes Focus/Lecture | à venir |
+| 7 | — | 024, 025, 027, 028 | États vides, pastilles, impression, zones non vues | à venir |
+
+Note lot 1 : les couvertures claires (glacier, coucher de soleil, rose poudré, corail, or…) sont plus profondes qu'avant ; c'est le prix d'un titre blanc lisible. Test : `tests/vitest/lot27-corrections-graphiques.test.js`.

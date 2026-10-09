@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.48.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.49.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -16,6 +16,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Choix d'architecture importants et leurs raisons |
 | [`docs/BILAN-AUDIT-01.md`](docs/BILAN-AUDIT-01.md) | Bilan de remédiation de l'audit technique d'octobre 2026 (28 constats) |
 | [`docs/BILAN-AUDIT-02.md`](docs/BILAN-AUDIT-02.md) | Bilan de remédiation de l'audit fonctionnel d'octobre 2026 (22 constats, v9.33.0 → v9.39.0) |
+| [`docs/BILAN-AUDIT-04.md`](docs/BILAN-AUDIT-04.md) | Suivi de remédiation de l'audit graphique / direction artistique d'octobre 2026 (30 constats, en cours) |
 | [`docs/BILAN-AUDIT-03.md`](docs/BILAN-AUDIT-03.md) | Bilan de remédiation de l'audit ergonomique (UX) d'octobre 2026 (36 constats, v9.41.0 → v9.48.0) |
 | [`vendor/LISEZMOI.md`](vendor/LISEZMOI.md) | Librairies tierces servies localement et comment les mettre à jour |
 | [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md) | Ancien README : historique et incidents jusqu'en juillet 2026 |
@@ -50,6 +51,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 - **Export et sauvegardes** (v9.45.0) : « Exporter ce chapitre / le manuscrit » dans le menu Outils de l'éditeur et **Ctrl+E** ; le ⋮ d'une carte de la bibliothèque ouvre directement l'export ; le panneau **Système** a trois onglets (Fichiers · Sauvegarde GitHub · Synchronisation) et une seule liste de manuscrits ; le ⋮ des chapitres et des manuscrits est toujours visible et le clic droit ouvre le même menu.
 - **Volet latéral et sprint** (v9.46.0) : les onglets (Univers, IA, Analyse, Système, Config) s'ouvrent dans un **volet à droite du texte**, de largeur réglable (poignée ou flèches, mémorisée par appareil), fermé par ✕, Échap ou le même onglet ; sur téléphone il passe en plein écran avec « Retour au texte » ; le sprint s'affiche en pied de page (⏱ mm:ss · +mots), se lance depuis le menu Outils, et sa fin est annoncée.
 - **Confort d'écriture** (v9.47.0) : barre d'outils regroupée (**Structure**, **Focus** direct, Outils, Rechercher, ✨ Mots) ; invite « Commencez à écrire ici… » et curseur dans le chapitre vide ; réglage **Largeur du texte** (Config, 72 caractères par défaut) ; filtre de chapitres (dès 8 chapitres) ; curseur « Tension du chapitre : n/100 » ; pied de page regroupé (✔ Enregistré · ☁ Synchronisé ou Local seulement) ; **❔ Aide** unique (premiers pas, visite guidée, confidentialité et IA, raccourcis) et seulement 5 icônes ⓘ.
+- **Corrections graphiques** (v9.49.0) : vue Fiches (fond crème conservé, seul le liseré indique le statut) ; palettes d'accent et couvertures de manuscrit à contraste vérifié par test (≥ 4,5:1 avec le texte blanc, texte d'accent adapté au thème) ; bouton « Bibliothèque » mobile au style de l'application.
 - **Apparence, bibliothèque et liens** (v9.48.0) : thème, palette et police d'écriture sont des **préférences du profil, par appareil** (appliquées dès la connexion, réglage clair/sombre du système par défaut, non synchronisées) ; en-tête de la bibliothèque réduit à Système · Compte ▾ · Aide ▾ ; roman graphique : libellés sur les icônes, un seul bouton « Exporter ▾ » ; liens entre fiches avec **relation nommée** (« frère de »), affichée dans le graphe.
 - **Roman graphique** : pages libres (images + texte), gabarits, cadrage, calques, corbeille de pages, exports.
 
@@ -82,7 +84,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 
 ```bash
 npm install
-npm test            # Vitest : ~535 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
+npm test            # Vitest : ~548 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
 ```
 
 Pas de build, pas de linter. Les tests partagent un contexte applicatif global : `fileParallelism: false`.

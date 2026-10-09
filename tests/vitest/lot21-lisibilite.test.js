@@ -36,7 +36,7 @@ describe('AUD-03-006 — contrastes', () => {
     expect(css).toContain('.u-bg-v-danger.u-bg-v-danger.u-bg-v-danger{background:var(--btn-danger)}');
   });
   it('le rouge d\'accent en texte sur le thème sombre atteint 4,5:1 (fond #161623)', () => {
-    const m = css.match(/body\.dark-mode \{\s*--accent-text:(#[0-9a-fA-F]{6})/);
+    const m = css.match(/body\.dark-mode \{\s*--accent-text:(?:var\(--accent-text-dark,)?(#[0-9a-fA-F]{6})/);
     expect(m).not.toBeNull();
     expect(ratio(m[1], '#161623')).toBeGreaterThanOrEqual(4.5);
   });

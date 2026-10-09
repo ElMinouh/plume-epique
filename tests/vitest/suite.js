@@ -379,7 +379,7 @@
   db = { accentPalette:'rouge-violet', editorFont:'palatino', darkMode:false, paperMode:false };
   selectPalette('bleu-ocean');
   assert(db.accentPalette === 'bleu-ocean', 'selectPalette() met à jour db.accentPalette');
-  assert(document.documentElement.style.getPropertyValue('--accent') === '#2980b9', 'applyAccentPalette() pose la bonne couleur CSS');
+  assert(document.documentElement.style.getPropertyValue('--accent') === '#1f6f9f', 'applyAccentPalette() pose la bonne couleur CSS');
   selectFont('times');
   assert(db.editorFont === 'times' && document.body.classList.contains('font-times'), 'selectFont() met à jour db et la classe CSS du corps');
   selectTheme('dark');
