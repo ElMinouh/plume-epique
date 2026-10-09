@@ -328,17 +328,29 @@ async function exportPdf(chapters, title) {
 // du FORMAT (DOCX/ODT/PDF/EPUB) se fait ensuite, en bas du panneau.
 // ═══════════════════════════════════════════════════════
 let _exportSelectChapters = [], _exportSelectTitle = '';
-function openExportSelect(chapters, title) {
+function openExportSelect(chapters, title, onlyIdx) {
   _exportSelectChapters = chapters || [];
   _exportSelectTitle = title || '';
   const listEl = document.getElementById('export-select-list');
   listEl.innerHTML = _exportSelectChapters.map((ch,i) =>
     `<label class="u-d-flex u-ai-center u-gap-8px u-fs-_82rem u-p-4px-0 u-cur-pointer">
-      <input type="checkbox" class="export-select-cb" data-idx="${i}" checked>
+      <input type="checkbox" class="export-select-cb" data-idx="${i}"${(onlyIdx === undefined || onlyIdx === i) ? ' checked' : ''}>
       ${DOMPurify.sanitize(ch.title||('Chapitre '+(i+1)))}
     </label>`
   ).join('');
   document.getElementById('export-select-overlay').classList.add('active');
+}
+// v9.45.0 (AUD-03-014) : export depuis l'éditeur (menu Outils, Ctrl+E) sans repasser par la bibliothèque.
+// scope 'chapter' : seul le chapitre ouvert est coché ; scope 'doc' : tout le manuscrit.
+function exportFromEditor(scope) {
+  if (typeof db === 'undefined' || !Array.isArray(db.chapters)) return;
+  if (typeof flushCurrentChapter === 'function') flushCurrentChapter();
+  openExportSelect(db.chapters, db.title, scope === 'chapter' ? cur : undefined);
+}
+function exportShortcut() {
+  if (document.body.classList.contains('library-mode') || typeof _currentDocumentId === 'undefined' || !_currentDocumentId) return;
+  if (db.docType === 'roman_graphique') { if (typeof gnOpenBookExportModal === 'function') gnOpenBookExportModal(); return; }
+  exportFromEditor('doc');
 }
 function closeExportSelect() { document.getElementById('export-select-overlay').classList.remove('active'); }
 function getSelectedExportChapters() {

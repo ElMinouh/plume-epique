@@ -365,7 +365,7 @@ async function renderLibrarySyncBadge() {
   }
   if (!badge.dataset.wired) {
     badge.dataset.wired = '1';
-    badge.addEventListener('click', () => openLibrarySystemPanel());
+    badge.addEventListener('click', () => openLibrarySystemPanel(undefined, 'sync'));
   }
 }
 
@@ -505,7 +505,7 @@ function wireLibraryStaticUI() {
   document.getElementById('lctx-export').addEventListener('click', () => {
     const docId = _libraryCtxMenuDocId;
     closeLibraryCtxMenu();
-    if (docId) openLibrarySystemPanel(docId);
+    if (docId) libExportDoc(docId);
   });
   document.getElementById('lctx-del').addEventListener('click', () => {
     const docId = _libraryCtxMenuDocId;
@@ -519,7 +519,16 @@ function wireLibraryStaticUI() {
 
   // ── Panneau Système : bibliothèque entière (v7.13.0, Lot 10) ─────────
   document.getElementById('library-system-btn').addEventListener('click', () => openLibrarySystemPanel());
-  document.getElementById('library-github-reminder').addEventListener('click', () => openLibrarySystemPanel());
+  document.getElementById('library-github-reminder').addEventListener('click', () => openLibrarySystemPanel(undefined, 'github'));
+  document.querySelectorAll('#library-system-overlay .lib-systab').forEach((b, i, all) => {
+    b.addEventListener('click', () => showSystemTab(b.dataset.systab));
+    b.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      const nxt = all[(i + (e.key === 'ArrowRight' ? 1 : all.length - 1)) % all.length];
+      showSystemTab(nxt.dataset.systab); nxt.focus();
+    });
+  });
   document.getElementById('setup-tour-later-btn').addEventListener('click', () => { if (_setupTourActive) endSetupTour(); });
   document.getElementById('library-system-close-btn').addEventListener('click', closeLibrarySystemPanel);
   document.getElementById('conflict-diff-close-btn').addEventListener('click', closeConflictDiff);
@@ -543,9 +552,8 @@ function wireLibraryStaticUI() {
   document.getElementById('lib-export-btn').addEventListener('click', libExportCurrent);
   document.getElementById('lib-import-doc-trigger-btn').addEventListener('click', () => document.getElementById('lib-import-doc-file').click());
   document.getElementById('lib-import-doc-file').addEventListener('change', e => importManuscriptFile(e.target));
-  document.getElementById('lib-gist-doc-select').addEventListener('change', e => refreshLibSystemDocStatus(e.target.value));
   document.getElementById('lib-sync-cloud-btn').addEventListener('click', async () => {
-    const docId = document.getElementById('lib-gist-doc-select').value;
+    const docId = document.getElementById('lib-system-doc-select').value;
     if (!docId) return;
     document.getElementById('lib-cloud-status').textContent = '⏳ Sauvegarde en cours…';
     const ok = await libSyncManuscript(docId);
@@ -553,11 +561,11 @@ function wireLibraryStaticUI() {
     refreshLibSystemDocStatus(docId);
   });
   document.getElementById('lib-load-cloud-btn').addEventListener('click', () => {
-    const docId = document.getElementById('lib-gist-doc-select').value;
+    const docId = document.getElementById('lib-system-doc-select').value;
     if (docId) libLoadManuscript(docId);
   });
   document.getElementById('lib-gist-history-btn').addEventListener('click', () => {
-    const docId = document.getElementById('lib-gist-doc-select').value;
+    const docId = document.getElementById('lib-system-doc-select').value;
     if (docId) libOpenGistHistory(docId);
   });
   document.getElementById('lib-export-json-btn').addEventListener('click', megaExportLibrary);
@@ -718,6 +726,8 @@ async function renderLibraryScreen() {
   newBtn.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); createNewDocument(); } });
   container.querySelectorAll('[data-doc-id]').forEach(card => {
     card.addEventListener('click', (e) => { if (e.target.closest('.library-kebab-btn')) return; openDocument(card.dataset.docId); });
+    // v9.45.0 (AUD-03-016) : clic droit = même menu que le ⋮.
+    card.addEventListener('contextmenu', e => { const k = card.querySelector('.library-kebab-btn'); if (k) { e.preventDefault(); k.click(); } });
     card.addEventListener('keydown', e => { if ((e.key==='Enter'||e.key===' ')&&!e.target.closest('.library-kebab-btn')) { e.preventDefault(); openDocument(card.dataset.docId); } });
   });
   container.querySelectorAll('[data-kebab-doc]').forEach(btn => {
@@ -836,6 +846,7 @@ async function renderLibraryShelf(sorted) {
 
   cont.querySelectorAll('[data-doc-id]').forEach(book => {
     book.addEventListener('click', e => { if (e.target.closest('.lib-book-kebab')) return; openDocument(book.dataset.docId); });
+    book.addEventListener('contextmenu', e => { const k = book.querySelector('.lib-book-kebab'); if (k) { e.preventDefault(); k.click(); } });
     book.addEventListener('keydown', e => { if ((e.key==='Enter'||e.key===' ')&&!e.target.closest('.lib-book-kebab')) { e.preventDefault(); openDocument(book.dataset.docId); } });
   });
   cont.querySelectorAll('[data-kebab-doc]').forEach(btn => {
@@ -1424,7 +1435,17 @@ function scheduleLibraryAutoBackup() {
 // UN manuscrit choisi (export, import DOCX/ODT, Gist manuel/historique), et
 // export/import JSON de toute la bibliothèque.
 // ═══════════════════════════════════════════════════════
-async function openLibrarySystemPanel(preselectDocId) {
+// v9.45.0 (AUD-03-026) : trois onglets (files / github / sync). Une seule liste de manuscrits, utile aux deux
+// premiers ; elle est masquée dans l'onglet Synchronisation (qui concerne tous les manuscrits).
+function showSystemTab(name) {
+  document.querySelectorAll('#library-system-overlay .lib-systab').forEach(b => {
+    const on = b.dataset.systab === name;
+    b.classList.toggle('active', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1;
+  });
+  document.querySelectorAll('#library-system-overlay .lib-sys-pane').forEach(p => p.classList.toggle('active', p.id === 'lib-sys-' + name));
+  document.getElementById('lib-sys-doc-zone').classList.toggle('u-d-none', name === 'sync');
+}
+async function openLibrarySystemPanel(preselectDocId, tab) {
   document.getElementById('lib-gh-token').value = _cloudToken || '';
   document.getElementById('lib-auto-gist-interval').value = String(_libSettings.autoGistInterval ?? 15);
   document.getElementById('lib-cloud-status').textContent = '';
@@ -1434,10 +1455,7 @@ async function openLibrarySystemPanel(preselectDocId) {
   const sel = document.getElementById('lib-system-doc-select');
   sel.innerHTML = optionsHtml;
   if (preselectDocId) sel.value = preselectDocId;
-  const gistSel = document.getElementById('lib-gist-doc-select');
-  gistSel.innerHTML = optionsHtml;
-  if (preselectDocId) gistSel.value = preselectDocId;
-  await refreshLibSystemDocStatus(gistSel.value);
+  await refreshLibSystemDocStatus(sel.value);
 
   // Bloc "Clé de synchronisation" : toujours réaffiché en lecture seule
   const syncKeyInput = document.getElementById('lib-sync-key-input');
@@ -1451,6 +1469,7 @@ async function openLibrarySystemPanel(preselectDocId) {
     renderSyncUsage();
   await renderConflictBackups();
 
+  showSystemTab(tab || (_setupTourActive ? 'github' : 'files'));
   document.getElementById('library-system-overlay').classList.add('active');
 
   if (_setupTourActive) {
@@ -1535,6 +1554,8 @@ async function renderConflictBackups() {
   const rows = await getActiveConflictBackups();
   badge.textContent = String(rows.length);
   badge.classList.toggle('u-d-none', rows.length === 0);
+  const tabBadge = document.getElementById('lib-systab-conflict-count');
+  if (tabBadge) { tabBadge.textContent = String(rows.length); tabBadge.classList.toggle('u-d-none', rows.length === 0); }
   const deleteAllBtn = document.getElementById('lib-conflict-delete-all');
   if (deleteAllBtn) deleteAllBtn.classList.toggle('u-d-none', rows.length === 0);
   if (!rows.length) {
@@ -1741,8 +1762,9 @@ async function refreshLibSystemDocStatus(docId) {
       : 'Pas encore de sauvegarde GitHub pour ce manuscrit (créée au premier « Sauver »).';
   } catch(e) { statusEl.textContent = ''; }
 }
-async function libExportCurrent() {
-  const docId = document.getElementById('lib-system-doc-select').value;
+async function libExportCurrent() { return libExportDoc(document.getElementById('lib-system-doc-select').value); }
+// v9.45.0 (AUD-03-014) : le ⋮ de la carte ouvre directement la fenêtre d'export (avant : le panneau Système, puis « Exporter »).
+async function libExportDoc(docId) {
   if (!docId) { toast('Aucun manuscrit sélectionné.', 'error'); return; }
   try {
     const mData = await loadManuscriptData(docId);

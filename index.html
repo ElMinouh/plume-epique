@@ -97,19 +97,29 @@
       <button class="action-btn btn-sm" id="library-system-close-btn" title="Fermer cette fenêtre">✕</button>
     </div>
 
-    <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
-      <strong class="u-fs-_8rem">📖 Manuscrit sélectionné</strong><br>
-      <select id="lib-system-doc-select" class="field u-w-100pc u-mt-6px"></select>
+    <!-- v9.45.0 (AUD-03-026) : trois onglets au lieu d'une longue page de six blocs ; UNE seule liste de manuscrits
+         (avant : deux listes, une pour les fichiers et une pour la sauvegarde GitHub). -->
+    <div class="subtab-nav" role="tablist" aria-label="Système et sauvegardes">
+      <button class="subtab-btn active lib-systab" role="tab" aria-selected="true" aria-controls="lib-sys-files" id="lib-systab-files" data-systab="files">📁 Fichiers</button>
+      <button class="subtab-btn lib-systab" role="tab" aria-selected="false" aria-controls="lib-sys-github" id="lib-systab-github" data-systab="github">☁️ Sauvegarde GitHub</button>
+      <button class="subtab-btn lib-systab" role="tab" aria-selected="false" aria-controls="lib-sys-sync" id="lib-systab-sync" data-systab="sync">🔄 Synchronisation <span class="mp-badge u-d-none" id="lib-systab-conflict-count">0</span></button>
+    </div>
 
-      <p class="u-fs-_68rem u-c-v-text-muted u-m-10px-0-4px">Fichiers :</p>
-      <div class="export-row u-jc-flex-start">
+    <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border" id="lib-sys-doc-zone">
+      <label class="u-fs-_8rem u-fwt-700" for="lib-system-doc-select">📖 Manuscrit concerné</label>
+      <select id="lib-system-doc-select" class="field u-w-100pc u-mt-6px"></select>
+    </div>
+
+    <div class="lib-sys-pane active" role="tabpanel" id="lib-sys-files" aria-labelledby="lib-systab-files">
+      <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
+        <strong class="u-fs-_8rem">Ce manuscrit</strong>
+      <div class="export-row u-jc-flex-start u-mt-8px">
         <button class="action-btn btn-sm u-bg-h2980b9" id="lib-export-btn" title="Exporter ce manuscrit (choix du format ensuite)">📤 Exporter</button>
         <button class="action-btn btn-sm u-bg-hd35400" id="lib-import-doc-trigger-btn" title="Importer un fichier Word (.docx) ou OpenDocument (.odt)">📥 Importer (DOCX/ODT)</button>
         <input class="u-d-none" type="file" id="lib-import-doc-file" accept=".docx,.odt">
       </div>
-    </div>
-
-    <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
+      </div>
+      <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
       <strong class="u-fs-_8rem">📚 Bibliothèque entière</strong><br>
       <div class="export-row u-jc-flex-start u-mt-8px">
         <button class="action-btn btn-sm u-bg-h27ae60" id="lib-export-json-btn" title="Télécharger tous les manuscrits dans un seul fichier de sauvegarde">💾 Export JSON (tout)</button>
@@ -117,18 +127,11 @@
         <input class="u-d-none" type="file" id="lib-import-json-file" accept=".json">
       </div>
       <p class="u-fs-_66rem u-c-v-text-muted u-m-6px-0-0">⚠️ Ce fichier ne peut être réimporté que dans le <strong>même profil</strong> (ex. après réinstallation) — un import dans un autre profil produit des manuscrits illisibles.</p>
-    </div>
-
-    <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
-      <div class="u-d-flex u-ai-center u-jc-space-between u-gap-8px">
-        <strong class="u-fs-_8rem">🛟 Sauvegardes de conflit <span class="mp-badge u-d-none" id="lib-conflict-count">0</span></strong>
-        <button class="action-btn btn-sm u-d-none" id="lib-conflict-delete-all" title="Supprimer toutes les sauvegardes de conflit">🗑️ Tout supprimer</button>
       </div>
-      <p class="u-fs-_68rem u-c-v-text-muted u-m-6px-0-8px">Versions distantes remplacées par un autre appareil. Conservées 7 jours, puis supprimées automatiquement.</p>
-      <div id="lib-conflict-list" class="u-d-flex u-fd-column u-gap-8px"></div>
     </div>
 
-    <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
+    <div class="lib-sys-pane" role="tabpanel" id="lib-sys-github" aria-labelledby="lib-systab-github">
+      <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
       <strong class="u-fs-_8rem">☁️ Sauvegarde GitHub — un seul jeton d'accès pour tout le compte</strong><br>
       <div class="u-d-flex u-gap-6px u-mt-6px">
         <input type="password" id="lib-gh-token" class="field u-flex-1" placeholder="Jeton d'accès GitHub" title="Mémorisé automatiquement (chiffré)">
@@ -147,18 +150,28 @@
       <p class="u-fs-_68rem u-c-v-text-muted u-m-6px-0-0">Se déclenche aussi au changement de manuscrit, au retour à la bibliothèque, et quand l'onglet perd le focus.</p>
       <p class="u-fs-_72rem u-c-v-accent u-m-6px-0-0" id="lib-cloud-status" aria-live="polite"></p>
 
-      <hr class="u-bdc-v-border u-m-10px-0">
-      <p class="u-fs-_68rem u-c-v-text-muted u-m-0-0-4px">Sauvegarde GitHub d'un manuscrit :</p>
-      <select id="lib-gist-doc-select" class="field u-w-100pc"></select>
+      </div>
+      <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
+        <strong class="u-fs-_8rem">Sauvegarde GitHub du manuscrit choisi ci-dessus</strong>
       <div class="export-row u-jc-flex-start u-mt-8px">
         <button class="action-btn btn-sm u-bg-h2980b9" id="lib-sync-cloud-btn" title="Envoyer une sauvegarde chiffrée de ce manuscrit vers GitHub">🔄 Sauver</button>
         <button class="action-btn btn-sm u-bg-h34495e" id="lib-load-cloud-btn" title="Récupérer la dernière sauvegarde GitHub de ce manuscrit">📥 Charger</button>
         <button class="action-btn btn-sm u-bg-h16a085" id="lib-gist-history-btn" title="Voir les anciennes versions sauvegardées de ce manuscrit">🕐 Versions</button>
       </div>
       <p class="u-fs-_68rem u-c-v-text-muted u-m-6px-0-0" id="lib-doc-gist-status"></p>
+      </div>
     </div>
 
-    <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
+    <div class="lib-sys-pane" role="tabpanel" id="lib-sys-sync" aria-labelledby="lib-systab-sync">
+      <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
+      <div class="u-d-flex u-ai-center u-jc-space-between u-gap-8px">
+        <strong class="u-fs-_8rem">🛟 Sauvegardes de conflit <span class="mp-badge u-d-none" id="lib-conflict-count">0</span></strong>
+        <button class="action-btn btn-sm u-d-none" id="lib-conflict-delete-all" title="Supprimer toutes les sauvegardes de conflit">🗑️ Tout supprimer</button>
+      </div>
+      <p class="u-fs-_68rem u-c-v-text-muted u-m-6px-0-8px">Versions distantes remplacées par un autre appareil. Conservées 7 jours, puis supprimées automatiquement.</p>
+      <div id="lib-conflict-list" class="u-d-flex u-fd-column u-gap-8px"></div>
+      </div>
+      <div class="u-bg-rgb00005 u-p-12px u-br-10px u-bd-1px-dashed-v-border">
       <strong class="u-fs-_8rem">🔑 Clé de synchronisation</strong><br>
       <p class="u-fs-_68rem u-c-v-text-muted u-m-6px-0-8px">Commune à cet appareil, valable pour tous les profils.</p>
       <div class="u-d-flex u-gap-6px">
@@ -170,6 +183,8 @@
       <p class="u-fs-_68rem u-m-4px-0-0" id="lib-last-sync-status" aria-live="polite"></p>
       <p class="u-fs-_68rem u-c-v-text-muted u-m-4px-0-0" id="lib-sync-usage" aria-live="polite"></p>
       <button class="action-btn btn-sm u-as-flex-start u-mt-6px" id="lib-sync-key-change-btn">✏️ Changer la clé</button>
+    </div>
+      </div>
     </div>
   </div>
 </div>
@@ -381,6 +396,7 @@
     <div class="shortcut-row"><span>Réordonner un chapitre (focus dessus)</span><span class="shortcut-key">Alt+↑/↓</span></div>
     <div class="shortcut-row"><span>Rechercher dans tout le projet</span><span class="shortcut-key">Ctrl+F</span></div>
     <div class="shortcut-row"><span>Sauvegarder immédiatement</span><span class="shortcut-key">Ctrl+S</span></div>
+    <div class="shortcut-row"><span>Exporter le manuscrit</span><span class="shortcut-key">Ctrl+E</span></div>
     <div class="shortcut-row"><span>Fermer la fenêtre active</span><span class="shortcut-key">Échap</span></div>
     <div class="shortcut-row"><span>Afficher cette aide</span><span class="shortcut-key">?</span></div>
   </div>
@@ -925,6 +941,9 @@
           <button id="focus-btn" title="Passer en plein écran, sans distraction">🎯 Mode Focus</button>
           <button id="reading-mode-btn" title="Relire tout le roman à la suite, comme un lecteur">📖 Mode Lecture</button>
           <button id="voice-btn" title="Lire le texte à voix haute ou écrire par dictée">🎙️ Voix (dictée/lecture)</button>
+          <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
+          <button id="export-chapter-btn" title="Exporter le chapitre ouvert (DOCX, ODT, PDF, EPUB)">📤 Exporter ce chapitre…</button>
+          <button id="export-doc-btn" title="Exporter tout ou partie du manuscrit (raccourci : Ctrl+E)">📤 Exporter le manuscrit…</button>
         </div>
       </div>
 

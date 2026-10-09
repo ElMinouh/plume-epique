@@ -404,6 +404,9 @@ function renderChapterList() {
   });
   list.querySelectorAll('.ch-kebab-btn').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); openChapterCtxMenu(parseInt(btn.dataset.idx), btn); });
+    // v9.45.0 (AUD-03-016) : le clic droit sur la ligne ouvre le même menu que le ⋮.
+    const row = btn.closest('.chapter-item');
+    if (row) row.addEventListener('contextmenu', e => { e.preventDefault(); btn.click(); });
   });
   // v7.10.0 : si la vue Fiches est active, la garder synchronisée avec la
   // liste à chaque mutation (ajout/suppression/réordonnancement/tags/statut...)

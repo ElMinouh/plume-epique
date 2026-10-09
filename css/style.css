@@ -1720,3 +1720,11 @@ body:not(.dark-mode):not(.paper-mode) #library-screen .mode-indicator:not(.activ
 .gate-hint{font-size:var(--fs-xs);color:#9a95a8;margin-top:-4px;}
 .gate-hint.ok{color:#7fd8a0;}
 .gate-field[aria-invalid="true"]{border-color:#e8a09a;}
+
+
+/* ═══ v9.45.0 (audit AUD-03-026) — panneau Système en trois onglets ═══ */
+.lib-sys-pane{display:none;flex-direction:column;gap:14px;}
+.lib-sys-pane.active{display:flex;}
+.lib-systab .mp-badge{margin-left:4px;}
+/* ═══ v9.45.0 (audit AUD-03-016) — le ⋮ des chapitres et des manuscrits est toujours visible (atténué), net au survol ═══ */
+.ch-kebab-btn,.library-kebab-btn,.lib-book-kebab{opacity:.7;}

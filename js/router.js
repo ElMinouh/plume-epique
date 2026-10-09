@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.44.0';
+const APP_VERSION = '9.45.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1443,9 +1443,12 @@ function wireAppEventListenersOnce(){
   // Aide-mémoire des raccourcis clavier (v7.5.0)
   document.getElementById('shortcuts-close-btn').addEventListener('click',closeShortcutsHelp);
   document.getElementById('shortcuts-hint-btn').addEventListener('click',openShortcutsHelp);
+  document.getElementById('export-chapter-btn').addEventListener('click',()=>exportFromEditor('chapter'));
+  document.getElementById('export-doc-btn').addEventListener('click',()=>exportFromEditor('doc'));
 
   document.addEventListener('keydown',e=>{
     if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openGlobalSearch();}
+    if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&e.key.toLowerCase()==='e'){e.preventDefault();exportShortcut();}
     // Bug corrigé (v9.13.0, testé en conditions réelles) : save()/touchDocumentMeta()
     // lisent db.chapters.length sans garde — plantage garanti sur Ctrl+S dans
     // l'écran roman graphique (db.chapters n'existe pas pour ce docType).
