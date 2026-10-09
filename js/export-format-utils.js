@@ -65,8 +65,26 @@ function htmlToExportBlocks(html) {
   return blocks;
 }
 
+// v9.40.0 (docx 9.8.1, 1,2 Mo) — la bibliothèque n'est plus chargée au démarrage (elle alourdissait chaque ouverture de
+// l'application, même pour qui n'exporte jamais en DOCX) : elle est chargée à la première demande d'export, depuis le site
+// lui-même (script externe local, compatible avec la CSP) ; hors ligne, le service worker l'a déjà en cache.
+const DOCX_LIB_SRC = 'vendor/docx-9.8.1.js';
+let _docxLoading = null;
+function ensureDocx() {
+  if (typeof docx !== 'undefined') return Promise.resolve(true);
+  if (_docxLoading) return _docxLoading;
+  _docxLoading = new Promise(resolve => {
+    const s = document.createElement('script');
+    s.src = DOCX_LIB_SRC;
+    s.onload = () => { const ok = typeof docx !== 'undefined'; if (!ok) _docxLoading = null; resolve(ok); };
+    s.onerror = () => { _docxLoading = null; resolve(false); };
+    document.head.appendChild(s);
+  });
+  return _docxLoading;
+}
+
 async function exportDocx(chapters, title) {
-  if (typeof docx === 'undefined') { toast(EXPORT_LIB_MISSING, 'error'); return; }
+  if (!(await ensureDocx())) { toast(EXPORT_LIB_MISSING, 'error'); return; }
   if (!chapters || !chapters.length) { toast('Aucun chapitre sélectionné.','error'); return; }
   const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
   const HEAD = [null, HeadingLevel.HEADING_2, HeadingLevel.HEADING_3, HeadingLevel.HEADING_3];

@@ -1861,14 +1861,15 @@ async function gnExportZip() {
 }
 
 async function gnExportBookDocx() {
-  if (typeof docx === 'undefined') { toast(EXPORT_LIB_MISSING, 'error'); return; }
+  // v9.40.0 : docx n'est plus chargé au démarrage mais à la demande (voir ensureDocx, export-format-utils.js).
+  if (!(await ensureDocx())) { toast(EXPORT_LIB_MISSING, 'error'); return; }
   const { Document, Packer, Paragraph, ImageRun, PageBreak } = docx;
   const children = [];
   const ok = await gnExportPagesToCanvases(async (canvas, i, total) => {
     const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
     const buf = await blob.arrayBuffer();
     const w = 500, h = Math.round(w * canvas.height / canvas.width);
-    children.push(new Paragraph({ children: [new ImageRun({ data: buf, transformation: { width: w, height: h } })] }));
+    children.push(new Paragraph({ children: [new ImageRun({ type: 'jpg', data: buf, transformation: { width: w, height: h } })] }));
     if (i < total - 1) children.push(new Paragraph({ children: [new PageBreak()] }));
   });
   if (!ok) { toast('Export annulé.'); return; }

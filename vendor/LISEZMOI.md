@@ -9,7 +9,7 @@ plus de dépendance à un site tiers, plus d'exécution de code externe, `script
 | `dompurify-3.4.16.min.js` | dompurify | 3.4.16 |
 | `chart-4.5.1.umd.min.js` | chart.js | 4.5.1 |
 | `idb-8.0.3.umd.js` | idb | 8.0.3 |
-| `docx-7.1.0.js` | docx | 7.1.0 |
+| `docx-9.8.1.js` | docx (build navigateur `dist/index.iife.js`, copie exacte du paquet npm ; **chargé à la demande**, pas dans index.html) | 9.8.1 |
 | `file-saver-2.0.5.min.js` | file-saver | 2.0.5 |
 | `d3-7.9.0.min.js` | d3 | 7.9.0 |
 | `jszip-3.10.1.min.js` | jszip | 3.10.1 |
@@ -44,4 +44,4 @@ Après toute mise à jour : `npm test`, puis un essai réel d'export et d'import
 
 ## Alertes connues
 - `mammoth@1.11.0` : `npm audit` signale (06/10/2026) 3 alertes modérées via `argparse` puis `sprintf-js` (GHSA-hp3w-g68c-fv3c, déni de service par précision illimitée). `argparse` ne sert qu'à l'outil en ligne de commande de mammoth : le fichier `mammoth-1.11.0.browser.min.js` servi par le site n'en contient pas (vérifié) et n'est pas concerné. La correction proposée par `npm audit` (`mammoth@0.3.29`) est une régression : à ne pas appliquer. À surveiller.
-- `docx@7.1.0` embarque `nanoid@3.3.16` (avis GHSA-2v37-7h3g-55p8 : boucle infinie si un générateur personnalisé reçoit une taille 0). Plume ne s utilise pas de générateur personnalisé : exposition nulle. La montée de version majeure de `docx` (API différente) sera traitée avec Dependabot dans un lot dédié.
+- `docx` : l'ancien avis sur `nanoid@3.3.16` (docx 7.1.0) n'existe plus depuis la v9.40.0 (docx 9.8.1 embarque `nanoid` 6). `docx-9.8.1.js` est chargé par `ensureDocx()` (`js/export-format-utils.js`) à la première demande d'export : index.html ne le référence plus, `sw.js` le précache. `ImageRun` exige désormais `type` (`jpg`, `png`…).

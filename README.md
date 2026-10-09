@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.39.1**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.40.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -130,6 +130,6 @@ foyer, etc.) : `docs/DECISIONS.md`.
 - Le contrôle d'incohérences « tout le roman » compare des faits extraits chapitre par chapitre ; sur un roman très long, la
   comparaison se fait par groupes de chapitres consécutifs et une contradiction entre deux groupes peut échapper (signalé à l'écran).
 - La date d'une chronologie est un texte libre : le tri automatique se fait selon l'ordre des chapitres, pas selon la date.
-- **Dépendances** : les bibliothèques servies par le site sont dans `vendor/` (Dependabot ne les propose plus (config du 06/10/2026 : mensuel, outils de test et actions regroupés) : les mettre à jour à la main une fois par trimestre — `npm outdated`, `npm audit`, notes de version —, méthode dans `vendor/LISEZMOI.md` . Les alertes de sécurité Dependabot sont activées sur le dépôt (depuis le 06/10/2026 ; une alerte ouverte sur `sprintf-js`, voir `vendor/LISEZMOI.md`) ; les mises à jour de sécurité automatiques restent désactivées). `docx` reste en 7.1.0 (la 9.x impose de réécrire l'export DOCX). `npm audit` signale 3 alertes modérées sur `mammoth` (outil en ligne de commande, absent du fichier servi) : sans effet sur le site.
+- **Dépendances** : les bibliothèques servies par le site sont dans `vendor/` (Dependabot ne les propose plus (config du 06/10/2026 : mensuel, outils de test et actions regroupés) : les mettre à jour à la main une fois par trimestre — `npm outdated`, `npm audit`, notes de version —, méthode dans `vendor/LISEZMOI.md` . Les alertes de sécurité Dependabot sont activées sur le dépôt (depuis le 06/10/2026 ; une alerte ouverte sur `sprintf-js`, voir `vendor/LISEZMOI.md`) ; les mises à jour de sécurité automatiques restent désactivées). `docx` est en 9.8.1 depuis la v9.40.0 et **n'est chargé qu'à la première demande d'export DOCX** (1,2 Mo : il alourdissait chaque démarrage ; il reste précaché par le service worker, donc l'export marche hors ligne). `npm audit` signale 3 alertes modérées sur `mammoth` (outil en ligne de commande, absent du fichier servi) : sans effet sur le site (alerte fermée sur GitHub le 06/10/2026).
 - La question secrète de récupération est une porte plus faible que le mot de passe (décision documentée).
 - Pas de test automatisé en navigateur réel : les parcours complets sont vérifiés à la main sur copie locale.
