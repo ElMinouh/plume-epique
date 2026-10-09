@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.51.0';
+const APP_VERSION = '9.52.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -158,8 +158,8 @@ function renderSyncDot() {
   if (!getSyncKey()) { label.textContent = 'Local seulement'; dot.title = 'Synchro multi-appareils non configurée : ce manuscrit reste sur cet appareil'; return; }
   const status = getLastSyncStatus();
   if (status.ok === null) { label.textContent = ''; dot.title = 'Aucune synchro tentée depuis l\'ouverture de la page'; return; }
-  if (status.ok) { dot.classList.add('sync-ok'); label.textContent = '☁ Synchronisé'; dot.title = 'Dernière synchro réussie'; }
-  else { dot.classList.add('sync-error'); label.textContent = '⚠ Échec de synchro'; dot.title = 'Dernière tentative de synchro échouée — réessai automatique à la prochaine sauvegarde'; }
+  if (status.ok) { dot.classList.add('sync-ok'); label.innerHTML = icon('cloud') + ' Synchronisé'; dot.title = 'Dernière synchro réussie'; }
+  else { dot.classList.add('sync-error'); label.innerHTML = icon('triangle-alert') + ' Échec de synchro'; dot.title = 'Dernière tentative de synchro échouée — réessai automatique à la prochaine sauvegarde'; }
 }
 
 // Vérifie une clé auprès du Worker sans rien lire ni écrire de réel (clé
@@ -1083,10 +1083,11 @@ let _currentProfileId = null, _currentProfile = null, _dataKey = null;
 // par la confirmation de fermeture d'onglet ci-dessous (wireAppEventListenersOnce).
 let _unsavedChanges = false;
 
+// v9.52.0 (AUD-04-002/023) : icône (sprite) + libellé séparés, plus de chevron ▾ dans le texte (l'onglet ouvre un volet, pas un menu).
 const tabLabels = {
-  'tab-univers':'🌍 Univers ▾','tab-ia-memoire':'🤖 IA & Mémoire ▾',
-  'tab-analysegroup':'📊 Analyse ▾','tab-systeme':'🗄️ Système ▾',
-  'tab-config':'⚙️ Config ▾'
+  'tab-univers':{ icon:'globe', label:'Univers' }, 'tab-ia-memoire':{ icon:'bot', label:'IA & Mémoire' },
+  'tab-analysegroup':{ icon:'chart-column', label:'Analyse' }, 'tab-systeme':{ icon:'archive', label:'Système' },
+  'tab-config':{ icon:'settings', label:'Config' }
 };
 // Descriptifs affichés en infobulle sur chaque onglet (neophytes).
 const tabDescriptions = {
@@ -1179,7 +1180,7 @@ const save = async () => {
     _unsavedChanges = false;
   } catch(e) {
     console.error('Échec de sauvegarde :', e);
-    if (typeof toast === 'function') toast('⚠️ Échec de la sauvegarde : ' + (e && e.message ? e.message : e) + '. Vos derniers mots ne sont peut-être pas enregistrés — copiez votre texte par précaution.', 'error', { sticky: true, kind: 'save' });
+    if (typeof toast === 'function') toast('Échec de la sauvegarde : ' + (e && e.message ? e.message : e) + '. Vos derniers mots ne sont peut-être pas enregistrés — copiez votre texte par précaution.', 'error', { sticky: true, kind: 'save' });
     if (typeof markSaveFailed === 'function') markSaveFailed();
   }
 };
@@ -1386,7 +1387,7 @@ function wireAppEventListenersOnce(){
   document.getElementById('tts-pause-btn').addEventListener('click',ttsPause);
   document.getElementById('tts-stop-btn').addEventListener('click',ttsStop);
   document.getElementById('dictate-btn').addEventListener('click',toggleDictation);
-  document.getElementById('tts-rate').addEventListener('input',e=>{document.getElementById('tts-rate-val').textContent=parseFloat(e.target.value).toFixed(1)+'×';});
+  document.getElementById('tts-rate').addEventListener('input',e=>{document.getElementById('tts-rate-val').textContent=parseFloat(e.target.value).toFixed(1)+''+icon('x')+'';});
   initTTS(); initDictation();
 
   document.getElementById('writer').addEventListener('input',liveCounter);

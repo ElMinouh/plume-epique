@@ -4,7 +4,7 @@ function renderTabs(){
   db.tabOrder.forEach(id=>{
     if(!document.getElementById(id))return;
     const btn=document.createElement('button');
-    btn.className='tab-btn';btn.textContent=tabLabels[id]||id;
+    btn.className='tab-btn';{const tl=tabLabels[id];if(tl)btn.innerHTML=icon(tl.icon)+' '+escapeHtml(tl.label);else btn.textContent=id;}
     btn.dataset.tabId=id;
     // v9.42.0 (AUD-03-021) : ces boutons ouvrent/ferment un panneau (reclic = fermer) : motif « accordéon »
     // (aria-expanded + aria-controls), pas « onglets » (role=tab sans tablist ni aria-selected).
@@ -144,7 +144,7 @@ function toggleTab(id,btn,forceOpen){
     const contentEl=document.getElementById(id);
     contentEl.classList.add('active');setPanelOpen(true);
     const title=document.getElementById('panel-title');
-    if(title)title.textContent=btn.textContent.replace(/[▾▴]/g,'').trim();
+    if(title)title.textContent=btn.textContent.trim();
     if(id==='tab-config'){renderWeakWords();initGoalUI();}
     // Catégories groupées (Univers, IA & Mémoire, Analyse, Système) : rendre
     // le sous-onglet actuellement actif (le premier par défaut).

@@ -78,6 +78,41 @@ describe('AUD-04-002/003/023 — plus d\'emoji dans l\'interface statique', () =
   });
 });
 
+describe('AUD-04-002/003/023 — plus d\'emoji dans les gabarits et messages JS (v9.52.0)', () => {
+  const EMOJI = /[\u{1F300}-\u{1FAFF}\u2600-\u27BF\u2B50\u2B07\u23F3\u23F0\u2705\u274C\u2754\u2753\u21A9\u25B6\u2B05\u2195\u21B6\u21B7\u25BE\u2630\u2714\u2713\u270E\u25C0\u25B2\u25BC\u21BA]/u;
+  const jsFiles = fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js'));
+  const codeLines = f => read('js/' + f).split('\n').map((l, i) => [i + 1, l]).filter(([, l]) => {
+    const s = l.trim(); return !(s.startsWith('//') || s.startsWith('*') || s.startsWith('/*'));
+  });
+  it('aucune ligne de code de js/*.js ne contient d\'emoji (les commentaires peuvent en citer)', () => {
+    const hits = [];
+    for (const f of jsFiles) for (const [n, l] of codeLines(f)) if (EMOJI.test(l.replace(/\/\/.*$/, ''))) hits.push(f + ':' + n + ' ' + l.trim().slice(0, 70));
+    expect(hits).toEqual([]);
+  });
+  it('toute icône nommée dans les JS existe dans le sprite (icon(\'x\'), tabLabels, questsIcon, glyphes de formes, chronologie)', () => {
+    const used = new Set();
+    for (const f of jsFiles) {
+      const src = read('js/' + f);
+      for (const m of src.matchAll(/icon\('([a-z0-9-]+)'/g)) used.add(m[1]);
+      for (const m of src.matchAll(/(?:icon|glyph|questsIcon):\s*'([a-z0-9-]+)'/g)) used.add(m[1]);
+      for (const m of src.matchAll(/mkBtn\('([a-z0-9-]+)'/g)) used.add(m[1]);
+      for (const m of src.matchAll(/addResult\('([a-z0-9-]+)'/g)) used.add(m[1]);
+    }
+    expect(used.size).toBeGreaterThan(40);
+    expect([...used].filter(n => !symbols[n])).toEqual([]);
+  });
+  it('les onglets du volet : icône + libellé séparés, sans chevron', () => {
+    const r = read('js/router.js');
+    expect(r).toContain("'tab-univers':{ icon:'globe', label:'Univers' }");
+    expect(r).not.toMatch(/'tab-[a-z-]+':'[^']*▾/);
+    expect(read('js/tabs.js')).toContain('btn.innerHTML=icon(tl.icon)');
+  });
+  it('un message temporaire porte une icône par type, sans changer son texte', () => {
+    expect(read('js/notifications.js')).toContain("icon(type === 'success' ? 'circle-check' : type === 'error' ? 'circle-alert' : 'info', 'toast-icon')");
+    expect(read('css/style.css')).toContain('.toast-icon{');
+  });
+});
+
 describe('helper icon() (js/icons.js)', () => {
   const ctx = vm.createContext({});
   vm.runInContext(iconsJs + '; this.icon = icon;', ctx);
@@ -100,9 +135,9 @@ describe('helper icon() (js/icons.js)', () => {
 });
 
 describe('version', () => {
-  it('v9.51.0 ou plus : APP_VERSION et cache du service worker identiques', () => {
+  it('v9.52.0 ou plus : APP_VERSION et cache du service worker identiques', () => {
     const v = read('js/router.js').match(/const APP_VERSION = '([^']+)'/)[1];
     expect(sw).toContain("'plume-epique-v" + v + "'");
-    expect(v.split('.').map(Number)[1]).toBeGreaterThanOrEqual(51);
+    expect(v.split('.').map(Number)[1]).toBeGreaterThanOrEqual(52);
   });
 });

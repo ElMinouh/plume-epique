@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.51.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.52.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -51,6 +51,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 - **Export et sauvegardes** (v9.45.0) : « Exporter ce chapitre / le manuscrit » dans le menu Outils de l'éditeur et **Ctrl+E** ; le ⋮ d'une carte de la bibliothèque ouvre directement l'export ; le panneau **Système** a trois onglets (Fichiers · Sauvegarde GitHub · Synchronisation) et une seule liste de manuscrits ; le ⋮ des chapitres et des manuscrits est toujours visible et le clic droit ouvre le même menu.
 - **Volet latéral et sprint** (v9.46.0) : les onglets (Univers, IA, Analyse, Système, Config) s'ouvrent dans un **volet à droite du texte**, de largeur réglable (poignée ou flèches, mémorisée par appareil), fermé par ✕, Échap ou le même onglet ; sur téléphone il passe en plein écran avec « Retour au texte » ; le sprint s'affiche en pied de page (⏱ mm:ss · +mots), se lance depuis le menu Outils, et sa fin est annoncée.
 - **Confort d'écriture** (v9.47.0) : barre d'outils regroupée (**Structure**, **Focus** direct, Outils, Rechercher, ✨ Mots) ; invite « Commencez à écrire ici… » et curseur dans le chapitre vide ; réglage **Largeur du texte** (Config, 72 caractères par défaut) ; filtre de chapitres (dès 8 chapitres) ; curseur « Tension du chapitre : n/100 » ; pied de page regroupé (✔ Enregistré · ☁ Synchronisé ou Local seulement) ; **❔ Aide** unique (premiers pas, visite guidée, confidentialité et IA, raccourcis) et seulement 5 icônes ⓘ.
+- **Icônes vectorielles, suite** (v9.52.0) : les gabarits générés en JavaScript (onglets du volet sans chevron, bibliothèque, roman graphique, connexion, assistant IA, chronologie, pastilles de couverture…) utilisent `icon('nom')` ; les messages, titres de visites guidées et noms de plugins perdent leur emoji ; chaque message temporaire porte une icône selon son type (succès / erreur / information). Un test échoue si un emoji réapparaît dans `js/*.js`.
 - **Icônes vectorielles** (v9.51.0, 1re partie) : les emojis de l'interface statique (`index.html` : onglets du volet, barre d'outils, panneaux, bibliothèque, pied de page) sont remplacés par un sprite d'icônes à trait fin (`lucide-static`, licence ISC, version figée) qui suit le thème, la palette et la couleur des boutons ; helper `icon('nom')` dans `js/icons.js` ; le sprite se régénère par `node scripts/build-icons.cjs`. Suite (gabarits JS, visites guidées, messages) en v9.52.0.
 - **Jetons, rôles et boutons** (v9.50.0) : échelles uniques (3 rayons + pastille, 4 niveaux d'ombre, 1 voile de modale, 3 durées) ; couleurs par rôle (`--danger-solid`, `--title`…) ; titres en or profond (clair/papier) ou or clair (sombre), l'accent de la palette ne désignant plus que l'action ; boutons à variantes `btn-secondary` / `btn-ghost` / `btn-danger` / `btn-warn` (plus aucune couleur de fond posée à la main), barre d'outils neutre, état actif en fond teinté ; anneau de focus clavier, sélection, barres de défilement et `color-scheme` aux couleurs du thème ; 14 classes utilitaires qui n'avaient jamais été définies le sont enfin.
 - **Corrections graphiques** (v9.49.0) : vue Fiches (fond crème conservé, seul le liseré indique le statut) ; palettes d'accent et couvertures de manuscrit à contraste vérifié par test (≥ 4,5:1 avec le texte blanc, texte d'accent adapté au thème) ; bouton « Bibliothèque » mobile au style de l'application.
@@ -86,7 +87,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 
 ```bash
 npm install
-npm test            # Vitest : ~581 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
+npm test            # Vitest : ~585 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
 ```
 
 Pas de build, pas de linter. Les tests partagent un contexte applicatif global : `fileParallelism: false`.

@@ -367,12 +367,12 @@ function renderChapterList() {
     const tags = ch.tags || [];
     return `<div class="chapter-item ${i===cur?'active':''}" data-idx="${i}" role="listitem" tabindex="0" aria-current="${i===cur}" draggable="true">
       <div class="ch-row">
-        <span class="ch-drag-handle" aria-hidden="true" title="Glisser pour réordonner (ou Alt+↑/↓)">⠿</span>
+        <span class="ch-drag-handle" aria-hidden="true" title="Glisser pour réordonner (ou Alt+↑/↓)">${icon('grip-vertical')}</span>
         <span class="ch-status-dot ch-status-${ch.status||'draft'}" title="${sm.label}"></span>
         <span class="ch-num">${i+1}.</span>
         <span class="ch-title-text u-fg-1 u-ov-hidden u-tovf-ellipsis u-ws-nowrap">${DOMPurify.sanitize(ch.title||'')}</span>
         <span class="ch-wordcount" title="Nombre de mots">${getWordCount(ch.content)}</span>
-        <button class="ch-kebab-btn" data-idx="${i}" title="Actions du chapitre" aria-label="Actions du chapitre">⋮</button>
+        <button class="ch-kebab-btn" data-idx="${i}" title="Actions du chapitre" aria-label="Actions du chapitre">${icon('ellipsis-vertical')}</button>
       </div>
       ${tags.length ? `<div class="ch-tags">${tags.map(t=>`<span class="ch-tag">#${DOMPurify.sanitize(t)}</span>`).join('')}</div>` : ''}
     </div>`;
@@ -447,7 +447,7 @@ function renderCorkboard() {
       <div class="card-title">${DOMPurify.sanitize(ch.title||'')}</div>
       <div class="card-excerpt">${DOMPurify.sanitize(excerpt)}</div>
       ${tags.length ? `<div class="ch-tags">${tags.map(t=>`<span class="ch-tag">#${DOMPurify.sanitize(t)}</span>`).join('')}</div>` : ''}
-      <div class="card-foot"><span>${getWordCount(ch.content)} mots</span><button class="ch-kebab-btn" data-idx="${i}" title="Actions du chapitre" aria-label="Actions du chapitre">⋮</button></div>
+      <div class="card-foot"><span>${getWordCount(ch.content)} mots</span><button class="ch-kebab-btn" data-idx="${i}" title="Actions du chapitre" aria-label="Actions du chapitre">${icon('ellipsis-vertical')}</button></div>
     </div>`;
   }).join('');
   cont.querySelectorAll('.card').forEach(el => {
@@ -546,8 +546,8 @@ function renderTrashList() {
     return `<div class="history-item u-cur-default">
       <span>${DOMPurify.sanitize(t.chapter.title||'Sans titre')}<br><span class="u-op-72 u-fs-xs">Supprimé le ${new Date(t.deletedAt).toLocaleDateString('fr')} — purge auto dans ${daysLeft}j</span></span>
       <span class="u-d-flex u-gap-4px u-fsh-0">
-        <button class="action-btn btn-sm" data-restore="${i}">↩ Restaurer</button>
-        <button class="action-btn btn-danger btn-sm" data-purge="${i}">✕ Définitif</button>
+        <button class="action-btn btn-sm" data-restore="${i}">${icon('undo-2')} Restaurer</button>
+        <button class="action-btn btn-danger btn-sm" data-purge="${i}">${icon('x')} Définitif</button>
       </span>
     </div>`;
   }).join('');

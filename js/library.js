@@ -358,17 +358,17 @@ async function renderLibrarySyncBadge() {
   // l'emportait sur .u-d-none : une pastille vide restait affichée sans clé de synchro).
   if (!getSyncKey()) { badge.hidden = true; return; }
   badge.hidden = false;
-  const icon = document.getElementById('library-sync-status-icon');
+  const iconEl = document.getElementById('library-sync-status-icon');
   const text = document.getElementById('library-sync-status-text');
   let count = 0;
   try { count = (await getActiveConflictBackups()).length; } catch(e) { count = 0; }
   if (count > 0) {
     badge.classList.add('sync-warn');
-    icon.textContent = '⚠️';
+    iconEl.innerHTML = icon('triangle-alert');
     text.textContent = count + (count > 1 ? ' conflits à vérifier' : ' conflit à vérifier');
   } else {
     badge.classList.remove('sync-warn');
-    icon.textContent = '✅';
+    iconEl.innerHTML = icon('circle-check');
     text.textContent = 'Sauvegardes à jour';
   }
   if (!badge.dataset.wired) {
@@ -557,15 +557,15 @@ function wireLibraryStaticUI() {
   document.getElementById('lib-verify-token-btn').addEventListener('click', async () => {
     _cloudToken = document.getElementById('lib-gh-token').value.trim();
     const statusEl = document.getElementById('lib-token-status');
-    if (!_cloudToken) { statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Collez d\'abord votre jeton d\'accès.'; return; }
-    statusEl.style.color = 'var(--text-muted)'; statusEl.textContent = '⏳ Vérification…';
+    if (!_cloudToken) { statusEl.style.color = 'var(--danger)'; statusEl.textContent = 'Collez d\'abord votre jeton d\'accès.'; return; }
+    statusEl.style.color = 'var(--text-muted)'; statusEl.textContent = 'Vérification…';
     const ok = await libVerifyToken();
     if (ok) {
-      statusEl.style.color = 'var(--success)'; statusEl.textContent = `✅ Jeton valide (connecté en tant que @${ok}).`; saveLibSettings();
+      statusEl.style.color = 'var(--success)'; statusEl.textContent = `Jeton valide (connecté en tant que @${ok}).`; saveLibSettings();
       renderGithubReminder();
       if (_setupTourActive) await endSetupTour();
     }
-    else { statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Jeton invalide ou refusé par GitHub.'; }
+    else { statusEl.style.color = 'var(--danger)'; statusEl.textContent = 'Jeton invalide ou refusé par GitHub.'; }
   });
   document.getElementById('lib-auto-gist-interval').addEventListener('change', e => { _libSettings.autoGistInterval = parseInt(e.target.value)||0; saveLibSettings(); scheduleLibraryAutoBackup(); });
   document.getElementById('lib-system-doc-select').addEventListener('change', e => refreshLibSystemDocStatus(e.target.value));
@@ -575,9 +575,9 @@ function wireLibraryStaticUI() {
   document.getElementById('lib-sync-cloud-btn').addEventListener('click', async () => {
     const docId = document.getElementById('lib-system-doc-select').value;
     if (!docId) return;
-    document.getElementById('lib-cloud-status').textContent = '⏳ Sauvegarde en cours…';
+    document.getElementById('lib-cloud-status').textContent = 'Sauvegarde en cours…';
     const ok = await libSyncManuscript(docId);
-    document.getElementById('lib-cloud-status').textContent = ok ? '✅ Sauvegardé sur Gist' : '❌ Échec de la sauvegarde';
+    document.getElementById('lib-cloud-status').textContent = ok ? 'Sauvegardé sur Gist' : 'Échec de la sauvegarde';
     refreshLibSystemDocStatus(docId);
   });
   document.getElementById('lib-load-cloud-btn').addEventListener('click', () => {
@@ -602,11 +602,11 @@ function wireLibraryStaticUI() {
   document.getElementById('lib-sync-key-verify-btn').addEventListener('click', async () => {
     const key = document.getElementById('lib-sync-key-input').value;
     const statusEl = document.getElementById('lib-sync-key-status');
-    if (!key) { statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Aucune clé enregistrée sur cet appareil.'; return; }
-    statusEl.style.color = 'var(--text-muted)'; statusEl.textContent = '⏳ Vérification…';
+    if (!key) { statusEl.style.color = 'var(--danger)'; statusEl.textContent = 'Aucune clé enregistrée sur cet appareil.'; return; }
+    statusEl.style.color = 'var(--text-muted)'; statusEl.textContent = 'Vérification…';
     const ok = await verifySyncKey(key);
     statusEl.style.color = ok ? 'var(--success)' : 'var(--danger)';
-    statusEl.textContent = ok ? '✅ Clé valide.' : '❌ Clé invalide, ou Worker injoignable.';
+    statusEl.textContent = ok ? 'Clé valide.' : 'Clé invalide, ou Worker injoignable.';
   });
   document.getElementById('lib-sync-key-change-btn').addEventListener('click', () => {
     const input = document.getElementById('lib-sync-key-input');
@@ -619,7 +619,7 @@ function wireLibraryStaticUI() {
       input.value = '';
       input.placeholder = 'Nouvelle clé de synchronisation';
       input.focus();
-      btn.textContent = '💾 Enregistrer';
+      btn.innerHTML = icon('save') + ' Enregistrer';
       statusEl.textContent = '';
     } else {
       // Enregistre la nouvelle clé
@@ -628,8 +628,8 @@ function wireLibraryStaticUI() {
       setSyncKey(newKey);
       input.readOnly = true;
       input.type = 'password';
-      btn.textContent = '✏️ Changer la clé';
-      statusEl.style.color = 'var(--success)'; statusEl.textContent = '✅ Nouvelle clé enregistrée sur cet appareil.';
+      btn.innerHTML = icon('pencil') + ' Changer la clé';
+      statusEl.style.color = 'var(--success)'; statusEl.textContent = 'Nouvelle clé enregistrée sur cet appareil.';
     }
   });
 
@@ -693,7 +693,7 @@ async function renderLibraryScreen() {
   const sorted = liveDocuments(list).sort((a,b) => b.lastModified - a.lastModified);
   const nTrash = trashedDocuments(list).length;
   const trashBtn = document.getElementById('library-trash-btn');
-  if (trashBtn) { trashBtn.classList.toggle('u-d-none', !nTrash); trashBtn.textContent = '🗑️ Corbeille (' + nTrash + ')'; }
+  if (trashBtn) { trashBtn.classList.toggle('u-d-none', !nTrash); trashBtn.innerHTML = icon('trash-2') + ' Corbeille (' + nTrash + ')'; }
 
   document.getElementById('library-profile-name').textContent = 'Bonjour, ' + (_currentProfile ? _currentProfile.name : '');
   document.getElementById('library-manage-profiles-btn').style.display = (_currentProfile && _currentProfile.role === 'admin') ? '' : 'none';
@@ -723,16 +723,16 @@ async function renderLibraryScreen() {
       // vignettes de page dans l'éditeur). Repli sur l'icône générique si
       // le manuscrit n'a encore jamais été sauvegardé avec cette version.
       const hasShapes = isGraphic && Array.isArray(d.gnCoverShapes) && d.gnCoverShapes.length && typeof gnMiniIconHtml === 'function';
-      const coverInner = hasShapes ? `<div class="gn-cover-preview">${gnMiniIconHtml(d.gnCoverShapes)}</div>` : (isGraphic ? '🎨' : '📖');
+      const coverInner = hasShapes ? `<div class="gn-cover-preview">${gnMiniIconHtml(d.gnCoverShapes)}</div>` : (isGraphic ? icon('palette', 'icon-xl') : icon('book-open', 'icon-xl'));
       return `
     <div class="library-card" data-doc-id="${d.id}" role="button" tabindex="0" title="Ouvrir « ${DOMPurify.sanitize(d.title || 'Sans titre')} »">
-      <button class="library-kebab-btn" data-kebab-doc="${d.id}" title="Actions du manuscrit" aria-label="Actions du manuscrit">⋮</button>
+      <button class="library-kebab-btn" data-kebab-doc="${d.id}" title="Actions du manuscrit" aria-label="Actions du manuscrit">${icon('ellipsis-vertical')}</button>
       <div class="library-cover${coverClass}">${coverInner}</div>
       <div class="library-card-body">
         <p class="library-card-title">${DOMPurify.sanitize(d.title || 'Sans titre')}</p>
         <p class="library-card-meta">${metaText}</p>
         ${goal>0 ? `<div class="library-progress" title="${d.wordCount||0} / ${goal} mots"><div class="library-progress-bar" data-pct="${pct}"></div></div><p class="library-progress-label">${d.wordCount||0} / ${goal} mots · ${pct}%</p>` : ''}
-        <p class="library-card-date">${formatRelativeDate(d.lastModified)}${d.lastGistSync ? ' · ☁️ '+formatRelativeDate(d.lastGistSync).replace('Modifié ','') : ''}</p>
+        <p class="library-card-date">${formatRelativeDate(d.lastModified)}${d.lastGistSync ? ' · '+icon('cloud')+' '+formatRelativeDate(d.lastGistSync).replace('Modifié ','') : ''}</p>
       </div>
     </div>`;
     }).join('');
@@ -816,7 +816,7 @@ async function renderLibraryShelf(sorted) {
       const h = Math.max(110, Math.min(190, 110 + Math.round((d.wordCount||0) / 700)));
       const safeTitle = DOMPurify.sanitize(d.title || 'Sans titre');
       return `<div class="lib-book${shelfCoverClass}" data-doc-id="${d.id}" data-h="${h}" data-band-margin-default="${Math.round(h*0.16)}" data-band-margin-max="6" role="button" tabindex="0" title="Ouvrir « ${safeTitle} »">
-        <button class="lib-book-kebab" data-kebab-doc="${d.id}" title="Actions du manuscrit" aria-label="Actions du manuscrit">⋮</button>
+        <button class="lib-book-kebab" data-kebab-doc="${d.id}" title="Actions du manuscrit" aria-label="Actions du manuscrit">${icon('ellipsis-vertical')}</button>
         ${it.isRecent ? '<span class="lib-book-recent-dot" title="Modifié le plus récemment" aria-hidden="true"></span>' : ''}
         <span class="lib-book-band lib-book-band-top" aria-hidden="true"></span>
         <span class="lib-book-title">${safeTitle}</span>
@@ -1069,8 +1069,8 @@ async function renderDocTrash() {
   listEl.innerHTML = trashed.map(d => `<div class="history-item u-cur-default">
       <span>${escapeHtml(d.title || 'Sans titre')}<br><span class="u-op-72 u-fs-xs">${d.docType === 'roman_graphique' ? (d.chapterCount || 0) + ' page(s)' : (d.chapterCount || 0) + ' chapitre(s)'} · ${d.wordCount || 0} mots — supprimé définitivement dans ${docTrashDaysLeft(d)} j</span></span>
       <span class="u-d-flex u-gap-4px u-fsh-0">
-        <button class="action-btn btn-sm" data-doc-restore="${escapeHtml(d.id)}">↩ Restaurer</button>
-        <button class="action-btn btn-danger btn-sm" data-doc-purge="${escapeHtml(d.id)}">✕ Définitif</button>
+        <button class="action-btn btn-sm" data-doc-restore="${escapeHtml(d.id)}">${icon('undo-2')} Restaurer</button>
+        <button class="action-btn btn-danger btn-sm" data-doc-purge="${escapeHtml(d.id)}">${icon('x')} Définitif</button>
       </span>
     </div>`).join('');
   listEl.querySelectorAll('[data-doc-restore]').forEach(b => b.addEventListener('click', () => restoreDocumentFromTrash(b.dataset.docRestore)));
@@ -1394,11 +1394,11 @@ async function libOpenGistHistory(docId) {
       const date = new Date(c.committed_at).toLocaleString('fr');
       const el = document.createElement('div');
       el.className = 'history-item';
-      el.innerHTML = `<span>${i===0?'🟢 Version actuelle':'Version'} — ${date}</span>`;
+      el.innerHTML = `<span>${i===0?'Version actuelle':'Version'} — ${date}</span>`;
       el.addEventListener('click', () => libLoadGistRevision(docId, mData.gistId, c.version));
       listEl.appendChild(el);
     });
-  } catch(e) { listEl.innerHTML = `<div class="u-p-10px u-c-v-danger">❌ ${escapeHtml(e.message)}</div>`; }
+  } catch(e) { listEl.innerHTML = `<div class="u-p-10px u-c-v-danger">${icon('circle-alert')} ${escapeHtml(e.message)}</div>`; }
 }
 async function libLoadGistRevision(docId, gistId, sha) {
   if (!(await showConfirmModal({ title: 'Charger cette version ?', message: 'Cette version remplacera le contenu de ce manuscrit.', confirmLabel: 'Charger cette version', danger: true }))) return;
@@ -1437,7 +1437,7 @@ async function syncAllLibraryManuscripts(reason) {
     const list = await loadDocList();
     let failures = 0;
     for (const entry of list.documents) { if (!(await libSyncManuscript(entry.id, { silent:true }))) failures++; }
-    if (failures > 0 && !_libBackupWarned) { _libBackupWarned = true; toast('⚠️ Sauvegarde GitHub auto : '+failures+' manuscrit(s) en échec (jeton expiré ?).', 'error'); }
+    if (failures > 0 && !_libBackupWarned) { _libBackupWarned = true; toast('Sauvegarde GitHub auto : '+failures+' manuscrit(s) en échec (jeton expiré ?).', 'error'); }
     else if (failures === 0) _libBackupWarned = false;
     if (document.body.classList.contains('library-mode')) await renderLibraryScreen();
   } finally { _libSyncing = false; }
@@ -1485,7 +1485,7 @@ async function openLibrarySystemPanel(preselectDocId, tab) {
   syncKeyInput.type = 'password';
   syncKeyInput.value = getSyncKey() || '';
   syncKeyInput.placeholder = getSyncKey() ? '' : 'Aucune clé enregistrée sur cet appareil';
-  document.getElementById('lib-sync-key-change-btn').textContent = '✏️ Changer la clé';
+  document.getElementById('lib-sync-key-change-btn').innerHTML = icon('pencil') + ' Changer la clé';
   document.getElementById('lib-sync-key-status').textContent = '';
   renderLastSyncStatus();
     renderSyncUsage();
@@ -1594,8 +1594,8 @@ async function renderConflictBackups() {
         <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-0">Détectée le ${new Date(b.ts).toLocaleString('fr')}</p>
         ${b.awaiting ? '<p class="u-fs-xs u-c-v-text-muted u-m-2px-0-0">Synchro de ce manuscrit en pause jusqu\'à votre décision.</p>' : ''}
       </div>
-      <button class="action-btn btn-sm" data-conflict-compare="${b.key}" data-conflict-docid="${b.docId}" title="Comparer les deux versions avant de choisir">🔍 Comparer</button>
-      <button class="action-btn btn-danger btn-sm" data-conflict-delete="${b.key}" data-conflict-docid="${b.docId}" title="Supprimer cette sauvegarde">🗑️</button>
+      <button class="action-btn btn-sm" data-conflict-compare="${b.key}" data-conflict-docid="${b.docId}" title="Comparer les deux versions avant de choisir">${icon('search')} Comparer</button>
+      <button class="action-btn btn-danger btn-sm" data-conflict-delete="${b.key}" data-conflict-docid="${b.docId}" title="Supprimer cette sauvegarde">${icon('trash-2')}</button>
     </div>`).join('');
   cont.querySelectorAll('[data-conflict-delete]').forEach(btn => {
     btn.addEventListener('click', () => deleteConflictBackup(btn.dataset.conflictDelete, btn.dataset.conflictDocid));
@@ -1744,8 +1744,8 @@ function renderLastSyncStatus() {
   const status = getLastSyncStatus();
   if (status.ok === null) { el.textContent = 'Aucune synchronisation tentée depuis l\'ouverture de la page.'; el.style.color = 'var(--text-muted)'; return; }
   const when = formatRelativeDate(status.ts).replace('Modifié ', '');
-  if (status.ok) { el.textContent = '✅ Dernière synchro réussie : ' + when; el.style.color = 'var(--success)'; }
-  else { el.textContent = '⚠️ Dernière tentative de synchro échouée (' + when + ') — l\'app continue de fonctionner en local, réessai automatique à la prochaine sauvegarde.'; el.style.color = 'var(--danger)'; }
+  if (status.ok) { el.textContent = 'Dernière synchro réussie : ' + when; el.style.color = 'var(--success)'; }
+  else { el.textContent = 'Dernière tentative de synchro échouée (' + when + ') — l\'app continue de fonctionner en local, réessai automatique à la prochaine sauvegarde.'; el.style.color = 'var(--danger)'; }
 }
 // v9.29.0 (audit AUD-01-016) — occupation du stockage de synchronisation, lue auprès du Worker
 // (nombres et octets seulement) : de quoi voir venir un dépassement avant qu'il ne bloque la synchro.
@@ -1762,8 +1762,8 @@ async function renderSyncUsage() {
     const resp = await fetchWithTimeout(SYNC_WORKER_URL + '?key=__usage__', { headers: { 'Authorization': 'Bearer ' + getSyncKey() }, timeoutMs: 8000 });
     if (!resp.ok) return;
     const u = await resp.json();
-    if (u.storage !== 'd1') { el.textContent = '☁ Stockage de synchronisation : ancien mode (KV).'; return; }
-    el.textContent = `☁ Serveur : ${u.manuscripts} manuscrit(s), images ${formatMo(u.imagesBytes)} sur ${formatMo(u.imagesBudget)} de budget, ${formatMo(u.totalBytes)} au total (limite gratuite de la base : ${formatMo(u.dbLimit)}).`;
+    if (u.storage !== 'd1') { el.textContent = 'Stockage de synchronisation : ancien mode (KV).'; return; }
+    el.textContent = `Serveur : ${u.manuscripts} manuscrit(s), images ${formatMo(u.imagesBytes)} sur ${formatMo(u.imagesBudget)} de budget, ${formatMo(u.totalBytes)} au total (limite gratuite de la base : ${formatMo(u.dbLimit)}).`;
   } catch (e) { /* mesure purement informative */ }
 }
 function closeLibrarySystemPanel() {

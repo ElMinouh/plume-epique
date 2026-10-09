@@ -1844,3 +1844,10 @@ html:has(body.dark-mode){color-scheme:dark;}
 .icon-caret{width:.95em;height:.95em;margin-left:2px;opacity:.7;vertical-align:-.15em;}
 .icon-lg{width:1.6em;height:1.6em;}
 .icon-xl{width:2.4em;height:2.4em;stroke-width:1.5;}
+
+/* ═══ v9.52.0 (audit AUD-04-002) — icônes des gabarits JS : message temporaire, pastille de couverture, glyphe de type de projet ═══ */
+.toast-icon{margin-right:.5em;vertical-align:-.25em;}
+#toast .toast-close .icon{width:1em;height:1em;}
+.library-cover{color:#fff;}
+.gn-type-glyph{color:var(--accent-text);}
+.tab-btn .icon{margin-right:2px;}

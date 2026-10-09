@@ -27,6 +27,7 @@ function notifCtx() {
   win.setTimeout = (fn, ms) => { const t = { fn, ms, on: true }; win.timers.push(t); return win.timers.length; };
   win.clearTimeout = id => { if (win.timers[id - 1]) win.timers[id - 1].on = false; };
   const ctx = dom.getInternalVMContext();
+  new vm.Script(read('js/icons.js')).runInContext(ctx);
   new vm.Script(read('js/notifications.js'), { filename: 'js/notifications.js' }).runInContext(ctx);
   return { win, run: code => new vm.Script(code).runInContext(ctx) };
 }
@@ -60,7 +61,7 @@ describe('AUD-03-019 — messages temporaires', () => {
     const { win, run } = notifCtx();
     const lbl = win.document.getElementById('autosave-label');
     run("toast('⚠️ Échec', 'error', { sticky: true, kind: 'save' }); markSaveFailed();");
-    expect(lbl.textContent).toMatch(/^⚠ Non enregistré depuis \d{2}:\d{2}$/);
+    expect(lbl.textContent).toMatch(/^Non enregistré depuis \d{2}:\d{2}$/);
     expect(lbl.classList.contains('save-failed')).toBe(true);
     run('markSaveFailed();'); // un 2e échec garde l'heure du 1er
     run('flashSave();');

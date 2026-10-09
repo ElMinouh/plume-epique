@@ -33,6 +33,7 @@ describe('AUD-03-017 — plus de dialogues natifs', () => {
       <div id="confirm-modal-input-wrap" class="u-d-none"><label id="confirm-modal-input-label"></label><input id="confirm-modal-input"></div>
       <button id="confirm-modal-cancel-btn">Annuler</button><button id="confirm-modal-confirm-btn">Confirmer</button></div></body>`, { runScripts: 'outside-only', url: 'http://localhost/' });
     const ctx = dom.getInternalVMContext();
+    new vm.Script(read('js/icons.js')).runInContext(ctx);
     new vm.Script(read('js/notifications.js')).runInContext(ctx);
     return { win: dom.window, run: c => new vm.Script(c).runInContext(ctx) };
   }
@@ -157,7 +158,7 @@ describe('AUD-03-023 — formulaires d\'accueil', () => {
     run("wirePasswordHint('a', 'hint')");
     expect(d.getElementById('hint').textContent).toBe('12 caractères minimum (0/12)');
     d.getElementById('a').value = 'abcdefghijkl'; d.getElementById('a').dispatchEvent(new win.Event('input'));
-    expect(d.getElementById('hint').textContent).toBe('✔ 12 caractères');
+    expect(d.getElementById('hint').textContent).toBe('12 caractères');
     expect(d.getElementById('hint').classList.contains('ok')).toBe(true);
   });
   it('plus de prénom « Cyril » préinscrit ; Entrée valide aussi « Mon profil »', () => {

@@ -2,7 +2,7 @@
 const PLUGINS_REGISTRY = [
   {
     id: 'languagetool',
-    name: '🔤 LanguageTool',
+    name: 'LanguageTool',
     description: 'Correction grammaticale et orthographique (API gratuite).',
     remote: true,
     run: async (text) => {
@@ -12,26 +12,26 @@ const PLUGINS_REGISTRY = [
         const resp = await fetchWithTimeout('https://api.languagetool.org/v2/check', { method:'POST', body:params, timeoutMs: 15000 });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
-        if (!data.matches.length) return '✅ Aucune erreur détectée.';
+        if (!data.matches.length) return 'Aucune erreur détectée.';
         return data.matches.slice(0,8).map(m =>
           `• <strong>${DOMPurify.sanitize(m.context.text.substring(m.context.offset,m.context.offset+m.context.length)||'?')}</strong>: ${DOMPurify.sanitize(m.message)}${m.replacements.length?' → '+DOMPurify.sanitize(m.replacements.slice(0,2).map(r=>r.value).join(', ')):''}`
         ).join('<br>');
-      } catch(e) { return '❌ Erreur API: '+e.message; }
+      } catch(e) { return 'Erreur API: '+e.message; }
     }
   },
   {
     id: 'readingtime',
-    name: '⏱️ Temps de lecture',
+    name: 'Temps de lecture',
     description: 'Estime le temps de lecture du roman entier.',
     run: async () => {
       const totalW = db.chapters.reduce((s,c)=>s+getWordCount(c.content),0);
       const minSlow=Math.ceil(totalW/150), minFast=Math.ceil(totalW/250);
-      return `📖 <strong>${totalW} mots</strong><br>Lecture lente (~150 mpm) : <strong>${Math.floor(minSlow/60)}h${minSlow%60}min</strong><br>Lecture rapide (~250 mpm) : <strong>${Math.floor(minFast/60)}h${minFast%60}min</strong>`;
+      return `${icon('book-open')} <strong>${totalW} mots</strong><br>Lecture lente (~150 mpm) : <strong>${Math.floor(minSlow/60)}h${minSlow%60}min</strong><br>Lecture rapide (~250 mpm) : <strong>${Math.floor(minFast/60)}h${minFast%60}min</strong>`;
     }
   },
   {
     id: 'repetitions',
-    name: '🔁 Détecteur de répétitions',
+    name: 'Détecteur de répétitions',
     description: 'Trouve les mots répétés dans un rayon de 5 phrases.',
     run: async () => {
       flushCurrentChapter();
@@ -44,16 +44,16 @@ const PLUGINS_REGISTRY = [
         words.forEach(w => {
           if (STOP_WORDS.has(w)) return;
           const count = (window5.toLowerCase().match(new RegExp(`\\b${w}\\b`,'g'))||[]).length;
-          if (count>=3) issues.push(`"${DOMPurify.sanitize(w)}" (×${count} dans 5 phrases)`);
+          if (count>=3) issues.push(`"${DOMPurify.sanitize(w)}" (${icon('x')}${count} dans 5 phrases)`);
         });
       });
       const unique = [...new Set(issues)].slice(0,10);
-      return unique.length ? unique.join('<br>') : '✅ Aucune répétition problématique détectée.';
+      return unique.length ? unique.join('<br>') : 'Aucune répétition problématique détectée.';
     }
   },
   {
     id: 'synopsis',
-    name: '📝 Générateur de synopsis',
+    name: 'Générateur de synopsis',
     description: 'Génère un synopsis complet via l\'IA.',
     remote: true,
     run: async () => {
@@ -78,7 +78,7 @@ function renderPlugins() {
         </label>
       </h4>
       <div class="u-fs-sm u-op-_7">${plugin.description}</div>`;
-    const runBtn = document.createElement('button'); runBtn.className='action-btn btn-sm'; runBtn.textContent='▶ Exécuter';
+    const runBtn = document.createElement('button'); runBtn.className='action-btn btn-sm'; runBtn.innerHTML=icon('play')+' Exécuter';
     const resultDiv = document.createElement('div'); resultDiv.className='plugin-result';
     runBtn.addEventListener('click', async () => {
       if (!enabled) { toast('Plugin désactivé','error'); return; }
@@ -95,7 +95,7 @@ function renderPlugins() {
         // ici, une fois pour tous les plugins présents et futurs — défense
         // en profondeur, au cas où une réponse IA contiendrait du HTML.
         resultDiv.innerHTML = DOMPurify.sanitize(asHtml);
-      } catch(e) { resultDiv.innerHTML = `<span class="u-c-v-danger">❌ ${escapeHtml(e.message)}</span>`; }
+      } catch(e) { resultDiv.innerHTML = `<span class="u-c-v-danger">${icon('circle-alert')} ${escapeHtml(e.message)}</span>`; }
     });
     card.querySelector(`input[data-plugin="${plugin.id}"]`).addEventListener('change', e => {
       db.plugins[plugin.id] = e.target.checked; debouncedSave();

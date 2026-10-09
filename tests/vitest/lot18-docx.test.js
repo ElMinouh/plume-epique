@@ -26,7 +26,7 @@ function makeContext(withDocx) {
   win.toasts = []; win.toast = (m, t) => win.toasts.push(t + ':' + m);
   win.saved = null; win.saveAs = (blob, name) => { win.saved = { blob, name }; };
   const ctx = dom.getInternalVMContext();
-  for (const f of ['js/schema.js', 'js/editor.js', 'js/export-format-utils.js', 'js/graphicnovel.js']) {
+  for (const f of ['js/icons.js', 'js/schema.js', 'js/editor.js', 'js/export-format-utils.js', 'js/graphicnovel.js']) {
     try { new vm.Script(read(f), { filename: f }).runInContext(ctx); } catch (e) { throw new Error(f + ' : ' + e.message); }
   }
   return { win, run: code => new vm.Script(code).runInContext(ctx) };

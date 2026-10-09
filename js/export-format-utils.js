@@ -643,7 +643,7 @@ function importProjectLibrary(input) {
         try { await loadManuscriptData(firstNewId); } catch(e) { unreadable = true; }
       }
       if (unreadable) {
-        toast('⚠️ Import terminé, mais ces manuscrits semblent illisibles : ce fichier vient probablement d\'un autre profil.', 'error');
+        toast('Import terminé, mais ces manuscrits semblent illisibles : ce fichier vient probablement d\'un autre profil.', 'error');
       } else if (!added) {
         toast('Aucun nouveau manuscrit : tous ceux du fichier sont déjà dans votre bibliothèque.', 'info');
       } else {

@@ -11,10 +11,10 @@ const SCHEMA_VERSION = 17;
 // vocabulaire de l'app selon le genre du manuscrit — la structure de
 // données (db.quests) ne change pas, seul le libellé affiché change.
 const PROJECT_TYPES = {
-  'fantasy':      { label:'Roman (fantasy / aventure)', questsLabel:'Quêtes',    questsSingular:'une quête',    questsIcon:'🎯' },
-  'contemporain': { label:'Roman contemporain',          questsLabel:'Intrigues', questsSingular:'une intrigue', questsIcon:'🧵' },
-  'polar':        { label:'Polar / thriller',            questsLabel:'Enquêtes',  questsSingular:'une enquête',  questsIcon:'🔎' },
-  'essai':        { label:'Essai / non-fiction',         questsLabel:'Objectifs', questsSingular:'un objectif',  questsIcon:'🧭' }
+  'fantasy':      { label:'Roman (fantasy / aventure)', questsLabel:'Quêtes',    questsSingular:'une quête',    questsIcon:'target' },
+  'contemporain': { label:'Roman contemporain',          questsLabel:'Intrigues', questsSingular:'une intrigue', questsIcon:'route' },
+  'polar':        { label:'Polar / thriller',            questsLabel:'Enquêtes',  questsSingular:'une enquête',  questsIcon:'search' },
+  'essai':        { label:'Essai / non-fiction',         questsLabel:'Objectifs', questsSingular:'un objectif',  questsIcon:'compass' }
 };
 function questsLabelFor(projectType) {
   return (PROJECT_TYPES[projectType] || PROJECT_TYPES['fantasy']).questsLabel;

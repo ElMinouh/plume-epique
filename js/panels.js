@@ -20,11 +20,11 @@ function doGlobalSearch(query) {
   let total = 0;
   const qEscaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  function addResult(icon, label, snippetText, onClick) {
+  function addResult(kind, label, snippetText, onClick) {
     const highlighted = snippetText.replace(new RegExp(`(${qEscaped})`,'gi'),'<mark>$1</mark>');
     const el = document.createElement('div');
     el.className='search-result-item'; el.setAttribute('role','listitem');
-    el.innerHTML = `<div class="sr-chapter">${icon} ${DOMPurify.sanitize(label)}</div><div>...${DOMPurify.sanitize(highlighted)}...</div>`;
+    el.innerHTML = `<div class="sr-chapter">${icon(kind)} ${DOMPurify.sanitize(label)}</div><div>...${DOMPurify.sanitize(highlighted)}...</div>`;
     el.addEventListener('click', () => { onClick(); closeGlobalSearch(); });
     container.appendChild(el);
   }
@@ -43,7 +43,7 @@ function doGlobalSearch(query) {
     occs.slice(0,3).forEach(pos => {
       const s=Math.max(0,pos-60), e=Math.min(text.length,pos+q.length+60);
       const snippet = text.slice(s,e).replace(/\s+/g,' ').trim();
-      addResult('📖', ch.title, snippet, () => changeCh(i));
+      addResult('book-open', ch.title, snippet, () => changeCh(i));
     });
   });
 
@@ -52,7 +52,7 @@ function doGlobalSearch(query) {
     const text = `${c.name||''} ${c.role||''} ${c.age||''} ${c.phys||''} ${c.info||''}`;
     if (!text.toLowerCase().includes(q)) return;
     total++;
-    addResult('👥', c.name||'Personnage', text.replace(/\s+/g,' ').trim().substring(0,140), () => {
+    addResult('users', c.name||'Personnage', text.replace(/\s+/g,' ').trim().substring(0,140), () => {
       goToTab('tab-chars'); showEdit('chars', i);
     });
   });
@@ -62,7 +62,7 @@ function doGlobalSearch(query) {
     const text = `${p.name||''} ${p.type||''} ${p.mood||''} ${p.info||''}`;
     if (!text.toLowerCase().includes(q)) return;
     total++;
-    addResult('🏰', p.name||'Lieu', text.replace(/\s+/g,' ').trim().substring(0,140), () => {
+    addResult('castle', p.name||'Lieu', text.replace(/\s+/g,' ').trim().substring(0,140), () => {
       goToTab('tab-places'); showEdit('places', i);
     });
   });
@@ -72,7 +72,7 @@ function doGlobalSearch(query) {
     const text = `${qst.text||''} ${qst.reward||''} ${qst.steps||''}`;
     if (!text.toLowerCase().includes(q)) return;
     total++;
-    addResult('🎯', qst.text||'Quête', text.replace(/\s+/g,' ').trim().substring(0,140), () => {
+    addResult('target', qst.text||'Quête', text.replace(/\s+/g,' ').trim().substring(0,140), () => {
       goToTab('tab-quests'); showQuestEdit(i);
     });
   });
@@ -128,7 +128,7 @@ async function handleSearch() {
   const wordEl = document.getElementById('lex-panel-word');
   const wordsEl = document.getElementById('lex-words');
 
-  titleEl.textContent = mode === 'syn' ? '✨ Synonymes' : '🌑 Antonymes';
+  titleEl.textContent = mode === 'syn' ? 'Synonymes' : 'Antonymes';
   wordEl.textContent = 'Recherche de « ' + word + ' »…';
   wordsEl.innerHTML = '<div class="ai-loader"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div>';
   panel.classList.add('active');
@@ -156,6 +156,6 @@ async function handleSearch() {
       wordsEl.appendChild(chip);
     });
   } catch(e) {
-    wordsEl.innerHTML = `<span class="lex-empty u-c-v-danger">❌ ${escapeHtml(e.message)}</span>`;
+    wordsEl.innerHTML = `<span class="lex-empty u-c-v-danger">${icon('circle-alert')} ${escapeHtml(e.message)}</span>`;
   }
 }

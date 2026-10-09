@@ -64,11 +64,11 @@ function buildNarrativeIndex() {
 
   db.chars.forEach(c => {
     const text = `Personnage ${c.name}: rôle ${c.role||'?'}, âge ${c.age||'?'}, ${c.phys||''} ${c.info||''}`;
-    _narrativeIndex.push({ chId:null, chTitle:'📚 Personnages', passageIdx:0, text, keywords: extractKeywords(text) });
+    _narrativeIndex.push({ chId:null, chTitle:'Personnages', passageIdx:0, text, keywords: extractKeywords(text) });
   });
   db.places.forEach(p => {
     const text = `Lieu ${p.name}: type ${p.type||'?'}, ambiance ${p.mood||'?'}, ${p.info||''}`;
-    _narrativeIndex.push({ chId:null, chTitle:'🏰 Lieux', passageIdx:0, text, keywords: extractKeywords(text) });
+    _narrativeIndex.push({ chId:null, chTitle:'Lieux', passageIdx:0, text, keywords: extractKeywords(text) });
   });
 
   _indexBuilt = true;
@@ -119,7 +119,7 @@ async function queryNarrativeMemory() {
 
     const answerCard = document.createElement('div');
     answerCard.className = 'memory-answer-card';
-    answerCard.innerHTML = `<div class="u-fwt-700 u-c-v-accent2 u-mb-6px">🧠 Réponse</div>${DOMPurify.sanitize(answer.replace(/\n/g,'<br>'))}`;
+    answerCard.innerHTML = `<div class="u-fwt-700 u-c-v-accent2 u-mb-6px">${icon('brain')} Réponse</div>${DOMPurify.sanitize(answer.replace(/\n/g,'<br>'))}`;
     resultsEl.appendChild(answerCard);
 
     const sourcesTitle = document.createElement('div');
@@ -143,24 +143,24 @@ async function queryNarrativeMemory() {
     });
 
   } catch(e) {
-    resultsEl.innerHTML = `<div class="u-c-v-danger u-fs-base u-p-10px">❌ Erreur IA: ${escapeHtml(e.message)}</div>`;
+    resultsEl.innerHTML = `<div class="u-c-v-danger u-fs-base u-p-10px">${icon('circle-alert')} Erreur IA: ${escapeHtml(e.message)}</div>`;
   }
 }
 
 function indexNarrative() {
   const btn = document.getElementById('memory-index-btn');
   const status = document.getElementById('memory-index-status');
-  btn.disabled = true; btn.textContent = '⏳ Indexation…';
+  btn.disabled = true; btn.textContent = 'Indexation…';
   setTimeout(() => {
     try {
       const n = buildNarrativeIndex();
-      status.textContent = `✅ ${n} passages indexés (${db.chapters.length} chapitres + Personnages & Lieux)`;
+      status.textContent = `${n} passages indexés (${db.chapters.length} chapitres + Personnages & Lieux)`;
       status.style.color = 'var(--success)';
       toast(`Roman indexé : ${n} passages`, 'success');
     } catch(e) {
-      status.textContent = '❌ Erreur : ' + e.message;
+      status.textContent = 'Erreur : ' + e.message;
       status.style.color = 'var(--danger)';
     }
-    btn.disabled = false; btn.textContent = '🔄 Indexer le roman';
+    btn.disabled = false; btn.innerHTML = icon('refresh-cw') + ' Indexer le roman';
   }, 50);
 }

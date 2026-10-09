@@ -21,7 +21,7 @@
 // ═══════════════════════════════════════════════════════
 
 const LIBRARY_TOUR_STEPS = [
-  { target:'#library-new-btn, #library-new-btn-shelf', title:'📚 Vos manuscrits',
+  { target:'#library-new-btn, #library-new-btn-shelf', title:'Vos manuscrits',
     text:"Chaque roman que vous écrivez est un « manuscrit » séparé : ses propres chapitres, personnages et réglages, indépendants des autres. Ce bouton en crée un tout nouveau, vierge — texte seul ou roman graphique illustré, au choix. Les manuscrits déjà commencés apparaissent juste en dessous sous forme de couvertures — un clic dessus les rouvre là où vous les avez laissés." },
   // v9.0.0 — Bug rapporté : sur mobile, ces boutons sont cachés derrière le
   // menu "⋯" (chantier Responsive Mobile, écran 2/N) — la cible était donc
@@ -30,9 +30,9 @@ const LIBRARY_TOUR_STEPS = [
   // ouvre le menu "⋯" si besoin (sans effet sur desktop, où il reste
   // masqué), et le sélecteur de cible liste aussi l'équivalent qui y
   // apparaît.
-  { ensureVisible:ensureLibraryMenuOpen, target:'#library-system-btn, #ltop-system', title:'💾 Système',
+  { ensureVisible:ensureLibraryMenuOpen, target:'#library-system-btn, #ltop-system', title:'Système',
     text:"Ce bouton regroupe tout ce qui protège votre travail : la sauvegarde automatique sur GitHub (un service gratuit de stockage en ligne, indépendant de cet ordinateur), la synchronisation si vous écrivez depuis plusieurs appareils, et l'export ou l'import de vos manuscrits sous forme de fichier." },
-  { ensureVisible:ensureLibraryMenuOpen, target:'#library-manage-profiles-btn, #ltop-manage-profiles', title:'👤 Gérer les profils',
+  { ensureVisible:ensureLibraryMenuOpen, target:'#library-manage-profiles-btn, #ltop-manage-profiles', title:'Gérer les profils',
     text:"Si plusieurs personnes se servent de cet ordinateur pour écrire, chacune peut avoir son propre profil protégé par mot de passe : ses manuscrits restent invisibles pour les autres. Ce bouton, réservé au compte administrateur, permet d'ajouter ou de retirer des profils." }
 ];
 
@@ -45,70 +45,70 @@ const LIBRARY_TOUR_STEPS = [
 function isMobileDevice() { return window.innerWidth <= 768; }
 
 const FULL_TOUR_TOOLBAR_STEPS_COMMON = [
-  { target:'.toolbar', title:'🛠️ La barre d\'outils',
-    text:"Juste au-dessus de votre texte, et qui vous suit désormais au défilement : les boutons G (gras), I (italique) et S (souligné) mettent en forme la sélection en cours, 🖍️ Surligner colore le passage sélectionné (8 couleurs au choix), et les flèches courbes annulent ou rétablissent votre dernière action. Les menus déroulants à droite en couvrent bien plus — on les découvre juste après." },
+  { target:'.toolbar', title:'La barre d\'outils',
+    text:"Juste au-dessus de votre texte, et qui vous suit désormais au défilement : les boutons G (gras), I (italique) et S (souligné) mettent en forme la sélection en cours, « Surligner » colore le passage sélectionné (8 couleurs au choix), et les flèches courbes annulent ou rétablissent votre dernière action. Les menus déroulants à droite en couvrent bien plus — on les découvre juste après." },
   { clickFirst:'#tb-structure-btn', target:'#tb-structure-btn', title:'¶ Structure',
     text:"Ce menu agit sur la ligne où se trouve votre curseur : « Titre » pour un sous-titre de section, « Paragraphe normal » pour revenir à du texte simple, « Scinder ici » pour couper le chapitre à cet endroit (la suite devient un nouveau chapitre), et « Insérer date/heure »." },
-  { target:'#focus-btn', title:'🎯 Focus',
+  { target:'#focus-btn', title:'Focus',
     text:"Écrire en plein écran, sans aucune distraction : seul votre texte reste affiché. Échap pour revenir." },
-  { clickFirst:'#tb-tools-btn', target:'#tb-tools-btn', title:'🛠️ Outils d\'écriture',
+  { clickFirst:'#tb-tools-btn', target:'#tb-tools-btn', title:'Outils d\'écriture',
     text:"Surligner les mots que vous répétez trop souvent et nettoyer ces surlignages, relire tout le roman à la suite (Mode Lecture), lire le texte à voix haute ou le dicter, lancer un sprint de 25 minutes, et exporter le chapitre ou le manuscrit." },
-  { clickFirst:'#tb-search-btn', target:'#tb-search-btn', title:'🔎 Rechercher',
+  { clickFirst:'#tb-search-btn', target:'#tb-search-btn', title:'Rechercher',
     text:"Deux façons de retrouver du texte : dans tout le projet à la fois (tous les chapitres), ou seulement dans le chapitre actuel avec possibilité de remplacer le mot trouvé par un autre." }
 ];
 // PC uniquement : Synonymes/Antonymes reste visible en permanence dans la
 // barre d'outils (pas sur mobile, où ce bloc a rejoint IA & Mémoire → IA).
 const FULL_TOUR_TOOLBAR_STEP_LEX_DESKTOP =
-  { ensureVisible:ensureLexToolsOpen, target:'#search-btn', title:'✨ Synonymes & antonymes',
-    text:"Bouton ✨ Mots de la barre d'outils (PC) : tapez un mot dans le petit champ, choisissez « Synonymes » ou « Antonymes » dans le menu, puis cliquez sur GO pour obtenir des suggestions." };
+  { ensureVisible:ensureLexToolsOpen, target:'#search-btn', title:'Synonymes & antonymes',
+    text:"Bouton « Mots » de la barre d'outils (PC) : tapez un mot dans le petit champ, choisissez « Synonymes » ou « Antonymes » dans le menu, puis cliquez sur GO pour obtenir des suggestions." };
 
 const FULL_TOUR_AI_STEP_DESKTOP =
-  { subtab:'tab-ai', title:'🤖 Assistant IA (page dédiée)',
+  { subtab:'tab-ai', title:'Assistant IA (page dédiée)',
     text:"Cinq aides à la demande : un résumé automatique du chapitre en cours, la possibilité de discuter d'un passage sélectionné avec l'assistant, des idées pour poursuivre le chapitre, une vérification des incohérences avec vos fiches Personnages, et un générateur de noms de personnages selon le genre de votre histoire." };
 const FULL_TOUR_AI_STEP_MOBILE =
-  { subtab:'tab-ai', title:'🤖 Assistant IA (page dédiée)',
+  { subtab:'tab-ai', title:'Assistant IA (page dédiée)',
     text:"Sur mobile, toutes les aides IA sont regroupées ici, faute de place dans la barre d'outils : résumé automatique du chapitre, discuter d'un passage sélectionné, idées pour poursuivre le chapitre, vérification des incohérences, générateur de noms de personnages, et les synonymes/antonymes." };
 
 const FULL_TOUR_STEPS_REST = [
-  { subtab:'tab-chars', title:'👥 Personnages',
+  { subtab:'tab-chars', title:'Personnages',
     text:"Une fiche par personnage de votre histoire : description, apparence, tout ce que vous voulez garder en mémoire à leur sujet. L'assistant IA peut ensuite vérifier que votre texte ne les contredit pas (voir l'onglet IA)." },
-  { subtab:'tab-places', title:'🏰 Lieux',
+  { subtab:'tab-places', title:'Lieux',
     text:"Le même principe que les personnages, mais pour les lieux de votre histoire : une fiche par endroit, pour ne jamais perdre le fil d'un décor déjà décrit." },
-  { subtab:'tab-quests', title:'🎯 Quêtes',
+  { subtab:'tab-quests', title:'Quêtes',
     text:"Suivez ici les fils narratifs de votre histoire — les intrigues en cours, résolues, ou encore en suspens — pour ne pas en perdre le fil au fil des chapitres." },
-  { subtab:'tab-timeline', title:'🕐 Chronologie',
+  { subtab:'tab-timeline', title:'Chronologie',
     text:"Une frise du temps qui passe dans votre histoire : ajoutez un événement, une date ou un moment, et reliez-le si besoin à un chapitre précis. Utile pour garder une cohérence temporelle sur un roman long." },
-  { subtab:'tab-graph', title:'🕸️ Relations',
+  { subtab:'tab-graph', title:'Relations',
     text:"Un schéma visuel qui relie automatiquement vos personnages, lieux et quêtes entre eux, à partir de ce qui est mentionné dans votre texte. Pratique pour voir d'un coup d'œil qui est lié à quoi." },
-  { subtab:'tab-memory', title:'🧠 Mémoire narrative',
+  { subtab:'tab-memory', title:'Mémoire narrative',
     text:"Indexez tout votre roman en un clic, puis posez n'importe quelle question dessus en langage naturel — par exemple « que portait Léa au chapitre 3 ? ». L'assistant IA retrouve le passage concerné pour vous." },
-  { subtab:'tab-stats', title:'📊 Statistiques',
+  { subtab:'tab-stats', title:'Statistiques',
     text:"Vos chiffres d'écriture : nombre de mots total, progression du jour, et l'historique de vos séances d'écriture sous forme de graphique." },
-  { subtab:'tab-wordcloud', title:'☁️ Nuage de mots',
+  { subtab:'tab-wordcloud', title:'Nuage de mots',
     text:"Un nuage visuel des mots les plus utilisés dans votre texte — utile pour repérer un tic de langage ou un mot que vous employez sans vous en rendre compte." },
-  { subtab:'tab-analytics', title:'📈 Détail (longueur & lisibilité)',
+  { subtab:'tab-analytics', title:'Détail (longueur & lisibilité)',
     text:"La longueur de chaque chapitre comparée aux autres, un score de lisibilité (à quel point votre texte est facile à lire), et la part de dialogue par rapport à la narration." },
-  { subtab:'tab-map', title:'🏗️ Structure (tension narrative)',
+  { subtab:'tab-map', title:'Structure (tension narrative)',
     text:"Une courbe qui représente la tension de votre histoire chapitre après chapitre. Le curseur « Tension » dans la colonne de gauche règle la valeur du chapitre que vous êtes en train d'écrire." },
-  { subtab:'tab-history', title:'🔖 Versions',
+  { subtab:'tab-history', title:'Versions',
     text:"Plume enregistre automatiquement des copies de chaque chapitre au fil de l'écriture (« versions »). Cet onglet permet de consulter ou de restaurer une version antérieure si vous changez d'avis, ou de comparer deux versions entre elles." },
-  { subtab:'tab-plugins', title:'🔌 Plugins',
+  { subtab:'tab-plugins', title:'Plugins',
     text:"Des modules complémentaires que vous pouvez activer ou désactiver selon vos besoins, sans jamais toucher au reste de l'application." },
-  { subtab:'tab-config-main', title:'⚙️ Réglages',
+  { subtab:'tab-config-main', title:'Réglages',
     text:"L'apparence de l'app (couleurs, thème clair/sombre/papier, police d'écriture), le type de votre projet (roman, polar, essai...), vos objectifs de mots, et les mots que vous voulez traquer comme « faibles »." },
-  { subtab:'tab-sprint', title:'⏱️ Sprint',
+  { subtab:'tab-sprint', title:'Sprint',
     text:"Un chronomètre pour une session d'écriture concentrée et minutée — utile pour se fixer un temps d'écriture court et s'y tenir." },
-  { target:'#tab-menu', title:'🗂️ Réorganiser les onglets',
+  { target:'#tab-menu', title:'Réorganiser les onglets',
     text:"Ces cinq onglets peuvent être réordonnés selon vos habitudes : faites-les glisser, ou utilisez Alt + flèche gauche/droite au clavier une fois un onglet sélectionné." },
-  { target:'#mode-bar', title:'📍 Le bandeau du bas',
+  { target:'#mode-bar', title:'Le bandeau du bas',
     text:"Toujours visible, quel que soit l'endroit où vous êtes : l'état de l'enregistrement automatique, le thème clair/sombre, la dictée vocale, le chat avec l'assistant IA, et l'état de la synchronisation entre appareils." },
-  { target:'#toggle-dark-btn', title:'🌙 Thème clair / sombre',
+  { target:'#toggle-dark-btn', title:'Thème clair / sombre',
     text:"Bascule instantanément entre un fond clair et un fond sombre, pour écrire confortablement de jour comme de nuit. Un réglage plus complet (palette de couleurs, thème papier, police) se trouve dans Config → Réglages." },
-  { target:'#dictate-btn', title:'🎤 Dictée vocale',
+  { target:'#dictate-btn', title:'Dictée vocale',
     text:"Écrivez à voix haute : votre micro transcrit automatiquement ce que vous dites directement dans le chapitre en cours." },
-  { target:'#ai-chat-btn', title:'💬 Discuter avec l\'assistant IA',
+  { target:'#ai-chat-btn', title:'Discuter avec l\'assistant IA',
     text:"Ouvre une conversation libre avec l'assistant IA, qui a accès au contexte de votre roman pour répondre à vos questions ou vous aider à réfléchir à la suite." },
-  { target:'#shortcuts-hint-btn', title:'❔ Raccourcis clavier',
+  { target:'#shortcuts-hint-btn', title:'Raccourcis clavier',
     text:"Un aide-mémoire de tous les raccourcis clavier disponibles (Ctrl+B pour le gras, la touche « ? » pour rouvrir cette aide, et bien d'autres)." }
 ];
 
@@ -121,9 +121,9 @@ function getFullTourSteps() {
     ? FULL_TOUR_TOOLBAR_STEPS_COMMON
     : [...FULL_TOUR_TOOLBAR_STEPS_COMMON, FULL_TOUR_TOOLBAR_STEP_LEX_DESKTOP];
   return [
-    { target:'#chapter-sidebar', title:'📖 Vos chapitres',
+    { target:'#chapter-sidebar', title:'Vos chapitres',
       text:"Cette colonne liste, dans l'ordre, tous les chapitres de votre manuscrit. Cliquez sur l'un d'eux pour l'ouvrir et l'écrire. Vous pouvez les faire glisser pour changer leur ordre ; la petite icône de corbeille en haut retrouve les chapitres supprimés pendant 30 jours, au cas où." },
-    { target:'#chapter-title-row', title:'✏️ Titre, statut et notes du chapitre',
+    { target:'#chapter-title-row', title:'Titre, statut et notes du chapitre',
       text:"Le grand titre en haut de la page se modifie en cliquant simplement dessus. Le menu déroulant à côté (Brouillon / À revoir / Final) indique où en est ce chapitre. Le bouton « Notes » ouvre un espace pour un objectif de mots et des notes de recherche propres à ce seul chapitre." },
     ...toolbarSteps,
     ...FULL_TOUR_STEPS_REST.slice(0, 5), // Personnages → Relations
@@ -347,7 +347,7 @@ function showInfoPopover(anchor, title, text) {
 function hideInfoPopover() { document.getElementById('info-popover').classList.remove('active'); }
 
 // v9.47.0 (AUD-03-024) : ⓘ seulement sur les fonctions non évidentes (avant : un ⓘ par étape de visite, ~30 au total).
-const HELP_ICON_TITLES = new Set(['💾 Système', '🧠 Mémoire narrative', '⏱️ Sprint', '⚙️ Réglages', '🤖 Assistant IA (page dédiée)']);
+const HELP_ICON_TITLES = new Set(['Système', 'Mémoire narrative', 'Sprint', 'Réglages', 'Assistant IA (page dédiée)']);
 function wireContextualHelpIcons() {
   [...LIBRARY_TOUR_STEPS, ...getFullTourSteps()].forEach(step => {
     if (!HELP_ICON_TITLES.has(step.title)) return;

@@ -37,13 +37,15 @@ function toast(msg, type='info', opts={}) {
   const el = document.getElementById('toast');
   clearTimeout(_toastTimer); _toastTimer = null;
   el.textContent = msg;
+  // v9.52.0 : une icône par type de message (succès / erreur / information) — le texte (textContent) reste celui du message.
+  el.insertAdjacentHTML('afterbegin', icon(type === 'success' ? 'circle-check' : type === 'error' ? 'circle-alert' : 'info', 'toast-icon'));
   el.style.borderLeftColor = type==='success'?'#27ae60':type==='error'?'#e74c3c':'#8e44ad';
   const closable = type === 'error' || !!opts.sticky;
   el.classList.toggle('has-close', closable);
   if (opts.kind) el.dataset.kind = opts.kind; else delete el.dataset.kind;
   if (closable) {
     const btn = document.createElement('button');
-    btn.type = 'button'; btn.className = 'toast-close'; btn.textContent = '✕';
+    btn.type = 'button'; btn.className = 'toast-close'; btn.innerHTML = icon('x');
     btn.setAttribute('aria-label', 'Fermer ce message'); btn.title = 'Fermer ce message';
     btn.addEventListener('click', hideToast);
     el.appendChild(btn);
@@ -63,7 +65,7 @@ function markSaveFailed() {
   const lbl = document.getElementById('autosave-label');
   if (!_saveFailedSince) _saveFailedSince = new Date();
   if (lbl) {
-    lbl.textContent = '⚠ Non enregistré depuis ' + _saveFailedSince.toLocaleTimeString('fr',{hour:'2-digit',minute:'2-digit'});
+    lbl.textContent = 'Non enregistré depuis ' + _saveFailedSince.toLocaleTimeString('fr',{hour:'2-digit',minute:'2-digit'});
     lbl.classList.add('save-failed');
   }
 }
@@ -101,13 +103,13 @@ function initPasswordToggle(inputId) {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'pwd-toggle-btn';
-  btn.textContent = '👁️';
+  btn.innerHTML = icon('eye');
   btn.title = 'Afficher';
   btn.setAttribute('aria-label', 'Afficher le mot de passe');
   btn.addEventListener('click', () => {
     const show = input.type === 'password';
     input.type = show ? 'text' : 'password';
-    btn.textContent = show ? '🙈' : '👁️';
+    btn.innerHTML = show ? icon('eye-off') : icon('eye');
     btn.title = show ? 'Masquer' : 'Afficher';
     btn.setAttribute('aria-label', show ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
   });
@@ -142,7 +144,7 @@ function closeShortcutsHelp() { document.getElementById('shortcuts-overlay').cla
 // ═══════════════════════════════════════════════════════
 const ONBOARDING_STEPS = [
   { target:'#chapter-sidebar', text:'Vos chapitres apparaissent ici. Glissez-les pour les réordonner, ou passez en vue Fiches.' },
-  { target:'.toolbar', text:'La barre d\'outils : mise en forme, structure, mode Focus, recherche et dictionnaire. L\'assistant IA est dans le bandeau du bas (🤖 IA).' },
+  { target:'.toolbar', text:'La barre d\'outils : mise en forme, structure, mode Focus, recherche et dictionnaire. L\'assistant IA est dans le bandeau du bas (« IA »).' },
   { target:'#mode-bar', text:'Ce bandeau reste toujours visible : état d\'enregistrement, dictée, chat IA, thème.' },
   { target:'#tab-menu', text:'Tout le reste — personnages, statistiques, réglages — se trouve dans ces onglets.' }
 ];

@@ -38,6 +38,7 @@ function makeContext(chapters, chars) {
     var cur = 0; var db = { chapters: [], chars: [] };
   `);
   new vm.Script(read('js/schema.js')).runInContext(ctx);
+  new vm.Script(read('js/icons.js')).runInContext(ctx);
   new vm.Script(read('js/ai.js')).runInContext(ctx);
   win.__chapters = chapters; win.__chars = chars || [];
   run('db.chapters = __chapters; db.chars = __chars; var prompts = []; var respond = (p, n) => "réponse " + prompts.length; callClaude = async (p, n, onChunk) => { prompts.push(p); const r = respond(p, n); if (r instanceof Error) throw r; return r; }; AI_RETRY_DELAY_MS = 0;');

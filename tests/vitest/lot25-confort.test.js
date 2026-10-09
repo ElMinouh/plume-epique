@@ -56,7 +56,7 @@ describe('AUD-03-024 — une seule aide', () => {
     expect(set.length).toBe(5);
     expect(f).toContain('if (!HELP_ICON_TITLES.has(step.title)) return;');
     expect(read('js/notifications.js')).not.toContain('(menu 🤖 IA)');
-    expect(read('js/notifications.js')).toContain('bandeau du bas (🤖 IA)');
+    expect(read('js/notifications.js')).toContain('bandeau du bas (« IA »)');
   });
   it('les étapes de la visite guidée visent les nouveaux identifiants', () => {
     const f = read('js/fulltour.js');
@@ -172,7 +172,7 @@ describe('AUD-03-033 — pied de page', () => {
   it('libellés de synchro explicites', () => {
     const r = read('js/router.js');
     expect(r).toContain("label.textContent = 'Local seulement'");
-    expect(r).toContain("label.textContent = '☁ Synchronisé'");
-    expect(r).toContain("label.textContent = '⚠ Échec de synchro'");
+    expect(r).toContain("label.innerHTML = icon('cloud') + ' Synchronisé'");
+    expect(r).toContain("label.innerHTML = icon('triangle-alert') + ' Échec de synchro'");
   });
 });

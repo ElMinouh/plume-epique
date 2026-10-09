@@ -22,15 +22,15 @@ function renderTimeline() {
     // v9.38.0 : actions de la carte (déplacer, modifier, supprimer)
     const actions=document.createElement('div'); actions.className='tl-actions';
     const mkBtn=(label,title,handler,disabled)=>{
-      const b=document.createElement('button'); b.className='tl-act-btn'; b.textContent=label; b.title=title; b.setAttribute('aria-label',title);
+      const b=document.createElement('button'); b.className='tl-act-btn'; b.innerHTML=icon(label); b.title=title; b.setAttribute('aria-label',title);
       if(disabled) b.disabled=true;
       b.addEventListener('click',e=>{ e.stopPropagation(); handler(); });
       actions.appendChild(b); return b;
     };
-    mkBtn('◀','Déplacer cet événement avant le précédent',()=>moveTimelineEvent(i,-1),i===0);
-    mkBtn('▶','Déplacer cet événement après le suivant',()=>moveTimelineEvent(i,1),i===db.timeline.length-1);
-    mkBtn('✎','Modifier cet événement',()=>startEditTimelineEvent(i));
-    mkBtn('×','Supprimer cet événement',()=>deleteTimelineEvent(i));
+    mkBtn('arrow-left','Déplacer cet événement avant le précédent',()=>moveTimelineEvent(i,-1),i===0);
+    mkBtn('arrow-right','Déplacer cet événement après le suivant',()=>moveTimelineEvent(i,1),i===db.timeline.length-1);
+    mkBtn('pencil','Modifier cet événement',()=>startEditTimelineEvent(i));
+    mkBtn('x','Supprimer cet événement',()=>deleteTimelineEvent(i));
     card.appendChild(actions);
     // Correction (audit) : evt.chapterId (id stable) remplace evt.chapterIdx (position), qui pointait
     // silencieusement vers le mauvais chapitre après une suppression/réorganisation — voir migration schema.js v<13.
@@ -65,7 +65,7 @@ function startEditTimelineEvent(i) {
   document.getElementById('tl-event-text').value=evt.text||'';
   document.getElementById('tl-event-date').value=evt.date||'';
   document.getElementById('tl-chapter-sel').value=evt.chapterId||'';
-  document.getElementById('tl-add-btn').textContent='✔ Enregistrer';
+  document.getElementById('tl-add-btn').textContent='Enregistrer';
   document.getElementById('tl-add-btn').title='Enregistrer la modification de cet événement';
   document.getElementById('tl-cancel-edit-btn').classList.remove('u-d-none');
   document.getElementById('tl-event-text').focus();

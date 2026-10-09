@@ -34,7 +34,7 @@ function updateDailyStats() {
   // mémorise la date, remis à zéro naturellement dès que le jour change).
   if (pct >= 100 && todayW > 0 && _goalCelebratedDay !== today) {
     _goalCelebratedDay = today;
-    toast('🎉 Objectif journalier atteint !','success');
+    toast('Objectif journalier atteint !','success');
   }
   updateGoalsUI(totalW);
   updateEstimatedFinishDate();
@@ -84,7 +84,7 @@ function updateEstimatedFinishDate() {
   if (!goal) { el.textContent = ''; return; }
   const totalW = db.chapters.reduce((s,c) => s + getWordCount(c.content), 0);
   const remaining = goal - totalW;
-  if (remaining <= 0) { el.textContent = '🎉 Objectif de mots déjà atteint !'; return; }
+  if (remaining <= 0) { el.textContent = 'Objectif de mots déjà atteint !'; return; }
   const pace = getWordsInLastNDays(7, totalW) / 7;
   if (pace <= 0) { el.textContent = `Il reste ${remaining} mots pour atteindre l'objectif (pas assez d'activité récente pour estimer une date).`; return; }
   const daysNeeded = Math.ceil(remaining / pace);

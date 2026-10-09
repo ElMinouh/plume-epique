@@ -130,7 +130,7 @@ function renderSyncKeyGate() {
   // la clé (avant : « Vérifier » et « Valider » séparés, « Valider » acceptait une clé non
   // vérifiée). Plus de compteur « Étape x/3 » : il ne se suivait pas quand on ignorait l'étape.
   gateShell(`
-    <div class="gate-title"><i>🔑</i> Où sont vos manuscrits ?</div>
+    <div class="gate-title"><i>${icon('key-round')}</i> Où sont vos manuscrits ?</div>
     <div class="gate-sub">Pour retrouver vos profils et manuscrits sur cet appareil, saisissez la clé de synchronisation de votre famille (demandez-la à votre administrateur). Sinon, écrivez ici seulement.</div>
     <label class="gate-label">Clé de synchronisation</label>
     <input id="sync-key-input" type="password" class="gate-field" placeholder="Collez ou saisissez la clé" autocomplete="off">
@@ -143,11 +143,11 @@ function renderSyncKeyGate() {
   const submit = async () => {
     const key = document.getElementById('sync-key-input').value.trim();
     if (!key) { statusEl.style.color = ''; statusEl.textContent = 'Entrez une clé, ou choisissez « Écrire sur cet appareil seulement ».'; return; }
-    statusEl.style.color = '#9a95a8'; statusEl.textContent = '⏳ Vérification…';
+    statusEl.style.color = '#9a95a8'; statusEl.textContent = 'Vérification…';
     submitBtn.disabled = true;
     const ok = await verifySyncKey(key);
     submitBtn.disabled = false;
-    if (!ok) { statusEl.style.color = '#e8a09a'; statusEl.textContent = '❌ Clé refusée, ou serveur injoignable. Vérifiez la clé et votre connexion.'; return; }
+    if (!ok) { statusEl.style.color = '#e8a09a'; statusEl.textContent = 'Clé refusée, ou serveur injoignable. Vérifiez la clé et votre connexion.'; return; }
     setSyncKey(key);
     hideGate();
     await bootProfiles();
@@ -253,7 +253,7 @@ async function bootProfiles() {
 // de synchronisation depuis l'écran de configuration.
 function renderSyncUnavailable() {
   gateShell(`
-    <div class="gate-title"><i>📡</i> Serveur injoignable</div>
+    <div class="gate-title"><i>${icon('wifi-off')}</i> Serveur injoignable</div>
     <div class="gate-sub">
       Vos profils sont peut-être stockés en ligne, mais le serveur de
       synchronisation ne répond pas pour l'instant. Aucun profil n'est affiché
@@ -298,7 +298,7 @@ function gateFail(errEl, fieldId, msg) {
 function wirePasswordHint(inputId, hintId) {
   const input = document.getElementById(inputId), hint = document.getElementById(hintId);
   if (!input || !hint) return;
-  const upd = () => { const n = input.value.length; hint.textContent = n >= MIN_PASSWORD_LENGTH ? '✔ ' + n + ' caractères' : MIN_PASSWORD_LENGTH + ' caractères minimum (' + n + '/' + MIN_PASSWORD_LENGTH + ')'; hint.classList.toggle('ok', n >= MIN_PASSWORD_LENGTH); };
+  const upd = () => { const n = input.value.length; hint.textContent = n >= MIN_PASSWORD_LENGTH ? '' + n + ' caractères' : MIN_PASSWORD_LENGTH + ' caractères minimum (' + n + '/' + MIN_PASSWORD_LENGTH + ')'; hint.classList.toggle('ok', n >= MIN_PASSWORD_LENGTH); };
   input.addEventListener('input', upd); upd();
 }
 function gateShell(innerHtml) {
@@ -329,7 +329,7 @@ function renderLoginScreen(idx) {
     <button id="login-btn" class="gate-btn gate-btn-primary">Se connecter</button>
     <button id="login-forgot" class="gate-link">Mot de passe oublié ?</button>
     <div class="gate-divider"></div>
-    <button id="login-add" class="gate-btn gate-btn-ghost">➕ Ajouter un profil</button>
+    <button id="login-add" class="gate-btn gate-btn-ghost">${icon('plus')} Ajouter un profil</button>
   `);
   document.getElementById('login-btn').addEventListener('click', doLogin);
   initPasswordToggle('login-pwd');
@@ -359,7 +359,7 @@ function renderCreateProfile(opts) {
   opts = opts || {};
   const defaultName = '';
   gateShell(`
-    <div class="gate-title"><i>👤</i> ${opts.firstAdmin ? 'Bienvenue — créez le profil administrateur' : 'Nouveau profil'}</div>
+    <div class="gate-title"><i>${icon('user')}</i> ${opts.firstAdmin ? 'Bienvenue — créez le profil administrateur' : 'Nouveau profil'}</div>
     <label class="gate-label">Nom du profil</label>
     <input id="cp-name" type="text" class="gate-field" value="${DOMPurify.sanitize(defaultName)}" placeholder="Votre prénom ou pseudo" autocomplete="username">
     <label class="gate-label">Mot de passe</label>
@@ -440,10 +440,10 @@ async function submitCreateProfile(opts) {
 // ── ÉCRAN 5 : Code de récupération ──────────────────────────────────────
 function showRecoveryCode(code, name, onContinue) {
   gateShell(`
-    <div class="gate-title"><i>🛡️</i> Votre code de récupération</div>
+    <div class="gate-title"><i>${icon('shield')}</i> Votre code de récupération</div>
     <div class="gate-sub">Conservez ce code en lieu sûr. Il permet de récupérer le profil « ${DOMPurify.sanitize(name)} » en cas d'oubli du mot de passe. Il ne sera plus jamais affiché.</div>
     <div class="gate-code">${DOMPurify.sanitize(code)}</div>
-    <button id="rc-pdf" class="gate-btn gate-btn-accent">⬇️ Télécharger en PDF</button>
+    <button id="rc-pdf" class="gate-btn gate-btn-accent">${icon('download')} Télécharger en PDF</button>
     <label class="gate-check"><input type="checkbox" id="rc-ack"> J'ai mis ce code en sécurité</label>
     <button id="rc-continue" class="gate-btn gate-btn-ghost" disabled>Continuer</button>
   `);
@@ -476,16 +476,16 @@ function renderRecovery(profileId) {
     const profil = idx.profiles.find(p => p.id === profileId);
     if (!profil) { renderLoginScreen(idx); return; }
     gateShell(`
-      <div class="gate-title"><i>🔓</i> Récupérer « ${DOMPurify.sanitize(profil.name)} »</div>
+      <div class="gate-title"><i>${icon('lock-open')}</i> Récupérer « ${DOMPurify.sanitize(profil.name)} »</div>
       <div class="gate-sub">Utilisez l'une des deux méthodes ci-dessous.</div>
       <div class="gate-box">
-        <div class="gate-box-title">❔ Question de sécurité</div>
+        <div class="gate-box-title">${icon('circle-help')} Question de sécurité</div>
         <div class="gate-q">${DOMPurify.sanitize(profil.question || '')}</div>
         <input id="rec-answer" type="text" class="gate-field" placeholder="Votre réponse">
       </div>
       <div class="gate-or">— ou —</div>
       <div class="gate-box">
-        <div class="gate-box-title">🔑 Code de récupération</div>
+        <div class="gate-box-title">${icon('key-round')} Code de récupération</div>
         <input id="rec-code" type="text" class="gate-field u-ff-monospace" placeholder="XXXX-XXXX-XXXX-…">
       </div>
       <div class="gate-section">
@@ -594,8 +594,8 @@ async function renderManageProfiles() {
       <div class="mp-avatar ${isAdmin ? 'mp-avatar-admin' : 'mp-avatar-user'}">${DOMPurify.sanitize(initial)}</div>
       <div class="mp-name">${DOMPurify.sanitize(p.name)}${isAdmin ? ' <span class="mp-badge">admin</span>' : ''}${isMe ? ' <span class="mp-you">vous</span>' : ''}</div>
       <div class="mp-actions">
-        <button class="action-btn btn-sm" data-rename="${p.id}">✏️ Renommer</button>
-        ${(!isMe) ? `<button class="action-btn btn-danger btn-sm" data-del="${p.id}">🗑️</button>` : ''}
+        <button class="action-btn btn-sm" data-rename="${p.id}">${icon('pencil')} Renommer</button>
+        ${(!isMe) ? `<button class="action-btn btn-danger btn-sm" data-del="${p.id}">${icon('trash-2')}</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -769,7 +769,7 @@ async function saveMyQuestion() {
 function renderMigration(legacy) {
   const encrypted = !!(legacy && legacy._enc);
   gateShell(`
-    <div class="gate-title"><i>✨</i> Mise à jour : profils</div>
+    <div class="gate-title"><i>${icon('sparkles')}</i> Mise à jour : profils</div>
     <div class="gate-sub">Plume gère maintenant plusieurs profils. On sécurise vos données actuelles dans le profil administrateur.</div>
     <label class="gate-label">Nom du profil</label>
     <input id="mig-name" type="text" class="gate-field" placeholder="Votre prénom ou pseudo">

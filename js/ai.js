@@ -211,7 +211,7 @@ async function generateAISummary() {
     }
     textEl.innerText = s + '\n\n— ' + note;
     textEl.dataset.generated = s;
-  } catch(e) { textEl.innerHTML = `<span class="u-c-v-danger">❌ ${escapeHtml(e.message)}</span>`; }
+  } catch(e) { textEl.innerHTML = `<span class="u-c-v-danger">${icon('circle-alert')} ${escapeHtml(e.message)}</span>`; }
 }
 function copyAISummaryToChapter() {
   const textEl = document.getElementById('ai-summary-text'), s = textEl.dataset.generated||textEl.innerText;
@@ -227,7 +227,7 @@ async function aiContinueSuggestions() {
     const r = await callClaude(`Voici la fin d'un chapitre: "...${text.slice(-600)}"\n\nPropose 3 continuations numérotées 1. 2. 3., chacune en 2-3 phrases en français, avec des tons variés.`, 800,
       partial => { el.innerHTML = DOMPurify.sanitize(partial.replace(/\n/g,'<br>')); });
     el.innerHTML = DOMPurify.sanitize(r.replace(/\n/g,'<br>'));
-  } catch(e) { el.innerHTML = `<span class="u-c-v-danger">❌ ${escapeHtml(e.message)}</span>`; }
+  } catch(e) { el.innerHTML = `<span class="u-c-v-danger">${icon('circle-alert')} ${escapeHtml(e.message)}</span>`; }
 }
 let _aiCheckToken = null;
 async function aiCheckInconsistencies() {
@@ -253,7 +253,7 @@ async function aiCheckInconsistencies() {
     }
     const words = getWordCount(ch.content);
     aiShowResult(el, `Analysé : chapitre « ${ch.title || cur + 1} » lu en entier (${words} mots), comparé aux fiches des personnages. Les autres chapitres n'ont pas été comparés : choisissez « Tout le roman » pour cela.`, results.join('\n\n'));
-  } catch(e) { el.innerHTML = `<span class="u-c-v-danger">❌ ${escapeHtml(e.message)}</span>`; }
+  } catch(e) { el.innerHTML = `<span class="u-c-v-danger">${icon('circle-alert')} ${escapeHtml(e.message)}</span>`; }
   finally { token.done = true; }
 }
 // Tout le roman, en deux temps : (1) faits extraits par paquets de chapitres, (2) faits comparés entre eux.
@@ -261,7 +261,7 @@ async function aiCheckWholeNovel(el) {
   const est = aiNovelEstimate(db.chapters);
   if (!est.batches.length || est.words < 50) { toast('Pas assez de texte.', 'error'); return; }
   if (est.calls > AI_MAX_CALLS) {
-    el.innerHTML = `<span class="u-c-v-danger">❌ Ce roman demanderait environ ${est.calls} appels IA (maximum ${AI_MAX_CALLS}). Analysez-le par chapitre.</span>`;
+    el.innerHTML = `<span class="u-c-v-danger">${icon('circle-alert')} Ce roman demanderait environ ${est.calls} appels IA (maximum ${AI_MAX_CALLS}). Analysez-le par chapitre.</span>`;
     return;
   }
   const minutes = Math.max(1, Math.round(est.seconds / 60));
@@ -296,7 +296,7 @@ async function aiCheckWholeNovel(el) {
     if (groups.length > 1) note += ' Le roman est long : la comparaison est faite par groupes de chapitres consécutifs, une contradiction entre deux groupes peut échapper.';
     if (limited) note += ' Comparaison partielle (plafond d\'appels atteint).';
     aiShowResult(el, note, results.join('\n\n'));
-  } catch(e) { el.innerHTML = `<span class="u-c-v-danger">❌ ${escapeHtml(e.message)}</span>`; }
+  } catch(e) { el.innerHTML = `<span class="u-c-v-danger">${icon('circle-alert')} ${escapeHtml(e.message)}</span>`; }
   finally { token.done = true; }
 }
 async function aiGenerateNames() {
@@ -326,7 +326,7 @@ Génère 10 noms maintenant, en français ou adaptés au genre ${genre} :`;
       el.innerHTML = lines.map(line => `<div class="u-p-3px-0 u-bdb-1px-solid-v-border">${DOMPurify.sanitize(line)}</div>`).join('');
     }
   } catch(e) {
-    el.innerHTML = `<span class="u-c-v-danger">❌ ${escapeHtml(e.message)}</span>`;
+    el.innerHTML = `<span class="u-c-v-danger">${icon('circle-alert')} ${escapeHtml(e.message)}</span>`;
   }
 }
 
@@ -456,7 +456,7 @@ async function sendAiChatMessage() {
     });
     _aiChatHistory.push({ role:'assistant', text: (reply||'').trim() || '(réponse vide)', ts:Date.now() });
   } catch(e) {
-    _aiChatHistory.push({ role:'assistant', text: '❌ ' + e.message, ts:Date.now() });
+    _aiChatHistory.push({ role:'assistant', text: '' + e.message, ts:Date.now() });
   } finally {
     sendBtn.disabled = false;
     renderAiChatMessages();
@@ -477,9 +477,9 @@ function renderAiChatMessages() {
     if (m.role === 'user') return `<div class="ai-chat-msg ai-chat-msg-user" data-ai-msg-idx="${i}">${bubble}</div>`;
     return `<div class="ai-chat-msg ai-chat-msg-assistant" data-ai-msg-idx="${i}">${bubble}
       <div class="ai-chat-msg-actions">
-        <button class="ai-chat-chip" data-ai-insert="${i}">➕ Insérer</button>
-        <button class="ai-chat-chip" data-ai-copy="${i}">📋 Copier</button>
-        ${showReplace ? `<button class="ai-chat-chip" data-ai-replace="${i}">🔁 Remplacer</button>` : ''}
+        <button class="ai-chat-chip" data-ai-insert="${i}">${icon('plus')} Insérer</button>
+        <button class="ai-chat-chip" data-ai-copy="${i}">${icon('clipboard-copy')} Copier</button>
+        ${showReplace ? `<button class="ai-chat-chip" data-ai-replace="${i}">${icon('replace')} Remplacer</button>` : ''}
       </div>
     </div>`;
   }).join('');

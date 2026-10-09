@@ -28,6 +28,7 @@ function makeCtx() {
   vm.runInContext(JS('schema.js'), ctx, { filename: 'schema.js' });
   vm.runInContext(JS('images.js').replace("'plume_epique_images'", `'plume_epique_images_lot4_${++dbCounter}'`), ctx, { filename: 'images.js' });
   vm.runInContext('let _unsavedChanges = false; let _currentProfileId = null, _dataKey = null, _currentDocumentId = null; var db = {}; var cur = 0;', ctx);
+  vm.runInContext(JS('icons.js'), ctx, { filename: 'icons.js' });
   vm.runInContext(JS('graphicnovel.js'), ctx, { filename: 'graphicnovel.js' });
   vm.runInContext(JS('snapshots.js'), ctx, { filename: 'snapshots.js' });
   ctx.renderGraphicNovelScreen = () => {}; // l'écran réel est hors sujet ici (redéfini par graphicnovel.js)

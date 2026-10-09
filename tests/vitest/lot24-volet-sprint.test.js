@@ -39,7 +39,7 @@ describe('AUD-03-003 — comportement du volet (tabs.js)', () => {
     const dom = new JSDOM(`<body><main><div id="editor"></div>
       <div id="tab-container"><div id="panel-resizer" tabindex="0"></div><strong id="panel-title"></strong><button id="panel-close-btn"></button>
         <div id="tab-univers" class="tab-content"></div><div id="tab-config" class="tab-content"></div></div></main>
-      <nav id="tab-menu"><button class="tab-btn" id="b1" data-tab-id="tab-univers">🌍 Univers ▾</button><button class="tab-btn" id="b2" data-tab-id="tab-config">⚙️ Config ▾</button></nav></body>`,
+      <nav id="tab-menu"><button class="tab-btn" id="b1" data-tab-id="tab-univers">Univers</button><button class="tab-btn" id="b2" data-tab-id="tab-config">Config</button></nav></body>`,
       { runScripts: 'outside-only', url: 'http://localhost/' });
     const ctx = dom.getInternalVMContext();
     new vm.Script(`
@@ -48,6 +48,7 @@ describe('AUD-03-003 — comportement du volet (tabs.js)', () => {
       function renderTimeline(){} function renderGraph(){} function renderStats(){} function renderWordCloud(){} function renderAnalytics(){} function updateChart(){}
       function renderHistoryTab(){} function renderPlugins(){} function debouncedSave(){}
     `).runInContext(ctx);
+    new vm.Script(read('js/icons.js')).runInContext(ctx);
     new vm.Script(read('js/tabs.js')).runInContext(ctx);
     return { win: dom.window, d: dom.window.document, run: s => new vm.Script(s).runInContext(ctx) };
   }
@@ -57,12 +58,12 @@ describe('AUD-03-003 — comportement du volet (tabs.js)', () => {
     const { d, run } = app();
     run("toggleTab('tab-univers', document.getElementById('b1'))");
     expect(state(d)).toEqual({ open: true, main: true, body: true });
-    expect(d.getElementById('panel-title').textContent).toBe('🌍 Univers');
+    expect(d.getElementById('panel-title').textContent).toBe('Univers');
     expect(d.getElementById('b1').getAttribute('aria-expanded')).toBe('true');
     run("toggleTab('tab-config', document.getElementById('b2'))");
     expect(state(d).open).toBe(true);
     expect(d.getElementById('b1').getAttribute('aria-expanded')).toBe('false');
-    expect(d.getElementById('panel-title').textContent).toBe('⚙️ Config');
+    expect(d.getElementById('panel-title').textContent).toBe('Config');
     run("toggleTab('tab-config', document.getElementById('b2'))");
     expect(state(d)).toEqual({ open: false, main: false, body: false });
   });

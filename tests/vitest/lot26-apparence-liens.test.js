@@ -114,7 +114,7 @@ describe('AUD-03-029 — roman graphique', () => {
     expect(gn).toContain('class="action-btn btn-secondary btn-sm gn-mt-sm" id="gn-save-gabarit-btn"');
   });
   it('texte d\'information des images : court, sans jargon, détail en infobulle', () => {
-    expect(gn).toContain('🖼️ Images : ${size} Mo · ${where}');
+    expect(gn).toContain('Images : ${size} Mo · ${where}');
     expect(gn).not.toContain('sauvegarde GitHub pour les déplacer)');
     expect(gn).toContain('el.title = detail;');
   });

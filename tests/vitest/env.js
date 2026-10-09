@@ -50,7 +50,7 @@ const BASE_HTML = `<!DOCTYPE html><html><head></head><body>
 // dans index.html : aucun des deux n'exécute de code au chargement (seulement
 // des function/const), donc l'ordre exact avec crypto.js/diff.js n'a pas
 // d'importance ici, seul le fait qu'ils soient chargés avant suite.js compte.
-const FILES_BEFORE_ENV = ['schema.js', 'images.js', 'graphicnovel.js', 'crypto.js', 'diff.js', 'profiles.js', 'library.js'];
+const FILES_BEFORE_ENV = ['icons.js', 'schema.js', 'images.js', 'graphicnovel.js', 'crypto.js', 'diff.js', 'profiles.js', 'library.js'];
 const FILES_AFTER_ENV = [
   'readability.js', 'relations.js', 'snapshots.js', 'export-format-utils.js',
   'timeline.js', 'wordcloud.js', 'panels.js', 'notifications.js', 'pluginSystem.js',

@@ -88,7 +88,7 @@ function showEdit(k,i){
   const hdr=document.createElement('div');hdr.className='u-d-flex u-jc-space-between u-gap-6px';
   const nameInput=document.createElement('input');nameInput.className='field';nameInput.style.fontWeight='700';nameInput.value=item.name;
   nameInput.addEventListener('input',()=>{db[k][i].name=nameInput.value;debouncedSave();renderLibrary(k);});
-  const delBtn=document.createElement('button');delBtn.className='action-btn btn-sm btn-danger';delBtn.textContent='✕';
+  const delBtn=document.createElement('button');delBtn.className='action-btn btn-sm btn-danger';delBtn.innerHTML=icon('x');
   delBtn.addEventListener('click', async () => {
     // Correction (audit) : suppression jusqu'ici sans confirmation (seul
     // point de suppression de l'app dans ce cas), et sans nettoyer les liens
@@ -169,8 +169,8 @@ function navigateToLink(targetType,targetId){
 }
 function renderLinkPanel(type,id){
   const item=db[type].find(x=>x.id===id);
-  let html=`<div class="u-mt-12px u-bdt-1px-solid-v-border u-pt-10px"><strong class="u-fs-base">🔗 Liens</strong><div id="link-list" class="u-m-6px-0">`;
-  (item.links||[]).forEach((l,i)=>{const target=(db[l.type]||[]).find(x=>x.id===l.id);if(target)html+=`<span class="link-badge" data-nav-type="${l.type}" data-nav-id="${l.id}">${l.label?'<em class="link-rel">'+DOMPurify.sanitize(l.label)+'</em> ':''}${DOMPurify.sanitize(target.name||target.text)}<button data-remove-type="${type}" data-remove-from="${id}" data-remove-link="${i}" class="u-bg-none u-bd-none u-c-hfff u-cur-pointer u-ml-3px">×</button></span>`;});
+  let html=`<div class="u-mt-12px u-bdt-1px-solid-v-border u-pt-10px"><strong class="u-fs-base">${icon('link')} Liens</strong><div id="link-list" class="u-m-6px-0">`;
+  (item.links||[]).forEach((l,i)=>{const target=(db[l.type]||[]).find(x=>x.id===l.id);if(target)html+=`<span class="link-badge" data-nav-type="${l.type}" data-nav-id="${l.id}">${l.label?'<em class="link-rel">'+DOMPurify.sanitize(l.label)+'</em> ':''}${DOMPurify.sanitize(target.name||target.text)}<button data-remove-type="${type}" data-remove-from="${id}" data-remove-link="${i}" class="u-bg-none u-bd-none u-c-hfff u-cur-pointer u-ml-3px">${icon('x')}</button></span>`;});
   html+=`</div><div class="form-row u-mt-6px"><select id="link-type-sel" class="field"><option value="chars">Perso</option><option value="places">Lieu</option><option value="quests">Quête</option></select><select id="link-item-sel" class="field"></select></div><div class="form-row u-mt-6px"><input id="link-label-input" class="field u-flex-1" maxlength="40" placeholder="Relation (facultatif) : frère de, ennemi de…" aria-label="Nature de la relation"><button class="action-btn btn-sm" data-link-from-type="${type}" data-link-from-id="${id}" title="Ajouter ce lien">+ Ajouter le lien</button></div></div>`;
   return html;
 }
@@ -197,7 +197,7 @@ function renderQuests(){
   c.querySelectorAll('[data-quest-check]').forEach(cb=>cb.addEventListener('click',e=>{e.stopPropagation();db.quests[parseInt(cb.dataset.questCheck)].done=cb.checked;save();}));
   c.querySelectorAll('[data-quest-idx]').forEach(el=>el.addEventListener('click',()=>showQuestEdit(parseInt(el.dataset.questIdx))));
 }
-function showQuestEdit(i){const q=db.quests[i],c=document.getElementById('quest-edit');c.innerHTML='';const ti=document.createElement('input');ti.className='field';ti.value=q.text;ti.addEventListener('input',()=>{db.quests[i].text=ti.value;debouncedSave();renderQuests();});const rl=document.createElement('label');rl.textContent='Récompense';rl.style.fontSize='.72rem';const ri=document.createElement('input');ri.className='field';ri.value=q.reward||'';ri.addEventListener('input',()=>{db.quests[i].reward=ri.value;debouncedSave();});const sl=document.createElement('label');sl.textContent='Étapes';sl.style.fontSize='.72rem';const sta=document.createElement('textarea');sta.className='field';sta.value=q.steps||'';sta.rows=4;sta.addEventListener('input',()=>{db.quests[i].steps=sta.value;debouncedSave();});ti.classList.add('u-flex-1');const hdr=document.createElement('div');hdr.className='u-d-flex u-jc-space-between u-gap-6px';const delBtn=document.createElement('button');delBtn.className='action-btn btn-sm btn-danger';delBtn.textContent='✕';delBtn.title='Supprimer cette entrée';delBtn.setAttribute('aria-label','Supprimer cette entrée');delBtn.addEventListener('click',()=>deleteQuest(q.id));hdr.append(ti,delBtn);c.append(hdr,rl,ri,sl,sta);c.insertAdjacentHTML('beforeend',renderLinkPanel('quests',q.id));updateLinkItems();}
+function showQuestEdit(i){const q=db.quests[i],c=document.getElementById('quest-edit');c.innerHTML='';const ti=document.createElement('input');ti.className='field';ti.value=q.text;ti.addEventListener('input',()=>{db.quests[i].text=ti.value;debouncedSave();renderQuests();});const rl=document.createElement('label');rl.textContent='Récompense';rl.style.fontSize='.72rem';const ri=document.createElement('input');ri.className='field';ri.value=q.reward||'';ri.addEventListener('input',()=>{db.quests[i].reward=ri.value;debouncedSave();});const sl=document.createElement('label');sl.textContent='Étapes';sl.style.fontSize='.72rem';const sta=document.createElement('textarea');sta.className='field';sta.value=q.steps||'';sta.rows=4;sta.addEventListener('input',()=>{db.quests[i].steps=sta.value;debouncedSave();});ti.classList.add('u-flex-1');const hdr=document.createElement('div');hdr.className='u-d-flex u-jc-space-between u-gap-6px';const delBtn=document.createElement('button');delBtn.className='action-btn btn-sm btn-danger';delBtn.textContent='';delBtn.title='Supprimer cette entrée';delBtn.setAttribute('aria-label','Supprimer cette entrée');delBtn.addEventListener('click',()=>deleteQuest(q.id));hdr.append(ti,delBtn);c.append(hdr,rl,ri,sl,sta);c.insertAdjacentHTML('beforeend',renderLinkPanel('quests',q.id));updateLinkItems();}
 // v9.38.0 (audit AUD-02-011) — jusqu'ici une quête ne pouvait pas être supprimée. Même règle que pour un
 // personnage ou un lieu : confirmation, puis retrait des liens des autres éléments vers elle.
 async function deleteQuest(id){
@@ -218,9 +218,9 @@ function addQuest(){const i=document.getElementById('q-in');if(i.value.trim()){d
 function applyProjectTypeTerminology() {
   const meta = PROJECT_TYPES[db.projectType] || PROJECT_TYPES['fantasy'];
   const btn = document.querySelector('[data-subtab="tab-quests"]');
-  if (btn) btn.textContent = `${meta.questsIcon} ${meta.questsLabel}`;
+  if (btn) btn.innerHTML = icon(meta.questsIcon) + ' ' + escapeHtml(meta.questsLabel);
   const filter = document.getElementById('quest-filter');
-  if (filter) { filter.placeholder = `🔍 Filtrer (${meta.questsLabel.toLowerCase()})...`; filter.setAttribute('aria-label', `Filtrer les ${meta.questsLabel.toLowerCase()}`); }
+  if (filter) { filter.placeholder = `Filtrer (${meta.questsLabel.toLowerCase()})...`; filter.setAttribute('aria-label', `Filtrer les ${meta.questsLabel.toLowerCase()}`); }
   const qIn = document.getElementById('q-in');
   if (qIn) qIn.placeholder = `Nouvelle entrée (${meta.questsSingular})...`;
   const addBtn = document.getElementById('add-quest-btn');
@@ -337,7 +337,7 @@ function addItem(k){
 // ═══════════════════════════════════════════════════════
 function renderWeakWords() {
   const c=document.getElementById('weak-words-list');
-  c.innerHTML=db.weakWords.map((w,i)=>`<span class="link-badge">${DOMPurify.sanitize(w)} <button class="remove-weak u-bg-none u-bd-none u-c-hfff u-cur-pointer u-fwt-700 u-p-0-2px" data-idx="${i}">×</button></span>`).join('');
+  c.innerHTML=db.weakWords.map((w,i)=>`<span class="link-badge">${DOMPurify.sanitize(w)} <button class="remove-weak u-bg-none u-bd-none u-c-hfff u-cur-pointer u-fwt-700 u-p-0-2px" data-idx="${i}">${icon('x')}</button></span>`).join('');
   c.querySelectorAll('.remove-weak').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();db.weakWords.splice(parseInt(btn.dataset.idx),1);save();renderWeakWords();}));
 }
 function addWeakWord(){const i=document.getElementById('new-weak-word');const w=i.value.trim().toLowerCase();if(w&&!db.weakWords.includes(w)){db.weakWords.push(w);i.value='';save();renderWeakWords();}}

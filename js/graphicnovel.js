@@ -164,7 +164,7 @@ async function saveGraphicNovel(immediate) {
       if (typeof flashSave === 'function') flashSave();
     } catch(e) {
       console.error('Échec de sauvegarde (roman graphique) :', e);
-      if (typeof toast === 'function') { toast('⚠️ Échec de la sauvegarde : ' + (e && e.message ? e.message : e) + '. Vos derniers ajouts ne sont peut-être pas enregistrés.', 'error', { sticky: true, kind: 'save' }); if (typeof markSaveFailed === 'function') markSaveFailed(); }
+      if (typeof toast === 'function') { toast('Échec de la sauvegarde : ' + (e && e.message ? e.message : e) + '. Vos derniers ajouts ne sont peut-être pas enregistrés.', 'error', { sticky: true, kind: 'save' }); if (typeof markSaveFailed === 'function') markSaveFailed(); }
     }
   };
   if (immediate) { clearTimeout(_gnSaveTimer); await doSave(); return; }
@@ -301,18 +301,18 @@ function openNewDocumentTypeModal() {
       <p class="gn-modal-sub">Quel type d'ouvrage voulez-vous écrire ? Cliquez sur un type : le projet est créé tout de suite.</p>
       <div class="gn-type-grid">
         <div class="gn-type-card" data-type="texte" role="button" tabindex="0">
-          <div class="gn-type-glyph">📖</div>
+          <div class="gn-type-glyph">${icon('book-open', 'icon-lg')}</div>
           <h4>Texte seul</h4>
           <p>Roman, essai, nouvelle. L'éditeur chapitre par chapitre habituel.</p>
         </div>
         <div class="gn-type-card" data-type="roman_graphique" role="button" tabindex="0">
-          <div class="gn-type-glyph">🎨</div>
+          <div class="gn-type-glyph">${icon('palette', 'icon-lg')}</div>
           <h4>Roman graphique</h4>
           <p>Livre illustré : images et texte composés page par page.</p>
         </div>
         <div class="gn-type-card gn-disabled" data-type="bd" role="button" tabindex="0" aria-disabled="true">
           <span class="gn-soon-badge">Bientôt</span>
-          <div class="gn-type-glyph">🖼️</div>
+          <div class="gn-type-glyph">${icon('image', 'icon-lg')}</div>
           <h4>Bande dessinée</h4>
           <p>Cases et bulles. Arrive dans une prochaine étape.</p>
         </div>
@@ -352,7 +352,7 @@ function ensureGraphicNovelScreen() {
   el.id = 'graphicnovel-screen';
   el.innerHTML = `
     <div class="gn-toolbar">
-      <button class="gn-icon-btn" id="gn-back-btn" title="Retour à la bibliothèque" aria-label="Retour à la bibliothèque">←</button>
+      <button class="gn-icon-btn" id="gn-back-btn" title="Retour à la bibliothèque" aria-label="Retour à la bibliothèque">${icon('arrow-left')}</button>
       <div class="gn-title-block">
         <div class="gn-doc-name" id="gn-doc-title" contenteditable="true" spellcheck="false" title="Cliquer pour renommer"></div>
         <div class="gn-doc-kind">Roman graphique</div>
@@ -363,19 +363,19 @@ function ensureGraphicNovelScreen() {
         <button id="gn-page-next" title="Page suivante" aria-label="Page suivante">›</button>
       </div>
       <div class="gn-tb-tools">
-        <button class="gn-icon-btn" id="gn-undo-btn" title="Annuler (Ctrl+Z)" aria-label="Annuler" disabled>↶</button>
-        <button class="gn-icon-btn" id="gn-redo-btn" title="Rétablir (Ctrl+Y)" aria-label="Rétablir" disabled>↷</button>
-        <button class="gn-icon-btn gn-labeled" id="gn-add-image-btn" title="Ajouter une image libre sur la page" aria-label="Ajouter une image">🖼️+<span class="gn-btn-label">Image</span></button>
-        <button class="gn-icon-btn gn-labeled" id="gn-add-text-btn" title="Ajouter un bloc de texte libre sur la page" aria-label="Ajouter un bloc de texte">🔤+<span class="gn-btn-label">Texte</span></button>
-        <button class="gn-icon-btn gn-labeled gn-active" id="gn-grid-toggle" title="Grille magnétique (alignement précis)" aria-label="Grille magnétique" aria-pressed="true">▦<span class="gn-btn-label">Grille</span></button>
-        <button class="gn-icon-btn gn-trash-btn" id="gn-trash-btn" title="Corbeille (pages et éléments supprimés, récupérables 30 jours)" aria-label="Corbeille">🗑️<span class="trash-badge" id="gn-trash-badge"></span></button>
+        <button class="gn-icon-btn" id="gn-undo-btn" title="Annuler (Ctrl+Z)" aria-label="Annuler" disabled>${icon('undo-2')}</button>
+        <button class="gn-icon-btn" id="gn-redo-btn" title="Rétablir (Ctrl+Y)" aria-label="Rétablir" disabled>${icon('redo-2')}</button>
+        <button class="gn-icon-btn gn-labeled" id="gn-add-image-btn" title="Ajouter une image libre sur la page" aria-label="Ajouter une image">${icon('image-plus')}<span class="gn-btn-label">Image</span></button>
+        <button class="gn-icon-btn gn-labeled" id="gn-add-text-btn" title="Ajouter un bloc de texte libre sur la page" aria-label="Ajouter un bloc de texte">${icon('type')}<span class="gn-btn-label">Texte</span></button>
+        <button class="gn-icon-btn gn-labeled gn-active" id="gn-grid-toggle" title="Grille magnétique (alignement précis)" aria-label="Grille magnétique" aria-pressed="true">${icon('layout-grid')}<span class="gn-btn-label">Grille</span></button>
+        <button class="gn-icon-btn gn-trash-btn" id="gn-trash-btn" title="Corbeille (pages et éléments supprimés, récupérables 30 jours)" aria-label="Corbeille">${icon('trash-2')}<span class="trash-badge" id="gn-trash-badge"></span></button>
       </div>
-      <!-- v9.48.0 (AUD-03-029) : un seul bouton principal « Exporter ▾ » (avant : deux boutons rouges aux noms proches). -->
+      <!-- v9.48.0 (AUD-03-029) : un seul bouton principal « Exporter » (avant : deux boutons rouges aux noms proches). -->
       <div class="gn-dd">
-        <button class="action-btn" id="gn-export-menu-btn" aria-haspopup="menu" aria-expanded="false" title="Exporter le livre">Exporter ▾</button>
+        <button class="action-btn" id="gn-export-menu-btn" aria-haspopup="menu" aria-expanded="false" title="Exporter le livre">Exporter ${icon('chevron-down', 'icon-caret')}</button>
         <div class="toolbar-menu" role="menu" id="gn-export-menu">
-          <button role="menuitem" id="gn-export-btn" title="Exporter le livre en PDF qualité impression (choix du format, de la résolution et du fond perdu à l'étape suivante)">📕 PDF pour impression…</button>
-          <button role="menuitem" id="gn-export-book-btn" title="Exporter le livre en ZIP (images), DOCX, EPUB ou ODT — pour partager ou lire hors de l'application (pas pour l'impression professionnelle, voir « Exporter le PDF »)">📚 Livre numérique (ZIP, DOCX, EPUB, ODT)…</button>
+          <button role="menuitem" id="gn-export-btn" title="Exporter le livre en PDF qualité impression (choix du format, de la résolution et du fond perdu à l'étape suivante)">${icon('file')} PDF pour impression…</button>
+          <button role="menuitem" id="gn-export-book-btn" title="Exporter le livre en ZIP (images), DOCX, EPUB ou ODT — pour partager ou lire hors de l'application (pas pour l'impression professionnelle, voir « Exporter le PDF »)">${icon('book')} Livre numérique (ZIP, DOCX, EPUB, ODT)…</button>
         </div>
       </div>
     </div>
@@ -413,7 +413,7 @@ function ensureGraphicNovelScreen() {
 function gnWireEvents() {
   document.getElementById('gn-back-btn').addEventListener('click', backToLibraryFromGraphicNovel);
   document.getElementById('gn-export-book-btn').addEventListener('click', gnOpenBookExportModal);
-  // Menu « Exporter ▾ » (propre à cet écran : le câblage générique des menus de la barre de l'éditeur n'y est pas appliqué).
+  // Menu « Exporter » (propre à cet écran : le câblage générique des menus de la barre de l'éditeur n'y est pas appliqué).
   const _gnExpBtn = document.getElementById('gn-export-menu-btn'), _gnExpMenu = document.getElementById('gn-export-menu');
   const _gnCloseExp = () => { _gnExpMenu.classList.remove('open'); _gnExpBtn.setAttribute('aria-expanded', 'false'); };
   _gnExpBtn.addEventListener('click', e => { e.stopPropagation(); const was = _gnExpMenu.classList.contains('open'); _gnCloseExp(); if (!was) { _gnExpMenu.classList.add('open'); _gnExpBtn.setAttribute('aria-expanded', 'true'); } });
@@ -536,8 +536,8 @@ function gnRenderPageProps() {
   if (!box) return;
   const page = db.pages[_gnActivePage];
   box.innerHTML = `<label class="gn-color-lbl">Fond <input type="color" id="gn-page-bg-picker" value="${page.background || '#f4ecd8'}"></label>
-    <button class="action-btn btn-secondary btn-sm gn-mt-sm" id="gn-page-history-btn" title="Versions précédentes de cette page (instantané automatique toutes les 5 minutes)">🕓 Historique de la page</button>
-    <button class="action-btn btn-secondary btn-sm gn-mt-sm" id="gn-save-gabarit-btn" title="Enregistrer la disposition de cette page (positions et styles, sans le contenu ni les images) comme gabarit réutilisable">💾 Enregistrer comme gabarit</button>
+    <button class="action-btn btn-secondary btn-sm gn-mt-sm" id="gn-page-history-btn" title="Versions précédentes de cette page (instantané automatique toutes les 5 minutes)">${icon('history')} Historique de la page</button>
+    <button class="action-btn btn-secondary btn-sm gn-mt-sm" id="gn-save-gabarit-btn" title="Enregistrer la disposition de cette page (positions et styles, sans le contenu ni les images) comme gabarit réutilisable">${icon('save')} Enregistrer comme gabarit</button>
     <div class="gn-storage-info" id="gn-storage-info" aria-live="polite"></div>`;
   document.getElementById('gn-page-bg-picker').addEventListener('input', e => {
     page.background = e.target.value;
@@ -570,20 +570,20 @@ async function gnUpdateStorageInfo() {
     let where = 'sur cet appareil', detail = '';
     if (typeof countUnsyncedGraphicImages === 'function' && typeof getSyncKey === 'function' && getSyncKey()) {
       const n = await countUnsyncedGraphicImages(_currentDocumentId);
-      where = n ? `☁ ${n} en attente d'envoi` : '☁ synchronisées';
+      where = n ? `${n} en attente d'envoi` : 'synchronisées';
     } else if (typeof getSyncKey === 'function' && !getSyncKey()) {
       detail = 'La synchronisation entre appareils n\'est pas configurée : pour déplacer ces images, utilisez la sauvegarde GitHub (Système).';
     }
-    let txt = `🖼️ Images : ${size} Mo · ${where}`;
+    let txt = `Images : ${size} Mo · ${where}`;
     if (navigator.storage && navigator.storage.estimate) {
       const est = await navigator.storage.estimate();
       if (est.quota) {
         const pct = Math.round((est.usage / est.quota) * 100);
         detail += (detail ? ' ' : '') + `Espace de stockage du navigateur utilisé : ${pct} %.`;
-        if (pct >= 70) txt += ` · ⚠ stockage utilisé à ${pct} %`;
+        if (pct >= 70) txt += ` · stockage utilisé à ${pct} %`;
         if (pct >= 80 && !_gnStorageWarnShown) {
           _gnStorageWarnShown = true;
-          toast(`⚠️ Espace de stockage bientôt plein (${pct} %). Pensez à exporter ou sauvegarder ce roman graphique.`, 'error');
+          toast(`Espace de stockage bientôt plein (${pct} %). Pensez à exporter ou sauvegarder ce roman graphique.`, 'error');
         }
       }
     }
@@ -620,10 +620,10 @@ function gnRenderPagesSidebar() {
       ${gnMiniIconHtml(p.elements)}
       <span class="gn-pg-num">${i+1}</span>
       <button class="gn-pg-dup" data-idx="${i}" title="Dupliquer la page ${i+1}" aria-label="Dupliquer la page ${i+1}">⧉</button>
-      <button class="gn-pg-del" data-idx="${i}" title="Supprimer la page ${i+1}" aria-label="Supprimer la page ${i+1}">✕</button>
+      <button class="gn-pg-del" data-idx="${i}" title="Supprimer la page ${i+1}" aria-label="Supprimer la page ${i+1}">${icon('x')}</button>
       <span class="gn-pg-move">
-        <button class="gn-pg-up" data-idx="${i}" title="Monter la page ${i+1}" aria-label="Monter la page ${i+1}"${i===0?' disabled':''}>▲</button>
-        <button class="gn-pg-down" data-idx="${i}" title="Descendre la page ${i+1}" aria-label="Descendre la page ${i+1}"${i===db.pages.length-1?' disabled':''}>▼</button>
+        <button class="gn-pg-up" data-idx="${i}" title="Monter la page ${i+1}" aria-label="Monter la page ${i+1}"${i===0?' disabled':''}>${icon('chevron-up')}</button>
+        <button class="gn-pg-down" data-idx="${i}" title="Descendre la page ${i+1}" aria-label="Descendre la page ${i+1}"${i===db.pages.length-1?' disabled':''}>${icon('chevron-down')}</button>
       </span>
     </div>`).join('');
   // Fond de vignette : propriété JS .style.backgroundColor, jamais l'attribut
@@ -671,7 +671,7 @@ function gnRenderGabaritsPanel() {
     </div>`).join('');
   const custom = (db.customGabarits || []).map(cg => `
     <div class="gn-gab${_gnPreviewGabarit==='custom:'+cg.id?' gn-active':''}" data-key="custom:${cg.id}">
-      <button class="gn-gab-del" data-id="${cg.id}" title="Supprimer ce gabarit personnalisé" aria-label="Supprimer ce gabarit personnalisé">✕</button>
+      <button class="gn-gab-del" data-id="${cg.id}" title="Supprimer ce gabarit personnalisé" aria-label="Supprimer ce gabarit personnalisé">${icon('x')}</button>
       <div class="gn-icon">${gnMiniIconHtml(cg.elements)}</div>
       <span class="gn-gab-lbl">${DOMPurify.sanitize(cg.label)}</span>
     </div>`).join('');
@@ -724,7 +724,7 @@ async function gnRenderCanvas(exportMode) {
         const url = await graphicImageUrl(el.imageId);
         const lowRes = Math.max(el.imageW||0, el.imageH||0) < 1200;
         zone.innerHTML = `<div class="gn-frame-fill"><img class="gn-pannable" draggable="false" src="${url||''}" alt=""></div>` +
-          (lowRes && !exportMode ? `<span class="gn-dpi-warn" title="Résolution basse pour une impression nette">⚠ basse résolution</span>` : '');
+          (lowRes && !exportMode ? `<span class="gn-dpi-warn" title="Résolution basse pour une impression nette">${icon('triangle-alert')} basse résolution</span>` : '');
         if (!preview && !exportMode) gnMakePannable(zone.querySelector('.gn-frame-fill'), el);
       } else if (!preview && !exportMode) {
         zone.classList.add('gn-zone-empty');
@@ -791,15 +791,15 @@ async function gnRenderCanvas(exportMode) {
           mh.className = 'gn-move-handle';
           mh.contentEditable = 'false';
           mh.title = 'Déplacer ce bloc de texte';
-          mh.textContent = '✥';
+          mh.innerHTML = icon('move');
           gnMakeMovableViaHandle(mh, zone, el);
           zone.appendChild(mh);
         }
         const mt = document.createElement('div'); mt.className = 'gn-mini-toolbar';
-        mt.innerHTML = (el.type==='image' && el.imageId ? `<button data-act="recadrer" title="Recadrer (déplacer l'image dans le cadre)" class="${_gnPanMode ? 'gn-active' : ''}">✥</button>` : '') +
-          (el.type==='image' ? '<button data-act="change" title="Changer l\'image">🔁</button>' : '') +
-          (el.type==='image' && el.imageId ? '<button data-act="reset" title="Réinitialiser le cadrage">↺</button>' : '') +
-          '<button data-act="delete" title="Supprimer cet élément (ou touche Suppr)">🗑</button>';
+        mt.innerHTML = (el.type==='image' && el.imageId ? `<button data-act="recadrer" title="Recadrer (déplacer l'image dans le cadre)" class="${_gnPanMode ? 'gn-active' : ''}">${icon('move')}</button>` : '') +
+          (el.type==='image' ? '<button data-act="change" title="Changer l\'image">'+icon('replace')+'</button>' : '') +
+          (el.type==='image' && el.imageId ? '<button data-act="reset" title="Réinitialiser le cadrage">'+icon('rotate-ccw')+'</button>' : '') +
+          '<button data-act="delete" title="Supprimer cet élément (ou touche Suppr)">'+icon('trash-2')+'</button>';
         mt.addEventListener('pointerdown', e => e.stopPropagation());
         mt.addEventListener('click', e => {
           // Bug corrigé (tests réels) : sans ceci, le clic remontait jusqu'au
@@ -855,7 +855,7 @@ function gnCheckTextOverflow(zone) {
   badge.className = 'gn-overflow-warn';
   badge.contentEditable = 'false';
   badge.title = 'Texte tronqué : dépasse le cadre, sera coupé à l\'impression';
-  badge.textContent = '⚠ texte tronqué';
+  badge.textContent = 'texte tronqué';
   zone.appendChild(badge);
 }
 function gnDeselectOnBackdrop(e) {
@@ -875,11 +875,11 @@ function gnRenderLayers() {
     const label = el.type === 'image' ? (el.imageId ? 'Image' : 'Image (vide)') : (el.content ? el.content.slice(0,28) : 'Bloc de texte vide');
     return `
     <div class="gn-layer-row${el.id===_gnSelectedElId?' gn-sel':''}" data-el-id="${el.id}" role="button" tabindex="0" aria-pressed="${el.id===_gnSelectedElId}" aria-label="Sélectionner : ${DOMPurify.sanitize(label)}">
-      <span class="gn-lg">${el.type==='image'?'🖼️':'🔤'}</span>
+      <span class="gn-lg">${el.type==='image'?''+icon('image')+'':''+icon('type')+''}</span>
       <span class="gn-lname">${DOMPurify.sanitize(label)}</span>
       <span class="gn-lz">
-        <button data-dir="up" data-idx="${i}" title="Passer au premier plan" ${i===elements.length-1?'disabled':''}>▲</button>
-        <button data-dir="down" data-idx="${i}" title="Passer à l'arrière-plan" ${i===0?'disabled':''}>▼</button>
+        <button data-dir="up" data-idx="${i}" title="Passer au premier plan" ${i===elements.length-1?'disabled':''}>${icon('chevron-up')}</button>
+        <button data-dir="down" data-idx="${i}" title="Passer à l'arrière-plan" ${i===0?'disabled':''}>${icon('chevron-down')}</button>
       </span>
     </div>`;
   }).join('') || '<p class="gn-layers-empty">Page vide — choisis un gabarit ou ajoute un élément.</p>';
@@ -900,9 +900,9 @@ function gnMoveLayer(idx, dir) {
 // PANNEAU "IMAGE SÉLECTIONNÉE" — cadrage avancé (zoom, rotation, forme)
 // ─────────────────────────────────────────────────────────
 const GN_FRAME_SHAPES = [
-  { key:'rect',    glyph:'▭', title:'Rectangle' },
-  { key:'rounded', glyph:'▢', title:'Coins arrondis' },
-  { key:'oval',    glyph:'⬭', title:'Ovale / cercle' }
+  { key:'rect',    glyph:'rectangle-horizontal', title:'Rectangle' },
+  { key:'rounded', glyph:'square-round-corner', title:'Coins arrondis' },
+  { key:'oval',    glyph:'circle', title:'Ovale / cercle' }
 ];
 function gnCurrentSelectedImageEl() {
   if (!_gnSelectedElId) return null;
@@ -918,17 +918,17 @@ function gnRenderImageProps() {
   box.innerHTML = `
     <div class="gn-side-label">Ajustement</div>
     <div class="gn-shape-row">
-      <button class="gn-shape-btn${el.fit!=='contain'?' gn-active':''}" data-fit="cover" title="Remplit tout le cadre (recadre l'image si besoin)">▣</button>
-      <button class="gn-shape-btn${el.fit==='contain'?' gn-active':''}" data-fit="contain" title="Image entière visible (peut laisser des marges dans le cadre)">▢</button>
+      <button class="gn-shape-btn${el.fit!=='contain'?' gn-active':''}" data-fit="cover" title="Remplit tout le cadre (recadre l'image si besoin)">${icon('maximize')}</button>
+      <button class="gn-shape-btn${el.fit==='contain'?' gn-active':''}" data-fit="contain" title="Image entière visible (peut laisser des marges dans le cadre)">${icon('minimize')}</button>
     </div>
     <div class="gn-prop-label gn-mt-sm"><span>Zoom</span><span class="gn-prop-val" id="gn-zoom-val">${Math.round(el.zoom)}%</span></div>
     <input type="range" id="gn-zoom-slider" min="100" max="300" value="${el.zoom}">
     <div class="gn-prop-label gn-mt-sm"><span>Rotation</span><span class="gn-prop-val" id="gn-rot-val">${Math.round(el.rotation)}°</span></div>
     <input type="range" id="gn-rot-slider" min="-180" max="180" value="${el.rotation}">
-    <div class="gn-imgprops-hint">En mode ✥ Recadrer (mini-barre sur l'image), glisse dans le cadre pour repositionner l'image.</div>
+    <div class="gn-imgprops-hint">En mode Recadrer (mini-barre sur l'image), glisse dans le cadre pour repositionner l'image.</div>
     <div class="gn-side-label gn-mt-sm">Forme du cadre</div>
     <div class="gn-shape-row">
-      ${GN_FRAME_SHAPES.map(s => `<button class="gn-shape-btn${el.frameShape===s.key?' gn-active':''}" data-shape="${s.key}" title="${s.title}">${s.glyph}</button>`).join('')}
+      ${GN_FRAME_SHAPES.map(s => `<button class="gn-shape-btn${el.frameShape===s.key?' gn-active':''}" data-shape="${s.key}" title="${s.title}">${icon(s.glyph)}</button>`).join('')}
     </div>
     <div class="gn-side-label gn-mt-sm">Texte alternatif</div>
     <input type="text" id="gn-alt-input" class="gn-alt-input" placeholder="Décrit l'image (accessibilité)" title="Texte alternatif : décrit l'image pour les lecteurs d'écran (non visible à l'impression)">`;
@@ -1051,7 +1051,7 @@ function gnRenderTextProps() {
       ${GN_TEXT_EFFECTS.map(fx => `<button class="gn-toggle-btn${el.textEffect===fx.key?' gn-active':''}" data-effect="${fx.key}">${fx.label}</button>`).join('')}
     </div>
     <div class="gn-side-label gn-mt-sm">Assistance IA</div>
-    <button class="action-btn btn-sm" id="gn-ai-rephrase-btn" title="Envoie ce texte à l'IA pour proposer une reformulation (service externe — voir la notice affichée au premier usage)">✨ Reformuler</button>
+    <button class="action-btn btn-sm" id="gn-ai-rephrase-btn" title="Envoie ce texte à l'IA pour proposer une reformulation (service externe — voir la notice affichée au premier usage)">${icon('sparkles')} Reformuler</button>
     <div id="gn-ai-rephrase-box" class="gn-mt-sm" hidden></div>`;
   const zoneEl = document.querySelector(`.gn-zone[data-el-id="${el.id}"]`);
   const reapply = () => { if (zoneEl) gnApplyTextStyle(zoneEl, el); saveGraphicNovel(); };
@@ -1107,7 +1107,7 @@ async function gnRephraseSelectedText(elId) {
     );
   } catch (e) {
     const b = stillCurrent();
-    if (b) b.innerHTML = `<span class="u-c-v-danger">❌ ${DOMPurify.sanitize(e && e.message ? e.message : String(e))}</span>`;
+    if (b) b.innerHTML = `<span class="u-c-v-danger">${icon('circle-alert')} ${DOMPurify.sanitize(e && e.message ? e.message : String(e))}</span>`;
     return;
   }
   const b = stillCurrent();
@@ -1433,7 +1433,7 @@ function gnShowAlignGuide(axis, pct) {
 function gnMakeDraggable(zoneEl, el) {
   zoneEl.addEventListener('pointerdown', e => {
     if (e.target.closest('.gn-handle') || e.target.closest('.gn-mini-toolbar')) return;
-    if (el.type === 'text') return; // le texte est contenteditable : un clic-glisse dans la zone doit placer le curseur, pas déplacer le bloc — voir la poignée ✥ dédiée (gnMakeMovableViaHandle)
+    if (el.type === 'text') return; // le texte est contenteditable : un clic-glisse dans la zone doit placer le curseur, pas déplacer le bloc — voir la poignée de déplacement dédiée (gnMakeMovableViaHandle)
     const canvasRect = document.getElementById('gn-canvas').getBoundingClientRect();
     _gnDrag = { mode:'move', el, zoneEl, startX:e.clientX, startY:e.clientY, origX:el.x, origY:el.y, canvasRect, moved:false };
     zoneEl.setPointerCapture(e.pointerId);
@@ -1609,9 +1609,9 @@ const GN_EDITOR_REF_PX = 440;
 // de repenser toute la mise en page de l'éditeur, hors scope ici. DPI et
 // fond perdu, eux, n'ont pas cette contrainte.
 const GN_PRINT_FORMATS = [
-  { key: 'compact',  label: '16 × 20 cm (compact)',     w: 160, h: 200 },
-  { key: 'standard', label: '20 × 25 cm (standard)',    w: 200, h: 250 },
-  { key: 'grand',    label: '24 × 30 cm (grand format)', w: 240, h: 300 }
+  { key: 'compact',  label: '16 '+icon('x')+' 20 cm (compact)',     w: 160, h: 200 },
+  { key: 'standard', label: '20 '+icon('x')+' 25 cm (standard)',    w: 200, h: 250 },
+  { key: 'grand',    label: '24 '+icon('x')+' 30 cm (grand format)', w: 240, h: 300 }
 ];
 const GN_PRINT_DPIS = [
   { key: 150, label: '150 DPI (aperçu rapide)' },
@@ -1678,7 +1678,7 @@ let _gnExportCancelled = false;
 // (format standard 20×25cm/300 DPI/3mm) si appelée sans argument.
 async function gnExportGraphicNovelPDF(opts) {
   if (typeof html2canvas !== 'function' || !window.jspdf) {
-    toast('⚠️ Les librairies d\'export PDF n\'ont pas pu se charger (connexion hors-ligne ?).', 'error');
+    toast('Les librairies d\'export PDF n\'ont pas pu se charger (connexion hors-ligne ?).', 'error');
     return;
   }
   const pages = db.pages || [];
@@ -1736,11 +1736,11 @@ async function gnExportGraphicNovelPDF(opts) {
     } else {
       const filename = (db.title || 'roman-graphique').trim().replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80) || 'roman-graphique';
       pdf.save(filename + '.pdf');
-      toast('✅ PDF qualité impression généré (' + pages.length + ' page' + (pages.length > 1 ? 's' : '') + ').', 'success');
+      toast('PDF qualité impression généré (' + pages.length + ' page' + (pages.length > 1 ? 's' : '') + ').', 'success');
     }
   } catch (e) {
     console.error('Échec export PDF (roman graphique) :', e);
-    toast('⚠️ Échec de l\'export PDF : ' + (e && e.message ? e.message : e), 'error');
+    toast('Échec de l\'export PDF : ' + (e && e.message ? e.message : e), 'error');
   } finally {
     pageEl.classList.remove('gn-export-mode');
     pageEl.style.width = '';
@@ -1820,7 +1820,7 @@ function gnExportFilename() {
 // Renvoie false (et laisse le fichier non généré par l'appelant) si l'export
 // a été annulé ou si les pages/librairies nécessaires manquent.
 async function gnExportPagesToCanvases(onPage) {
-  if (typeof html2canvas !== 'function') { toast('⚠️ La bibliothèque de capture n\'a pas pu se charger (connexion hors-ligne ?).', 'error'); return false; }
+  if (typeof html2canvas !== 'function') { toast('La bibliothèque de capture n\'a pas pu se charger (connexion hors-ligne ?).', 'error'); return false; }
   const pages = db.pages || [];
   if (!pages.length) { toast('Aucune page à exporter.', 'error'); return false; }
   const pageEl = document.getElementById('gn-canvas');
@@ -1868,9 +1868,9 @@ async function gnExportZip() {
   try {
     const zipBlob = await zip.generateAsync({ type:'blob' });
     saveAs(zipBlob, gnExportFilename() + '-images.zip');
-    toast('✅ Export ZIP généré.', 'success');
+    toast('Export ZIP généré.', 'success');
   } catch(e) {
-    toast('⚠️ Échec de l\'export ZIP : ' + (e && e.message ? e.message : e), 'error');
+    toast('Échec de l\'export ZIP : ' + (e && e.message ? e.message : e), 'error');
   }
 }
 
@@ -1890,9 +1890,9 @@ async function gnExportBookDocx() {
   try {
     const blob = await Packer.toBlob(new Document({ sections: [{ children }] }));
     saveAs(blob, gnExportFilename() + '.docx');
-    toast('✅ Export DOCX généré.', 'success');
+    toast('Export DOCX généré.', 'success');
   } catch(e) {
-    toast('⚠️ Échec de l\'export DOCX : ' + (e && e.message ? e.message : e), 'error');
+    toast('Échec de l\'export DOCX : ' + (e && e.message ? e.message : e), 'error');
   }
 }
 
@@ -1957,9 +1957,9 @@ async function gnExportBookEpub() {
 </ncx>`);
     const blob = await zip.generateAsync({ type:'blob', mimeType:'application/epub+zip' });
     saveAs(blob, gnExportFilename() + '.epub');
-    toast('✅ Export EPUB généré.', 'success');
+    toast('Export EPUB généré.', 'success');
   } catch(e) {
-    toast('⚠️ Échec de l\'export EPUB : ' + (e && e.message ? e.message : e), 'error');
+    toast('Échec de l\'export EPUB : ' + (e && e.message ? e.message : e), 'error');
   }
 }
 
@@ -1975,9 +1975,9 @@ async function gnExportBookOdt() {
     const bytes = await window.odfKit.htmlToOdt(html, { pageFormat:'A4' });
     const blob = new Blob([bytes], { type:'application/vnd.oasis.opendocument.text' });
     saveAs(blob, gnExportFilename() + '.odt');
-    toast('✅ Export ODT généré.', 'success');
+    toast('Export ODT généré.', 'success');
   } catch(e) {
-    toast('⚠️ Échec de l\'export ODT : ' + (e && e.message ? e.message : e), 'error');
+    toast('Échec de l\'export ODT : ' + (e && e.message ? e.message : e), 'error');
   }
 }
 
@@ -2124,8 +2124,8 @@ function gnRenderTrashList() {
     return `<div class="history-item u-cur-default">
       <span>${gnTrashEntryLabel(t)}<br><span class="u-op-72 u-fs-xs">Supprimé le ${new Date(t.deletedAt).toLocaleDateString('fr')} — purge auto dans ${daysLeft}j</span></span>
       <span class="u-d-flex u-gap-4px u-fsh-0">
-        <button class="action-btn btn-sm" data-restore="${i}">↩ Restaurer</button>
-        <button class="action-btn btn-danger btn-sm" data-purge="${i}">✕ Définitif</button>
+        <button class="action-btn btn-sm" data-restore="${i}">${icon('undo-2')} Restaurer</button>
+        <button class="action-btn btn-danger btn-sm" data-purge="${i}">${icon('x')} Définitif</button>
       </span>
     </div>`;
   }).join('');
@@ -2241,7 +2241,7 @@ function gnRenderPageHistoryList() {
     <div class="history-item u-cur-default">
       <span>${DOMPurify.sanitize(snap.label)}</span>
       <span class="u-d-flex u-gap-4px u-fsh-0">
-        <button class="action-btn btn-sm" data-restore-hist="${i}">↩ Restaurer</button>
+        <button class="action-btn btn-sm" data-restore-hist="${i}">${icon('undo-2')} Restaurer</button>
       </span>
     </div>`).join('');
   list.querySelectorAll('[data-restore-hist]').forEach(btn => btn.addEventListener('click', () => gnRestorePageSnapshot(parseInt(btn.dataset.restoreHist))));
