@@ -6,7 +6,7 @@ function buildGraphData() {
     db[type].forEach((item) => {
       nodes.push({ id:`${type}-${item.id}`, label: item.name||item.text||'?', type, color: colorMap[type] });
       (item.links||[]).forEach(link => {
-        links.push({ source:`${type}-${item.id}`, target:`${link.type}-${link.id}` });
+        links.push({ source:`${type}-${item.id}`, target:`${link.type}-${link.id}`, label: link.label || '' });
       });
     });
   });
@@ -29,6 +29,8 @@ function renderGraph() {
     .force('center', d3.forceCenter(W/2, H/2))
     .force('collision', d3.forceCollide(30));
   const link = svg.append('g').selectAll('line').data(links).join('line').attr('class','graph-link');
+  // v9.48.0 (AUD-03-030) : la relation nommée s'affiche au milieu du lien.
+  const linkLabel = svg.append('g').selectAll('text').data(links.filter(l => l.label)).join('text').attr('class','graph-link-label').attr('text-anchor','middle').text(d => d.label);
   const node = svg.append('g').selectAll('g').data(nodes).join('g').attr('class','graph-node')
     .call(d3.drag()
       .on('start', (event,d) => { if(!event.active) sim.alphaTarget(.3).restart(); d.fx=d.x; d.fy=d.y; })
@@ -43,6 +45,7 @@ function renderGraph() {
   }).on('mouseout', () => { tooltip.style.display='none'; });
   sim.on('tick', () => {
     link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    linkLabel.attr('x',d=>(d.source.x+d.target.x)/2).attr('y',d=>(d.source.y+d.target.y)/2-4);
     node.attr('transform',d=>`translate(${Math.max(15,Math.min(W-15,d.x))},${Math.max(15,Math.min(H-15,d.y))})`);
   });
 }

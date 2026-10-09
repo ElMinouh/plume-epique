@@ -1782,3 +1782,21 @@ html[data-text-width="pleine"]{--text-w:none;}
 }
 
 .u-ta-left{text-align:left}
+
+
+/* ═══ v9.48.0 — lot H ═══ */
+/* AUD-03-028 : menus Compte / Aide de l'en-tête de la bibliothèque */
+.lib-dropdown{position:relative;}
+.lib-dropdown .toolbar-menu{left:auto;right:0;z-index:300;min-width:200px;}
+/* AUD-03-029 : roman graphique — libellés à côté des icônes sur écran large, menu Exporter, texte d'information lisible */
+.gn-btn-label{display:none;}
+@media (min-width:900px){
+  .gn-icon-btn.gn-labeled{width:auto;padding:0 10px;display:inline-flex;align-items:center;gap:2px;}
+  .gn-icon-btn.gn-labeled .gn-btn-label{display:inline;margin-left:4px;font-size:var(--fs-sm);}
+}
+.gn-dd{position:relative;}
+.gn-dd .toolbar-menu{left:auto;right:0;z-index:300;min-width:260px;}
+.gn-storage-info{font-size:var(--fs-xs);color:var(--text-muted);line-height:1.4;margin-top:8px;}
+/* AUD-03-030 : relation nommée */
+.link-badge .link-rel{font-style:italic;opacity:.9;}
+.graph-link-label{font-size:9px;fill:var(--text-muted);pointer-events:none;}

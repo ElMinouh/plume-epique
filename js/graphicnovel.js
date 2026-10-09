@@ -61,6 +61,7 @@ function openGraphicNovelScreen() {
   // risque à rappeler ici.
   if (typeof wireAppEventListenersOnce === 'function') wireAppEventListenersOnce();
   showGraphicNovelScreen();
+  syncDbAppearanceFromPrefs(); // v9.48.0 (AUD-03-022)
   if (db.darkMode) document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');
   document.body.classList.toggle('paper-mode', !!db.paperMode);
   _gnActivePage = 0; _gnSelectedElId = null; _gnPreviewGabarit = null;
@@ -235,7 +236,9 @@ async function createNewGraphicNovel() {
   const docId = genChapterId();
   const dbData = DEFAULT_DB_GRAPHIC();
   dbData.title = 'Nouveau roman graphique';
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) dbData.darkMode = true;
+  // v9.48.0 (AUD-03-022) : un nouveau manuscrit prend l'apparence en cours (préférences du profil, sinon le système) ;
+  // avant, il restait sombre par défaut même sur un système clair.
+  dbData.darkMode = document.body.classList.contains('dark-mode'); dbData.paperMode = document.body.classList.contains('paper-mode');
   await persistData(docDataKey(_currentProfileId, docId), await makeEncryptedEnvelope(JSON.stringify(dbData)));
   await mutateDocList(list => {
     list.documents.push({ id:docId, title:dbData.title, docType:'roman_graphique', lastModified:Date.now(), chapterCount:1, wordCount:0, wordGoal:0, cover:'auto' });
@@ -360,15 +363,21 @@ function ensureGraphicNovelScreen() {
         <button id="gn-page-next" title="Page suivante" aria-label="Page suivante">›</button>
       </div>
       <div class="gn-tb-tools">
-        <button class="gn-icon-btn" id="gn-undo-btn" title="Annuler (Ctrl+Z)" disabled>↶</button>
-        <button class="gn-icon-btn" id="gn-redo-btn" title="Rétablir (Ctrl+Y)" disabled>↷</button>
-        <button class="gn-icon-btn" id="gn-add-image-btn" title="Ajouter une image libre sur la page">🖼️+</button>
-        <button class="gn-icon-btn" id="gn-add-text-btn" title="Ajouter un bloc de texte libre sur la page">🔤+</button>
-        <button class="gn-icon-btn gn-active" id="gn-grid-toggle" title="Grille magnétique (alignement précis)">▦</button>
-        <button class="gn-icon-btn gn-trash-btn" id="gn-trash-btn" title="Corbeille (pages et éléments supprimés, récupérables 30 jours)">🗑️<span class="trash-badge" id="gn-trash-badge"></span></button>
+        <button class="gn-icon-btn" id="gn-undo-btn" title="Annuler (Ctrl+Z)" aria-label="Annuler" disabled>↶</button>
+        <button class="gn-icon-btn" id="gn-redo-btn" title="Rétablir (Ctrl+Y)" aria-label="Rétablir" disabled>↷</button>
+        <button class="gn-icon-btn gn-labeled" id="gn-add-image-btn" title="Ajouter une image libre sur la page" aria-label="Ajouter une image">🖼️+<span class="gn-btn-label">Image</span></button>
+        <button class="gn-icon-btn gn-labeled" id="gn-add-text-btn" title="Ajouter un bloc de texte libre sur la page" aria-label="Ajouter un bloc de texte">🔤+<span class="gn-btn-label">Texte</span></button>
+        <button class="gn-icon-btn gn-labeled gn-active" id="gn-grid-toggle" title="Grille magnétique (alignement précis)" aria-label="Grille magnétique" aria-pressed="true">▦<span class="gn-btn-label">Grille</span></button>
+        <button class="gn-icon-btn gn-trash-btn" id="gn-trash-btn" title="Corbeille (pages et éléments supprimés, récupérables 30 jours)" aria-label="Corbeille">🗑️<span class="trash-badge" id="gn-trash-badge"></span></button>
       </div>
-      <button class="action-btn" id="gn-export-btn" title="Exporter le livre en PDF qualité impression (choix du format, de la résolution et du fond perdu à l'étape suivante)">Exporter le PDF</button>
-      <button class="action-btn" id="gn-export-book-btn" title="Exporter le livre en ZIP (images), DOCX, EPUB ou ODT — pour partager ou lire hors de l'application (pas pour l'impression professionnelle, voir « Exporter le PDF »)">Exporter le livre</button>
+      <!-- v9.48.0 (AUD-03-029) : un seul bouton principal « Exporter ▾ » (avant : deux boutons rouges aux noms proches). -->
+      <div class="gn-dd">
+        <button class="action-btn" id="gn-export-menu-btn" aria-haspopup="menu" aria-expanded="false" title="Exporter le livre">Exporter ▾</button>
+        <div class="toolbar-menu" role="menu" id="gn-export-menu">
+          <button role="menuitem" id="gn-export-btn" title="Exporter le livre en PDF qualité impression (choix du format, de la résolution et du fond perdu à l'étape suivante)">📕 PDF pour impression…</button>
+          <button role="menuitem" id="gn-export-book-btn" title="Exporter le livre en ZIP (images), DOCX, EPUB ou ODT — pour partager ou lire hors de l'application (pas pour l'impression professionnelle, voir « Exporter le PDF »)">📚 Livre numérique (ZIP, DOCX, EPUB, ODT)…</button>
+        </div>
+      </div>
     </div>
     <div class="gn-body">
       <div class="gn-side-pages">
@@ -404,6 +413,12 @@ function ensureGraphicNovelScreen() {
 function gnWireEvents() {
   document.getElementById('gn-back-btn').addEventListener('click', backToLibraryFromGraphicNovel);
   document.getElementById('gn-export-book-btn').addEventListener('click', gnOpenBookExportModal);
+  // Menu « Exporter ▾ » (propre à cet écran : le câblage générique des menus de la barre de l'éditeur n'y est pas appliqué).
+  const _gnExpBtn = document.getElementById('gn-export-menu-btn'), _gnExpMenu = document.getElementById('gn-export-menu');
+  const _gnCloseExp = () => { _gnExpMenu.classList.remove('open'); _gnExpBtn.setAttribute('aria-expanded', 'false'); };
+  _gnExpBtn.addEventListener('click', e => { e.stopPropagation(); const was = _gnExpMenu.classList.contains('open'); _gnCloseExp(); if (!was) { _gnExpMenu.classList.add('open'); _gnExpBtn.setAttribute('aria-expanded', 'true'); } });
+  _gnExpMenu.querySelectorAll('button').forEach(b => b.addEventListener('click', _gnCloseExp));
+  document.addEventListener('click', e => { if (!e.target.closest('.gn-dd')) _gnCloseExp(); });
   document.getElementById('gn-doc-title').addEventListener('blur', e => updateGraphicNovelTitle(e.target.textContent));
   document.getElementById('gn-doc-title').addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); e.target.blur(); } });
   document.getElementById('gn-page-prev').addEventListener('click', () => gnSetActivePage((_gnActivePage - 1 + db.pages.length) % db.pages.length));
@@ -414,6 +429,7 @@ function gnWireEvents() {
   document.getElementById('gn-grid-toggle').addEventListener('click', e => {
     _gnSnapGrid = !_gnSnapGrid;
     e.currentTarget.classList.toggle('gn-active', _gnSnapGrid);
+    e.currentTarget.setAttribute('aria-pressed', String(_gnSnapGrid));
   });
   document.getElementById('gn-add-image-btn').addEventListener('click', () => gnAddFreeElement('image'));
   document.getElementById('gn-add-text-btn').addEventListener('click', () => gnAddFreeElement('text'));
@@ -520,8 +536,8 @@ function gnRenderPageProps() {
   if (!box) return;
   const page = db.pages[_gnActivePage];
   box.innerHTML = `<label class="gn-color-lbl">Fond <input type="color" id="gn-page-bg-picker" value="${page.background || '#f4ecd8'}"></label>
-    <button class="action-btn btn-sm gn-mt-sm" id="gn-page-history-btn" title="Versions précédentes de cette page (instantané automatique toutes les 5 minutes)">🕓 Historique de la page</button>
-    <button class="action-btn btn-sm gn-mt-sm" id="gn-save-gabarit-btn" title="Enregistrer la disposition de cette page (positions et styles, sans le contenu ni les images) comme gabarit réutilisable">💾 Enregistrer comme gabarit</button>
+    <button class="action-btn btn-sm u-bg-h7f8c8d gn-mt-sm" id="gn-page-history-btn" title="Versions précédentes de cette page (instantané automatique toutes les 5 minutes)">🕓 Historique de la page</button>
+    <button class="action-btn btn-sm u-bg-h7f8c8d gn-mt-sm" id="gn-save-gabarit-btn" title="Enregistrer la disposition de cette page (positions et styles, sans le contenu ni les images) comme gabarit réutilisable">💾 Enregistrer comme gabarit</button>
     <div class="gn-storage-info" id="gn-storage-info" aria-live="polite"></div>`;
   document.getElementById('gn-page-bg-picker').addEventListener('input', e => {
     page.background = e.target.value;
@@ -549,25 +565,29 @@ async function gnUpdateStorageInfo() {
   try {
     const totalBytes = await getGraphicImagesTotalSize(_currentDocumentId);
     const mo = totalBytes / (1024 * 1024);
-    let txt = `🖼️ Images de ce roman graphique : ${mo < 0.1 ? '< 0,1' : mo.toFixed(1)} Mo`;
-    // v9.28.0 : état de la synchronisation des images entre appareils
+    // v9.48.0 (AUD-03-029) : message court et lisible ; le détail technique passe en infobulle.
+    const size = mo < 0.1 ? '< 0,1' : mo.toFixed(1).replace('.', ',');
+    let where = 'sur cet appareil', detail = '';
     if (typeof countUnsyncedGraphicImages === 'function' && typeof getSyncKey === 'function' && getSyncKey()) {
       const n = await countUnsyncedGraphicImages(_currentDocumentId);
-      txt += n ? ` — ☁ ${n} image(s) en attente de synchronisation` : ' — ☁ synchronisées';
+      where = n ? `☁ ${n} en attente d'envoi` : '☁ synchronisées';
     } else if (typeof getSyncKey === 'function' && !getSyncKey()) {
-      txt += ' — ☁ synchronisation non configurée (sauvegarde GitHub pour les déplacer)';
+      detail = 'La synchronisation entre appareils n\'est pas configurée : pour déplacer ces images, utilisez la sauvegarde GitHub (Système).';
     }
+    let txt = `🖼️ Images : ${size} Mo · ${where}`;
     if (navigator.storage && navigator.storage.estimate) {
       const est = await navigator.storage.estimate();
       if (est.quota) {
         const pct = Math.round((est.usage / est.quota) * 100);
-        txt += ` — ${pct}% de l'espace de stockage du navigateur utilisé`;
+        detail += (detail ? ' ' : '') + `Espace de stockage du navigateur utilisé : ${pct} %.`;
+        if (pct >= 70) txt += ` · ⚠ stockage utilisé à ${pct} %`;
         if (pct >= 80 && !_gnStorageWarnShown) {
           _gnStorageWarnShown = true;
-          toast(`⚠️ Espace de stockage bientôt plein (${pct}%). Pense à exporter/sauvegarder ce roman graphique.`, 'error');
+          toast(`⚠️ Espace de stockage bientôt plein (${pct} %). Pensez à exporter ou sauvegarder ce roman graphique.`, 'error');
         }
       }
     }
+    el.title = detail;
     if (document.getElementById('gn-storage-info')) el.textContent = txt;
   } catch (e) { /* purement informatif, jamais bloquant */ }
 }

@@ -131,6 +131,13 @@ function docDataKey(profileId, docId) { return 'doc_' + profileId + '_' + docId;
 // uniquement, voir style.css) : même patron fixed-position que
 // openLibraryCtxMenu()/closeLibraryCtxMenu() ci-dessus, mais ancré sous un
 // bouton fixe plutôt qu'un bouton par carte.
+function closeLibDropdowns() {
+  document.querySelectorAll('#library-topbar .lib-dropdown').forEach(dd => {
+    const m = dd.querySelector('.toolbar-menu'), t = dd.querySelector('button');
+    if (m) m.classList.remove('open');
+    if (t) t.setAttribute('aria-expanded', 'false');
+  });
+}
 function closeLibraryTopbarMenu() {
   const menu = document.getElementById('library-topbar-overflow-menu');
   if (menu) menu.classList.remove('open');
@@ -322,6 +329,7 @@ function formatRelativeDate(ts) {
 
 // ── Point d'entrée après connexion/création/récupération/migration ──────
 async function enterLibrary() {
+  applyProfileAppearance(); // v9.48.0 (AUD-03-022) : thème, palette et police du profil dès la bibliothèque
   await migrateLegacyDocumentIfNeeded();
   wireLibraryStaticUI();
   await loadLibSettings();
@@ -443,6 +451,18 @@ function wireLibraryStaticUI() {
   document.getElementById('library-my-profile-btn').addEventListener('click', openMyProfile);
   document.getElementById('library-manage-profiles-btn').addEventListener('click', openManageProfiles);
   document.getElementById('library-logout-btn').addEventListener('click', logout);
+  // v9.48.0 (AUD-03-028) : menus « Compte » et « Aide » de l'en-tête (ordinateur ; sur téléphone, le menu ⋯ prend le relais).
+  document.querySelectorAll('#library-topbar .lib-dropdown').forEach(dd => {
+    const trigger = dd.querySelector('button'), menu = dd.querySelector('.toolbar-menu');
+    trigger.addEventListener('click', e => {
+      e.stopPropagation();
+      const was = menu.classList.contains('open');
+      closeLibDropdowns(); closeLibraryTopbarMenu();
+      if (!was) { menu.classList.add('open'); trigger.setAttribute('aria-expanded', 'true'); }
+    });
+    menu.querySelectorAll('button').forEach(item => item.addEventListener('click', closeLibDropdowns));
+  });
+  document.addEventListener('click', closeLibDropdowns);
   // Sélecteur de couverture (v7.9.0) — élément unique, câblé une seule fois.
   document.querySelectorAll('#cover-picker-menu .cover-swatch').forEach(btn => {
     btn.addEventListener('click', () => selectCover(btn.dataset.cover));
@@ -892,7 +912,9 @@ async function createNewTextDocument() {
   const docId = genChapterId();
   const dbData = DEFAULT_DB();
   dbData.title = 'Nouveau manuscrit';
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) dbData.darkMode = true;
+  // v9.48.0 (AUD-03-022) : un nouveau manuscrit prend l'apparence en cours (préférences du profil, sinon le système) ;
+  // avant, il restait sombre par défaut même sur un système clair.
+  dbData.darkMode = document.body.classList.contains('dark-mode'); dbData.paperMode = document.body.classList.contains('paper-mode');
   await persistData(docDataKey(_currentProfileId, docId), await makeEncryptedEnvelope(JSON.stringify(dbData)));
   await mutateDocList(list => {
     list.documents.push({ id:docId, title:dbData.title, docType:'texte', lastModified:Date.now(), chapterCount:1, wordCount:0, wordGoal:0, cover:'auto' });

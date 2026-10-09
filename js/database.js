@@ -149,11 +149,11 @@ function showEditById(type, id) {
   if (idx === -1) return;
   if (type === 'quests') showQuestEdit(idx); else showEdit(type, idx);
 }
-function addLink(type,fromId,toType,toId){
+function addLink(type,fromId,toType,toId,label){
   const item=db[type].find(x=>x.id===fromId); if(!item) return;
   if(!item.links)item.links=[];
   const exists=item.links.some(l=>l.type===toType&&l.id===toId);
-  if(!exists){item.links.push({type:toType,id:toId});save();showEditById(type,fromId);}
+  if(!exists){const lb=String(label||'').trim().slice(0,40);item.links.push(lb?{type:toType,id:toId,label:lb}:{type:toType,id:toId});save();showEditById(type,fromId);}
 }
 function removeLink(type,fromId,linkIdx){
   const item=db[type].find(x=>x.id===fromId); if(!item) return;
@@ -170,8 +170,8 @@ function navigateToLink(targetType,targetId){
 function renderLinkPanel(type,id){
   const item=db[type].find(x=>x.id===id);
   let html=`<div class="u-mt-12px u-bdt-1px-solid-v-border u-pt-10px"><strong class="u-fs-_8rem">🔗 Liens</strong><div id="link-list" class="u-m-6px-0">`;
-  (item.links||[]).forEach((l,i)=>{const target=(db[l.type]||[]).find(x=>x.id===l.id);if(target)html+=`<span class="link-badge" data-nav-type="${l.type}" data-nav-id="${l.id}">${DOMPurify.sanitize(target.name||target.text)}<button data-remove-type="${type}" data-remove-from="${id}" data-remove-link="${i}" class="u-bg-none u-bd-none u-c-hfff u-cur-pointer u-ml-3px">×</button></span>`;});
-  html+=`</div><div class="form-row u-mt-6px"><select id="link-type-sel" class="field"><option value="chars">Perso</option><option value="places">Lieu</option><option value="quests">Quête</option></select><select id="link-item-sel" class="field"></select><button class="action-btn btn-sm" data-link-from-type="${type}" data-link-from-id="${id}">+</button></div></div>`;
+  (item.links||[]).forEach((l,i)=>{const target=(db[l.type]||[]).find(x=>x.id===l.id);if(target)html+=`<span class="link-badge" data-nav-type="${l.type}" data-nav-id="${l.id}">${l.label?'<em class="link-rel">'+DOMPurify.sanitize(l.label)+'</em> ':''}${DOMPurify.sanitize(target.name||target.text)}<button data-remove-type="${type}" data-remove-from="${id}" data-remove-link="${i}" class="u-bg-none u-bd-none u-c-hfff u-cur-pointer u-ml-3px">×</button></span>`;});
+  html+=`</div><div class="form-row u-mt-6px"><select id="link-type-sel" class="field"><option value="chars">Perso</option><option value="places">Lieu</option><option value="quests">Quête</option></select><select id="link-item-sel" class="field"></select></div><div class="form-row u-mt-6px"><input id="link-label-input" class="field u-flex-1" maxlength="40" placeholder="Relation (facultatif) : frère de, ennemi de…" aria-label="Nature de la relation"><button class="action-btn btn-sm" data-link-from-type="${type}" data-link-from-id="${id}" title="Ajouter ce lien">+ Ajouter le lien</button></div></div>`;
   return html;
 }
 document.addEventListener('click',e=>{
@@ -181,7 +181,7 @@ document.addEventListener('click',e=>{
 });
 function updateLinkItems(){const sel=document.getElementById('link-type-sel');if(!sel)return;const itemSel=document.getElementById('link-item-sel');if(!itemSel)return;itemSel.innerHTML='';db[sel.value].forEach((it)=>{itemSel.innerHTML+=`<option value="${it.id}">${DOMPurify.sanitize(it.name||it.text)}</option>`;});}
 document.addEventListener('change',e=>{if(e.target.id==='link-type-sel')updateLinkItems();});
-function execAddLink(fromType,fromId){const toType=document.getElementById('link-type-sel')?.value;const toId=document.getElementById('link-item-sel')?.value;if(toType&&toId)addLink(fromType,fromId,toType,toId);}
+function execAddLink(fromType,fromId){const toType=document.getElementById('link-type-sel')?.value;const toId=document.getElementById('link-item-sel')?.value;const label=document.getElementById('link-label-input')?.value||'';if(toType&&toId)addLink(fromType,fromId,toType,toId,label);}
 
 // ═══════════════════════════════════════════════════════
 // QUÊTES
@@ -268,6 +268,7 @@ function applyEditorFont(key) {
 function selectPalette(key) {
   if (!ACCENT_PALETTES[key]) return;
   db.accentPalette = key;
+  rememberAppearance({ palette: key });
   applyAccentPalette(key);
   renderAppearanceUI();
   save();
@@ -275,6 +276,7 @@ function selectPalette(key) {
 function selectFont(key) {
   if (!EDITOR_FONTS[key]) return;
   db.editorFont = key;
+  rememberAppearance({ font: key });
   applyEditorFont(key);
   renderAppearanceUI();
   debouncedSave();
@@ -282,6 +284,7 @@ function selectFont(key) {
 function selectTheme(mode) {
   db.darkMode = (mode === 'dark');
   db.paperMode = (mode === 'paper');
+  rememberAppearance({ theme: mode });
   document.body.classList.toggle('dark-mode', db.darkMode);
   document.body.classList.toggle('paper-mode', db.paperMode);
   renderAppearanceUI();
@@ -306,6 +309,7 @@ function toggleMode(){
   // Le thème papier est exclusif du mode sombre (voir selectTheme ci-dessus).
   if (db.darkMode && db.paperMode) { db.paperMode=false; document.body.classList.remove('paper-mode'); renderAppearanceUI(); }
   document.body.classList.toggle('dark-mode',db.darkMode);
+  rememberAppearance({ theme: db.paperMode ? 'paper' : (db.darkMode ? 'dark' : 'light') });
   save();
 }
 function addItem(k){

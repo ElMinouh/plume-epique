@@ -159,11 +159,14 @@ function startFullTour(steps) {
 // sur mobile dont la visite a besoin. N'agit que si le déclencheur est
 // visible (mobile) ET que le menu n'est pas déjà ouvert ; ne fait rien sur
 // desktop (déclencheur masqué par CSS, cible déjà visible directement).
-function ensureLibraryMenuOpen() {
+function ensureLibraryMenuOpen(step) {
   const menu = document.getElementById('library-topbar-overflow-menu');
   const btn = document.getElementById('library-topbar-more-btn');
-  if (!menu || !btn || !isVisible(btn)) return;
-  if (!menu.classList.contains('open')) btn.click();
+  if (menu && btn && isVisible(btn)) { if (!menu.classList.contains('open')) btn.click(); return; }
+  // Ordinateur (v9.48.0) : « Gérer les profils » est dans le menu « Compte ▾ ».
+  const target = step && step.target ? document.querySelector(step.target.split(',')[0].trim()) : null;
+  const dd = target && target.closest('.lib-dropdown');
+  if (dd && !isVisible(target)) dd.querySelector('button').click();
 }
 function ensureLexToolsOpen() {
   const group = document.getElementById('lex-tools-group');
@@ -208,7 +211,7 @@ function showFullTourStep() {
   // 3/3 ; visite complète : Synonymes & antonymes sauté). ensureVisible
   // vérifie l'état actuel et ne clique QUE si c'est nécessaire pour ouvrir,
   // jamais pour fermer — résultat toujours prévisible.
-  if (step.ensureVisible) step.ensureVisible();
+  if (step.ensureVisible) step.ensureVisible(step);
 
   requestAnimationFrame(() => {
     // Correction (bug rapporté) : les étapes "sous-onglet" (Personnages,

@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.47.0';
+const APP_VERSION = '9.48.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1121,7 +1121,7 @@ function _escLayers(){
     { open: () => _isOn('confirm-modal-overlay'), close: () => document.getElementById('confirm-modal-cancel-btn').click() },
     { open: () => !!document.querySelector('.toolbar-menu.open'), close: () => {
         document.querySelectorAll('.toolbar-menu.open').forEach(m => m.classList.remove('open'));
-        ['closeAllChapterMenus','closeLibraryCtxMenu','closeCoverPicker','closeLibraryTopbarMenu'].forEach(n => { if (typeof window[n] === 'function') window[n](); });
+        ['closeAllChapterMenus','closeLibraryCtxMenu','closeCoverPicker','closeLibraryTopbarMenu','closeLibDropdowns'].forEach(n => { if (typeof window[n] === 'function') window[n](); });
       } },
     byId('conflict-diff-overlay', () => closeConflictDiff()),
     byId('docx-import-overlay', () => closeDocxImportModal()),
@@ -1195,6 +1195,7 @@ const debouncedSave = (() => {
 // INIT APP — câblage de tous les événements
 // ═══════════════════════════════════════════════════════
 function initApp(){
+  syncDbAppearanceFromPrefs(); // v9.48.0 (AUD-03-022) : l'apparence est celle du profil, pas du manuscrit
   if(db.darkMode)document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');
   // v7.7.0 — Apparence : thème papier, palette de couleurs, police d'écriture.
   document.body.classList.toggle('paper-mode', !!db.paperMode);

@@ -289,3 +289,48 @@ function showInfoModal({ title, message, confirmLabel } = {}) {
     confirmBtn.focus();
   });
 }
+
+
+// ═══════════════════════════════════════════════════════
+// APPARENCE PAR PROFIL ET PAR APPAREIL (v9.48.0, audit AUD-03-022)
+// Avant : thème, palette et police étaient stockés DANS chaque manuscrit — la bibliothèque prenait l'apparence du dernier
+// manuscrit chargé, un nouveau manuscrit repartait d'un défaut, le réglage clair/sombre du système était ignoré.
+// Désormais : préférences locales (localStorage, clé par profil), appliquées dès la connexion. Volontairement NON
+// synchronisées : ne pas toucher au format de l'index des profils (incident du 27/07/2026).
+// Sans préférence : réglage clair/sombre du système ; à la première ouverture d'un manuscrit existant, ses réglages
+// actuels sont repris et mémorisés (aucun changement visible, aucune perte).
+// ═══════════════════════════════════════════════════════
+function appearancePrefsKey() { return 'plume_prefs_' + (typeof _currentProfileId !== 'undefined' && _currentProfileId ? _currentProfileId : ''); }
+function loadAppearancePrefs() {
+  try { const p = JSON.parse(localStorage.getItem(appearancePrefsKey()) || 'null'); return p && typeof p === 'object' ? p : null; }
+  catch (e) { return null; }
+}
+function rememberAppearance(part) {
+  try { const p = loadAppearancePrefs() || {}; Object.assign(p, part); localStorage.setItem(appearancePrefsKey(), JSON.stringify(p)); }
+  catch (e) { /* préférence valable pour cette session seulement */ }
+}
+function systemThemeKey() {
+  try { return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; } catch (e) { return 'light'; }
+}
+function applyThemeKey(k) {
+  document.body.classList.toggle('dark-mode', k === 'dark');
+  document.body.classList.toggle('paper-mode', k === 'paper');
+}
+// Connexion / bibliothèque : appliquer les préférences du profil (ou le système).
+function applyProfileAppearance() {
+  const p = loadAppearancePrefs();
+  applyThemeKey((p && p.theme) || systemThemeKey());
+  if (p && p.palette && typeof applyAccentPalette === 'function') applyAccentPalette(p.palette);
+  if (p && p.font && typeof applyEditorFont === 'function') applyEditorFont(p.font);
+}
+// Ouverture d'un manuscrit : les préférences du profil l'emportent sur ce qui est stocké dans le manuscrit.
+function syncDbAppearanceFromPrefs() {
+  const p = loadAppearancePrefs();
+  if (p && p.theme) {
+    db.darkMode = p.theme === 'dark'; db.paperMode = p.theme === 'paper';
+    if (p.palette) db.accentPalette = p.palette;
+    if (p.font) db.editorFont = p.font;
+    return;
+  }
+  rememberAppearance({ theme: db.paperMode ? 'paper' : (db.darkMode ? 'dark' : 'light'), palette: db.accentPalette || 'rouge-violet', font: db.editorFont || 'palatino' });
+}

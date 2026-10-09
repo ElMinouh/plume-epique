@@ -58,13 +58,25 @@
       <!-- v9.41.0 (AUD-03-001) : rappel discret, remplace la bulle bloquante de configuration. -->
       <button hidden class="action-btn btn-sm u-bg-hd35400" id="library-github-reminder" title="Ouvrir Système pour configurer la sauvegarde GitHub">⚠ Sauvegarde GitHub non configurée</button>
     </div>
-    <div class="u-d-flex u-gap-6px u-fw-wrap" id="library-topbar-actions">
-      <button class="action-btn btn-sm" id="library-my-profile-btn" title="Modifier votre nom, mot de passe ou question de sécurité">👤 Mon profil</button>
-      <button class="action-btn btn-sm u-bg-h8e44ad" id="library-manage-profiles-btn" title="Ajouter, renommer ou supprimer des profils (administrateur)">🛡️ Gérer les profils</button>
-      <button class="action-btn btn-sm u-bg-h2980b9" id="library-system-btn" title="Sauvegardes, export/import et sauvegarde GitHub pour toute la bibliothèque">💾 Système</button>
-      <button class="action-btn btn-sm u-bg-h16a085" id="library-tour-btn" title="Revoir la visite guidée de cet écran">🎓 Visite de la bibliothèque</button>
-      <button class="action-btn btn-sm u-bg-h16a085" id="library-full-tour-btn" title="Visite guidée complète de toutes les fonctions de l'éditeur">🎓 Visite complète</button>
-      <button class="action-btn btn-sm u-bg-h7f8c8d" id="library-logout-btn" title="Fermer votre session">🚪 Déconnexion</button>
+    <!-- v9.48.0 (AUD-03-028) : trois éléments sobres au lieu de sept boutons de six couleurs. -->
+    <div class="u-d-flex u-gap-6px u-fw-wrap u-ai-center" id="library-topbar-actions">
+      <button class="mode-indicator" id="library-system-btn" title="Sauvegardes, export/import et sauvegarde GitHub pour toute la bibliothèque">💾 Système</button>
+      <div class="lib-dropdown">
+        <button class="mode-indicator" id="library-account-btn" aria-haspopup="menu" aria-expanded="false" title="Votre profil et votre session">👤 Compte ▾</button>
+        <div class="toolbar-menu" role="menu">
+          <button role="menuitem" id="library-my-profile-btn" title="Modifier votre nom, mot de passe ou question de sécurité">👤 Mon profil</button>
+          <button role="menuitem" id="library-manage-profiles-btn" title="Ajouter, renommer ou supprimer des profils (administrateur)">🛡️ Gérer les profils</button>
+          <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
+          <button role="menuitem" id="library-logout-btn" title="Fermer votre session">🚪 Déconnexion</button>
+        </div>
+      </div>
+      <div class="lib-dropdown">
+        <button class="mode-indicator" id="library-help-btn" aria-haspopup="menu" aria-expanded="false" title="Visites guidées">❔ Aide ▾</button>
+        <div class="toolbar-menu" role="menu">
+          <button role="menuitem" id="library-tour-btn" title="Revoir la visite guidée de cet écran">🎓 Visite de la bibliothèque</button>
+          <button role="menuitem" id="library-full-tour-btn" title="Visite guidée complète de toutes les fonctions de l'éditeur">🎓 Visite complète</button>
+        </div>
+      </div>
     </div>
     <!-- v7.40.2 — Bug d'ergonomie rapporté : sur mobile, la rangée ci-dessus
          (masquée ici via media query) occupait trop de hauteur et forçait à
@@ -72,7 +84,7 @@
          des actions rarement utilisées. Remplacée par ce bouton unique, dont
          le menu (#library-topbar-overflow-menu) ne fait que déclencher le
          clic du vrai bouton correspondant ci-dessus — aucune logique dupliquée. -->
-    <button class="action-btn btn-sm u-d-none" id="library-topbar-more-btn" title="Plus d'actions" aria-label="Plus d'actions" aria-haspopup="true">⋯</button>
+    <button class="mode-indicator u-d-none" id="library-topbar-more-btn" title="Plus d'actions" aria-label="Plus d'actions" aria-haspopup="true">⋯</button>
   </div>
   <h2 class="u-m-18px-0-2px">📚 Ma bibliothèque</h2>
   <div class="u-d-flex u-jc-space-between u-ai-center u-m-0-0-6px">
