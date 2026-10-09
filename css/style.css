@@ -246,6 +246,7 @@ mark{background-color:rgba(192,57,43,.22);color:var(--text);border-radius:3px;}
 #sync-status-dot.sync-error{background:#e74c3c;}
 /* v9.2.3 — Pastille de statut de synchro visible dès l'entrée dans la
    bibliothèque (voir renderLibrarySyncBadge() dans library.js). */
+[hidden]{display:none!important;}
 #library-sync-status-badge{display:inline-flex;align-items:center;gap:5px;
   border:none;border-radius:20px;padding:4px 10px;cursor:pointer;background:rgba(39,174,96,.18);}
 #library-sync-status-badge #library-sync-status-icon,#library-sync-status-badge #library-sync-status-text{color:#27ae60;}
@@ -434,6 +435,10 @@ select.gate-field{height:38px;}
   background:var(--glass);border:1px solid var(--border);border-radius:12px;
   padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);}
 #setup-tour-bubble.active{display:block;}
+/* v9.41.0 (AUD-03-007) : jamais deux bulles à la fois, jamais au-dessus d'une fenêtre. La bulle
+   « Sauvegarde » n'a de sens que sur la bibliothèque. */
+body:not(.library-mode) #setup-tour-bubble.active,
+body:has(.gn-modal-overlay, #my-profile-overlay.active, #manage-profiles-overlay.active, #confirm-modal-overlay.active, #doc-trash-overlay.active, #profile-gate[style*="flex"]) #setup-tour-bubble.active{display:none;}
 
 /* ── Visite guidée complète (audit v7.39.0) ── */
 #full-tour-spotlight{display:none;position:fixed;z-index:9200;

@@ -295,7 +295,7 @@ function openNewDocumentTypeModal() {
   overlay.innerHTML = `
     <div class="gn-modal" role="dialog" aria-modal="true" aria-label="Nouveau projet">
       <h3>Nouveau projet</h3>
-      <p class="gn-modal-sub">Quel type d'ouvrage veux-tu écrire ? Ce choix détermine l'éditeur qui s'ouvrira.</p>
+      <p class="gn-modal-sub">Quel type d'ouvrage voulez-vous écrire ? Cliquez sur un type : le projet est créé tout de suite.</p>
       <div class="gn-type-grid">
         <div class="gn-type-card" data-type="texte" role="button" tabindex="0">
           <div class="gn-type-glyph">📖</div>
@@ -316,28 +316,22 @@ function openNewDocumentTypeModal() {
       </div>
       <div class="gn-modal-actions">
         <button class="action-btn u-bg-h7f8c8d" id="gn-type-cancel" type="button">Annuler</button>
-        <button class="action-btn" id="gn-type-continue" type="button" disabled>Continuer</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
-  let chosen = null;
+  // v9.41.0 (AUD-03-034) : un clic sur une carte crée le projet (avant : carte puis « Continuer »).
   overlay.querySelectorAll('.gn-type-card:not(.gn-disabled)').forEach(card => {
     const pick = () => {
-      overlay.querySelectorAll('.gn-type-card').forEach(c => c.classList.remove('gn-selected'));
-      card.classList.add('gn-selected');
-      chosen = card.dataset.type;
-      document.getElementById('gn-type-continue').disabled = false;
+      const chosen = card.dataset.type;
+      closeNewDocumentTypeModal();
+      if (chosen === 'roman_graphique') createNewGraphicNovel();
+      else if (chosen === 'texte') createNewTextDocument();
     };
     card.addEventListener('click', pick);
     card.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); pick(); } });
   });
   document.getElementById('gn-type-cancel').addEventListener('click', closeNewDocumentTypeModal);
   overlay.addEventListener('click', e => { if (e.target === overlay) closeNewDocumentTypeModal(); });
-  document.getElementById('gn-type-continue').addEventListener('click', () => {
-    closeNewDocumentTypeModal();
-    if (chosen === 'roman_graphique') createNewGraphicNovel();
-    else if (chosen === 'texte') createNewTextDocument();
-  });
   gnWireModalA11y(overlay, closeNewDocumentTypeModal);
 }
 function closeNewDocumentTypeModal() {

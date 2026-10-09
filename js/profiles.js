@@ -113,35 +113,35 @@ async function notifyGistImageSyncOnce() {
 // de synchronisation pour CET APPAREIL, quel que soit le profil ensuite
 // utilisé dessus.
 function renderSyncKeyGate() {
+  // v9.41.0 (AUD-03-008) : question posée dans les mots de l'utilisateur (« où sont vos
+  // manuscrits ? »), deux choix de poids égal, un seul bouton qui vérifie PUIS enregistre
+  // la clé (avant : « Vérifier » et « Valider » séparés, « Valider » acceptait une clé non
+  // vérifiée). Plus de compteur « Étape x/3 » : il ne se suivait pas quand on ignorait l'étape.
   gateShell(`
-    <div class="u-fs-_68rem u-c-v-accent u-m-0-0-6px">Étape 1/3 — configuration initiale</div>
-    <div class="gate-title"><i>🔑</i> Clé de synchronisation</div>
-    <div class="gate-sub">Cet appareil ne connaît pas encore la clé de synchronisation. Demandez-la à votre administrateur pour retrouver vos profils et manuscrits ici aussi.</div>
+    <div class="gate-title"><i>🔑</i> Où sont vos manuscrits ?</div>
+    <div class="gate-sub">Pour retrouver vos profils et manuscrits sur cet appareil, saisissez la clé de synchronisation de votre famille (demandez-la à votre administrateur). Sinon, écrivez ici seulement.</div>
     <label class="gate-label">Clé de synchronisation</label>
-    <div class="u-d-flex u-gap-6px">
-      <input id="sync-key-input" type="password" class="gate-field u-flex-1" placeholder="Collez ou saisissez la clé" autocomplete="off">
-      <button id="sync-key-verify-btn" class="gate-btn gate-btn-ghost btn-sm u-w-auto u-ws-nowrap">✅ Vérifier</button>
-    </div>
-    <div id="sync-key-status" class="gate-err"></div>
-    <button id="sync-key-submit-btn" class="gate-btn gate-btn-primary">Valider</button>
-    <button id="sync-key-skip-btn" class="gate-link">Continuer sans synchronisation (hors-ligne uniquement)</button>
+    <input id="sync-key-input" type="password" class="gate-field" placeholder="Collez ou saisissez la clé" autocomplete="off">
+    <div id="sync-key-status" class="gate-err" aria-live="polite"></div>
+    <button id="sync-key-submit-btn" class="gate-btn gate-btn-primary">Utiliser cette clé</button>
+    <button id="sync-key-skip-btn" class="gate-btn gate-btn-ghost">Écrire sur cet appareil seulement</button>
   `);
   const statusEl = document.getElementById('sync-key-status');
-  document.getElementById('sync-key-verify-btn').addEventListener('click', async () => {
+  const submitBtn = document.getElementById('sync-key-submit-btn');
+  const submit = async () => {
     const key = document.getElementById('sync-key-input').value.trim();
-    if (!key) { statusEl.style.color = ''; statusEl.textContent = 'Entrez une clé à vérifier.'; return; }
+    if (!key) { statusEl.style.color = ''; statusEl.textContent = 'Entrez une clé, ou choisissez « Écrire sur cet appareil seulement ».'; return; }
     statusEl.style.color = '#9a95a8'; statusEl.textContent = '⏳ Vérification…';
+    submitBtn.disabled = true;
     const ok = await verifySyncKey(key);
-    statusEl.style.color = ok ? '#7fd8a0' : '#e8a09a';
-    statusEl.textContent = ok ? '✅ Clé valide.' : '❌ Clé invalide, ou Worker injoignable.';
-  });
-  document.getElementById('sync-key-submit-btn').addEventListener('click', async () => {
-    const key = document.getElementById('sync-key-input').value.trim();
-    if (!key) { statusEl.style.color = ''; statusEl.textContent = 'Entrez une clé, ou utilisez "Continuer sans synchronisation".'; return; }
+    submitBtn.disabled = false;
+    if (!ok) { statusEl.style.color = '#e8a09a'; statusEl.textContent = '❌ Clé refusée, ou serveur injoignable. Vérifiez la clé et votre connexion.'; return; }
     setSyncKey(key);
     hideGate();
     await bootProfiles();
-  });
+  };
+  submitBtn.addEventListener('click', submit);
+  document.getElementById('sync-key-input').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
   initPasswordToggle('sync-key-input');
   document.getElementById('sync-key-skip-btn').addEventListener('click', () => {
     setSyncSkipped();
@@ -394,7 +394,6 @@ async function submitCreateProfile(opts) {
 // ── ÉCRAN 5 : Code de récupération ──────────────────────────────────────
 function showRecoveryCode(code, name, onContinue) {
   gateShell(`
-    <div class="u-fs-_68rem u-c-v-accent u-m-0-0-6px">Étape 2/3 — configuration initiale</div>
     <div class="gate-title"><i>🛡️</i> Votre code de récupération</div>
     <div class="gate-sub">Conservez ce code en lieu sûr. Il permet de récupérer le profil « ${DOMPurify.sanitize(name)} » en cas d'oubli du mot de passe. Il ne sera plus jamais affiché.</div>
     <div class="gate-code">${DOMPurify.sanitize(code)}</div>

@@ -51,10 +51,12 @@
            Sauvegardes de conflit). Voir renderLibrarySyncBadge() (library.js).
            Masqué par défaut : n'apparaît que si une clé de synchro est
            configurée sur cet appareil. -->
-      <button class="u-d-none" id="library-sync-status-badge" title="Statut de la synchronisation">
+      <button hidden id="library-sync-status-badge" title="Statut de la synchronisation">
         <i class="u-fs-1rem" id="library-sync-status-icon"></i>
         <span class="u-fs-_75rem" id="library-sync-status-text"></span>
       </button>
+      <!-- v9.41.0 (AUD-03-001) : rappel discret, remplace la bulle bloquante de configuration. -->
+      <button hidden class="action-btn btn-sm u-bg-hd35400" id="library-github-reminder" title="Ouvrir Système pour configurer la sauvegarde GitHub">⚠ Sauvegarde GitHub non configurée</button>
     </div>
     <div class="u-d-flex u-gap-6px u-fw-wrap" id="library-topbar-actions">
       <button class="action-btn btn-sm u-bg-h7f8c8d" id="library-home-btn" title="Retourner à l'écran de connexion">🏠 Accueil</button>
@@ -302,6 +304,7 @@
 <div id="setup-tour-bubble" role="dialog" aria-label="Configuration initiale">
   <p class="u-fs-_68rem u-c-v-accent u-m-0-0-4px" id="setup-tour-counter"></p>
   <p class="u-fs-_82rem u-m-0" id="setup-tour-text"></p>
+  <div class="u-d-flex u-jc-flex-start u-mt-8px"><button class="action-btn btn-sm u-bg-h7f8c8d" id="setup-tour-later-btn">Plus tard</button></div>
 </div>
 
 <!-- VISITE GUIDÉE COMPLÈTE (nouveau v7.39.0) : ne s'affiche jamais toute

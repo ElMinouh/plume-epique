@@ -337,11 +337,19 @@ async function enterLibrary() {
 // l'entrée dans la bibliothèque (sans avoir à ouvrir Système), pour repérer
 // une éventuelle anomalie de synchro au premier coup d'œil. Masqué si aucune
 // clé de synchro n'est configurée sur cet appareil (rien à signaler).
+// v9.41.0 (AUD-03-001) : rappel discret, remplace la bulle bloquante.
+function renderGithubReminder() {
+  const btn = document.getElementById('library-github-reminder');
+  if (btn) btn.hidden = !!_cloudToken;
+}
 async function renderLibrarySyncBadge() {
   const badge = document.getElementById('library-sync-status-badge');
   if (!badge) return;
-  if (!getSyncKey()) { badge.classList.add('u-d-none'); return; }
-  badge.classList.remove('u-d-none');
+  renderGithubReminder();
+  // v9.41.0 (AUD-03-010) : attribut hidden (la règle par id #library-sync-status-badge
+  // l'emportait sur .u-d-none : une pastille vide restait affichée sans clé de synchro).
+  if (!getSyncKey()) { badge.hidden = true; return; }
+  badge.hidden = false;
   const icon = document.getElementById('library-sync-status-icon');
   const text = document.getElementById('library-sync-status-text');
   let count = 0;
@@ -370,10 +378,12 @@ async function renderLibrarySyncBadge() {
 // Système n'était découvert que si l'utilisateur cliquait dessus de
 // lui-même). Montrée une seule fois par profil (profil.setupTourDone), à
 // l'arrivée dans la bibliothèque. Contrairement au tour "premiers pas"
-// (voir notifications.js) : pas de bouton "Passer" — le panneau Système ne
-// peut être fermé tant que le token n'est pas vérifié, exactement comme le
-// bouton "Continuer" de l'écran du code de récupération reste désactivé
-// tant que la case n'est pas cochée.
+// (voir notifications.js) : v9.41.0 (AUD-03-001) — l'étape est désormais
+// FACULTATIVE : bouton « Plus tard » dans la bulle, panneau Système toujours
+// fermable (✕, Échap), fermer le panneau = « plus tard ». Avant, le panneau
+// n'avait plus de ✕ et la bulle revenait à chaque connexion tant qu'aucun
+// token n'était vérifié (piège au toucher). Un rappel discret
+// (#library-github-reminder) reste dans la bibliothèque tant qu'il n'y a pas de token.
 // ═══════════════════════════════════════════════════════
 let _setupTourActive = false;
 
@@ -412,7 +422,6 @@ function hideSetupBubble() { document.getElementById('setup-tour-bubble').classL
 async function endSetupTour() {
   _setupTourActive = false;
   hideSetupBubble();
-  document.getElementById('library-system-close-btn').style.display = '';
   try {
     // Correction (audit v8.1.0) : cette fonction lisait l'index puis le
     // réécrivait ENTIÈREMENT hors du verrou — le patron exact qui a causé les
@@ -511,7 +520,7 @@ function wireLibraryStaticUI() {
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     closeLibraryCtxMenu();
-    if (document.getElementById('library-system-overlay').classList.contains('active') && !_setupTourActive) closeLibrarySystemPanel();
+    if (document.getElementById('library-system-overlay').classList.contains('active')) closeLibrarySystemPanel();
     if (document.getElementById('docx-import-overlay').classList.contains('active')) closeDocxImportModal();
     if (document.getElementById('export-select-overlay').classList.contains('active')) closeExportSelect();
     if (document.getElementById('gist-history-overlay').classList.contains('active')) closeGistHistory();
@@ -519,6 +528,8 @@ function wireLibraryStaticUI() {
 
   // ── Panneau Système : bibliothèque entière (v7.13.0, Lot 10) ─────────
   document.getElementById('library-system-btn').addEventListener('click', () => openLibrarySystemPanel());
+  document.getElementById('library-github-reminder').addEventListener('click', () => openLibrarySystemPanel());
+  document.getElementById('setup-tour-later-btn').addEventListener('click', () => { if (_setupTourActive) endSetupTour(); });
   document.getElementById('library-system-close-btn').addEventListener('click', closeLibrarySystemPanel);
   document.getElementById('conflict-diff-close-btn').addEventListener('click', closeConflictDiff);
   document.getElementById('lib-conflict-delete-all').addEventListener('click', deleteAllConflictBackups);
@@ -531,6 +542,7 @@ function wireLibraryStaticUI() {
     const ok = await libVerifyToken();
     if (ok) {
       statusEl.style.color = 'var(--success)'; statusEl.textContent = `✅ Token valide (connecté en tant que @${ok}).`; saveLibSettings();
+      renderGithubReminder();
       if (_setupTourActive) await endSetupTour();
     }
     else { statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Token invalide ou refusé par GitHub.'; }
@@ -1451,7 +1463,6 @@ async function openLibrarySystemPanel(preselectDocId) {
   document.getElementById('library-system-overlay').classList.add('active');
 
   if (_setupTourActive) {
-    document.getElementById('library-system-close-btn').style.display = 'none';
     showSetupBubble('#lib-gh-token', 'Collez ici votre token GitHub personnel, puis vérifiez-le : vos manuscrits seront alors sauvegardés automatiquement, à l\'abri d\'une panne ou d\'une perte d\'appareil.', 'Sauvegarde automatique');
   }
 }
@@ -1723,6 +1734,9 @@ async function renderSyncUsage() {
 }
 function closeLibrarySystemPanel() {
   document.getElementById('library-system-overlay').classList.remove('active');
+  // Fermer le panneau sans token = « plus tard » : plus de bulle orpheline (AUD-03-001).
+  if (_setupTourActive) endSetupTour();
+  renderGithubReminder();
 }
 async function refreshLibSystemDocStatus(docId) {
   const statusEl = document.getElementById('lib-doc-gist-status');
