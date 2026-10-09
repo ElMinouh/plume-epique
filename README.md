@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.52.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.52.1**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -51,6 +51,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 - **Export et sauvegardes** (v9.45.0) : « Exporter ce chapitre / le manuscrit » dans le menu Outils de l'éditeur et **Ctrl+E** ; le ⋮ d'une carte de la bibliothèque ouvre directement l'export ; le panneau **Système** a trois onglets (Fichiers · Sauvegarde GitHub · Synchronisation) et une seule liste de manuscrits ; le ⋮ des chapitres et des manuscrits est toujours visible et le clic droit ouvre le même menu.
 - **Volet latéral et sprint** (v9.46.0) : les onglets (Univers, IA, Analyse, Système, Config) s'ouvrent dans un **volet à droite du texte**, de largeur réglable (poignée ou flèches, mémorisée par appareil), fermé par ✕, Échap ou le même onglet ; sur téléphone il passe en plein écran avec « Retour au texte » ; le sprint s'affiche en pied de page (⏱ mm:ss · +mots), se lance depuis le menu Outils, et sa fin est annoncée.
 - **Confort d'écriture** (v9.47.0) : barre d'outils regroupée (**Structure**, **Focus** direct, Outils, Rechercher, ✨ Mots) ; invite « Commencez à écrire ici… » et curseur dans le chapitre vide ; réglage **Largeur du texte** (Config, 72 caractères par défaut) ; filtre de chapitres (dès 8 chapitres) ; curseur « Tension du chapitre : n/100 » ; pied de page regroupé (✔ Enregistré · ☁ Synchronisé ou Local seulement) ; **❔ Aide** unique (premiers pas, visite guidée, confidentialité et IA, raccourcis) et seulement 5 icônes ⓘ.
+- **Plus de faux conflit entre deux appareils** (v9.52.1) : l'historique automatique, la position du curseur et les statistiques d'écriture ne comptent plus comme « modifié ici » quand Plume arbitre une divergence de synchro (empreinte « cœur » `_cfp`, `plume_synccfp_*`). Un appareil resté ouvert qui n'a ajouté qu'un instantané reprend simplement la version de l'autre ; un vrai changement de texte des deux côtés reste un conflit.
 - **Icônes vectorielles, suite** (v9.52.0) : les gabarits générés en JavaScript (onglets du volet sans chevron, bibliothèque, roman graphique, connexion, assistant IA, chronologie, pastilles de couverture…) utilisent `icon('nom')` ; les messages, titres de visites guidées et noms de plugins perdent leur emoji ; chaque message temporaire porte une icône selon son type (succès / erreur / information). Un test échoue si un emoji réapparaît dans `js/*.js`.
 - **Icônes vectorielles** (v9.51.0, 1re partie) : les emojis de l'interface statique (`index.html` : onglets du volet, barre d'outils, panneaux, bibliothèque, pied de page) sont remplacés par un sprite d'icônes à trait fin (`lucide-static`, licence ISC, version figée) qui suit le thème, la palette et la couleur des boutons ; helper `icon('nom')` dans `js/icons.js` ; le sprite se régénère par `node scripts/build-icons.cjs`. Suite (gabarits JS, visites guidées, messages) en v9.52.0.
 - **Jetons, rôles et boutons** (v9.50.0) : échelles uniques (3 rayons + pastille, 4 niveaux d'ombre, 1 voile de modale, 3 durées) ; couleurs par rôle (`--danger-solid`, `--title`…) ; titres en or profond (clair/papier) ou or clair (sombre), l'accent de la palette ne désignant plus que l'action ; boutons à variantes `btn-secondary` / `btn-ghost` / `btn-danger` / `btn-warn` (plus aucune couleur de fond posée à la main), barre d'outils neutre, état actif en fond teinté ; anneau de focus clavier, sélection, barres de défilement et `color-scheme` aux couleurs du thème ; 14 classes utilitaires qui n'avaient jamais été définies le sont enfin.
@@ -87,7 +88,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 
 ```bash
 npm install
-npm test            # Vitest : ~585 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
+npm test            # Vitest : ~590 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
 ```
 
 Pas de build, pas de linter. Les tests partagent un contexte applicatif global : `fileParallelism: false`.
@@ -145,5 +146,6 @@ foyer, etc.) : `docs/DECISIONS.md`.
   comparaison se fait par groupes de chapitres consécutifs et une contradiction entre deux groupes peut échapper (signalé à l'écran).
 - La date d'une chronologie est un texte libre : le tri automatique se fait selon l'ordre des chapitres, pas selon la date.
 - **Dépendances** : les bibliothèques servies par le site sont dans `vendor/` (Dependabot ne les propose plus (config du 06/10/2026 : mensuel, outils de test et actions regroupés) : les mettre à jour à la main une fois par trimestre — `npm outdated`, `npm audit`, notes de version —, méthode dans `vendor/LISEZMOI.md` . Les alertes de sécurité Dependabot sont activées sur le dépôt (depuis le 06/10/2026 ; une alerte ouverte sur `sprintf-js`, voir `vendor/LISEZMOI.md`) ; les mises à jour de sécurité automatiques restent désactivées). `docx` est en 9.8.1 depuis la v9.40.0 et **n'est chargé qu'à la première demande d'export DOCX** (1,2 Mo : il alourdissait chaque démarrage ; il reste précaché par le service worker, donc l'export marche hors ligne). `npm audit` signale 3 alertes modérées sur `mammoth` (outil en ligne de commande, absent du fichier servi) : sans effet sur le site (alerte fermée sur GitHub le 06/10/2026).
+- Un appareil **dont la session est restaurée sans mot de passe** n'a pas la clé des données : il ne peut pas comparer les empreintes, donc traite toute divergence avec prudence (conflit signalé). Ouvrir un manuscrit avant la première synchro réussie peut ainsi le marquer « modifié ici ».
 - La question secrète de récupération est une porte plus faible que le mot de passe (décision documentée).
 - Pas de test automatisé en navigateur réel : les parcours complets sont vérifiés à la main sur copie locale.

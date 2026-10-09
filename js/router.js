@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.52.0';
+const APP_VERSION = '9.52.1';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -214,12 +214,62 @@ async function contentFingerprint(plaintext) {
 // passage UNIQUE : toute création d'enveloppe doit passer par ici, sinon
 // l'empreinte manque et la synchronisation retombe en mode prudent.
 async function makeEncryptedEnvelope(plaintext) {
-  return {
+  const env = {
     _enc: true,
     data: await Crypto.encryptData(plaintext, _dataKey),
     _fp: await contentFingerprint(plaintext),
     _ts: Date.now()
   };
+  // v9.52.1 — empreinte « cœur » : voir coreFingerprint().
+  const cfp = await coreFingerprint(plaintext);
+  if (cfp) env._cfp = cfp;
+  return env;
+}
+// ═══════════════════════════════════════════════════════
+// EMPREINTE « CŒUR » (v9.52.1) — faux conflits à deux appareils
+//
+// Problème : _fp couvre le manuscrit ENTIER. Or l'application y écrit seule,
+// sans que l'auteur ait touché au texte : instantané automatique de l'historique
+// toutes les 5 min (snapshots.js), dernière position du curseur, statistiques
+// d'écriture. Un appareil resté ouvert voyait donc son _fp changer, et si
+// l'autre appareil avait écrit entre-temps, l'arbitrage concluait « modifié des
+// deux côtés » — faux conflit, clé mise en pause, alors que rien d'utile n'avait
+// changé ici (reproduit en test local le 2026-10-09).
+//
+// Remède : une seconde empreinte, calculée SANS ces champs dérivés, ne sert qu'à
+// départager les verdicts (classifySyncDivergence). Tout ce que l'auteur écrit
+// (texte, titres, personnages, plan…) y reste : un vrai conflit reste un conflit.
+// ⚠️ Ne retirer ici QUE des données régénérables ; en ajouter une vraie donnée
+// d'auteur ferait écraser son travail en silence (cf. incident v8.1.0).
+// ═══════════════════════════════════════════════════════
+const SYNC_DERIVED_FIELDS = ['history', 'lastPosition', 'sessionStats', 'hourlyActivity'];
+function stableStringify(v) {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(stableStringify).join(',') + ']';
+  return '{' + Object.keys(v).sort().filter(k => v[k] !== undefined)
+    .map(k => JSON.stringify(k) + ':' + stableStringify(v[k])).join(',') + '}';
+}
+// Renvoie null si le clair n'est pas un objet JSON (l'appelant retombe alors
+// sur l'empreinte complète, comportement d'avant la v9.52.1).
+async function coreFingerprint(plaintext) {
+  let obj;
+  try { obj = JSON.parse(plaintext); } catch(e) { return null; }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
+  for (const f of SYNC_DERIVED_FIELDS) delete obj[f];
+  return await sha256Hex((_dataKey || '') + '' + stableStringify(obj));
+}
+// Pendant de valueFingerprint() pour l'empreinte cœur. Enveloppe ancienne (sans
+// _cfp) : déchiffrée puis recalculée. Null si impossible → repli prudent.
+async function valueCoreFingerprint(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'object' || !value._enc) return null;
+  if (value._cfp) return value._cfp;
+  if (!_dataKey || !value.data) return null;
+  try {
+    const plain = await Crypto.decrypt(value.data, _dataKey);
+    if (plain === null) return null;
+    return await coreFingerprint(plain);
+  } catch(e) { return null; }
 }
 // Empreinte comparable d'une valeur synchronisée, quelle qu'elle soit :
 //  • enveloppe récente          → _fp joint (aucun déchiffrement nécessaire) ;
@@ -247,6 +297,15 @@ async function valueFingerprint(value) {
 // nous deux, a réellement modifié quelque chose depuis cette base ?
 function getKnownRemoteFp(key) { return localStorage.getItem('plume_syncfp_' + key); }
 function setKnownRemoteFp(key, fp) { if (fp) localStorage.setItem('plume_syncfp_' + key, fp); }
+// v9.52.1 — base commune au sens « cœur » (voir coreFingerprint). Toujours posée
+// avec la précédente ; absente avant la mise à jour → repli sur l'empreinte complète.
+function getKnownRemoteCoreFp(key) { return localStorage.getItem('plume_synccfp_' + key); }
+async function rememberRemoteBase(key, value) {
+  setKnownRemoteFp(key, await valueFingerprint(value));
+  const cfp = await valueCoreFingerprint(value);
+  if (cfp) localStorage.setItem('plume_synccfp_' + key, cfp);
+  else localStorage.removeItem('plume_synccfp_' + key);
+}
 
 // ═══════════════════════════════════════════════════════
 // ARBITRAGE D'UN REFUS SERVEUR (v9.3.0)
@@ -263,7 +322,7 @@ function setKnownRemoteFp(key, fp) { if (fp) localStorage.setItem('plume_syncfp_
 //   'local-only'  → seul cet appareil a modifié : notre version fait autorité
 //   'both'        → les deux ont modifié depuis la base commune : vrai conflit
 // ═══════════════════════════════════════════════════════
-async function classifySyncDivergence(localValue, remoteValue, baseFp) {
+async function classifySyncDivergence(localValue, remoteValue, baseFp, baseCoreFp) {
   const localFp = await valueFingerprint(localValue);
   const remoteFp = await valueFingerprint(remoteValue);
   if (localFp && remoteFp && localFp === remoteFp) return 'identical';
@@ -273,6 +332,17 @@ async function classifySyncDivergence(localValue, remoteValue, baseFp) {
   if (!localFp || !remoteFp || !baseFp) return 'both';
   if (localFp === baseFp) return 'remote-only';
   if (remoteFp === baseFp) return 'local-only';
+  // v9.52.1 — les empreintes complètes divergent des deux côtés : ce n'est un
+  // vrai conflit que si le CŒUR a changé des deux côtés (voir coreFingerprint).
+  if (baseCoreFp) {
+    const localCore = await valueCoreFingerprint(localValue);
+    const remoteCore = await valueCoreFingerprint(remoteValue);
+    if (localCore && remoteCore) {
+      if (localCore === baseCoreFp) return 'remote-only';
+      if (remoteCore === baseCoreFp) return 'local-only';
+      if (localCore === remoteCore) return 'identical';
+    }
+  }
   return 'both';
 }
 
@@ -571,6 +641,7 @@ async function syncPush(key, payload, attempt = 0) {
       // après reviendrait à comparer la version distante à elle-même, et à
       // conclure à tort que nous sommes les seuls à avoir modifié.
       const baseFpBeforePull = getKnownRemoteFp(key);
+      const baseCoreBeforePull = getKnownRemoteCoreFp(key);
       const pulled = await syncPull(key);
       if (pulled.version === null) { addPendingSyncKey(key); scheduleSyncRetry(); return; }
       // v9.2.1 — Ce numéro de version était récupéré mais jamais retenu : le
@@ -598,7 +669,7 @@ async function syncPush(key, payload, attempt = 0) {
       }
 
       // ── Manuscrits : arbitrage à trois voies ──
-      const verdict = await classifySyncDivergence(payload, pulled.data, baseFpBeforePull);
+      const verdict = await classifySyncDivergence(payload, pulled.data, baseFpBeforePull, baseCoreBeforePull);
 
       if (verdict === 'identical') {
         // Même texte des deux côtés, seul l'emballage chiffré diffère (sel et
@@ -606,7 +677,7 @@ async function syncPush(key, payload, attempt = 0) {
         // se recaler sur son numéro de version, et on s'arrête là.
         await writeLocalOnly(key, pulled.data);
         setKnownRemoteHash(key, await sha256Hex(JSON.stringify(pulled.data)));
-        setKnownRemoteFp(key, await valueFingerprint(pulled.data));
+        await rememberRemoteBase(key, pulled.data);
         return;
       }
 
@@ -619,7 +690,7 @@ async function syncPush(key, payload, attempt = 0) {
         // appareil. On adopte désormais sa version, silencieusement.
         await writeLocalOnly(key, pulled.data);
         setKnownRemoteHash(key, await sha256Hex(JSON.stringify(pulled.data)));
-        setKnownRemoteFp(key, await valueFingerprint(pulled.data));
+        await rememberRemoteBase(key, pulled.data);
         if (typeof onRemoteVersionAdopted === 'function') onRemoteVersionAdopted(key);
         return;
       }
@@ -652,7 +723,7 @@ async function syncPush(key, payload, attempt = 0) {
       // v9.3.0 — Ce qui vient d'être accepté par le serveur devient la base
       // commune des deux appareils : c'est à elle qu'on comparera pour savoir,
       // au prochain refus, qui a réellement modifié quoi.
-      setKnownRemoteFp(key, await valueFingerprint(payload));
+      await rememberRemoteBase(key, payload);
       removePendingSyncKey(key);
     } else if (resp.status === 400 || resp.status === 413) {
       // v9.20.0 — refus définitif du serveur (clé non autorisée, donnée trop
@@ -713,7 +784,7 @@ async function syncPull(key) {
     if (data !== null && data !== undefined) {
       setKnownRemoteHash(key, await sha256Hex(JSON.stringify(data)));
       // v9.3.0 — voir setKnownRemoteFp() : base commune servant à l'arbitrage.
-      setKnownRemoteFp(key, await valueFingerprint(data));
+      await rememberRemoteBase(key, data);
     }
     return { data, version };
   } catch(e) { setLastSyncStatus(false); return { data: undefined, version: null }; }

@@ -220,6 +220,7 @@ async function syncReconcileKey(key) {
   // Voir syncPush() : l'empreinte de la base commune se lit AVANT syncPull(),
   // qui la remplace par celle de ce qu'il vient de recevoir.
   const baseFp = getKnownRemoteFp(key);
+  const baseCoreFp = getKnownRemoteCoreFp(key);
   const { data: remote, version } = await syncPull(key);
   if (version === null || remote === null || remote === undefined) return;
   const local = await readLocalOnly(key);
@@ -240,13 +241,13 @@ async function syncReconcileKey(key) {
     if (JSON.stringify(merged) !== JSON.stringify(remote)) queueSyncPush(key, merged);
     return;
   }
-  const verdict = await classifySyncDivergence(local, remote, baseFp);
+  const verdict = await classifySyncDivergence(local, remote, baseFp, baseCoreFp);
   if (verdict === 'identical' || verdict === 'remote-only') {
     // Rien de neuf chez nous : on adopte la version du serveur.
     await writeLocalOnly(key, remote);
     setSyncVersion(key, version);
     setKnownRemoteHash(key, await sha256Hex(JSON.stringify(remote)));
-    setKnownRemoteFp(key, await valueFingerprint(remote));
+    await rememberRemoteBase(key, remote);
     return;
   }
   if (verdict === 'local-only') {
@@ -1679,7 +1680,7 @@ async function resolveConflictKeepBackup(key, docId) {
   const payload = await getConflictBackupPayload(key);
   if (payload === undefined) { toast('Sauvegarde introuvable (déjà supprimée ?).', 'error'); await renderConflictBackups(); return; }
   await writeLocalOnly(dataKey, payload);
-  setKnownRemoteFp(dataKey, await valueFingerprint(payload));
+  await rememberRemoteBase(dataKey, payload);
   setKnownRemoteHash(dataKey, await sha256Hex(JSON.stringify(payload)));
   await removeConflictBackup(key);
   removeConflictPausedKey(dataKey);

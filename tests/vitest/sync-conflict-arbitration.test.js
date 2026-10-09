@@ -289,3 +289,90 @@ describe('Arbitrage des conflits de synchro — incident du 29/07/2026', () => {
     expect(Object.keys(parId).sort()).toEqual(['m1', 'm2']);
   });
 });
+
+// ═══════════════════════════════════════════════════════
+// v9.52.1 — FAUX CONFLIT À DEUX APPAREILS (reproduit en test local le 2026-10-09)
+// L'appareil A, resté ouvert, ajoutait seul un instantané à son historique
+// (minuteur de 5 min) : son empreinte complète changeait, et si B avait écrit
+// entre-temps, A recevait « modifié sur les deux appareils » sans avoir touché
+// au texte. L'arbitrage compare désormais le CŒUR du manuscrit (sans history,
+// lastPosition, sessionStats, hourlyActivity).
+// ═══════════════════════════════════════════════════════
+describe('Faux conflit : champs dérivés (historique, position, statistiques)', () => {
+  let server;
+  beforeEach(() => { server = makeServer(); });
+
+  const msAvec = (texte, extra = {}) => ({ ...manuscrit(texte), ...extra });
+  async function ecrireMs(ctx, ms, { envoyer = true } = {}) {
+    await ctx.persistData(DOC_KEY, await ctx.makeEncryptedEnvelope(JSON.stringify(ms)));
+    if (envoyer) { ctx.flushPendingSyncPushes(); await settle(); }
+  }
+
+  it('A n’ajoute qu’un instantané d’historique pendant que B écrit : adopte B, sans conflit', async () => {
+    const a = makeDevice(server.serverFetch);
+    await ecrireMs(a, msAvec('texte commun'));
+    const b = makeDevice(server.serverFetch);
+    await b.syncReconcileKey(DOC_KEY);
+    await settle();
+
+    // A : minuteur de 5 min — historique + position + stats changent, pas le texte, rien n'est envoyé.
+    await ecrireMs(a, msAvec('texte commun', {
+      history: { c1: [{ ts: 1, content: 'texte commun' }] },
+      lastPosition: { chapterId: 'c1', offset: 3 },
+      sessionStats: { '2026-10-09': 2 }, hourlyActivity: new Array(24).fill(1)
+    }), { envoyer: false });
+    // B : vrai texte, envoyé.
+    await ecrireMs(b, msAvec('texte commun puis la suite ecrite par B'));
+
+    a.__toasts = [];
+    await a.syncReconcileKey(DOC_KEY);
+    await settle();
+
+    expect(a.__toasts).toEqual([]);
+    expect(a.getConflictPausedKeys()).toEqual([]);
+    expect(await lireLocal(a)).toBe('texte commun puis la suite ecrite par B');
+    expect(await lireServeur(a, server)).toBe('texte commun puis la suite ecrite par B');
+  });
+
+  it('un vrai changement de texte des deux côtés reste un conflit, même avec l’historique en plus', async () => {
+    const a = makeDevice(server.serverFetch);
+    await ecrireMs(a, msAvec('texte commun'));
+    const b = makeDevice(server.serverFetch);
+    await b.syncReconcileKey(DOC_KEY);
+    await settle();
+
+    await ecrireMs(a, msAvec('A change le texte', { history: { c1: [{ ts: 1, content: 'x' }] } }), { envoyer: false });
+    await ecrireMs(b, msAvec('B change aussi le texte'));
+
+    await a.syncReconcileKey(DOC_KEY);
+    await settle();
+    expect(a.isConflictPaused(DOC_KEY)).toBe(true);
+    expect(await lireLocal(a)).toBe('A change le texte');
+    expect(await lireServeur(a, server)).toBe('B change aussi le texte');
+  });
+
+  it('classement direct : cœur identique à la base = remote-only ; sans base cœur = prudence (both)', async () => {
+    const a = makeDevice(server.serverFetch);
+    const base = await a.makeEncryptedEnvelope(JSON.stringify(msAvec('base')));
+    const local = await a.makeEncryptedEnvelope(JSON.stringify(msAvec('base', { history: { c1: [{ ts: 1 }] } })));
+    const remote = await a.makeEncryptedEnvelope(JSON.stringify(msAvec('base et suite')));
+    const baseFp = await a.valueFingerprint(base);
+    const baseCore = await a.valueCoreFingerprint(base);
+
+    expect(await a.classifySyncDivergence(local, remote, baseFp, baseCore)).toBe('remote-only');
+    expect(await a.classifySyncDivergence(remote, local, baseFp, baseCore)).toBe('local-only');
+    // Base posée avant la v9.52.1 (pas d'empreinte cœur) : comportement d'avant, prudent.
+    expect(await a.classifySyncDivergence(local, remote, baseFp, null)).toBe('both');
+    // Texte modifié des deux côtés : conflit.
+    const autre = await a.makeEncryptedEnvelope(JSON.stringify(msAvec('autre suite')));
+    expect(await a.classifySyncDivergence(autre, remote, baseFp, baseCore)).toBe('both');
+  });
+
+  it('une enveloppe ancienne (sans _cfp) donne la même empreinte cœur que la récente', async () => {
+    const a = makeDevice(server.serverFetch);
+    const env = await a.makeEncryptedEnvelope(JSON.stringify(msAvec('meme texte', { history: { c1: [] } })));
+    const ancienne = { ...env }; delete ancienne._cfp;
+    expect(env._cfp).toBeTruthy();
+    expect(await a.valueCoreFingerprint(ancienne)).toBe(env._cfp);
+  });
+});
