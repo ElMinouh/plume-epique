@@ -10,7 +10,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8');
+// fins de ligne normalisées : le dépôt peut être extrait en CRLF (Windows) ou en LF (CI)
+const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8').replace(/\r\n/g, '\n');
 const css = read('css/style.css');
 const html = read('index.html');
 const lib = read('js/library.js');
