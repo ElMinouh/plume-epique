@@ -16,6 +16,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Choix d'architecture importants et leurs raisons |
 | [`docs/BILAN-AUDIT-01.md`](docs/BILAN-AUDIT-01.md) | Bilan de remédiation de l'audit technique d'octobre 2026 (28 constats) |
 | [`docs/BILAN-AUDIT-02.md`](docs/BILAN-AUDIT-02.md) | Bilan de remédiation de l'audit fonctionnel d'octobre 2026 (22 constats, v9.33.0 → v9.39.0) |
+| [`docs/BILAN-AUDIT-03.md`](docs/BILAN-AUDIT-03.md) | Bilan de remédiation de l'audit ergonomique (UX) d'octobre 2026 (36 constats, v9.41.0 → v9.48.0) |
 | [`vendor/LISEZMOI.md`](vendor/LISEZMOI.md) | Librairies tierces servies localement et comment les mettre à jour |
 | [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md) | Ancien README : historique et incidents jusqu'en juillet 2026 |
 
