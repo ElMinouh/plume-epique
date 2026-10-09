@@ -78,17 +78,21 @@ function readLocalSession() {
 // concerné en clair à des services externes pour être traités — à appeler
 // avant le tout premier usage de l'une de ces fonctions.
 // ═══════════════════════════════════════════════════════════════════════
+// v9.47.0 (AUD-03-024) : la notice est aussi relisible à volonté depuis ❔ Aide → Confidentialité et IA.
+function showAiPrivacyNotice() {
+  return showInfoModal({
+    title: 'Vos textes et l\'IA',
+    message: 'Les fonctions IA (résumé, continuation, incohérences, noms, synonymes, mémoire narrative, reformulation du roman graphique) envoient le texte concerné à Google (modèle Gemini) via le relais de Plume. Le correcteur LanguageTool envoie aussi le texte à LanguageTool.org.\n\nPlume ne stocke jamais ce texte en clair, mais il transite en clair chez ces services le temps du traitement. Avec l\'offre gratuite de Gemini, Google peut conserver ces échanges et s\'en servir pour améliorer ses produits : n\'envoyez pas un passage que vous voulez garder strictement confidentiel.',
+    confirmLabel: 'J\'ai compris'
+  });
+}
 async function notifyThirdPartyDataUseOnce() {
   // v9.20.0 (audit AUD-01-012) — la notice nommait Mistral alors que le texte
   // part chez Google (Gemini) depuis le 11/09/2026. Nouveau drapeau « V2 » :
   // la notice corrigée est réaffichée une fois, même aux profils qui avaient
   // vu l'ancienne (qui désignait le mauvais prestataire).
   if (!_currentProfile || _currentProfile.seenThirdPartyNoticeV2) return;
-  await showInfoModal({
-    title: 'Vos textes et l\'IA',
-    message: 'Les fonctions IA (résumé, continuation, incohérences, noms, synonymes, mémoire narrative, reformulation du roman graphique) envoient le texte concerné à Google (modèle Gemini) via le relais de Plume. Le correcteur LanguageTool envoie aussi le texte à LanguageTool.org.\n\nPlume ne stocke jamais ce texte en clair, mais il transite en clair chez ces services le temps du traitement. Avec l\'offre gratuite de Gemini, Google peut conserver ces échanges et s\'en servir pour améliorer ses produits : n\'envoyez pas un passage que vous voulez garder strictement confidentiel.',
-    confirmLabel: 'J\'ai compris'
-  });
+  await showAiPrivacyNotice();
   _currentProfile.seenThirdPartyNoticeV2 = true;
   await mutateProfilesIndex(idx => {
     const profil = idx.profiles.find(p => p.id === _currentProfileId);

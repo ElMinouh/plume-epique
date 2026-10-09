@@ -192,6 +192,6 @@ function stopDictation() {
   _dictationRange = null;
   const btn = document.getElementById('dictate-btn');
   btn.classList.remove('record-pulse');
-  document.getElementById('dictate-status').textContent = 'Prêt';
+  document.getElementById('dictate-status').textContent = '';
   document.getElementById('dictate-preview').textContent = '';
 }

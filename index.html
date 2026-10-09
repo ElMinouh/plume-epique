@@ -382,12 +382,19 @@
 </div>
 
 <!-- AIDE-MÉMOIRE DES RACCOURCIS CLAVIER (nouveau v7.5.0) -->
-<div id="shortcuts-overlay" role="dialog" aria-modal="true" aria-label="Raccourcis clavier">
+<div id="shortcuts-overlay" role="dialog" aria-modal="true" aria-label="Aide et raccourcis">
   <div class="u-bg-v-glass u-br-16px u-p-20px u-w-min-420px-92vw u-maxh-75vh u-ovy-auto u-d-flex u-fd-column u-gap-4px u-shadow-0-20px-60px-rgb0004 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center u-mb-6px">
-      <strong>⌨️ Raccourcis clavier</strong>
+      <strong>❔ Aide et raccourcis</strong>
       <button class="action-btn btn-sm" id="shortcuts-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
     </div>
+    <!-- v9.47.0 (AUD-03-024) : un seul point d'entrée pour l'aide (avant : bulles « premiers pas », visites, ⓘ sur ~30 boutons). -->
+    <div class="u-d-flex u-fd-column u-gap-6px u-mb-8px">
+      <button class="action-btn btn-sm u-flex-1 u-ta-left" id="help-onboarding-btn">🔰 Revoir les premiers pas</button>
+      <button class="action-btn btn-sm u-flex-1 u-ta-left" id="help-tour-btn">🎓 Visite guidée complète</button>
+      <button class="action-btn btn-sm u-flex-1 u-ta-left" id="help-privacy-btn">🔒 Confidentialité et IA</button>
+    </div>
+    <strong class="u-fs-_8rem u-c-v-text-muted">Raccourcis clavier</strong>
     <div class="shortcut-row"><span>Gras</span><span class="shortcut-key">Ctrl+B</span></div>
     <div class="shortcut-row"><span>Italique</span><span class="shortcut-key">Ctrl+I</span></div>
     <div class="shortcut-row"><span>Souligné</span><span class="shortcut-key">Ctrl+U</span></div>
@@ -399,6 +406,7 @@
     <div class="shortcut-row"><span>Exporter le manuscrit</span><span class="shortcut-key">Ctrl+E</span></div>
     <div class="shortcut-row"><span>Fermer la fenêtre active</span><span class="shortcut-key">Échap</span></div>
     <div class="shortcut-row"><span>Afficher cette aide</span><span class="shortcut-key">?</span></div>
+    <p class="u-fs-_68rem u-c-v-text-muted u-m-8px-0-0" id="app-version-label">Plume</p>
   </div>
 </div>
 
@@ -507,11 +515,18 @@
         <button class="mode-indicator active" id="view-list-btn" title="Liste des chapitres">☰ Liste</button>
         <button class="mode-indicator" id="view-cork-btn" title="Vue en tableau de fiches">🗂️ Fiches</button>
       </div>
+      <!-- v9.47.0 (AUD-03-036) : filtre de chapitres (affiché à partir de 8 chapitres). Affichage seulement : le
+           glisser-déposer est désactivé tant qu'un filtre est actif. -->
+      <div hidden class="u-d-flex u-ai-center u-gap-6px" id="chapter-filter-wrap">
+        <input id="chapter-filter" type="search" class="field u-flex-1" placeholder="🔍 Filtrer les chapitres…" aria-label="Filtrer les chapitres" title="Filtrer par titre ou par étiquette">
+        <span class="u-fs-_72rem u-c-v-text-muted" id="chapter-filter-count" aria-live="polite"></span>
+      </div>
       <div class="chapter-list-container" id="chapter-list" role="list"></div>
       <div class="sidebar-stats">
         📝 <strong id="total-words">0</strong> mots &nbsp;|&nbsp; 📅 <strong id="today-words">0</strong> aujourd'hui
         <div class="daily-bar-wrap"><div class="daily-bar" id="sidebar-goal-bar"></div></div>
-        Tension : <input type="range" id="tension-slider" min="0" max="100" value="20" aria-label="Tension">
+        <label for="tension-slider" title="Intensité dramatique de ce chapitre (0 = calme, 100 = paroxysme). Elle alimente la courbe de Analyse → Structure.">Tension du chapitre : <strong id="tension-value">20</strong>/100</label>
+        <input type="range" id="tension-slider" min="0" max="100" value="20" aria-describedby="tension-value">
       </div>
     </div>
   </aside>
@@ -567,22 +582,25 @@
 
       <!-- Barre d'outils regroupée en menus déroulants (v7.4.0) : moins de
            boutons visibles en permanence, mêmes fonctionnalités qu'avant. -->
+      <!-- v9.47.0 (AUD-03-015) : barre regroupée — « Structure » (ex-Paragraphe + Scinder + date/heure), « Focus » en bouton
+           direct, « Outils » réduit à l'analyse, la lecture, la voix, le sprint et l'export ; plus aucune icône ⓘ ici. -->
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h34495e" title="Mettre en forme le paragraphe">¶<span class="tb-label"> Paragraphe</span> ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h34495e" id="tb-structure-btn" title="Structure : titres, paragraphes, scinder le chapitre">¶<span class="tb-label"> Structure</span> ▾</button>
         <div class="toolbar-menu">
           <button id="fmt-title-btn" title="Transformer la ligne en sous-titre">Titre</button>
           <button id="fmt-para-btn" title="Revenir à un paragraphe normal">Paragraphe normal</button>
+          <button id="split-chapter-btn" title="Couper le chapitre à l'endroit du curseur : la suite devient un nouveau chapitre">✂️ Scinder ici</button>
+          <button id="insert-datetime-btn" title="Insérer la date et l'heure actuelles à l'endroit du curseur">🕐 Insérer date/heure</button>
         </div>
       </div>
 
+      <button class="action-btn btn-sm u-bg-h34495e" id="focus-btn" title="Écrire en plein écran, sans distraction (Échap pour quitter)">🎯<span class="tb-label"> Focus</span></button>
+
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-hc0392b" title="Outils d'écriture">🛠️<span class="tb-label"> Outils</span> ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-hc0392b" id="tb-tools-btn" title="Outils d'écriture">🛠️<span class="tb-label"> Outils</span> ▾</button>
         <div class="toolbar-menu">
-          <button id="insert-datetime-btn" title="Insérer la date et l'heure actuelles à l'endroit du curseur">🕐 Insérer date/heure</button>
-          <button id="split-chapter-btn" title="Couper le chapitre à l'endroit du curseur : la suite devient un nouveau chapitre">✂️ Scinder ici</button>
           <button id="analyze-btn" title="Surligner les mots faibles/répétitifs dans le texte">🔍 Analyser le style</button>
           <button id="clear-btn" title="Retirer les surlignages de style (le texte n'est pas modifié)">🧹 Nettoyer les surlignages</button>
-          <button id="focus-btn" title="Passer en plein écran, sans distraction">🎯 Mode Focus</button>
           <button id="reading-mode-btn" title="Relire tout le roman à la suite, comme un lecteur">📖 Mode Lecture</button>
           <button id="voice-btn" title="Lire le texte à voix haute ou écrire par dictée">🎙️ Voix (dictée/lecture)</button>
           <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
@@ -593,7 +611,7 @@
       </div>
 
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h1a1a2e" title="Rechercher du texte">🔎<span class="tb-label"> Rechercher</span> ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h1a1a2e" id="tb-search-btn" title="Rechercher du texte">🔎<span class="tb-label"> Rechercher</span> ▾</button>
         <div class="toolbar-menu">
           <button id="global-search-btn" title="Rechercher un mot dans tout le projet">Dans tout le projet</button>
           <button id="find-replace-btn" title="Rechercher et remplacer du texte dans ce chapitre">Ici, avec remplacement</button>
@@ -604,7 +622,7 @@
            bloc vers IA & Mémoire → IA sur mobile (voir relocateLexToolsForMobile()
            dans router.js). Sur PC, ce wrapper reste ici, inchangé. -->
       <div id="lex-tools-wrapper" class="u-d-flex u-ai-center u-gap-6px">
-        <button class="action-btn btn-sm u-bg-h16a085 u-d-none" id="lex-tools-toggle-btn" title="Synonymes / Antonymes" aria-label="Synonymes / Antonymes" aria-expanded="false">✨▾</button>
+        <button class="action-btn btn-sm u-bg-h16a085" id="lex-tools-toggle-btn" title="Synonymes et antonymes" aria-label="Synonymes et antonymes" aria-expanded="false">✨<span class="tb-label"> Mots</span> ▾</button>
         <div class="u-d-flex u-gap-6px" id="lex-tools-group">
           <select id="search-mode" class="field u-w-auto" aria-label="Mode dictionnaire" title="Choisir entre synonymes et antonymes">
             <option value="syn">✨ Synonymes</option><option value="ant">🌑 Antonymes</option>
@@ -633,7 +651,7 @@
       <textarea id="chapter-research-notes" class="field u-w-100pc" rows="3" placeholder="Prononciation, faits historiques, références..."></textarea>
     </div>
     <div id="writer" contenteditable="true" role="textbox" aria-multiline="true"
-      aria-label="Zone d'écriture" spellcheck="false"></div>
+      aria-label="Zone d'écriture" spellcheck="false" data-placeholder="Commencez à écrire ici… (touche ? pour l'aide)"></div>
     <div id="corkboard-view" class="corkboard u-d-none" role="list" aria-label="Tableau de fiches des chapitres"></div>
     <div id="ai-summary-panel" role="dialog" aria-label="Résumé IA">
       <div class="u-d-flex u-jc-space-between u-ai-center">
@@ -702,19 +720,17 @@
       <div id="save-indicator" aria-hidden="true"></div>
       <span class="u-fs-_7rem u-c-v-text-muted" id="autosave-label"></span>
       <button hidden class="mode-indicator" id="sprint-chip" title="Sprint en cours : ouvrir Config → Sprint"><span aria-hidden="true">⏱</span> <span id="sprint-chip-time">25:00</span> · <span id="sprint-chip-words">+0</span> mots</button>
-      <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre"><span aria-hidden="true">🌙</span><span class="mb-label"> Nuit</span></button>
-      <button class="mode-indicator" id="dictate-btn" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro"><span aria-hidden="true">🎤</span><span class="mb-label"> Dictée</span></button>
-      <button class="mode-indicator" id="ai-chat-btn" title="Discuter avec l'assistant IA"><span aria-hidden="true">🤖</span><span class="mb-label"> IA</span></button>
-      <span class="u-fs-_7rem u-c-v-text-muted" id="dictate-status">Prêt</span>
-      <span id="dictate-preview" aria-live="polite"></span>
       <span class="u-d-flex u-ai-center u-gap-4px" id="sync-status-dot-wrap" title="État de la dernière synchronisation">
         <span id="sync-status-dot" aria-hidden="true"></span>
         <span class="u-fs-_66rem u-c-v-text-muted" id="sync-status-label"></span>
       </span>
+      <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre"><span aria-hidden="true">🌙</span><span class="mb-label"> Nuit</span></button>
+      <button class="mode-indicator" id="dictate-btn" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro"><span aria-hidden="true">🎤</span><span class="mb-label"> Dictée</span></button>
+      <button class="mode-indicator" id="ai-chat-btn" title="Discuter avec l'assistant IA"><span aria-hidden="true">🤖</span><span class="mb-label"> IA</span></button>
+      <span class="u-fs-_7rem u-c-v-text-muted" id="dictate-status"></span>
+      <span id="dictate-preview" aria-live="polite"></span>
       <button class="u-d-none u-bg-linear-gradient-135deg-v-acc-1qh64 u-c-hfff u-bd-none u-p-5px-14px u-br-20px u-cur-pointer u-fs-_72rem u-fwt-700 u-ff-inherit u-shadow-0-2px-8px-rgb19257433" id="install-app-btn" title="Installer Plume comme application sur cet ordinateur">📲 Installer sur le bureau</button>
-      <button id="shortcuts-hint-btn" class="mode-indicator u-ml-auto u-p-2px-8px" title="Voir les raccourcis clavier (touche ?)">❔</button>
-      <img src="icons/icon-32.png" class="modebar-logo" alt="" width="16" height="16">
-      <span class="u-fs-_65rem u-op-_35" id="app-version-label">Plume</span>
+      <button id="shortcuts-hint-btn" class="mode-indicator u-ml-auto u-p-2px-8px" title="Aide et raccourcis clavier (touche ?)" aria-label="Aide et raccourcis">❔<span class="mb-label"> Aide</span></button>
     </div>
   </div>
 <div id="tab-container" role="region" aria-label="Volet latéral">
@@ -1013,6 +1029,13 @@
       <button class="mode-indicator" data-scale="normal">Normale</button>
       <button class="mode-indicator" data-scale="grand">Grande</button>
       <button class="mode-indicator" data-scale="tres-grand">Très grande</button>
+    </div>
+    <div class="u-fs-_78rem u-c-v-text-muted u-m-10px-0-8px">Largeur du texte</div>
+    <div class="u-d-flex u-gap-8px u-fw-wrap u-mb-6px" id="textwidth-picker" role="group" aria-label="Largeur du texte">
+      <button class="mode-indicator" data-width="etroite">Étroite</button>
+      <button class="mode-indicator" data-width="normale">Normale</button>
+      <button class="mode-indicator" data-width="large">Large</button>
+      <button class="mode-indicator" data-width="pleine">Pleine</button>
     </div>
     <hr class="u-bdc-v-border u-m-10px-0">
     <strong>Mots faibles</strong>

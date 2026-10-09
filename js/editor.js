@@ -191,7 +191,7 @@ function loadChapter(i) {
   // 100% de confiance, même si le contenu vient normalement de #writer lui-même.
   w.innerHTML = sanitizeManuscriptHtml(ch.content || '');
   if (t) t.innerText = ch.title || '';
-  if (s) s.value = ch.tension ?? 20;
+  if (s) { s.value = ch.tension ?? 20; const tv = document.getElementById('tension-value'); if (tv) tv.textContent = s.value; }
   if (st) st.value = ch.status || 'draft';
   _chapterBaseline = w.innerHTML;
   // v7.36.0 (ergonomie) — objectif de mots et notes de recherche, propres à
@@ -202,6 +202,7 @@ function loadChapter(i) {
   if (rn) rn.value = ch.researchNotes || '';
   updateChapterWordGoalProgress();
   ensureUndoStack(ch); updateUndoRedoButtons();
+  updateWriterEmpty(); focusWriterIfEmpty();
 }
 // v7.36.0 (ergonomie) — affiche "1240 / 2500 mots" à côté de l'objectif de
 // mots du chapitre courant. Appelée à chaque changement de chapitre et à
@@ -215,6 +216,7 @@ function updateChapterWordGoalProgress() {
 }
 function liveCounter() {
   if (_switching) return;
+  updateWriterEmpty();
   db.chapters[cur].content = stripAnalysisMarks(document.getElementById('writer').innerHTML);
   // v9.4.1 — saveCursorForResume() ne doit JAMAIS pouvoir empêcher
   // updateDailyStats()/debouncedSave() de s'exécuter : si elle échouait pour
@@ -379,10 +381,10 @@ function renderChapterList() {
     el.addEventListener('click', (e) => { if(e.target.closest('.ch-kebab-btn')||e.target.closest('.ch-rename-input')) return; changeCh(parseInt(el.dataset.idx)); });
     el.addEventListener('keydown', e => {
       if((e.key==='Enter'||e.key===' ')&&!e.target.closest('.ch-kebab-btn')) changeCh(parseInt(el.dataset.idx));
-      if(e.altKey && (e.key==='ArrowUp'||e.key==='ArrowDown')) { e.preventDefault(); moveChapter(parseInt(el.dataset.idx), e.key==='ArrowUp'?'up':'down'); }
+      if(e.altKey && !chapterFilterValue() && (e.key==='ArrowUp'||e.key==='ArrowDown')) { e.preventDefault(); moveChapter(parseInt(el.dataset.idx), e.key==='ArrowUp'?'up':'down'); }
     });
     el.addEventListener('dragstart', e => {
-      if (e.target.closest('.ch-rename-input')) { e.preventDefault(); return; }
+      if (e.target.closest('.ch-rename-input') || chapterFilterValue()) { e.preventDefault(); return; }
       _dragChapterIdx = parseInt(el.dataset.idx);
       el.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
@@ -412,6 +414,7 @@ function renderChapterList() {
   // liste à chaque mutation (ajout/suppression/réordonnancement/tags/statut...)
   // sans avoir à toucher chacun de ces points d'appel individuellement.
   if (_chapterViewMode === 'cork') renderCorkboard();
+  applyChapterFilter();
 }
 // ═══════════════════════════════════════════════════════
 // VUE CORKBOARD — tableau de fiches (nouveau v7.10.0, Lot 6)
@@ -430,7 +433,7 @@ function setChapterViewMode(mode) {
   document.getElementById('chapter-title-row').style.display = isCork ? 'none' : 'flex';
   document.getElementById('writer').style.display = isCork ? 'none' : '';
   document.getElementById('corkboard-view').style.display = isCork ? 'grid' : 'none';
-  if (isCork) renderCorkboard();
+  if (isCork) { renderCorkboard(); applyChapterFilter(); }
 }
 function renderCorkboard() {
   const cont = document.getElementById('corkboard-view');
@@ -712,7 +715,46 @@ function renameChapterInline(i) {
     if (e.key === 'Escape') { e.preventDefault(); input.value = current; input.blur(); }
   });
 }
-function updateTension(v) { db.chapters[cur].tension = parseInt(v); debouncedSave(); if (tensionChart) updateChart(); }
+function updateTension(v) {
+  db.chapters[cur].tension = parseInt(v); debouncedSave(); if (tensionChart) updateChart();
+  const tv = document.getElementById('tension-value'); if (tv) tv.textContent = String(parseInt(v));
+}
+
+// v9.47.0 (AUD-03-011) — invite « Commencez à écrire ici… » tant que le chapitre est vide (classe .is-empty, voir CSS) ;
+// curseur placé dans le texte à l'ouverture d'un chapitre vide, sur ordinateur seulement (au toucher, cela ouvrirait le clavier).
+function updateWriterEmpty() {
+  const w = document.getElementById('writer');
+  if (!w) return;
+  const empty = !(w.textContent || '').replace(/\u200b/g, '').trim() && !w.querySelector('img,table,hr');
+  w.classList.toggle('is-empty', empty);
+}
+function focusWriterIfEmpty() {
+  const w = document.getElementById('writer');
+  if (!w || !w.classList.contains('is-empty')) return;
+  if (document.body.classList.contains('library-mode') || document.body.classList.contains('graphicnovel-mode')) return;
+  if (!window.matchMedia || !window.matchMedia('(pointer:fine)').matches) return;
+  const a = document.activeElement;
+  if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || (a.isContentEditable && a !== w))) return;
+  if (document.querySelector('[role="dialog"][aria-modal="true"].active')) return;
+  w.focus();
+}
+
+// v9.47.0 (AUD-03-036) — filtre des chapitres (titre ou étiquette), affichage seulement.
+function chapterFilterValue() { const f = document.getElementById('chapter-filter'); return f ? f.value.trim().toLowerCase() : ''; }
+function chapterMatchesFilter(ch, q) { return !q || ((ch && ch.title || '') + ' ' + ((ch && ch.tags) || []).join(' ')).toLowerCase().includes(q); }
+function applyChapterFilter() {
+  const q = chapterFilterValue(); const n = db.chapters ? db.chapters.length : 0;
+  const wrap = document.getElementById('chapter-filter-wrap');
+  if (wrap) wrap.hidden = n < 8 && !q;
+  let shown = 0;
+  document.querySelectorAll('#chapter-list .chapter-item, #corkboard-view .card').forEach(el => {
+    const ok = chapterMatchesFilter(db.chapters[parseInt(el.dataset.idx)], q);
+    el.hidden = !ok;
+    if (ok && el.classList.contains('chapter-item')) shown++;
+  });
+  const cnt = document.getElementById('chapter-filter-count');
+  if (cnt) cnt.textContent = q ? shown + '/' + n : '';
+}
 
 // ═══════════════════════════════════════════════════════
 // MISE EN FORME RICHE — CORRECTION V56

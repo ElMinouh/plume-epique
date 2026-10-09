@@ -47,18 +47,20 @@ function isMobileDevice() { return window.innerWidth <= 768; }
 const FULL_TOUR_TOOLBAR_STEPS_COMMON = [
   { target:'.toolbar', title:'🛠️ La barre d\'outils',
     text:"Juste au-dessus de votre texte, et qui vous suit désormais au défilement : les boutons G (gras), I (italique) et S (souligné) mettent en forme la sélection en cours, 🖍️ Surligner colore le passage sélectionné (8 couleurs au choix), et les flèches courbes annulent ou rétablissent votre dernière action. Les menus déroulants à droite en couvrent bien plus — on les découvre juste après." },
-  { clickFirst:'.toolbar-dropdown-btn.u-bg-h34495e', target:'.toolbar-dropdown-btn.u-bg-h34495e', title:'¶ Paragraphe',
-    text:"Ce menu transforme la ligne où se trouve votre curseur : « Titre » pour un sous-titre de section, « Paragraphe normal » pour revenir à du texte simple." },
-  { clickFirst:'.toolbar-dropdown-btn.u-bg-hc0392b', target:'.toolbar-dropdown-btn.u-bg-hc0392b', title:'🛠️ Outils d\'écriture',
-    text:"Ce menu regroupe six aides à l'écriture : insérer la date et l'heure actuelles à l'endroit du curseur (premier bouton du menu), surligner les mots que vous répétez trop souvent, nettoyer ces surlignages, passer en Mode Focus (plein écran, sans distraction), relire tout le roman à la suite comme un vrai lecteur (Mode Lecture), et écrire ou vous faire lire le texte à voix haute (dictée)." },
-  { clickFirst:'.toolbar-dropdown-btn.u-bg-h1a1a2e', target:'.toolbar-dropdown-btn.u-bg-h1a1a2e', title:'🔎 Rechercher',
+  { clickFirst:'#tb-structure-btn', target:'#tb-structure-btn', title:'¶ Structure',
+    text:"Ce menu agit sur la ligne où se trouve votre curseur : « Titre » pour un sous-titre de section, « Paragraphe normal » pour revenir à du texte simple, « Scinder ici » pour couper le chapitre à cet endroit (la suite devient un nouveau chapitre), et « Insérer date/heure »." },
+  { target:'#focus-btn', title:'🎯 Focus',
+    text:"Écrire en plein écran, sans aucune distraction : seul votre texte reste affiché. Échap pour revenir." },
+  { clickFirst:'#tb-tools-btn', target:'#tb-tools-btn', title:'🛠️ Outils d\'écriture',
+    text:"Surligner les mots que vous répétez trop souvent et nettoyer ces surlignages, relire tout le roman à la suite (Mode Lecture), lire le texte à voix haute ou le dicter, lancer un sprint de 25 minutes, et exporter le chapitre ou le manuscrit." },
+  { clickFirst:'#tb-search-btn', target:'#tb-search-btn', title:'🔎 Rechercher',
     text:"Deux façons de retrouver du texte : dans tout le projet à la fois (tous les chapitres), ou seulement dans le chapitre actuel avec possibilité de remplacer le mot trouvé par un autre." }
 ];
 // PC uniquement : Synonymes/Antonymes reste visible en permanence dans la
 // barre d'outils (pas sur mobile, où ce bloc a rejoint IA & Mémoire → IA).
 const FULL_TOUR_TOOLBAR_STEP_LEX_DESKTOP =
   { ensureVisible:ensureLexToolsOpen, target:'#search-btn', title:'✨ Synonymes & antonymes',
-    text:"Toujours visible dans la barre d'outils (PC uniquement) : tapez un mot dans le petit champ, choisissez « Synonymes » ou « Antonymes » dans le menu, puis cliquez sur GO pour obtenir des suggestions." };
+    text:"Bouton ✨ Mots de la barre d'outils (PC) : tapez un mot dans le petit champ, choisissez « Synonymes » ou « Antonymes » dans le menu, puis cliquez sur GO pour obtenir des suggestions." };
 
 const FULL_TOUR_AI_STEP_DESKTOP =
   { subtab:'tab-ai', title:'🤖 Assistant IA (page dédiée)',
@@ -341,8 +343,11 @@ function showInfoPopover(anchor, title, text) {
 }
 function hideInfoPopover() { document.getElementById('info-popover').classList.remove('active'); }
 
+// v9.47.0 (AUD-03-024) : ⓘ seulement sur les fonctions non évidentes (avant : un ⓘ par étape de visite, ~30 au total).
+const HELP_ICON_TITLES = new Set(['💾 Système', '🧠 Mémoire narrative', '⏱️ Sprint', '⚙️ Réglages', '🤖 Assistant IA (page dédiée)']);
 function wireContextualHelpIcons() {
   [...LIBRARY_TOUR_STEPS, ...getFullTourSteps()].forEach(step => {
+    if (!HELP_ICON_TITLES.has(step.title)) return;
     const anchor = helpIconAnchorFor(step);
     if (!anchor || anchor.dataset.helpWired) return;
     anchor.dataset.helpWired = '1';

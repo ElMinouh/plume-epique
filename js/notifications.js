@@ -14,7 +14,16 @@
 const UI_SCALES = { normal: 100, grand: 112, 'tres-grand': 125 };
 function loadUiScale() { try { const k = localStorage.getItem('plume_ui_scale'); return UI_SCALES[k] ? k : 'normal'; } catch (e) { return 'normal'; } }
 function applyUiScale(key) { const pct = UI_SCALES[key] || 100; document.documentElement.style.fontSize = pct === 100 ? '' : pct + '%'; }
-function renderUiScaleUI() { const cur = loadUiScale(); document.querySelectorAll('#uiscale-picker .mode-indicator').forEach(b => b.classList.toggle('active', b.dataset.scale === cur)); }
+function renderUiScaleUI() {
+  const cur = loadUiScale(); document.querySelectorAll('#uiscale-picker .mode-indicator').forEach(b => b.classList.toggle('active', b.dataset.scale === cur));
+  const w = loadTextWidth(); document.querySelectorAll('#textwidth-picker .mode-indicator').forEach(b => b.classList.toggle('active', b.dataset.width === w));
+}
+// v9.47.0 (AUD-03-012) : largeur du texte (étroite 36 rem / normale 44 rem ≈ 72 caractères / large 56 rem / pleine) ; par appareil.
+const TEXT_WIDTHS = { etroite: 1, normale: 1, large: 1, pleine: 1 };
+function loadTextWidth() { try { const k = localStorage.getItem('plume_text_width'); return TEXT_WIDTHS[k] ? k : 'normale'; } catch (e) { return 'normale'; } }
+function applyTextWidth(key) { document.documentElement.dataset.textWidth = TEXT_WIDTHS[key] ? key : 'normale'; }
+function selectTextWidth(key) { try { localStorage.setItem('plume_text_width', key); } catch (e) { /* réglage valable pour cette session seulement */ } applyTextWidth(key); renderUiScaleUI(); }
+applyTextWidth(loadTextWidth());
 function selectUiScale(key) { try { localStorage.setItem('plume_ui_scale', key); } catch (e) { /* stockage indisponible : réglage valable pour cette session seulement */ } applyUiScale(key); renderUiScaleUI(); }
 applyUiScale(loadUiScale());
 
@@ -133,7 +142,7 @@ function closeShortcutsHelp() { document.getElementById('shortcuts-overlay').cla
 // ═══════════════════════════════════════════════════════
 const ONBOARDING_STEPS = [
   { target:'#chapter-sidebar', text:'Vos chapitres apparaissent ici. Glissez-les pour les réordonner, ou passez en vue Fiches.' },
-  { target:'.toolbar', text:'La barre d\'outils : mise en forme, recherche, et l\'assistant IA (menu 🤖 IA).' },
+  { target:'.toolbar', text:'La barre d\'outils : mise en forme, structure, mode Focus, recherche et dictionnaire. L\'assistant IA est dans le bandeau du bas (🤖 IA).' },
   { target:'#mode-bar', text:'Ce bandeau reste toujours visible : état d\'enregistrement, dictée, chat IA, thème.' },
   { target:'#tab-menu', text:'Tout le reste — personnages, statistiques, réglages — se trouve dans ces onglets.' }
 ];

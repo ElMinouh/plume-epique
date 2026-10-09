@@ -28,6 +28,7 @@ du code (dont l'historique est resté dans les commentaires et dans `docs/HISTOR
 | 21 | **Configuration de la sauvegarde GitHub facultative** : bulle « Plus tard », panneau Système toujours fermable, rappel discret dans la bibliothèque (v9.41.0, audit AUD-03-001) | L'étape obligatoire (v7.37.0) piégeait au toucher un proche non technique, alors que l'écriture fonctionne sans jeton | Obligation pour tous les profils ; obligation pour l'administrateur seulement |
 | 22 | **Échap ferme une seule couche** (arbitre en phase de capture, `escapeArbiter()` dans `router.js`) ; Tab piégé seulement dans les `aria-modal` (v9.42.0, AUD-03-020) | Trois gestionnaires fermaient ~20 fenêtres d'un coup | `<dialog>` natif pour toutes les fenêtres (≈15 à migrer) |
 | 23 | **Volet latéral** à la place du panneau de 500 px au-dessus du texte : `#tab-container` est la 3e colonne de `<main>`, largeur réglable mémorisée dans `localStorage`, plein écran sur téléphone (v9.46.0, AUD-03-003) | Impossible de consulter une fiche en écrivant (100 px de texte visibles sur 700 px d'écran) | Panneau haut à hauteur adaptative ; fenêtre flottante |
+| 24 | **Un seul centre d'aide** (❔ Aide : premiers pas, visite complète, confidentialité et IA, raccourcis, version) et ⓘ limités à 5 fonctions non évidentes (v9.47.0, audit AUD-03-024) | Cinq systèmes d'aide qui se recoupaient, ~30 icônes ⓘ générées depuis les étapes de la visite | Garder un ⓘ par étape de visite ; supprimer les visites |
 
 ## Principes qui reviennent
 

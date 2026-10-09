@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.46.0';
+const APP_VERSION = '9.47.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -155,11 +155,11 @@ function renderSyncDot() {
   const label = document.getElementById('sync-status-label');
   if (!dot) return;
   dot.classList.remove('sync-ok','sync-warn','sync-error');
-  if (!getSyncKey()) { label.textContent = ''; dot.title = 'Synchro multi-appareils non configurée'; return; }
+  if (!getSyncKey()) { label.textContent = 'Local seulement'; dot.title = 'Synchro multi-appareils non configurée : ce manuscrit reste sur cet appareil'; return; }
   const status = getLastSyncStatus();
   if (status.ok === null) { label.textContent = ''; dot.title = 'Aucune synchro tentée depuis l\'ouverture de la page'; return; }
-  if (status.ok) { dot.classList.add('sync-ok'); label.textContent = 'Synchro OK'; dot.title = 'Dernière synchro réussie'; }
-  else { dot.classList.add('sync-error'); label.textContent = 'Échec synchro'; dot.title = 'Dernière tentative de synchro échouée — réessai automatique à la prochaine sauvegarde'; }
+  if (status.ok) { dot.classList.add('sync-ok'); label.textContent = '☁ Synchronisé'; dot.title = 'Dernière synchro réussie'; }
+  else { dot.classList.add('sync-error'); label.textContent = '⚠ Échec de synchro'; dot.title = 'Dernière tentative de synchro échouée — réessai automatique à la prochaine sauvegarde'; }
 }
 
 // Vérifie une clé auprès du Worker sans rien lire ni écrire de réel (clé
@@ -1314,6 +1314,12 @@ function wireAppEventListenersOnce(){
   document.querySelectorAll('#palette-picker .palette-swatch').forEach(btn=>btn.addEventListener('click',()=>selectPalette(btn.dataset.palette)));
   document.querySelectorAll('#theme-picker .mode-indicator').forEach(btn=>btn.addEventListener('click',()=>selectTheme(btn.dataset.theme)));
   document.querySelectorAll('#uiscale-picker .mode-indicator').forEach(btn=>btn.addEventListener('click',()=>selectUiScale(btn.dataset.scale)));
+  document.querySelectorAll('#textwidth-picker .mode-indicator').forEach(btn=>btn.addEventListener('click',()=>selectTextWidth(btn.dataset.width)));
+  document.getElementById('chapter-filter').addEventListener('input',applyChapterFilter);
+  // Centre d'aide unique (AUD-03-024)
+  document.getElementById('help-onboarding-btn').addEventListener('click',()=>{ closeShortcutsHelp(); startOnboardingTour(); });
+  document.getElementById('help-tour-btn').addEventListener('click',()=>{ closeShortcutsHelp(); startFullTour(getFullTourSteps()); });
+  document.getElementById('help-privacy-btn').addEventListener('click',()=>showAiPrivacyNotice());
   // Menu ⋮ des chapitres — élément unique, câblé une seule fois (v7.8.1)
   document.getElementById('cctx-rename').addEventListener('click',()=>{const i=_ctxMenuChapterIdx;closeAllChapterMenus();if(i!==null)renameChapterInline(i);});
   document.getElementById('cctx-tags').addEventListener('click',()=>{const i=_ctxMenuChapterIdx;closeAllChapterMenus();if(i!==null)editChapterTags(i);});

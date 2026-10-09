@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.46.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.47.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -48,6 +48,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 - **Cohérence** (v9.44.0) : plus aucune boîte native du navigateur (confirmations, saisie des tags/du nom de profil et notices passent par les fenêtres de l'application) ; « Accueil » supprimé (c'était une déconnexion) : la déconnexion enregistre d'abord, sans message inexact ; vocabulaire unifié (« version », « jeton d'accès GitHub », « sauvegarde GitHub ») ; formulaires d'accueil : Entrée valide, règle du mot de passe visible, erreur liée au champ.
 - **Export et sauvegardes** (v9.45.0) : « Exporter ce chapitre / le manuscrit » dans le menu Outils de l'éditeur et **Ctrl+E** ; le ⋮ d'une carte de la bibliothèque ouvre directement l'export ; le panneau **Système** a trois onglets (Fichiers · Sauvegarde GitHub · Synchronisation) et une seule liste de manuscrits ; le ⋮ des chapitres et des manuscrits est toujours visible et le clic droit ouvre le même menu.
 - **Volet latéral et sprint** (v9.46.0) : les onglets (Univers, IA, Analyse, Système, Config) s'ouvrent dans un **volet à droite du texte**, de largeur réglable (poignée ou flèches, mémorisée par appareil), fermé par ✕, Échap ou le même onglet ; sur téléphone il passe en plein écran avec « Retour au texte » ; le sprint s'affiche en pied de page (⏱ mm:ss · +mots), se lance depuis le menu Outils, et sa fin est annoncée.
+- **Confort d'écriture** (v9.47.0) : barre d'outils regroupée (**Structure**, **Focus** direct, Outils, Rechercher, ✨ Mots) ; invite « Commencez à écrire ici… » et curseur dans le chapitre vide ; réglage **Largeur du texte** (Config, 72 caractères par défaut) ; filtre de chapitres (dès 8 chapitres) ; curseur « Tension du chapitre : n/100 » ; pied de page regroupé (✔ Enregistré · ☁ Synchronisé ou Local seulement) ; **❔ Aide** unique (premiers pas, visite guidée, confidentialité et IA, raccourcis) et seulement 5 icônes ⓘ.
 - **Roman graphique** : pages libres (images + texte), gabarits, cadrage, calques, corbeille de pages, exports.
 
 ## Fonctionnement en bref
@@ -79,7 +80,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 
 ```bash
 npm install
-npm test            # Vitest : ~505 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
+npm test            # Vitest : ~520 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
 ```
 
 Pas de build, pas de linter. Les tests partagent un contexte applicatif global : `fileParallelism: false`.

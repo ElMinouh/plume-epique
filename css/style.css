@@ -1758,3 +1758,27 @@ main.has-panel{grid-template-columns:270px minmax(0,1fr) var(--panel-w,clamp(320
   #panel-head .pc-back{display:inline;}
 }
 #sprint-chip{font-weight:700;}
+
+
+/* ═══ v9.47.0 (audit AUD-03-011) — invite d'écriture dans un chapitre vide ═══ */
+#writer{position:relative;}
+#writer.is-empty::before{content:attr(data-placeholder);position:absolute;top:8px;left:12px;right:12px;
+  color:var(--text-muted);pointer-events:none;font-style:italic;}
+/* ═══ AUD-03-012 — largeur du texte (rem : suit « Taille de l'interface »), centrée ═══ */
+html{--text-w:44rem;}
+html[data-text-width="etroite"]{--text-w:36rem;}
+html[data-text-width="large"]{--text-w:56rem;}
+html[data-text-width="pleine"]{--text-w:none;}
+#writer,#chapter-title-row,#chapter-notes-panel{max-width:var(--text-w);margin-left:auto;margin-right:auto;width:100%;}
+/* ═══ AUD-03-033 — le statut de dictée n'apparaît que pendant une dictée ═══ */
+#dictate-status:empty{display:none;}
+/* ═══ AUD-03-015 — ✨ Mots : le dictionnaire se replie derrière un bouton, comme sur téléphone ═══ */
+@media (min-width:769px){
+  #lex-tools-wrapper{position:relative;}
+  #lex-tools-toggle-btn{display:inline-flex;flex-shrink:0;}
+  #lex-tools-group{display:none;}
+  #lex-tools-group.open{display:flex;position:absolute;right:0;top:calc(100% + 6px);z-index:250;background:var(--glass);
+    border:1px solid var(--border);border-radius:8px;padding:8px;box-shadow:var(--shadow);}
+}
+
+.u-ta-left{text-align:left}
