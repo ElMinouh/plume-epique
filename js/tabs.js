@@ -120,20 +120,63 @@ function openTabOrSubtab(id){
 // recherche globale ou un lien personnage/lieu/quête) doit TOUJOURS ouvrir
 // l'onglet cible, même s'il était déjà actif — auparavant, cliquer sur un
 // tel lien alors que l'onglet était déjà ouvert le refermait par erreur.
+// v9.46.0 (AUD-03-003) : le panneau est un VOLET LATÉRAL (3e colonne de <main>) ; main.has-panel donne
+// la grille à trois colonnes, body.panel-open sert aux styles globaux. Sur téléphone, il passe en plein écran.
+let _panelTrigger = null;
+function setPanelOpen(open){
+  document.getElementById('tab-container').classList.toggle('open',open);
+  const main=document.querySelector('main'); if(main)main.classList.toggle('has-panel',open);
+  document.body.classList.toggle('panel-open',open);
+}
+function closeSidePanel(returnFocus){
+  document.querySelectorAll('.tab-btn,.tab-content').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.setAttribute('aria-expanded','false'));
+  setPanelOpen(false);
+  if(returnFocus&&_panelTrigger&&document.contains(_panelTrigger))_panelTrigger.focus();
+}
 function toggleTab(id,btn,forceOpen){
-  const cont=document.getElementById('tab-container'),active=btn.classList.contains('active');
+  const active=btn.classList.contains('active');
   document.querySelectorAll('.tab-btn,.tab-content').forEach(e=>e.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.setAttribute('aria-expanded','false'));
   if(!active||forceOpen){
     btn.classList.add('active');btn.setAttribute('aria-expanded','true');
+    _panelTrigger=btn;
     const contentEl=document.getElementById(id);
-    contentEl.classList.add('active');cont.classList.add('open');
+    contentEl.classList.add('active');setPanelOpen(true);
+    const title=document.getElementById('panel-title');
+    if(title)title.textContent=btn.textContent.replace(/[▾▴]/g,'').trim();
     if(id==='tab-config'){renderWeakWords();initGoalUI();}
     // Catégories groupées (Univers, IA & Mémoire, Analyse, Système) : rendre
     // le sous-onglet actuellement actif (le premier par défaut).
     const sub=activeSubtabId(contentEl);
     if(sub)renderSubtabContent(sub);
-  }else cont.classList.remove('open');
+  }else setPanelOpen(false);
+}
+// Largeur du volet : réglable à la souris, au toucher (poignée) ou aux flèches ; mémorisée par appareil.
+const PANEL_W_KEY='plume_panel_w';
+function panelWidthLimits(){return {min:320,max:Math.max(360,Math.round(window.innerWidth*0.6))};}
+function setPanelWidth(px,save){
+  const {min,max}=panelWidthLimits();const w=Math.max(min,Math.min(max,Math.round(px)));
+  const main=document.querySelector('main');if(main)main.style.setProperty('--panel-w',w+'px');
+  const r=document.getElementById('panel-resizer');if(r){r.setAttribute('aria-valuenow',String(w));r.setAttribute('aria-valuemax',String(max));}
+  if(save){try{localStorage.setItem(PANEL_W_KEY,String(w));}catch(e){/* réglage valable pour cette session seulement */}}
+  return w;
+}
+function initSidePanel(){
+  // Sans réglage mémorisé : largeur par défaut du CSS (clamp(320px,32vw,420px)).
+  try{const v=parseInt(localStorage.getItem(PANEL_W_KEY),10);if(v>0)setPanelWidth(v,false);}catch(e){/* défaut */}
+  const cont=document.getElementById('tab-container'),rz=document.getElementById('panel-resizer');
+  document.getElementById('panel-close-btn').addEventListener('click',()=>closeSidePanel(true));
+  let drag=false;
+  rz.addEventListener('pointerdown',e=>{drag=true;rz.classList.add('dragging');rz.setPointerCapture&&rz.setPointerCapture(e.pointerId);e.preventDefault();});
+  rz.addEventListener('pointermove',e=>{if(drag)setPanelWidth(cont.getBoundingClientRect().right-e.clientX,false);});
+  const stop=e=>{if(!drag)return;drag=false;rz.classList.remove('dragging');setPanelWidth(cont.getBoundingClientRect().width,true);};
+  rz.addEventListener('pointerup',stop);rz.addEventListener('pointercancel',stop);
+  rz.addEventListener('keydown',e=>{
+    if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;
+    e.preventDefault();
+    setPanelWidth(cont.getBoundingClientRect().width+(e.key==='ArrowLeft'?24:-24),true);
+  });
 }
 function initGoalUI(){
   const i=document.getElementById('daily-goal-input');if(i)i.value=db.dailyGoal||500;

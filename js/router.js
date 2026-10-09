@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.45.0';
+const APP_VERSION = '9.46.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1143,7 +1143,9 @@ function _escLayers(){
     byId('tts-panel', () => document.getElementById('tts-panel').classList.remove('active')),
     byId('ai-summary-panel', () => document.getElementById('ai-summary-panel').classList.remove('active')),
     { open: () => { const p=document.getElementById('chapter-notes-panel'); return !!p && !p.classList.contains('u-d-none'); },
-      close: () => document.getElementById('chapter-notes-panel').classList.add('u-d-none') }
+      close: () => document.getElementById('chapter-notes-panel').classList.add('u-d-none') },
+    // v9.46.0 : le volet latéral est la couche la plus basse (Échap le ferme en dernier, focus rendu à son onglet).
+    { open: () => _isOn('tab-container', 'open'), close: () => closeSidePanel(true) }
   ];
 }
 function escapeArbiter(e){
@@ -1443,6 +1445,9 @@ function wireAppEventListenersOnce(){
   // Aide-mémoire des raccourcis clavier (v7.5.0)
   document.getElementById('shortcuts-close-btn').addEventListener('click',closeShortcutsHelp);
   document.getElementById('shortcuts-hint-btn').addEventListener('click',openShortcutsHelp);
+  initSidePanel();
+  document.getElementById('sprint-start-menu-btn').addEventListener('click',()=>{ if(sprintInterval){ toast('Un sprint est déjà en cours.','info'); return; } startSprint(); });
+  document.getElementById('sprint-chip').addEventListener('click',()=>openTabOrSubtab('tab-sprint'));
   document.getElementById('export-chapter-btn').addEventListener('click',()=>exportFromEditor('chapter'));
   document.getElementById('export-doc-btn').addEventListener('click',()=>exportFromEditor('doc'));
 

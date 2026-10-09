@@ -280,7 +280,7 @@ function endFullTour() {
   document.querySelectorAll('.tab-btn.active,.tab-content.active').forEach(e => e.classList.remove('active'));
   const restoreBtn = _tourPrevActiveTabId ? document.querySelector(`.tab-btn[data-tab-id="${_tourPrevActiveTabId}"]`) : null;
   if (restoreBtn) { toggleTab(_tourPrevActiveTabId, restoreBtn, true); }
-  else { document.getElementById('tab-container').classList.remove('open'); }
+  else { closeSidePanel(false); }
 }
 
 // ═══════════════════════════════════════════════════════

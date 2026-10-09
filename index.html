@@ -473,7 +473,258 @@
 
 <header role="banner">
 <nav class="tab-menu" id="tab-menu" aria-label="Onglets principaux"></nav>
-<div id="tab-container" role="region">
+</header>
+
+<main role="main">
+  <aside id="chapter-sidebar" aria-label="Chapitres">
+    <div class="u-d-flex u-ai-center u-gap-6px">
+      <div id="document-title" class="u-fg-1" contenteditable="true" role="textbox" aria-label="Titre du manuscrit" title="Cliquez pour renommer votre manuscrit"></div>
+      <!-- v7.41.1 — Chantier Responsive Mobile, écran 3/N. Sur mobile, le
+           panneau ci-dessous (#chapter-sidebar-body) est replié par défaut
+           derrière ce bouton : il prenait jusqu'ici toute la hauteur
+           disponible (titre, boutons, liste, stats), au point d'écraser la
+           liste des chapitres elle-même à une hauteur nulle et invisible
+           (bug rapporté avec capture d'écran). Cache aussi sur desktop
+           (u-d-none), où le panneau reste toujours visible comme avant. -->
+      <!-- v9.0.0 — Bouton "retour bibliothèque" toujours visible sur mobile
+           (demande utilisateur) : jusqu'ici, y retourner sur mobile exigeait
+           de d'abord déplier le panneau chapitres (☰) pour atteindre
+           "📚 Ma bibliothèque" à l'intérieur — voir #back-to-library-btn
+           plus bas. Caché sur desktop (u-d-none), où ce bouton existe déjà
+           et reste visible en permanence dans le panneau non replié. -->
+      <button class="u-d-none" id="chapter-quick-library-btn" title="Retour à la bibliothèque" aria-label="Retour à la bibliothèque">📚</button>
+      <button class="u-d-none" id="chapter-sidebar-toggle-btn" title="Afficher/masquer le panneau chapitres" aria-label="Afficher/masquer le panneau chapitres" aria-expanded="false">☰</button>
+    </div>
+    <div id="chapter-sidebar-body">
+      <div class="u-d-flex u-gap-6px u-mb-6px">
+        <button class="action-btn btn-sm u-bg-h7f8c8d u-flex-1" id="back-to-library-btn" title="Retourner à la liste de tous vos manuscrits">📚 Ma bibliothèque</button>
+      </div>
+      <div class="u-d-flex u-gap-6px">
+        <button class="action-btn u-fg-1" id="add-chapter-btn" title="Ajouter un nouveau chapitre à ce manuscrit">+ Chapitre</button>
+        <button class="action-btn u-bg-h7f8c8d" id="open-trash-btn" title="Voir les chapitres supprimés (récupérables 30 jours)">🗑️<span class="trash-badge" id="trash-badge" aria-hidden="true"></span></button>
+      </div>
+      <div class="ch-view-toggle" role="group" aria-label="Vue des chapitres">
+        <button class="mode-indicator active" id="view-list-btn" title="Liste des chapitres">☰ Liste</button>
+        <button class="mode-indicator" id="view-cork-btn" title="Vue en tableau de fiches">🗂️ Fiches</button>
+      </div>
+      <div class="chapter-list-container" id="chapter-list" role="list"></div>
+      <div class="sidebar-stats">
+        📝 <strong id="total-words">0</strong> mots &nbsp;|&nbsp; 📅 <strong id="today-words">0</strong> aujourd'hui
+        <div class="daily-bar-wrap"><div class="daily-bar" id="sidebar-goal-bar"></div></div>
+        Tension : <input type="range" id="tension-slider" min="0" max="100" value="20" aria-label="Tension">
+      </div>
+    </div>
+  </aside>
+  <div id="editor-wrapper">
+    <!-- v9.5.4 — Sentinelle invisible (hauteur nulle) placée exactement à
+         l'emplacement naturel de la barre. Un IntersectionObserver
+         (initToolbarPin(), router.js) surveille sa sortie/entrée d'écran
+         pour épingler/désépingler .toolbar en JavaScript — voir le
+         commentaire détaillé dans router.js pour la raison de cette
+         approche (position:sticky s'est révélé peu fiable dans cette mise
+         en page). -->
+    <div id="toolbar-sentinel" aria-hidden="true"></div>
+    <div class="toolbar" role="toolbar">
+      <!-- v9.5.0 — Accès rapide à la bibliothèque directement depuis la
+           barre d'outils, sur mobile uniquement (u-d-none + affiché par la
+           media query 768px, ci-dessous). Sur PC, le bouton équivalent
+           (#back-to-library-btn) reste dans le panneau chapitres, toujours
+           visible : pas besoin de doublon ici. Contrairement à
+           #chapter-quick-library-btn (déjà existant, dans l'en-tête du
+           panneau chapitres, masqué quand on écrit), celui-ci reste
+           accessible en un tap même en plein milieu d'un long chapitre,
+           puisque toute cette barre est désormais collante au défilement. -->
+      <button class="u-d-none" id="toolbar-library-btn" title="Retour à la bibliothèque" aria-label="Retour à la bibliothèque">📚</button>
+      <span class="u-w-1px u-h-20px u-bg-v-border u-m-0-4px u-d-none" id="toolbar-library-sep"></span>
+      <!-- Mise en forme riche (nouveau V56) -->
+      <button class="action-btn btn-sm u-bg-h34495e" id="fmt-bold-btn" title="Gras (Ctrl+B)"><b>G</b></button>
+      <button class="action-btn btn-sm u-bg-h34495e" id="fmt-italic-btn" title="Italique (Ctrl+I)"><i>I</i></button>
+      <button class="action-btn btn-sm u-bg-h34495e" id="fmt-underline-btn" title="Souligné (Ctrl+U)"><u>S</u></button>
+      <!-- v9.5.0 — Surlignage manuel du texte (8 couleurs), à ne pas confondre
+           avec le surlignage automatique des mots faibles (🔍 Analyser le
+           style, dans le menu 🛠️ Outils) : classes CSS distinctes (hl-* vs
+           <mark>), "Nettoyer les surlignages" ne touche donc jamais à celui-ci.
+           Réutilise le système .toolbar-dropdown/.toolbar-menu existant : sur
+           mobile, ce menu profite automatiquement de la feuille fixée en bas
+           d'écran déjà en place pour tous les autres menus de cette barre. -->
+      <div class="toolbar-dropdown">
+        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h34495e" title="Surligner le texte sélectionné">🖍️<span class="tb-label"> Surligner</span> ▾</button>
+        <div class="toolbar-menu hl-menu" role="menu">
+          <button class="hl-swatch hl-swatch-none" data-hl="none" title="Retirer le surlignage" aria-label="Retirer le surlignage">✕</button>
+          <button class="hl-swatch u-bg-hc0392b" data-hl="rouge" title="Rouge" aria-label="Surligner en rouge"></button>
+          <button class="hl-swatch u-bg-hd35400" data-hl="orange" title="Orange" aria-label="Surligner en orange"></button>
+          <button class="hl-swatch u-bg-hf39c12" data-hl="jaune" title="Jaune" aria-label="Surligner en jaune"></button>
+          <button class="hl-swatch u-bg-h27ae60" data-hl="vert" title="Vert" aria-label="Surligner en vert"></button>
+          <button class="hl-swatch u-bg-h16a085" data-hl="sarcelle" title="Sarcelle" aria-label="Surligner en sarcelle"></button>
+          <button class="hl-swatch u-bg-h2980b9" data-hl="bleu" title="Bleu" aria-label="Surligner en bleu"></button>
+          <button class="hl-swatch u-bg-h8e44ad" data-hl="violet" title="Violet" aria-label="Surligner en violet"></button>
+          <button class="hl-swatch u-bg-hc2185b" data-hl="rose" title="Rose" aria-label="Surligner en rose"></button>
+        </div>
+      </div>
+      <button class="action-btn btn-sm u-bg-h34495e" id="undo-btn" title="Annuler (Ctrl+Z)" disabled>↶</button>
+      <button class="action-btn btn-sm u-bg-h34495e" id="redo-btn" title="Rétablir (Ctrl+Y)" disabled>↷</button>
+      <span class="u-w-1px u-h-20px u-bg-v-border u-m-0-4px"></span>
+
+      <!-- Barre d'outils regroupée en menus déroulants (v7.4.0) : moins de
+           boutons visibles en permanence, mêmes fonctionnalités qu'avant. -->
+      <div class="toolbar-dropdown">
+        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h34495e" title="Mettre en forme le paragraphe">¶<span class="tb-label"> Paragraphe</span> ▾</button>
+        <div class="toolbar-menu">
+          <button id="fmt-title-btn" title="Transformer la ligne en sous-titre">Titre</button>
+          <button id="fmt-para-btn" title="Revenir à un paragraphe normal">Paragraphe normal</button>
+        </div>
+      </div>
+
+      <div class="toolbar-dropdown">
+        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-hc0392b" title="Outils d'écriture">🛠️<span class="tb-label"> Outils</span> ▾</button>
+        <div class="toolbar-menu">
+          <button id="insert-datetime-btn" title="Insérer la date et l'heure actuelles à l'endroit du curseur">🕐 Insérer date/heure</button>
+          <button id="split-chapter-btn" title="Couper le chapitre à l'endroit du curseur : la suite devient un nouveau chapitre">✂️ Scinder ici</button>
+          <button id="analyze-btn" title="Surligner les mots faibles/répétitifs dans le texte">🔍 Analyser le style</button>
+          <button id="clear-btn" title="Retirer les surlignages de style (le texte n'est pas modifié)">🧹 Nettoyer les surlignages</button>
+          <button id="focus-btn" title="Passer en plein écran, sans distraction">🎯 Mode Focus</button>
+          <button id="reading-mode-btn" title="Relire tout le roman à la suite, comme un lecteur">📖 Mode Lecture</button>
+          <button id="voice-btn" title="Lire le texte à voix haute ou écrire par dictée">🎙️ Voix (dictée/lecture)</button>
+          <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
+          <button id="sprint-start-menu-btn" title="Chronomètre de 25 minutes : le temps restant et les mots gagnés s'affichent en bas de l'écran">⏱ Démarrer un sprint de 25 min</button>
+          <button id="export-chapter-btn" title="Exporter le chapitre ouvert (DOCX, ODT, PDF, EPUB)">📤 Exporter ce chapitre…</button>
+          <button id="export-doc-btn" title="Exporter tout ou partie du manuscrit (raccourci : Ctrl+E)">📤 Exporter le manuscrit…</button>
+        </div>
+      </div>
+
+      <div class="toolbar-dropdown">
+        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h1a1a2e" title="Rechercher du texte">🔎<span class="tb-label"> Rechercher</span> ▾</button>
+        <div class="toolbar-menu">
+          <button id="global-search-btn" title="Rechercher un mot dans tout le projet">Dans tout le projet</button>
+          <button id="find-replace-btn" title="Rechercher et remplacer du texte dans ce chapitre">Ici, avec remplacement</button>
+        </div>
+      </div>
+      <div class="u-fg-1"></div>
+      <!-- v9.2.3 — Regroupées dans ce wrapper pour pouvoir être déplacées en
+           bloc vers IA & Mémoire → IA sur mobile (voir relocateLexToolsForMobile()
+           dans router.js). Sur PC, ce wrapper reste ici, inchangé. -->
+      <div id="lex-tools-wrapper" class="u-d-flex u-ai-center u-gap-6px">
+        <button class="action-btn btn-sm u-bg-h16a085 u-d-none" id="lex-tools-toggle-btn" title="Synonymes / Antonymes" aria-label="Synonymes / Antonymes" aria-expanded="false">✨▾</button>
+        <div class="u-d-flex u-gap-6px" id="lex-tools-group">
+          <select id="search-mode" class="field u-w-auto" aria-label="Mode dictionnaire" title="Choisir entre synonymes et antonymes">
+            <option value="syn">✨ Synonymes</option><option value="ant">🌑 Antonymes</option>
+          </select>
+          <input id="lex-in" class="field u-w-85px" placeholder="mot…" aria-label="Mot à chercher" title="Tapez un mot puis cliquez sur GO">
+          <button class="action-btn" id="search-btn" aria-label="Rechercher" title="Chercher les synonymes ou antonymes de ce mot">GO</button>
+        </div>
+      </div>
+    </div>
+    <div class="u-d-flex u-ai-center u-gap-10px u-mb-6px" id="chapter-title-row">
+      <div class="u-fs-1_45rem u-fwt-700 u-c-v-accent u-outline-none u-minh-28px u-fg-1" id="chapter-title" contenteditable="true" role="textbox" aria-label="Titre" title="Cliquez pour renommer ce chapitre"></div>
+      <button class="mode-indicator u-fsh-0" id="chapter-notes-toggle-btn" title="Objectif de mots et notes de recherche pour ce chapitre">📓 Notes</button>
+      <select id="chapter-status-sel" class="field u-w-auto u-fsh-0" aria-label="Statut du chapitre" title="Statut d'avancement de ce chapitre">
+        <option value="draft">📝 Brouillon</option>
+        <option value="review">🔎 À revoir</option>
+        <option value="final">✅ Final</option>
+      </select>
+    </div>
+    <div id="chapter-notes-panel" class="u-d-none u-mb-10px">
+      <div class="u-d-flex u-ai-center u-gap-8px u-mb-6px">
+        <label class="u-fs-_75rem u-c-v-text-muted" for="chapter-word-goal-input">🎯 Objectif de mots (ce chapitre)</label>
+        <input type="number" id="chapter-word-goal-input" class="field u-w-90px" min="0" step="100" placeholder="0">
+        <span class="u-fs-_72rem u-c-v-text-muted" id="chapter-word-goal-progress"></span>
+      </div>
+      <label class="u-fs-_75rem u-c-v-text-muted u-d-block u-mb-4px" for="chapter-research-notes">📓 Notes de recherche</label>
+      <textarea id="chapter-research-notes" class="field u-w-100pc" rows="3" placeholder="Prononciation, faits historiques, références..."></textarea>
+    </div>
+    <div id="writer" contenteditable="true" role="textbox" aria-multiline="true"
+      aria-label="Zone d'écriture" spellcheck="false"></div>
+    <div id="corkboard-view" class="corkboard u-d-none" role="list" aria-label="Tableau de fiches des chapitres"></div>
+    <div id="ai-summary-panel" role="dialog" aria-label="Résumé IA">
+      <div class="u-d-flex u-jc-space-between u-ai-center">
+        <strong class="u-fs-_82rem">✨ Résumé IA</strong>
+        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="ai-panel-close" title="Fermer">×</button>
+      </div>
+      <div id="ai-summary-text" aria-live="polite"></div>
+      <button class="action-btn btn-sm u-bg-h8e44ad" id="ai-summary-copy" title="Copier ce résumé dans le presse-papier">📋 Copier résumé</button>
+    </div>
+
+    <div id="lex-panel" role="dialog" aria-label="Synonymes et antonymes">
+      <div class="u-d-flex u-jc-space-between u-ai-center">
+        <span id="lex-panel-title">✨ Synonymes</span>
+        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="lex-panel-close" aria-label="Fermer" title="Fermer">×</button>
+      </div>
+      <div class="u-fs-_7rem u-c-v-text-muted" id="lex-panel-word"></div>
+      <div id="lex-words"></div>
+      <div class="u-fs-_68rem u-c-v-text-muted">Cliquer sur un mot pour l'insérer à la position du curseur</div>
+    </div>
+
+    <div id="fr-panel" role="dialog" aria-label="Rechercher et remplacer">
+      <div class="u-d-flex u-jc-space-between u-ai-center">
+        <strong class="u-fs-_82rem">🔁 Rechercher / Remplacer</strong>
+        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="fr-panel-close" aria-label="Fermer" title="Fermer">×</button>
+      </div>
+      <input id="fr-find-input" class="field" placeholder="Rechercher...">
+      <input id="fr-replace-input" class="field" placeholder="Remplacer par...">
+      <div class="u-d-flex u-gap-10px u-fw-wrap u-fs-_72rem">
+        <label class="u-d-flex u-ai-center u-gap-6px u-cur-pointer" title="Distinguer majuscules et minuscules"><input type="checkbox" id="fr-case-cb"> Respecter la casse</label>
+        <label class="u-d-flex u-ai-center u-gap-6px u-cur-pointer" title="Ne pas trouver le texte à l'intérieur d'un autre mot"><input type="checkbox" id="fr-word-cb"> Mot entier</label>
+        <label class="u-d-flex u-ai-center u-gap-6px u-cur-pointer" title="« Tout remplacer » agit sur tous les chapitres (avec confirmation et copie de sauvegarde)"><input type="checkbox" id="fr-all-cb"> Tout le manuscrit</label>
+      </div>
+      <div class="u-d-flex u-gap-6px u-fw-wrap u-ai-center">
+        <button class="action-btn btn-sm" id="fr-next-btn" title="Aller à l'occurrence suivante">Suivant</button>
+        <button class="action-btn btn-sm u-bg-h8e44ad" id="fr-replace-btn" title="Remplacer uniquement cette occurrence">Remplacer</button>
+        <button class="action-btn btn-sm u-bg-v-danger" id="fr-replace-all-btn" title="Remplacer toutes les occurrences (chapitre courant, ou tout le manuscrit si la case est cochée)">Tout remplacer</button>
+      </div>
+      <span class="u-fs-_7rem u-c-v-text-muted" id="fr-status">Aucun résultat</span>
+      <div class="u-fs-_66rem u-c-v-text-muted">Ne remplace pas les occurrences qui chevauchent une mise en forme (gras/italique).</div>
+    </div>
+
+    <div id="ai-chat-panel" role="dialog" aria-label="Assistant IA">
+      <div class="u-d-flex u-jc-space-between u-ai-center">
+        <strong class="u-fs-_82rem">🤖 Assistant IA</strong>
+        <div class="u-d-flex u-gap-4px">
+          <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1rem" id="ai-chat-reset-btn" title="Nouvelle conversation">🔄</button>
+          <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="ai-chat-close-btn" aria-label="Fermer" title="Fermer">×</button>
+        </div>
+      </div>
+      <label class="u-d-flex u-ai-center u-gap-6px u-fs-_68rem u-c-v-text-muted">
+        <input type="checkbox" id="ai-chat-ctx-chapter" checked> Contexte : chapitre actuel
+      </label>
+      <div class="u-fs-_66rem u-c-v-text-muted" id="ai-chat-ctx-note"></div>
+      <label class="u-d-flex u-ai-center u-gap-6px u-fs-_68rem u-c-v-text-muted">
+        <input type="checkbox" id="ai-chat-ctx-chars"> Contexte : fiche des personnages
+      </label>
+      <div id="ai-chat-messages"></div>
+      <div id="ai-chat-chips" class="u-d-flex u-gap-6px u-fw-wrap"></div>
+      <div class="u-d-flex u-gap-6px">
+        <input type="text" id="ai-chat-input" class="field u-flex-1" placeholder="Écrire un message…" aria-label="Message à l'assistant IA">
+        <button class="action-btn btn-sm u-fsh-0" id="ai-chat-send-btn" title="Envoyer">➤</button>
+      </div>
+    </div>
+
+    <div id="mode-bar">
+      <div id="save-indicator" aria-hidden="true"></div>
+      <span class="u-fs-_7rem u-c-v-text-muted" id="autosave-label"></span>
+      <button hidden class="mode-indicator" id="sprint-chip" title="Sprint en cours : ouvrir Config → Sprint"><span aria-hidden="true">⏱</span> <span id="sprint-chip-time">25:00</span> · <span id="sprint-chip-words">+0</span> mots</button>
+      <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre"><span aria-hidden="true">🌙</span><span class="mb-label"> Nuit</span></button>
+      <button class="mode-indicator" id="dictate-btn" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro"><span aria-hidden="true">🎤</span><span class="mb-label"> Dictée</span></button>
+      <button class="mode-indicator" id="ai-chat-btn" title="Discuter avec l'assistant IA"><span aria-hidden="true">🤖</span><span class="mb-label"> IA</span></button>
+      <span class="u-fs-_7rem u-c-v-text-muted" id="dictate-status">Prêt</span>
+      <span id="dictate-preview" aria-live="polite"></span>
+      <span class="u-d-flex u-ai-center u-gap-4px" id="sync-status-dot-wrap" title="État de la dernière synchronisation">
+        <span id="sync-status-dot" aria-hidden="true"></span>
+        <span class="u-fs-_66rem u-c-v-text-muted" id="sync-status-label"></span>
+      </span>
+      <button class="u-d-none u-bg-linear-gradient-135deg-v-acc-1qh64 u-c-hfff u-bd-none u-p-5px-14px u-br-20px u-cur-pointer u-fs-_72rem u-fwt-700 u-ff-inherit u-shadow-0-2px-8px-rgb19257433" id="install-app-btn" title="Installer Plume comme application sur cet ordinateur">📲 Installer sur le bureau</button>
+      <button id="shortcuts-hint-btn" class="mode-indicator u-ml-auto u-p-2px-8px" title="Voir les raccourcis clavier (touche ?)">❔</button>
+      <img src="icons/icon-32.png" class="modebar-logo" alt="" width="16" height="16">
+      <span class="u-fs-_65rem u-op-_35" id="app-version-label">Plume</span>
+    </div>
+  </div>
+<div id="tab-container" role="region" aria-label="Volet latéral">
+  <!-- v9.46.0 (AUD-03-003) : le panneau de 500 px qui repoussait le texte devient un volet à droite de l'éditeur
+       (dans <main>, 3e colonne de la grille). Sur téléphone : plein écran avec « Retour au texte ». -->
+  <div id="panel-resizer" role="separator" aria-orientation="vertical" aria-label="Redimensionner le volet (flèches gauche/droite)" tabindex="0" aria-valuemin="320"></div>
+  <div id="panel-head">
+    <strong id="panel-title"></strong>
+    <button class="action-btn btn-sm u-bg-h7f8c8d" id="panel-close-btn" title="Fermer le volet (Échap)" aria-label="Fermer le volet"><span class="pc-x" aria-hidden="true">✕ Fermer</span><span class="pc-back">← Retour au texte</span></button>
+  </div>
 
   <!-- CATÉGORIE : Univers narratif (nouveau v7.4.0 — regroupe 5 anciens onglets) -->
   <div id="tab-univers" class="tab-content" role="region" aria-label="Univers narratif">
@@ -829,248 +1080,6 @@
 
 
 </div>
-</header>
-
-<main role="main">
-  <aside id="chapter-sidebar" aria-label="Chapitres">
-    <div class="u-d-flex u-ai-center u-gap-6px">
-      <div id="document-title" class="u-fg-1" contenteditable="true" role="textbox" aria-label="Titre du manuscrit" title="Cliquez pour renommer votre manuscrit"></div>
-      <!-- v7.41.1 — Chantier Responsive Mobile, écran 3/N. Sur mobile, le
-           panneau ci-dessous (#chapter-sidebar-body) est replié par défaut
-           derrière ce bouton : il prenait jusqu'ici toute la hauteur
-           disponible (titre, boutons, liste, stats), au point d'écraser la
-           liste des chapitres elle-même à une hauteur nulle et invisible
-           (bug rapporté avec capture d'écran). Cache aussi sur desktop
-           (u-d-none), où le panneau reste toujours visible comme avant. -->
-      <!-- v9.0.0 — Bouton "retour bibliothèque" toujours visible sur mobile
-           (demande utilisateur) : jusqu'ici, y retourner sur mobile exigeait
-           de d'abord déplier le panneau chapitres (☰) pour atteindre
-           "📚 Ma bibliothèque" à l'intérieur — voir #back-to-library-btn
-           plus bas. Caché sur desktop (u-d-none), où ce bouton existe déjà
-           et reste visible en permanence dans le panneau non replié. -->
-      <button class="u-d-none" id="chapter-quick-library-btn" title="Retour à la bibliothèque" aria-label="Retour à la bibliothèque">📚</button>
-      <button class="u-d-none" id="chapter-sidebar-toggle-btn" title="Afficher/masquer le panneau chapitres" aria-label="Afficher/masquer le panneau chapitres" aria-expanded="false">☰</button>
-    </div>
-    <div id="chapter-sidebar-body">
-      <div class="u-d-flex u-gap-6px u-mb-6px">
-        <button class="action-btn btn-sm u-bg-h7f8c8d u-flex-1" id="back-to-library-btn" title="Retourner à la liste de tous vos manuscrits">📚 Ma bibliothèque</button>
-      </div>
-      <div class="u-d-flex u-gap-6px">
-        <button class="action-btn u-fg-1" id="add-chapter-btn" title="Ajouter un nouveau chapitre à ce manuscrit">+ Chapitre</button>
-        <button class="action-btn u-bg-h7f8c8d" id="open-trash-btn" title="Voir les chapitres supprimés (récupérables 30 jours)">🗑️<span class="trash-badge" id="trash-badge" aria-hidden="true"></span></button>
-      </div>
-      <div class="ch-view-toggle" role="group" aria-label="Vue des chapitres">
-        <button class="mode-indicator active" id="view-list-btn" title="Liste des chapitres">☰ Liste</button>
-        <button class="mode-indicator" id="view-cork-btn" title="Vue en tableau de fiches">🗂️ Fiches</button>
-      </div>
-      <div class="chapter-list-container" id="chapter-list" role="list"></div>
-      <div class="sidebar-stats">
-        📝 <strong id="total-words">0</strong> mots &nbsp;|&nbsp; 📅 <strong id="today-words">0</strong> aujourd'hui
-        <div class="daily-bar-wrap"><div class="daily-bar" id="sidebar-goal-bar"></div></div>
-        Tension : <input type="range" id="tension-slider" min="0" max="100" value="20" aria-label="Tension">
-      </div>
-    </div>
-  </aside>
-  <div id="editor-wrapper">
-    <!-- v9.5.4 — Sentinelle invisible (hauteur nulle) placée exactement à
-         l'emplacement naturel de la barre. Un IntersectionObserver
-         (initToolbarPin(), router.js) surveille sa sortie/entrée d'écran
-         pour épingler/désépingler .toolbar en JavaScript — voir le
-         commentaire détaillé dans router.js pour la raison de cette
-         approche (position:sticky s'est révélé peu fiable dans cette mise
-         en page). -->
-    <div id="toolbar-sentinel" aria-hidden="true"></div>
-    <div class="toolbar" role="toolbar">
-      <!-- v9.5.0 — Accès rapide à la bibliothèque directement depuis la
-           barre d'outils, sur mobile uniquement (u-d-none + affiché par la
-           media query 768px, ci-dessous). Sur PC, le bouton équivalent
-           (#back-to-library-btn) reste dans le panneau chapitres, toujours
-           visible : pas besoin de doublon ici. Contrairement à
-           #chapter-quick-library-btn (déjà existant, dans l'en-tête du
-           panneau chapitres, masqué quand on écrit), celui-ci reste
-           accessible en un tap même en plein milieu d'un long chapitre,
-           puisque toute cette barre est désormais collante au défilement. -->
-      <button class="u-d-none" id="toolbar-library-btn" title="Retour à la bibliothèque" aria-label="Retour à la bibliothèque">📚</button>
-      <span class="u-w-1px u-h-20px u-bg-v-border u-m-0-4px u-d-none" id="toolbar-library-sep"></span>
-      <!-- Mise en forme riche (nouveau V56) -->
-      <button class="action-btn btn-sm u-bg-h34495e" id="fmt-bold-btn" title="Gras (Ctrl+B)"><b>G</b></button>
-      <button class="action-btn btn-sm u-bg-h34495e" id="fmt-italic-btn" title="Italique (Ctrl+I)"><i>I</i></button>
-      <button class="action-btn btn-sm u-bg-h34495e" id="fmt-underline-btn" title="Souligné (Ctrl+U)"><u>S</u></button>
-      <!-- v9.5.0 — Surlignage manuel du texte (8 couleurs), à ne pas confondre
-           avec le surlignage automatique des mots faibles (🔍 Analyser le
-           style, dans le menu 🛠️ Outils) : classes CSS distinctes (hl-* vs
-           <mark>), "Nettoyer les surlignages" ne touche donc jamais à celui-ci.
-           Réutilise le système .toolbar-dropdown/.toolbar-menu existant : sur
-           mobile, ce menu profite automatiquement de la feuille fixée en bas
-           d'écran déjà en place pour tous les autres menus de cette barre. -->
-      <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h34495e" title="Surligner le texte sélectionné">🖍️<span class="tb-label"> Surligner</span> ▾</button>
-        <div class="toolbar-menu hl-menu" role="menu">
-          <button class="hl-swatch hl-swatch-none" data-hl="none" title="Retirer le surlignage" aria-label="Retirer le surlignage">✕</button>
-          <button class="hl-swatch u-bg-hc0392b" data-hl="rouge" title="Rouge" aria-label="Surligner en rouge"></button>
-          <button class="hl-swatch u-bg-hd35400" data-hl="orange" title="Orange" aria-label="Surligner en orange"></button>
-          <button class="hl-swatch u-bg-hf39c12" data-hl="jaune" title="Jaune" aria-label="Surligner en jaune"></button>
-          <button class="hl-swatch u-bg-h27ae60" data-hl="vert" title="Vert" aria-label="Surligner en vert"></button>
-          <button class="hl-swatch u-bg-h16a085" data-hl="sarcelle" title="Sarcelle" aria-label="Surligner en sarcelle"></button>
-          <button class="hl-swatch u-bg-h2980b9" data-hl="bleu" title="Bleu" aria-label="Surligner en bleu"></button>
-          <button class="hl-swatch u-bg-h8e44ad" data-hl="violet" title="Violet" aria-label="Surligner en violet"></button>
-          <button class="hl-swatch u-bg-hc2185b" data-hl="rose" title="Rose" aria-label="Surligner en rose"></button>
-        </div>
-      </div>
-      <button class="action-btn btn-sm u-bg-h34495e" id="undo-btn" title="Annuler (Ctrl+Z)" disabled>↶</button>
-      <button class="action-btn btn-sm u-bg-h34495e" id="redo-btn" title="Rétablir (Ctrl+Y)" disabled>↷</button>
-      <span class="u-w-1px u-h-20px u-bg-v-border u-m-0-4px"></span>
-
-      <!-- Barre d'outils regroupée en menus déroulants (v7.4.0) : moins de
-           boutons visibles en permanence, mêmes fonctionnalités qu'avant. -->
-      <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h34495e" title="Mettre en forme le paragraphe">¶<span class="tb-label"> Paragraphe</span> ▾</button>
-        <div class="toolbar-menu">
-          <button id="fmt-title-btn" title="Transformer la ligne en sous-titre">Titre</button>
-          <button id="fmt-para-btn" title="Revenir à un paragraphe normal">Paragraphe normal</button>
-        </div>
-      </div>
-
-      <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-hc0392b" title="Outils d'écriture">🛠️<span class="tb-label"> Outils</span> ▾</button>
-        <div class="toolbar-menu">
-          <button id="insert-datetime-btn" title="Insérer la date et l'heure actuelles à l'endroit du curseur">🕐 Insérer date/heure</button>
-          <button id="split-chapter-btn" title="Couper le chapitre à l'endroit du curseur : la suite devient un nouveau chapitre">✂️ Scinder ici</button>
-          <button id="analyze-btn" title="Surligner les mots faibles/répétitifs dans le texte">🔍 Analyser le style</button>
-          <button id="clear-btn" title="Retirer les surlignages de style (le texte n'est pas modifié)">🧹 Nettoyer les surlignages</button>
-          <button id="focus-btn" title="Passer en plein écran, sans distraction">🎯 Mode Focus</button>
-          <button id="reading-mode-btn" title="Relire tout le roman à la suite, comme un lecteur">📖 Mode Lecture</button>
-          <button id="voice-btn" title="Lire le texte à voix haute ou écrire par dictée">🎙️ Voix (dictée/lecture)</button>
-          <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
-          <button id="export-chapter-btn" title="Exporter le chapitre ouvert (DOCX, ODT, PDF, EPUB)">📤 Exporter ce chapitre…</button>
-          <button id="export-doc-btn" title="Exporter tout ou partie du manuscrit (raccourci : Ctrl+E)">📤 Exporter le manuscrit…</button>
-        </div>
-      </div>
-
-      <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn u-bg-h1a1a2e" title="Rechercher du texte">🔎<span class="tb-label"> Rechercher</span> ▾</button>
-        <div class="toolbar-menu">
-          <button id="global-search-btn" title="Rechercher un mot dans tout le projet">Dans tout le projet</button>
-          <button id="find-replace-btn" title="Rechercher et remplacer du texte dans ce chapitre">Ici, avec remplacement</button>
-        </div>
-      </div>
-      <div class="u-fg-1"></div>
-      <!-- v9.2.3 — Regroupées dans ce wrapper pour pouvoir être déplacées en
-           bloc vers IA & Mémoire → IA sur mobile (voir relocateLexToolsForMobile()
-           dans router.js). Sur PC, ce wrapper reste ici, inchangé. -->
-      <div id="lex-tools-wrapper" class="u-d-flex u-ai-center u-gap-6px">
-        <button class="action-btn btn-sm u-bg-h16a085 u-d-none" id="lex-tools-toggle-btn" title="Synonymes / Antonymes" aria-label="Synonymes / Antonymes" aria-expanded="false">✨▾</button>
-        <div class="u-d-flex u-gap-6px" id="lex-tools-group">
-          <select id="search-mode" class="field u-w-auto" aria-label="Mode dictionnaire" title="Choisir entre synonymes et antonymes">
-            <option value="syn">✨ Synonymes</option><option value="ant">🌑 Antonymes</option>
-          </select>
-          <input id="lex-in" class="field u-w-85px" placeholder="mot…" aria-label="Mot à chercher" title="Tapez un mot puis cliquez sur GO">
-          <button class="action-btn" id="search-btn" aria-label="Rechercher" title="Chercher les synonymes ou antonymes de ce mot">GO</button>
-        </div>
-      </div>
-    </div>
-    <div class="u-d-flex u-ai-center u-gap-10px u-mb-6px" id="chapter-title-row">
-      <div class="u-fs-1_45rem u-fwt-700 u-c-v-accent u-outline-none u-minh-28px u-fg-1" id="chapter-title" contenteditable="true" role="textbox" aria-label="Titre" title="Cliquez pour renommer ce chapitre"></div>
-      <button class="mode-indicator u-fsh-0" id="chapter-notes-toggle-btn" title="Objectif de mots et notes de recherche pour ce chapitre">📓 Notes</button>
-      <select id="chapter-status-sel" class="field u-w-auto u-fsh-0" aria-label="Statut du chapitre" title="Statut d'avancement de ce chapitre">
-        <option value="draft">📝 Brouillon</option>
-        <option value="review">🔎 À revoir</option>
-        <option value="final">✅ Final</option>
-      </select>
-    </div>
-    <div id="chapter-notes-panel" class="u-d-none u-mb-10px">
-      <div class="u-d-flex u-ai-center u-gap-8px u-mb-6px">
-        <label class="u-fs-_75rem u-c-v-text-muted" for="chapter-word-goal-input">🎯 Objectif de mots (ce chapitre)</label>
-        <input type="number" id="chapter-word-goal-input" class="field u-w-90px" min="0" step="100" placeholder="0">
-        <span class="u-fs-_72rem u-c-v-text-muted" id="chapter-word-goal-progress"></span>
-      </div>
-      <label class="u-fs-_75rem u-c-v-text-muted u-d-block u-mb-4px" for="chapter-research-notes">📓 Notes de recherche</label>
-      <textarea id="chapter-research-notes" class="field u-w-100pc" rows="3" placeholder="Prononciation, faits historiques, références..."></textarea>
-    </div>
-    <div id="writer" contenteditable="true" role="textbox" aria-multiline="true"
-      aria-label="Zone d'écriture" spellcheck="false"></div>
-    <div id="corkboard-view" class="corkboard u-d-none" role="list" aria-label="Tableau de fiches des chapitres"></div>
-    <div id="ai-summary-panel" role="dialog" aria-label="Résumé IA">
-      <div class="u-d-flex u-jc-space-between u-ai-center">
-        <strong class="u-fs-_82rem">✨ Résumé IA</strong>
-        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="ai-panel-close" title="Fermer">×</button>
-      </div>
-      <div id="ai-summary-text" aria-live="polite"></div>
-      <button class="action-btn btn-sm u-bg-h8e44ad" id="ai-summary-copy" title="Copier ce résumé dans le presse-papier">📋 Copier résumé</button>
-    </div>
-
-    <div id="lex-panel" role="dialog" aria-label="Synonymes et antonymes">
-      <div class="u-d-flex u-jc-space-between u-ai-center">
-        <span id="lex-panel-title">✨ Synonymes</span>
-        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="lex-panel-close" aria-label="Fermer" title="Fermer">×</button>
-      </div>
-      <div class="u-fs-_7rem u-c-v-text-muted" id="lex-panel-word"></div>
-      <div id="lex-words"></div>
-      <div class="u-fs-_68rem u-c-v-text-muted">Cliquer sur un mot pour l'insérer à la position du curseur</div>
-    </div>
-
-    <div id="fr-panel" role="dialog" aria-label="Rechercher et remplacer">
-      <div class="u-d-flex u-jc-space-between u-ai-center">
-        <strong class="u-fs-_82rem">🔁 Rechercher / Remplacer</strong>
-        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="fr-panel-close" aria-label="Fermer" title="Fermer">×</button>
-      </div>
-      <input id="fr-find-input" class="field" placeholder="Rechercher...">
-      <input id="fr-replace-input" class="field" placeholder="Remplacer par...">
-      <div class="u-d-flex u-gap-10px u-fw-wrap u-fs-_72rem">
-        <label class="u-d-flex u-ai-center u-gap-6px u-cur-pointer" title="Distinguer majuscules et minuscules"><input type="checkbox" id="fr-case-cb"> Respecter la casse</label>
-        <label class="u-d-flex u-ai-center u-gap-6px u-cur-pointer" title="Ne pas trouver le texte à l'intérieur d'un autre mot"><input type="checkbox" id="fr-word-cb"> Mot entier</label>
-        <label class="u-d-flex u-ai-center u-gap-6px u-cur-pointer" title="« Tout remplacer » agit sur tous les chapitres (avec confirmation et copie de sauvegarde)"><input type="checkbox" id="fr-all-cb"> Tout le manuscrit</label>
-      </div>
-      <div class="u-d-flex u-gap-6px u-fw-wrap u-ai-center">
-        <button class="action-btn btn-sm" id="fr-next-btn" title="Aller à l'occurrence suivante">Suivant</button>
-        <button class="action-btn btn-sm u-bg-h8e44ad" id="fr-replace-btn" title="Remplacer uniquement cette occurrence">Remplacer</button>
-        <button class="action-btn btn-sm u-bg-v-danger" id="fr-replace-all-btn" title="Remplacer toutes les occurrences (chapitre courant, ou tout le manuscrit si la case est cochée)">Tout remplacer</button>
-      </div>
-      <span class="u-fs-_7rem u-c-v-text-muted" id="fr-status">Aucun résultat</span>
-      <div class="u-fs-_66rem u-c-v-text-muted">Ne remplace pas les occurrences qui chevauchent une mise en forme (gras/italique).</div>
-    </div>
-
-    <div id="ai-chat-panel" role="dialog" aria-label="Assistant IA">
-      <div class="u-d-flex u-jc-space-between u-ai-center">
-        <strong class="u-fs-_82rem">🤖 Assistant IA</strong>
-        <div class="u-d-flex u-gap-4px">
-          <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1rem" id="ai-chat-reset-btn" title="Nouvelle conversation">🔄</button>
-          <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="ai-chat-close-btn" aria-label="Fermer" title="Fermer">×</button>
-        </div>
-      </div>
-      <label class="u-d-flex u-ai-center u-gap-6px u-fs-_68rem u-c-v-text-muted">
-        <input type="checkbox" id="ai-chat-ctx-chapter" checked> Contexte : chapitre actuel
-      </label>
-      <div class="u-fs-_66rem u-c-v-text-muted" id="ai-chat-ctx-note"></div>
-      <label class="u-d-flex u-ai-center u-gap-6px u-fs-_68rem u-c-v-text-muted">
-        <input type="checkbox" id="ai-chat-ctx-chars"> Contexte : fiche des personnages
-      </label>
-      <div id="ai-chat-messages"></div>
-      <div id="ai-chat-chips" class="u-d-flex u-gap-6px u-fw-wrap"></div>
-      <div class="u-d-flex u-gap-6px">
-        <input type="text" id="ai-chat-input" class="field u-flex-1" placeholder="Écrire un message…" aria-label="Message à l'assistant IA">
-        <button class="action-btn btn-sm u-fsh-0" id="ai-chat-send-btn" title="Envoyer">➤</button>
-      </div>
-    </div>
-
-    <div id="mode-bar">
-      <div id="save-indicator" aria-hidden="true"></div>
-      <span class="u-fs-_7rem u-c-v-text-muted" id="autosave-label"></span>
-      <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre"><span aria-hidden="true">🌙</span><span class="mb-label"> Nuit</span></button>
-      <button class="mode-indicator" id="dictate-btn" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro"><span aria-hidden="true">🎤</span><span class="mb-label"> Dictée</span></button>
-      <button class="mode-indicator" id="ai-chat-btn" title="Discuter avec l'assistant IA"><span aria-hidden="true">🤖</span><span class="mb-label"> IA</span></button>
-      <span class="u-fs-_7rem u-c-v-text-muted" id="dictate-status">Prêt</span>
-      <span id="dictate-preview" aria-live="polite"></span>
-      <span class="u-d-flex u-ai-center u-gap-4px" id="sync-status-dot-wrap" title="État de la dernière synchronisation">
-        <span id="sync-status-dot" aria-hidden="true"></span>
-        <span class="u-fs-_66rem u-c-v-text-muted" id="sync-status-label"></span>
-      </span>
-      <button class="u-d-none u-bg-linear-gradient-135deg-v-acc-1qh64 u-c-hfff u-bd-none u-p-5px-14px u-br-20px u-cur-pointer u-fs-_72rem u-fwt-700 u-ff-inherit u-shadow-0-2px-8px-rgb19257433" id="install-app-btn" title="Installer Plume comme application sur cet ordinateur">📲 Installer sur le bureau</button>
-      <button id="shortcuts-hint-btn" class="mode-indicator u-ml-auto u-p-2px-8px" title="Voir les raccourcis clavier (touche ?)">❔</button>
-      <img src="icons/icon-32.png" class="modebar-logo" alt="" width="16" height="16">
-      <span class="u-fs-_65rem u-op-_35" id="app-version-label">Plume</span>
-    </div>
-  </div>
 </main>
 
 <!-- FOCUS -->

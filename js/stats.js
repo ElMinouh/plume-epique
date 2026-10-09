@@ -185,23 +185,45 @@ function renderStats() {
 // ═══════════════════════════════════════════════════════
 const SPRINT_DURATION = 1500; // 25 minutes en secondes
 
+// v9.46.0 (AUD-03-013) : pastille « ⏱ 18:42 · +230 mots » dans le pied de page pendant un sprint (avant : le chronomètre
+// n'existait que dans Config → Sprint, donc invisible quand on écrit) ; la fin du sprint est annoncée (avant : remise à
+// zéro silencieuse).
+function fmtSprintTime(remaining) { return Math.floor(remaining/60)+':'+(remaining%60).toString().padStart(2,'0'); }
+function updateSprintChip(remaining, words) {
+  const chip = document.getElementById('sprint-chip');
+  if (!chip) return;
+  chip.hidden = false;
+  document.getElementById('sprint-chip-time').textContent = fmtSprintTime(remaining);
+  document.getElementById('sprint-chip-words').textContent = (words >= 0 ? '+' : '') + words;
+}
+function hideSprintChip() { const chip = document.getElementById('sprint-chip'); if (chip) chip.hidden = true; }
+
 function startSprint() {
   if (sprintInterval) return;
   sprintWordsStart = getWordCount(document.getElementById('writer').innerText);
   db.sprint = { endTime: Date.now() + SPRINT_DURATION * 1000, wordsStart: sprintWordsStart };
   save();
+  updateSprintChip(SPRINT_DURATION, 0);
   runSprintTick();
+  toast('Sprint de 25 minutes lancé.', 'info');
 }
 
 function runSprintTick() {
   clearInterval(sprintInterval);
-  sprintInterval = setInterval(() => {
+  const tick = () => {
     if (!db.sprint) { resetSprint(); return; }
     const remaining = Math.max(0, Math.round((db.sprint.endTime - Date.now()) / 1000));
-    document.getElementById('sprint-timer').innerText = Math.floor(remaining/60)+':'+(remaining%60).toString().padStart(2,'0');
-    document.getElementById('sprint-progress').innerText = getWordCount(document.getElementById('writer').innerText) - db.sprint.wordsStart;
-    if (remaining <= 0) resetSprint();
-  }, 1000);
+    const words = getWordCount(document.getElementById('writer').innerText) - db.sprint.wordsStart;
+    document.getElementById('sprint-timer').innerText = fmtSprintTime(remaining);
+    document.getElementById('sprint-progress').innerText = words;
+    updateSprintChip(remaining, words);
+    if (remaining <= 0) {
+      resetSprint();
+      toast('Sprint terminé : ' + (words >= 0 ? '+' : '') + words + ' mots en 25 minutes. Bravo !', 'success', { sticky: true, kind: 'sprint' });
+    }
+  };
+  sprintInterval = setInterval(tick, 1000);
+  tick();
 }
 
 function resetSprint() {
@@ -209,13 +231,14 @@ function resetSprint() {
   db.sprint = null; save();
   document.getElementById('sprint-timer').innerText = '25:00';
   document.getElementById('sprint-progress').innerText = '0';
+  hideSprintChip();
 }
 
 // Appelée une fois au démarrage de l'app (voir router.js) : reprend un
 // sprint encore en cours, ou nettoie silencieusement un sprint expiré.
 function resumeSprintIfNeeded() {
   if (!db.sprint) return;
-  if (db.sprint.endTime <= Date.now()) { db.sprint = null; save(); return; }
+  if (db.sprint.endTime <= Date.now()) { db.sprint = null; save(); hideSprintChip(); toast('Votre sprint d\'écriture est terminé.', 'info'); return; }
   sprintWordsStart = db.sprint.wordsStart;
   runSprintTick();
   toast('Sprint d\'écriture repris.', 'info');
