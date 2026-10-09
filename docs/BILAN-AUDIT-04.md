@@ -6,7 +6,8 @@ Base : v9.48.0. Document d'origine : `Audit-04` (rapport `.docx` + `.csv`, hors 
 |---|---|---|---|---|
 | 1 | 9.49.0 | 004, 008, 009, 010, 021 | Fiches : fond de statut limité à la pastille ; textes d'accent en `--accent-text`, gris de métadonnées plus foncés, jetons `--success-text` / `--danger-text` ; 5 palettes d'accent revues (texte d'accent par thème) ; 20 couvertures assombries au besoin (texte blanc ≥ 4,5:1) ; bouton Bibliothèque mobile stylé | livré |
 | 2 | 9.50.0 | 029, 012, 005, 013, 006, 014 | Échelles (rayons, ombres, voile, durées) ; jetons par rôle, un seul jeu de couleurs de bouton ; titres en couleur de repère (`--title`) ; variantes de boutons et barre d'outils neutre ; états actifs teintés ; focus, sélection, scrollbars, `color-scheme` ; 14 classes utilitaires jamais définies, enfin définies | livré |
-| 3 | — | 002, 003, 023 | Icônes SVG locales | à venir |
+| 3a | 9.51.0 | 002, 003, 023 (partie statique) | Sprite d'icônes Lucide (98 symboles, ISC, version figée) intégré à `index.html`, `js/icons.js` (helper `icon()` et lexique), emojis et chevrons ▾ de `index.html` remplacés, placeholders et options de liste sans emoji, test de conformité du sprite | livré |
+| 3b | — | 002, 003, 023 (partie dynamique) | Gabarits JS (library, graphicnovel, profiles, ai, fulltour, tabs…), messages et titres de visites sans emoji | à venir |
 | 4 | — | 001, 007, 018, 022, 030 | Marque, thème clair, surfaces, connexion, logo vectoriel | à venir |
 | 5 | — | 016, 015 | Typographie embarquée, mouvement | à venir |
 | 6 | — | 017, 019, 011, 020, 026 | Composition, roman graphique, étagère, rappel, modes Focus/Lecture | à venir |

@@ -23,6 +23,7 @@
     "idb": "8.0.3",
     "jspdf": "4.2.1",
     "jszip": "3.10.1",
+    "lucide-static": "1.54.0",
     "mammoth": "1.11.0",
     "marked": "18.0.14",
     "odf-kit": "0.14.3"

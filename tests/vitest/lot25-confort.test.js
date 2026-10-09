@@ -27,7 +27,7 @@ describe('AUD-03-015 — barre d\'outils regroupée', () => {
     for (const id of ['analyze-btn', 'clear-btn', 'reading-mode-btn', 'voice-btn', 'sprint-start-menu-btn', 'export-chapter-btn', 'export-doc-btn'])
       expect(tools, id).toContain(`id="${id}"`);
     expect(tools).not.toContain('id="focus-btn"');
-    expect(html).toMatch(/id="lex-tools-toggle-btn"[^>]*>✨<span class="tb-label"> Mots<\/span> ▾/);
+    expect(html).toMatch(/id="lex-tools-toggle-btn"[^>]*><svg[^>]*><use href="#i-sparkles"><\/use><\/svg><span class="tb-label"> Mots<\/span> <svg[^>]*icon-caret/);
   });
   it('le dictionnaire se replie aussi sur ordinateur (règle min-width:769px)', () => {
     expect(css).toMatch(/@media \(min-width:769px\)\{\s*#lex-tools-wrapper\{position:relative;\}\s*#lex-tools-toggle-btn\{display:inline-flex;flex-shrink:0;\}\s*#lex-tools-group\{display:none;\}/);
@@ -40,7 +40,7 @@ describe('AUD-03-024 — une seule aide', () => {
       expect(html).toContain(`id="${id}"`);
       expect(read('js/router.js')).toContain(`'${id}'`);
     }
-    expect(html).toMatch(/<strong>❔ Aide et raccourcis<\/strong>/);
+    expect(html).toMatch(/<strong><svg[^>]*><use href="#i-circle-help"><\/use><\/svg> Aide et raccourcis<\/strong>/);
     const overlay = html.slice(html.indexOf('id="shortcuts-overlay"'), html.indexOf('<!-- EXPORT SELECT OVERLAY'));
     expect(overlay).toContain('id="app-version-label"');
     expect(html.slice(html.indexOf('id="mode-bar"'), html.indexOf('<!-- FOCUS')).includes('app-version-label')).toBe(false);

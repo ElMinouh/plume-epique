@@ -30,6 +30,109 @@
 <script type="module" src="js/odf-loader.js"></script>
 </head>
 <body>
+<!-- Sprite d'icônes (v9.51.0) : voir js/icons.js et scripts/build-icons.cjs -->
+<svg class="svg-sprite" aria-hidden="true" focusable="false">
+<!-- ICONES:DEBUT (généré par scripts/build-icons.cjs — ne pas modifier à la main) -->
+<symbol id="i-archive" viewBox="0 0 24 24"><rect width="20" height="5" x="2" y="3" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" /><path d="M10 12h4" /></symbol>
+<symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7" /><path d="M19 12H5" /></symbol>
+<symbol id="i-arrow-left-right" viewBox="0 0 24 24"><path d="M8 3 4 7l4 4" /><path d="M4 7h16" /><path d="m16 21 4-4-4-4" /><path d="M20 17H4" /></symbol>
+<symbol id="i-arrow-up-down" viewBox="0 0 24 24"><path d="m21 16-4 4-4-4" /><path d="M17 20V4" /><path d="m3 8 4-4 4 4" /><path d="M7 4v16" /></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" /></symbol>
+<symbol id="i-book-open" viewBox="0 0 24 24"><path d="M12 5v16" /><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" /></symbol>
+<symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z" /></symbol>
+<symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8" /><rect width="16" height="12" x="4" y="8" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M15 13v2" /><path d="M9 13v2" /></symbol>
+<symbol id="i-brain" viewBox="0 0 24 24"><path d="M12 18V5" /><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4" /><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5" /><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77" /><path d="M18 18a4 4 0 0 0 2-7.464" /><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517" /><path d="M6 18a4 4 0 0 1-2-7.464" /><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77" /></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v3" /><path d="M16 2v3" /><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18" /></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z" /><circle cx="12" cy="13" r="3" /></symbol>
+<symbol id="i-castle" viewBox="0 0 24 24"><path d="M10 5V3" /><path d="M14 5V3" /><path d="M15 21v-3a3 3 0 0 0-6 0v3" /><path d="M18 3v8" /><path d="M18 5H6" /><path d="M22 11H2" /><path d="M22 9v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9" /><path d="M6 3v8" /></symbol>
+<symbol id="i-chart-column" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></symbol>
+<symbol id="i-chart-line" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16" /><path d="m19 9-5 5-4-4-3 3" /></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></symbol>
+<symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+<symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></symbol>
+<symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="m16 9-5.5 5.5L8 12" /></symbol>
+<symbol id="i-circle-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></symbol>
+<symbol id="i-circle-x" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="m15 9-6 6" /><path d="m9 9 6 6" /></symbol>
+<symbol id="i-clipboard-copy" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /><path d="M16 4h2a2 2 0 0 1 2 2v4" /><path d="M21 14H11" /><path d="m15 10-4 4 4 4" /></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></symbol>
+<symbol id="i-cloud" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" /></symbol>
+<symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z" /></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></symbol>
+<symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5V19A9 3 0 0 0 21 19V5" /><path d="M3 12A9 3 0 0 0 21 12" /></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /></symbol>
+<symbol id="i-ellipsis-vertical" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></symbol>
+<symbol id="i-eraser" viewBox="0 0 24 24"><path d="M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21" /><path d="m5.082 11.09 8.828 8.828" /></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /></symbol>
+<symbol id="i-file-down" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M12 18v-6" /><path d="m9 15 3 3 3-3" /></symbol>
+<symbol id="i-file-text" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></symbol>
+<symbol id="i-files" viewBox="0 0 24 24"><path d="M15 2h-4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8" /><path d="M16.706 2.706A2.4 2.4 0 0 0 15 2v5a1 1 0 0 0 1 1h5a2.4 2.4 0 0 0-.706-1.706z" /><path d="M5 7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8a2 2 0 0 0 1.732-1" /></symbol>
+<symbol id="i-focus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" /></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" /></symbol>
+<symbol id="i-folder-open" viewBox="0 0 24 24"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" /></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" /></symbol>
+<symbol id="i-graduation-cap" viewBox="0 0 24 24"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" /><path d="M22 10v6" /><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" /></symbol>
+<symbol id="i-grip-vertical" viewBox="0 0 24 24"><circle cx="9" cy="12" r="1" /><circle cx="9" cy="5" r="1" /><circle cx="9" cy="19" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="15" cy="5" r="1" /><circle cx="15" cy="19" r="1" /></symbol>
+<symbol id="i-hard-drive" viewBox="0 0 24 24"><path d="M10 16h.01" /><path d="M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /><path d="M21.946 12.013H2.054" /><path d="M6 16h.01" /></symbol>
+<symbol id="i-highlighter" viewBox="0 0 24 24"><path d="m9 11-6 6v3h9l3-3" /><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" /></symbol>
+<symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l4 2" /></symbol>
+<symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></symbol>
+<symbol id="i-images" viewBox="0 0 24 24"><path d="m22 11-1.296-1.296a2.4 2.4 0 0 0-3.408 0L11 16" /><path d="M4 8a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2" /><circle cx="13" cy="7" r="1" fill="currentColor" /><rect x="8" y="2" width="14" height="14" rx="2" /></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></symbol>
+<symbol id="i-key-round" viewBox="0 0 24 24"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" /><circle cx="16.5" cy="7.5" r=".5" fill="currentColor" /></symbol>
+<symbol id="i-laptop" viewBox="0 0 24 24"><path d="M18 5a2 2 0 0 1 2 2v8.526a2 2 0 0 0 .212.897l1.068 2.127a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45l1.068-2.127A2 2 0 0 0 4 15.526V7a2 2 0 0 1 2-2z" /><path d="M20.054 15.987H3.946" /></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" /><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" /><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" /></symbol>
+<symbol id="i-layout-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" /></symbol>
+<symbol id="i-library" viewBox="0 0 24 24"><path d="m16 6 4 14" /><path d="M12 6v14" /><path d="M8 8v12" /><path d="M4 4v16" /></symbol>
+<symbol id="i-life-buoy" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="m4.93 4.93 4.24 4.24" /><path d="m14.83 9.17 4.24-4.24" /><path d="m14.83 14.83 4.24 4.24" /><path d="m9.17 14.83-4.24 4.24" /><circle cx="12" cy="12" r="4" /></symbol>
+<symbol id="i-lightbulb" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" /><path d="M9 18h6" /><path d="M10 22h4" /></symbol>
+<symbol id="i-list-tree" viewBox="0 0 24 24"><path d="M8 5h13" /><path d="M13 12h8" /><path d="M13 19h8" /><path d="M3 10a2 2 0 0 0 2 2h3" /><path d="M3 5v12a2 2 0 0 0 2 2h3" /></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></symbol>
+<symbol id="i-log-out" viewBox="0 0 24 24"><path d="m16 17 5-5-5-5" /><path d="M21 12H9" /><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 5h16" /><path d="M4 12h16" /><path d="M4 19h16" /></symbol>
+<symbol id="i-message-square" viewBox="0 0 24 24"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z" /></symbol>
+<symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 19v3" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><rect x="9" y="2" width="6" height="13" rx="3" /></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" /></symbol>
+<symbol id="i-move" viewBox="0 0 24 24"><path d="M12 2v20" /><path d="m15 19-3 3-3-3" /><path d="m19 9 3 3-3 3" /><path d="M2 12h20" /><path d="m5 9-3 3 3 3" /><path d="m9 5 3-3 3 3" /></symbol>
+<symbol id="i-network" viewBox="0 0 24 24"><rect x="16" y="16" width="6" height="6" rx="1" /><rect x="2" y="16" width="6" height="6" rx="1" /><rect x="9" y="2" width="6" height="6" rx="1" /><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3" /><path d="M12 12V8" /></symbol>
+<symbol id="i-notebook" viewBox="0 0 24 24"><path d="M2 6h4" /><path d="M2 10h4" /><path d="M2 14h4" /><path d="M2 18h4" /><rect width="16" height="20" x="4" y="2" rx="2" /><path d="M16 2v20" /></symbol>
+<symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z" /><circle cx="13.5" cy="6.5" r=".5" fill="currentColor" /><circle cx="17.5" cy="10.5" r=".5" fill="currentColor" /><circle cx="6.5" cy="12.5" r=".5" fill="currentColor" /><circle cx="8.5" cy="7.5" r=".5" fill="currentColor" /></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><rect x="14" y="3" width="5" height="18" rx="1" /><rect x="5" y="3" width="5" height="18" rx="1" /></symbol>
+<symbol id="i-pen-line" viewBox="0 0 24 24"><path d="M13 21h8" /><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" /></symbol>
+<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" /><path d="m15 5 4 4" /></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z" /></symbol>
+<symbol id="i-plug" viewBox="0 0 24 24"><path d="M12 22v-5" /><path d="M15 8V2" /><path d="M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z" /><path d="M9 8V2" /></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14" /><path d="M12 5v14" /></symbol>
+<symbol id="i-redo-2" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5" /><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13" /></symbol>
+<symbol id="i-refresh-cw" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></symbol>
+<symbol id="i-replace" viewBox="0 0 24 24"><path d="M14 4a1 1 0 0 1 1-1" /><path d="M15 10a1 1 0 0 1-1-1" /><path d="M21 4a1 1 0 0 0-1-1" /><path d="M21 9a1 1 0 0 1-1 1" /><path d="m3 7 3 3 3-3" /><path d="M6 10V5a2 2 0 0 1 2-2h2" /><rect x="3" y="14" width="7" height="7" rx="1" /></symbol>
+<symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="3" /><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" /><circle cx="18" cy="5" r="3" /></symbol>
+<symbol id="i-save" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /></symbol>
+<symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3" /><path d="M8.12 8.12 12 12" /><path d="M20 4 8.12 15.88" /><circle cx="6" cy="18" r="3" /><path d="M14.8 14.8 20 20" /></symbol>
+<symbol id="i-scroll-text" viewBox="0 0 24 24"><path d="M15 12h-5" /><path d="M15 8h-5" /><path d="M19 17V5a2 2 0 0 0-2-2H4" /><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3" /></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" /><path d="m21.854 2.147-10.94 10.939" /></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" /><circle cx="12" cy="12" r="3" /></symbol>
+<symbol id="i-share-2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" x2="15.42" y1="13.51" y2="17.49" /><line x1="15.41" x2="8.59" y1="6.51" y2="10.49" /></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /></symbol>
+<symbol id="i-smartphone" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2" ry="2" /><path d="M12 18h.01" /></symbol>
+<symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" /><path d="M20 2v4" /><path d="M22 4h-4" /><circle cx="4" cy="20" r="2" /></symbol>
+<symbol id="i-square" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" /></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></symbol>
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" /><circle cx="7.5" cy="7.5" r=".5" fill="currentColor" /></symbol>
+<symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></symbol>
+<symbol id="i-timer" viewBox="0 0 24 24"><line x1="10" x2="14" y1="2" y2="2" /><line x1="12" x2="15" y1="14" y2="11" /><circle cx="12" cy="14" r="8" /></symbol>
+<symbol id="i-trash-2" viewBox="0 0 24 24"><path d="M10 11v6" /><path d="M14 11v6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></symbol>
+<symbol id="i-triangle-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></symbol>
+<symbol id="i-undo-2" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" /></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 3v12" /><path d="m17 8-5-5-5 5" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><path d="M16 3.128a4 4 0 0 1 0 7.744" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><circle cx="9" cy="7" r="4" /></symbol>
+<symbol id="i-wand-sparkles" viewBox="0 0 24 24"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72" /><path d="m14 7 3 3" /><path d="M5 6v4" /><path d="M19 14v4" /><path d="M10 2v2" /><path d="M7 8H3" /><path d="M21 16h-4" /><path d="M11 3H9" /></symbol>
+<symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z" /></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></symbol>
+<!-- ICONES:FIN -->
+</svg>
 
 <!-- GATE PROFILS (v7.0.0) — écrans connexion/création/récupération/migration -->
 <div id="profile-gate" class="profile-gate" role="dialog" aria-modal="true"></div>
@@ -56,25 +159,25 @@
         <span class="u-fs-sm" id="library-sync-status-text"></span>
       </button>
       <!-- v9.41.0 (AUD-03-001) : rappel discret, remplace la bulle bloquante de configuration. -->
-      <button hidden class="action-btn btn-warn btn-sm" id="library-github-reminder" title="Ouvrir Système pour configurer la sauvegarde GitHub">⚠ Sauvegarde GitHub non configurée</button>
+      <button hidden class="action-btn btn-warn btn-sm" id="library-github-reminder" title="Ouvrir Système pour configurer la sauvegarde GitHub"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-triangle-alert"></use></svg> Sauvegarde GitHub non configurée</button>
     </div>
     <!-- v9.48.0 (AUD-03-028) : trois éléments sobres au lieu de sept boutons de six couleurs. -->
     <div class="u-d-flex u-gap-6px u-fw-wrap u-ai-center" id="library-topbar-actions">
-      <button class="mode-indicator" id="library-system-btn" title="Sauvegardes, export/import et sauvegarde GitHub pour toute la bibliothèque">💾 Système</button>
+      <button class="mode-indicator" id="library-system-btn" title="Sauvegardes, export/import et sauvegarde GitHub pour toute la bibliothèque"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-save"></use></svg> Système</button>
       <div class="lib-dropdown">
-        <button class="mode-indicator" id="library-account-btn" aria-haspopup="menu" aria-expanded="false" title="Votre profil et votre session">👤 Compte ▾</button>
+        <button class="mode-indicator" id="library-account-btn" aria-haspopup="menu" aria-expanded="false" title="Votre profil et votre session"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-user"></use></svg> Compte <svg class="icon icon-caret" aria-hidden="true" focusable="false"><use href="#i-chevron-down"></use></svg></button>
         <div class="toolbar-menu" role="menu">
-          <button role="menuitem" id="library-my-profile-btn" title="Modifier votre nom, mot de passe ou question de sécurité">👤 Mon profil</button>
-          <button role="menuitem" id="library-manage-profiles-btn" title="Ajouter, renommer ou supprimer des profils (administrateur)">🛡️ Gérer les profils</button>
+          <button role="menuitem" id="library-my-profile-btn" title="Modifier votre nom, mot de passe ou question de sécurité"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-user"></use></svg> Mon profil</button>
+          <button role="menuitem" id="library-manage-profiles-btn" title="Ajouter, renommer ou supprimer des profils (administrateur)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-shield"></use></svg> Gérer les profils</button>
           <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
-          <button role="menuitem" id="library-logout-btn" title="Fermer votre session">🚪 Déconnexion</button>
+          <button role="menuitem" id="library-logout-btn" title="Fermer votre session"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-log-out"></use></svg> Déconnexion</button>
         </div>
       </div>
       <div class="lib-dropdown">
-        <button class="mode-indicator" id="library-help-btn" aria-haspopup="menu" aria-expanded="false" title="Visites guidées">❔ Aide ▾</button>
+        <button class="mode-indicator" id="library-help-btn" aria-haspopup="menu" aria-expanded="false" title="Visites guidées"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-circle-help"></use></svg> Aide <svg class="icon icon-caret" aria-hidden="true" focusable="false"><use href="#i-chevron-down"></use></svg></button>
         <div class="toolbar-menu" role="menu">
-          <button role="menuitem" id="library-tour-btn" title="Revoir la visite guidée de cet écran">🎓 Visite de la bibliothèque</button>
-          <button role="menuitem" id="library-full-tour-btn" title="Visite guidée complète de toutes les fonctions de l'éditeur">🎓 Visite complète</button>
+          <button role="menuitem" id="library-tour-btn" title="Revoir la visite guidée de cet écran"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-graduation-cap"></use></svg> Visite de la bibliothèque</button>
+          <button role="menuitem" id="library-full-tour-btn" title="Visite guidée complète de toutes les fonctions de l'éditeur"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-graduation-cap"></use></svg> Visite complète</button>
         </div>
       </div>
     </div>
@@ -86,13 +189,13 @@
          clic du vrai bouton correspondant ci-dessus — aucune logique dupliquée. -->
     <button class="mode-indicator u-d-none" id="library-topbar-more-btn" title="Plus d'actions" aria-label="Plus d'actions" aria-haspopup="true">⋯</button>
   </div>
-  <h2 class="u-m-18px-0-2px">📚 Ma bibliothèque</h2>
+  <h2 class="u-m-18px-0-2px"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-library"></use></svg> Ma bibliothèque</h2>
   <div class="u-d-flex u-jc-space-between u-ai-center u-m-0-0-6px">
     <p class="u-fs-sm u-c-v-text-muted u-m-0" id="library-count"></p>
-    <button class="action-btn btn-secondary btn-sm u-d-none" id="library-trash-btn" title="Manuscrits supprimés, récupérables 30 jours">🗑️ Corbeille (0)</button>
+    <button class="action-btn btn-secondary btn-sm u-d-none" id="library-trash-btn" title="Manuscrits supprimés, récupérables 30 jours"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-trash-2"></use></svg> Corbeille (0)</button>
     <div class="ch-view-toggle u-w-170px" role="group" aria-label="Vue de la bibliothèque">
-      <button class="mode-indicator active" id="view-grid-btn" title="Vue grille">🔲 Grille</button>
-      <button class="mode-indicator" id="view-shelf-btn" title="Vue en étagère">📚 Étagère</button>
+      <button class="mode-indicator active" id="view-grid-btn" title="Vue grille"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-layout-grid"></use></svg> Grille</button>
+      <button class="mode-indicator" id="view-shelf-btn" title="Vue en étagère"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-library"></use></svg> Étagère</button>
     </div>
   </div>
   <div id="library-grid"></div>
@@ -105,20 +208,20 @@
 <div id="library-system-overlay" role="dialog" aria-modal="true" aria-label="Système et sauvegardes">
   <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-480px-92vw u-maxh-85vh u-ovy-auto u-d-flex u-fd-column u-gap-14px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
-      <strong>💾 Système & Sauvegardes</strong>
-      <button class="action-btn btn-ghost btn-sm" id="library-system-close-btn" title="Fermer cette fenêtre">✕</button>
+      <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-save"></use></svg> Système & Sauvegardes</strong>
+      <button class="action-btn btn-ghost btn-sm" id="library-system-close-btn" title="Fermer cette fenêtre" aria-label="Fermer cette fenêtre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
     </div>
 
     <!-- v9.45.0 (AUD-03-026) : trois onglets au lieu d'une longue page de six blocs ; UNE seule liste de manuscrits
          (avant : deux listes, une pour les fichiers et une pour la sauvegarde GitHub). -->
     <div class="subtab-nav" role="tablist" aria-label="Système et sauvegardes">
-      <button class="subtab-btn active lib-systab" role="tab" aria-selected="true" aria-controls="lib-sys-files" id="lib-systab-files" data-systab="files">📁 Fichiers</button>
-      <button class="subtab-btn lib-systab" role="tab" aria-selected="false" aria-controls="lib-sys-github" id="lib-systab-github" data-systab="github">☁️ Sauvegarde GitHub</button>
-      <button class="subtab-btn lib-systab" role="tab" aria-selected="false" aria-controls="lib-sys-sync" id="lib-systab-sync" data-systab="sync">🔄 Synchronisation <span class="mp-badge u-d-none" id="lib-systab-conflict-count">0</span></button>
+      <button class="subtab-btn active lib-systab" role="tab" aria-selected="true" aria-controls="lib-sys-files" id="lib-systab-files" data-systab="files"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-folder"></use></svg> Fichiers</button>
+      <button class="subtab-btn lib-systab" role="tab" aria-selected="false" aria-controls="lib-sys-github" id="lib-systab-github" data-systab="github"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-cloud"></use></svg> Sauvegarde GitHub</button>
+      <button class="subtab-btn lib-systab" role="tab" aria-selected="false" aria-controls="lib-sys-sync" id="lib-systab-sync" data-systab="sync"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh-cw"></use></svg> Synchronisation <span class="mp-badge u-d-none" id="lib-systab-conflict-count">0</span></button>
     </div>
 
     <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border" id="lib-sys-doc-zone">
-      <label class="u-fs-base u-fwt-700" for="lib-system-doc-select">📖 Manuscrit concerné</label>
+      <label class="u-fs-base u-fwt-700" for="lib-system-doc-select"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-book-open"></use></svg> Manuscrit concerné</label>
       <select id="lib-system-doc-select" class="field u-w-100pc u-mt-6px"></select>
     </div>
 
@@ -126,28 +229,28 @@
       <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
         <strong class="u-fs-base">Ce manuscrit</strong>
       <div class="export-row u-jc-flex-start u-mt-8px">
-        <button class="action-btn btn-secondary btn-sm" id="lib-export-btn" title="Exporter ce manuscrit (choix du format ensuite)">📤 Exporter</button>
-        <button class="action-btn btn-secondary btn-sm" id="lib-import-doc-trigger-btn" title="Importer un fichier Word (.docx) ou OpenDocument (.odt)">📥 Importer (DOCX/ODT)</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-export-btn" title="Exporter ce manuscrit (choix du format ensuite)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-upload"></use></svg> Exporter</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-import-doc-trigger-btn" title="Importer un fichier Word (.docx) ou OpenDocument (.odt)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-download"></use></svg> Importer (DOCX/ODT)</button>
         <input class="u-d-none" type="file" id="lib-import-doc-file" accept=".docx,.odt">
       </div>
       </div>
       <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
-      <strong class="u-fs-base">📚 Bibliothèque entière</strong><br>
+      <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-library"></use></svg> Bibliothèque entière</strong><br>
       <div class="export-row u-jc-flex-start u-mt-8px">
-        <button class="action-btn btn-secondary btn-sm" id="lib-export-json-btn" title="Télécharger tous les manuscrits dans un seul fichier de sauvegarde">💾 Export JSON (tout)</button>
-        <button class="action-btn btn-secondary btn-sm" id="lib-import-json-trigger-btn" title="Charger un fichier de sauvegarde JSON (ajoute les manuscrits sans écraser l'existant)">📥 Import JSON (tout)</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-export-json-btn" title="Télécharger tous les manuscrits dans un seul fichier de sauvegarde"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-save"></use></svg> Export JSON (tout)</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-import-json-trigger-btn" title="Charger un fichier de sauvegarde JSON (ajoute les manuscrits sans écraser l'existant)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-download"></use></svg> Import JSON (tout)</button>
         <input class="u-d-none" type="file" id="lib-import-json-file" accept=".json">
       </div>
-      <p class="u-fs-xs u-c-v-text-muted u-m-6px-0-0">⚠️ Ce fichier ne peut être réimporté que dans le <strong>même profil</strong> (ex. après réinstallation) — un import dans un autre profil produit des manuscrits illisibles.</p>
+      <p class="u-fs-xs u-c-v-text-muted u-m-6px-0-0"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-triangle-alert"></use></svg> Ce fichier ne peut être réimporté que dans le <strong>même profil</strong> (ex. après réinstallation) — un import dans un autre profil produit des manuscrits illisibles.</p>
       </div>
     </div>
 
     <div class="lib-sys-pane" role="tabpanel" id="lib-sys-github" aria-labelledby="lib-systab-github">
       <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
-      <strong class="u-fs-base">☁️ Sauvegarde GitHub — un seul jeton d'accès pour tout le compte</strong><br>
+      <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-cloud"></use></svg> Sauvegarde GitHub — un seul jeton d'accès pour tout le compte</strong><br>
       <div class="u-d-flex u-gap-6px u-mt-6px">
         <input type="password" id="lib-gh-token" class="field u-flex-1" placeholder="Jeton d'accès GitHub" title="Mémorisé automatiquement (chiffré)">
-        <button class="action-btn btn-secondary btn-sm u-fsh-0" id="lib-verify-token-btn" title="Vérifier que ce jeton d'accès est valide auprès de GitHub">✅ Vérifier</button>
+        <button class="action-btn btn-secondary btn-sm u-fsh-0" id="lib-verify-token-btn" title="Vérifier que ce jeton d'accès est valide auprès de GitHub"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-circle-check"></use></svg> Vérifier</button>
       </div>
       <p class="u-fs-sm u-m-6px-0-0" id="lib-token-status" aria-live="polite"></p>
       <div class="u-d-flex u-ai-center u-gap-8px u-mt-8px u-fs-sm u-fw-wrap">
@@ -166,9 +269,9 @@
       <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
         <strong class="u-fs-base">Sauvegarde GitHub du manuscrit choisi ci-dessus</strong>
       <div class="export-row u-jc-flex-start u-mt-8px">
-        <button class="action-btn btn-secondary btn-sm" id="lib-sync-cloud-btn" title="Envoyer une sauvegarde chiffrée de ce manuscrit vers GitHub">🔄 Sauver</button>
-        <button class="action-btn btn-secondary btn-sm" id="lib-load-cloud-btn" title="Récupérer la dernière sauvegarde GitHub de ce manuscrit">📥 Charger</button>
-        <button class="action-btn btn-secondary btn-sm" id="lib-gist-history-btn" title="Voir les anciennes versions sauvegardées de ce manuscrit">🕐 Versions</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-sync-cloud-btn" title="Envoyer une sauvegarde chiffrée de ce manuscrit vers GitHub"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh-cw"></use></svg> Sauver</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-load-cloud-btn" title="Récupérer la dernière sauvegarde GitHub de ce manuscrit"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-download"></use></svg> Charger</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-gist-history-btn" title="Voir les anciennes versions sauvegardées de ce manuscrit"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-clock"></use></svg> Versions</button>
       </div>
       <p class="u-fs-xs u-c-v-text-muted u-m-6px-0-0" id="lib-doc-gist-status"></p>
       </div>
@@ -177,24 +280,24 @@
     <div class="lib-sys-pane" role="tabpanel" id="lib-sys-sync" aria-labelledby="lib-systab-sync">
       <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
       <div class="u-d-flex u-ai-center u-jc-space-between u-gap-8px">
-        <strong class="u-fs-base">🛟 Sauvegardes de conflit <span class="mp-badge u-d-none" id="lib-conflict-count">0</span></strong>
-        <button class="action-btn btn-danger btn-sm u-d-none" id="lib-conflict-delete-all" title="Supprimer toutes les sauvegardes de conflit">🗑️ Tout supprimer</button>
+        <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-life-buoy"></use></svg> Sauvegardes de conflit <span class="mp-badge u-d-none" id="lib-conflict-count">0</span></strong>
+        <button class="action-btn btn-danger btn-sm u-d-none" id="lib-conflict-delete-all" title="Supprimer toutes les sauvegardes de conflit"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-trash-2"></use></svg> Tout supprimer</button>
       </div>
       <p class="u-fs-xs u-c-v-text-muted u-m-6px-0-8px">Versions distantes remplacées par un autre appareil. Conservées 7 jours, puis supprimées automatiquement.</p>
       <div id="lib-conflict-list" class="u-d-flex u-fd-column u-gap-8px"></div>
       </div>
       <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
-      <strong class="u-fs-base">🔑 Clé de synchronisation</strong><br>
+      <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-key-round"></use></svg> Clé de synchronisation</strong><br>
       <p class="u-fs-xs u-c-v-text-muted u-m-6px-0-8px">Commune à cet appareil, valable pour tous les profils.</p>
       <div class="u-d-flex u-gap-6px">
         <input type="password" id="lib-sync-key-input" class="field u-flex-1" readonly>
-        <button class="action-btn btn-sm u-fsh-0" id="lib-sync-key-reveal-btn" title="Afficher/masquer la clé">👁️</button>
-        <button class="action-btn btn-secondary btn-sm u-fsh-0" id="lib-sync-key-verify-btn" title="Vérifier que cette clé est acceptée par le Worker">✅ Vérifier</button>
+        <button class="action-btn btn-sm u-fsh-0" id="lib-sync-key-reveal-btn" title="Afficher/masquer la clé" aria-label="Afficher/masquer la clé"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-eye"></use></svg></button>
+        <button class="action-btn btn-secondary btn-sm u-fsh-0" id="lib-sync-key-verify-btn" title="Vérifier que cette clé est acceptée par le Worker"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-circle-check"></use></svg> Vérifier</button>
       </div>
       <p class="u-fs-sm u-m-6px-0-0" id="lib-sync-key-status" aria-live="polite"></p>
       <p class="u-fs-xs u-m-4px-0-0" id="lib-last-sync-status" aria-live="polite"></p>
       <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-0" id="lib-sync-usage" aria-live="polite"></p>
-      <button class="action-btn btn-sm u-as-flex-start u-mt-6px" id="lib-sync-key-change-btn">✏️ Changer la clé</button>
+      <button class="action-btn btn-sm u-as-flex-start u-mt-6px" id="lib-sync-key-change-btn"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-pencil"></use></svg> Changer la clé</button>
     </div>
       </div>
     </div>
@@ -205,12 +308,12 @@
 <div id="docx-import-overlay" role="dialog" aria-modal="true" aria-label="Importer un document">
   <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-420px-92vw u-maxh-80vh u-d-flex u-fd-column u-gap-12px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
-      <strong>📥 Importer « <span id="docx-import-filename"></span> »</strong>
-      <button class="action-btn btn-ghost btn-sm" id="docx-import-close-btn" title="Annuler l'import">✕</button>
+      <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-download"></use></svg> Importer « <span id="docx-import-filename"></span> »</strong>
+      <button class="action-btn btn-ghost btn-sm" id="docx-import-close-btn" title="Annuler l'import" aria-label="Annuler l'import"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
     </div>
     <div class="ch-view-toggle" role="group" aria-label="Destination de l'import">
-      <button class="mode-indicator active" id="docx-mode-new-btn" title="Créer un nouveau manuscrit à partir de ce fichier">📖 Nouveau manuscrit</button>
-      <button class="mode-indicator" id="docx-mode-existing-btn" title="Ajouter comme chapitre à un manuscrit déjà existant">📑 Chapitre existant</button>
+      <button class="mode-indicator active" id="docx-mode-new-btn" title="Créer un nouveau manuscrit à partir de ce fichier"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-book-open"></use></svg> Nouveau manuscrit</button>
+      <button class="mode-indicator" id="docx-mode-existing-btn" title="Ajouter comme chapitre à un manuscrit déjà existant"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-files"></use></svg> Chapitre existant</button>
     </div>
     <div id="docx-new-fields">
       <label class="u-fs-sm u-c-v-text-muted">Titre du nouveau manuscrit</label>
@@ -231,8 +334,8 @@
 <div id="my-profile-overlay" role="dialog" aria-modal="true" aria-label="Mon profil">
   <div class="u-bg-v-glass u-br-3 u-p-22px u-w-min-420px-92vw u-maxh-82vh u-ovy-auto u-d-flex u-fd-column u-gap-12px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
-      <strong>👤 Mon profil</strong>
-      <button class="action-btn btn-ghost btn-sm" id="my-profile-close-btn" title="Fermer cette fenêtre">✕</button>
+      <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-user"></use></svg> Mon profil</strong>
+      <button class="action-btn btn-ghost btn-sm" id="my-profile-close-btn" title="Fermer cette fenêtre" aria-label="Fermer cette fenêtre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
     </div>
     <label class="u-fs-sm u-c-v-text-muted">Nom du profil</label>
     <div class="u-d-flex u-gap-6px">
@@ -240,18 +343,18 @@
       <button class="action-btn btn-sm" id="mp-save-name-btn" title="Enregistrer le nouveau nom">Enregistrer</button>
     </div>
     <hr class="u-bdc-v-border u-m-6px-0">
-    <strong class="u-fs-base">🔑 Changer le mot de passe</strong>
+    <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-key-round"></use></svg> Changer le mot de passe</strong>
     <input id="mp-old-pwd" type="password" class="field" placeholder="Mot de passe actuel" autocomplete="current-password">
     <input id="mp-new-pwd" type="password" class="field" placeholder="Nouveau mot de passe" autocomplete="new-password">
     <input id="mp-new-pwd2" type="password" class="field" placeholder="Confirmer le nouveau mot de passe" autocomplete="new-password">
     <button class="action-btn btn-secondary btn-sm u-as-flex-start" id="mp-save-pwd-btn" title="Enregistrer le nouveau mot de passe">Modifier le mot de passe</button>
     <hr class="u-bdc-v-border u-m-6px-0">
-    <strong class="u-fs-base">❔ Question de sécurité</strong>
+    <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-circle-help"></use></svg> Question de sécurité</strong>
     <select id="mp-my-question" class="field"></select>
     <input id="mp-my-answer" class="field" placeholder="Nouvelle réponse">
     <button class="action-btn btn-sm u-as-flex-start" id="mp-save-question-btn" title="Utile pour récupérer votre compte en cas de mot de passe oublié">Mettre à jour la question</button>
     <hr class="u-bdc-v-border u-m-6px-0">
-    <strong class="u-fs-base">⏱️ Rester connecté sur cet appareil</strong>
+    <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-timer"></use></svg> Rester connecté sur cet appareil</strong>
     <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-6px">Évite de retaper le mot de passe pendant cette durée. Se déconnecter l'annule immédiatement.</p>
     <select id="mp-session-duration" class="field">
       <option value="0">Ne pas rester connecté</option>
@@ -270,18 +373,18 @@
 <div id="manage-profiles-overlay" role="dialog" aria-modal="true" aria-label="Gestion des profils">
   <div class="u-bg-v-glass u-br-3 u-p-22px u-w-min-480px-92vw u-maxh-80vh u-d-flex u-fd-column u-gap-12px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
-      <strong>🛡️ Gestion des profils</strong>
-      <button class="action-btn btn-ghost btn-sm" id="manage-profiles-close-btn" title="Fermer cette fenêtre">✕</button>
+      <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-shield"></use></svg> Gestion des profils</strong>
+      <button class="action-btn btn-ghost btn-sm" id="manage-profiles-close-btn" title="Fermer cette fenêtre" aria-label="Fermer cette fenêtre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
     </div>
     <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-8px" id="manage-profiles-list"></div>
-    <button class="action-btn btn-secondary u-as-flex-start" id="manage-add-profile-btn" title="Créer un nouveau profil pour une autre personne">➕ Ajouter un profil</button>
+    <button class="action-btn btn-secondary u-as-flex-start" id="manage-add-profile-btn" title="Créer un nouveau profil pour une autre personne"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-plus"></use></svg> Ajouter un profil</button>
   </div>
 </div>
 
 <!-- GLOBAL SEARCH -->
 <div id="search-overlay" role="dialog" aria-modal="true">
   <div id="search-box">
-    <input id="search-input" type="search" placeholder="🔍 Rechercher dans tout le projet..." aria-label="Rechercher">
+    <input id="search-input" type="search" placeholder="Rechercher dans tout le projet..." aria-label="Rechercher">
     <div id="search-count"></div>
     <div id="search-results" role="list"></div>
   </div>
@@ -291,14 +394,14 @@
 <div id="history-overlay" role="dialog" aria-modal="true" aria-label="Historique des versions">
   <div id="history-box">
     <div class="u-d-flex u-jc-space-between u-ai-center">
-      <strong>🕐 Historique du chapitre : <span id="history-chapter-name"></span></strong>
-      <button class="action-btn btn-ghost btn-sm" id="history-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
+      <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-clock"></use></svg> Historique du chapitre : <span id="history-chapter-name"></span></strong>
+      <button class="action-btn btn-ghost btn-sm" id="history-close-btn" title="Fermer cette fenêtre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg> Fermer</button>
     </div>
     <div class="u-d-flex u-gap-10px u-fg-1 u-ov-hidden u-minh-0">
       <div class="u-w-220px u-fsh-0 u-d-flex u-fd-column u-gap-6px">
         <strong class="u-fs-sm">Versions</strong>
         <div id="history-list"></div>
-        <button class="action-btn btn-danger btn-sm" id="history-restore-btn" disabled title="Remplacer le contenu actuel par cette ancienne version">↩ Restaurer cette version</button>
+        <button class="action-btn btn-danger btn-sm" id="history-restore-btn" disabled title="Remplacer le contenu actuel par cette ancienne version"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-undo-2"></use></svg> Restaurer cette version</button>
       </div>
       <div class="u-fg-1 u-d-flex u-fd-column u-gap-6px u-minw-0">
         <strong class="u-fs-sm">Aperçu / Diff</strong>
@@ -374,8 +477,8 @@
 <div id="doc-trash-overlay" role="dialog" aria-modal="true" aria-label="Corbeille des manuscrits">
   <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-500px-92vw u-maxh-70vh u-d-flex u-fd-column u-gap-10px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
-      <strong>🗑️ Corbeille (manuscrits supprimés)</strong>
-      <button class="action-btn btn-ghost btn-sm" id="doc-trash-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
+      <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-trash-2"></use></svg> Corbeille (manuscrits supprimés)</strong>
+      <button class="action-btn btn-ghost btn-sm" id="doc-trash-close-btn" title="Fermer cette fenêtre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg> Fermer</button>
     </div>
     <div class="u-fs-xs u-c-v-text-muted">Les manuscrits supprimés restent ici 30 jours, sur tous vos appareils, avant suppression définitive automatique.</div>
     <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-6px" id="doc-trash-list"></div>
@@ -385,8 +488,8 @@
 <div id="trash-overlay" role="dialog" aria-modal="true" aria-label="Corbeille">
   <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-500px-92vw u-maxh-70vh u-d-flex u-fd-column u-gap-10px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
-      <strong>🗑️ Corbeille (chapitres supprimés)</strong>
-      <button class="action-btn btn-ghost btn-sm" id="trash-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
+      <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-trash-2"></use></svg> Corbeille (chapitres supprimés)</strong>
+      <button class="action-btn btn-ghost btn-sm" id="trash-close-btn" title="Fermer cette fenêtre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg> Fermer</button>
     </div>
     <div class="u-fs-xs u-c-v-text-muted">Les chapitres supprimés restent ici 30 jours avant suppression définitive automatique.</div>
     <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-6px" id="trash-list"></div>
@@ -397,14 +500,14 @@
 <div id="shortcuts-overlay" role="dialog" aria-modal="true" aria-label="Aide et raccourcis">
   <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-420px-92vw u-maxh-75vh u-ovy-auto u-d-flex u-fd-column u-gap-4px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center u-mb-6px">
-      <strong>❔ Aide et raccourcis</strong>
-      <button class="action-btn btn-ghost btn-sm" id="shortcuts-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
+      <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-circle-help"></use></svg> Aide et raccourcis</strong>
+      <button class="action-btn btn-ghost btn-sm" id="shortcuts-close-btn" title="Fermer cette fenêtre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg> Fermer</button>
     </div>
     <!-- v9.47.0 (AUD-03-024) : un seul point d'entrée pour l'aide (avant : bulles « premiers pas », visites, ⓘ sur ~30 boutons). -->
     <div class="u-d-flex u-fd-column u-gap-6px u-mb-8px">
-      <button class="action-btn btn-sm u-flex-1 u-ta-left" id="help-onboarding-btn">🔰 Revoir les premiers pas</button>
-      <button class="action-btn btn-sm u-flex-1 u-ta-left" id="help-tour-btn">🎓 Visite guidée complète</button>
-      <button class="action-btn btn-sm u-flex-1 u-ta-left" id="help-privacy-btn">🔒 Confidentialité et IA</button>
+      <button class="action-btn btn-sm u-flex-1 u-ta-left" id="help-onboarding-btn"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-compass"></use></svg> Revoir les premiers pas</button>
+      <button class="action-btn btn-sm u-flex-1 u-ta-left" id="help-tour-btn"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-graduation-cap"></use></svg> Visite guidée complète</button>
+      <button class="action-btn btn-sm u-flex-1 u-ta-left" id="help-privacy-btn"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-lock"></use></svg> Confidentialité et IA</button>
     </div>
     <strong class="u-fs-base u-c-v-text-muted">Raccourcis clavier</strong>
     <div class="shortcut-row"><span>Gras</span><span class="shortcut-key">Ctrl+B</span></div>
@@ -427,15 +530,15 @@
   <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-420px-92vw u-maxh-75vh u-d-flex u-fd-column u-gap-10px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
       <strong>Chapitres à exporter</strong>
-      <button class="action-btn btn-ghost btn-sm" id="export-select-close-btn" title="Fermer cette fenêtre">✕</button>
+      <button class="action-btn btn-ghost btn-sm" id="export-select-close-btn" title="Fermer cette fenêtre" aria-label="Fermer cette fenêtre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
     </div>
     <button class="action-btn btn-secondary btn-sm u-as-flex-start" id="export-select-toggle-btn" title="Cocher ou décocher tous les chapitres d'un coup">Tout (dé)sélectionner</button>
     <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-4px" id="export-select-list"></div>
     <div class="u-d-flex u-gap-6px u-fw-wrap">
-      <button class="action-btn btn-secondary u-flex-1" id="export-select-docx-btn" title="Télécharger les chapitres sélectionnés au format Word">📄 DOCX</button>
-      <button class="action-btn btn-secondary u-flex-1" id="export-select-odt-btn" title="Télécharger les chapitres sélectionnés au format OpenDocument">📃 ODT</button>
-      <button class="action-btn btn-secondary u-flex-1" id="export-select-pdf-btn" title="Télécharger les chapitres sélectionnés au format PDF">📕 PDF</button>
-      <button class="action-btn btn-secondary u-flex-1" id="export-select-epub-btn" title="Télécharger les chapitres sélectionnés au format livre numérique">📚 EPUB</button>
+      <button class="action-btn btn-secondary u-flex-1" id="export-select-docx-btn" title="Télécharger les chapitres sélectionnés au format Word"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-file-text"></use></svg> DOCX</button>
+      <button class="action-btn btn-secondary u-flex-1" id="export-select-odt-btn" title="Télécharger les chapitres sélectionnés au format OpenDocument"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-file-text"></use></svg> ODT</button>
+      <button class="action-btn btn-secondary u-flex-1" id="export-select-pdf-btn" title="Télécharger les chapitres sélectionnés au format PDF"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-file"></use></svg> PDF</button>
+      <button class="action-btn btn-secondary u-flex-1" id="export-select-epub-btn" title="Télécharger les chapitres sélectionnés au format livre numérique"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-book"></use></svg> EPUB</button>
     </div>
   </div>
 </div>
@@ -444,8 +547,8 @@
 <div id="gist-history-overlay" role="dialog" aria-modal="true" aria-label="Versions de la sauvegarde GitHub">
   <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-500px-92vw u-maxh-70vh u-d-flex u-fd-column u-gap-10px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
-      <strong>🕐 Versions de la sauvegarde GitHub</strong>
-      <button class="action-btn btn-ghost btn-sm" id="gist-history-close-btn" title="Fermer cette fenêtre">✕ Fermer</button>
+      <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-clock"></use></svg> Versions de la sauvegarde GitHub</strong>
+      <button class="action-btn btn-ghost btn-sm" id="gist-history-close-btn" title="Fermer cette fenêtre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg> Fermer</button>
     </div>
     <div class="u-fs-xs u-c-v-text-muted">Cliquez sur une version pour la charger (remplace le projet actuel).</div>
     <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-6px" id="gist-history-list"></div>
@@ -458,13 +561,13 @@
 <!-- TTS/DICTÉE PANEL -->
 <div id="tts-panel" role="dialog" aria-label="Lecture à voix haute">
   <div class="u-d-flex u-jc-space-between u-ai-center">
-    <strong class="u-fs-base">🎙️ Voix</strong>
-    <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="tts-close-btn" title="Fermer">×</button>
+    <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-mic"></use></svg> Voix</strong>
+    <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="tts-close-btn" title="Fermer" aria-label="Fermer"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
   </div>
   <div class="u-fs-sm u-c-v-text-muted">Lecture à voix haute</div>
   <div class="tts-row">
-    <button class="voice-btn u-bg-v-success u-c-hfff" id="tts-play-btn" aria-label="Lire" title="Lire le chapitre à voix haute">▶</button>
-    <button class="voice-btn u-bg-v-warn u-c-hfff" id="tts-pause-btn" aria-label="Pause" title="Mettre la lecture en pause">⏸</button>
+    <button class="voice-btn u-bg-v-success u-c-hfff" id="tts-play-btn" aria-label="Lire" title="Lire le chapitre à voix haute"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-play"></use></svg></button>
+    <button class="voice-btn u-bg-v-warn u-c-hfff" id="tts-pause-btn" aria-label="Pause" title="Mettre la lecture en pause"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-pause"></use></svg></button>
     <button class="voice-btn u-bg-v-danger u-c-hfff" id="tts-stop-btn" aria-label="Arrêter" title="Arrêter la lecture">⏹</button>
     <div class="u-fg-1">
       <select id="tts-voice-sel" class="field u-fs-xs u-p-4px" aria-label="Voix"></select>
@@ -479,14 +582,14 @@
 
 <!-- PWA BANNER -->
 <div id="pwa-banner">
-  <span>📱 Installer Plume comme application ?</span>
+  <span><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-smartphone"></use></svg> Installer Plume comme application ?</span>
   <button class="action-btn btn-sm" id="pwa-install-btn" title="Installer l'application sur cet appareil">Installer</button>
   <button class="btn-sm u-bg-none u-bd-none u-cur-pointer u-c-v-text-muted" id="pwa-dismiss-btn" title="Ne plus afficher ce message">Plus tard</button>
 </div>
 
 <!-- SW UPDATE BANNER (nouveau v6.0.0) -->
 <div id="sw-update-banner">
-  <span>🔄 Nouvelle version disponible.</span>
+  <span><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh-cw"></use></svg> Nouvelle version disponible.</span>
   <button class="action-btn btn-sm" id="sw-update-btn" title="Charger la nouvelle version de l'application">Mettre à jour</button>
   <button class="u-bg-none u-bd-none u-cur-pointer u-c-v-text-muted" id="sw-update-dismiss-btn" title="Continuer avec la version actuelle">Plus tard</button>
 </div>
@@ -512,30 +615,30 @@
            "📚 Ma bibliothèque" à l'intérieur — voir #back-to-library-btn
            plus bas. Caché sur desktop (u-d-none), où ce bouton existe déjà
            et reste visible en permanence dans le panneau non replié. -->
-      <button class="u-d-none" id="chapter-quick-library-btn" title="Retour à la bibliothèque" aria-label="Retour à la bibliothèque">📚</button>
-      <button class="u-d-none" id="chapter-sidebar-toggle-btn" title="Afficher/masquer le panneau chapitres" aria-label="Afficher/masquer le panneau chapitres" aria-expanded="false">☰</button>
+      <button class="u-d-none" id="chapter-quick-library-btn" title="Retour à la bibliothèque" aria-label="Retour à la bibliothèque"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-library"></use></svg></button>
+      <button class="u-d-none" id="chapter-sidebar-toggle-btn" title="Afficher/masquer le panneau chapitres" aria-label="Afficher/masquer le panneau chapitres" aria-expanded="false"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-menu"></use></svg></button>
     </div>
     <div id="chapter-sidebar-body">
       <div class="u-d-flex u-gap-6px u-mb-6px">
-        <button class="action-btn btn-secondary btn-sm u-flex-1" id="back-to-library-btn" title="Retourner à la liste de tous vos manuscrits">📚 Ma bibliothèque</button>
+        <button class="action-btn btn-secondary btn-sm u-flex-1" id="back-to-library-btn" title="Retourner à la liste de tous vos manuscrits"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-library"></use></svg> Ma bibliothèque</button>
       </div>
       <div class="u-d-flex u-gap-6px">
         <button class="action-btn u-fg-1" id="add-chapter-btn" title="Ajouter un nouveau chapitre à ce manuscrit">+ Chapitre</button>
-        <button class="action-btn btn-secondary" id="open-trash-btn" title="Voir les chapitres supprimés (récupérables 30 jours)">🗑️<span class="trash-badge" id="trash-badge" aria-hidden="true"></span></button>
+        <button class="action-btn btn-secondary" id="open-trash-btn" title="Voir les chapitres supprimés (récupérables 30 jours)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-trash-2"></use></svg><span class="trash-badge" id="trash-badge" aria-hidden="true"></span></button>
       </div>
       <div class="ch-view-toggle" role="group" aria-label="Vue des chapitres">
-        <button class="mode-indicator active" id="view-list-btn" title="Liste des chapitres">☰ Liste</button>
-        <button class="mode-indicator" id="view-cork-btn" title="Vue en tableau de fiches">🗂️ Fiches</button>
+        <button class="mode-indicator active" id="view-list-btn" title="Liste des chapitres"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-menu"></use></svg> Liste</button>
+        <button class="mode-indicator" id="view-cork-btn" title="Vue en tableau de fiches"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-layout-grid"></use></svg> Fiches</button>
       </div>
       <!-- v9.47.0 (AUD-03-036) : filtre de chapitres (affiché à partir de 8 chapitres). Affichage seulement : le
            glisser-déposer est désactivé tant qu'un filtre est actif. -->
       <div hidden class="u-d-flex u-ai-center u-gap-6px" id="chapter-filter-wrap">
-        <input id="chapter-filter" type="search" class="field u-flex-1" placeholder="🔍 Filtrer les chapitres…" aria-label="Filtrer les chapitres" title="Filtrer par titre ou par étiquette">
+        <input id="chapter-filter" type="search" class="field u-flex-1" placeholder="Filtrer les chapitres…" aria-label="Filtrer les chapitres" title="Filtrer par titre ou par étiquette">
         <span class="u-fs-sm u-c-v-text-muted" id="chapter-filter-count" aria-live="polite"></span>
       </div>
       <div class="chapter-list-container" id="chapter-list" role="list"></div>
       <div class="sidebar-stats">
-        📝 <strong id="total-words">0</strong> mots &nbsp;|&nbsp; 📅 <strong id="today-words">0</strong> aujourd'hui
+        <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-file-text"></use></svg> <strong id="total-words">0</strong> mots &nbsp;|&nbsp; <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-calendar"></use></svg> <strong id="today-words">0</strong> aujourd'hui
         <div class="daily-bar-wrap"><div class="daily-bar" id="sidebar-goal-bar"></div></div>
         <label for="tension-slider" title="Intensité dramatique de ce chapitre (0 = calme, 100 = paroxysme). Elle alimente la courbe de Analyse → Structure.">Tension du chapitre : <strong id="tension-value">20</strong>/100</label>
         <input type="range" id="tension-slider" min="0" max="100" value="20" aria-describedby="tension-value">
@@ -561,7 +664,7 @@
            panneau chapitres, masqué quand on écrit), celui-ci reste
            accessible en un tap même en plein milieu d'un long chapitre,
            puisque toute cette barre est désormais collante au défilement. -->
-      <button class="action-btn btn-sm u-d-none" id="toolbar-library-btn" title="Retour à la bibliothèque" aria-label="Retour à la bibliothèque">📚</button>
+      <button class="action-btn btn-sm u-d-none" id="toolbar-library-btn" title="Retour à la bibliothèque" aria-label="Retour à la bibliothèque"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-library"></use></svg></button>
       <span class="u-w-1px u-h-20px u-bg-v-border u-m-0-4px u-d-none" id="toolbar-library-sep"></span>
       <!-- Mise en forme riche (nouveau V56) -->
       <button class="action-btn btn-sm" id="fmt-bold-btn" title="Gras (Ctrl+B)"><b>G</b></button>
@@ -575,9 +678,9 @@
            mobile, ce menu profite automatiquement de la feuille fixée en bas
            d'écran déjà en place pour tous les autres menus de cette barre. -->
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn" title="Surligner le texte sélectionné">🖍️<span class="tb-label"> Surligner</span> ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn" title="Surligner le texte sélectionné"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-highlighter"></use></svg><span class="tb-label"> Surligner</span> <svg class="icon icon-caret" aria-hidden="true" focusable="false"><use href="#i-chevron-down"></use></svg></button>
         <div class="toolbar-menu hl-menu" role="menu">
-          <button class="hl-swatch hl-swatch-none" data-hl="none" title="Retirer le surlignage" aria-label="Retirer le surlignage">✕</button>
+          <button class="hl-swatch hl-swatch-none" data-hl="none" title="Retirer le surlignage" aria-label="Retirer le surlignage"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
           <button class="hl-swatch" data-hl="rouge" title="Rouge" aria-label="Surligner en rouge"></button>
           <button class="hl-swatch" data-hl="orange" title="Orange" aria-label="Surligner en orange"></button>
           <button class="hl-swatch" data-hl="jaune" title="Jaune" aria-label="Surligner en jaune"></button>
@@ -588,8 +691,8 @@
           <button class="hl-swatch" data-hl="rose" title="Rose" aria-label="Surligner en rose"></button>
         </div>
       </div>
-      <button class="action-btn btn-sm" id="undo-btn" title="Annuler (Ctrl+Z)" disabled>↶</button>
-      <button class="action-btn btn-sm" id="redo-btn" title="Rétablir (Ctrl+Y)" disabled>↷</button>
+      <button class="action-btn btn-sm" id="undo-btn" title="Annuler (Ctrl+Z)" disabled aria-label="Annuler (Ctrl+Z)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-undo-2"></use></svg></button>
+      <button class="action-btn btn-sm" id="redo-btn" title="Rétablir (Ctrl+Y)" disabled aria-label="Rétablir (Ctrl+Y)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-redo-2"></use></svg></button>
       <span class="u-w-1px u-h-20px u-bg-v-border u-m-0-4px"></span>
 
       <!-- Barre d'outils regroupée en menus déroulants (v7.4.0) : moins de
@@ -597,33 +700,33 @@
       <!-- v9.47.0 (AUD-03-015) : barre regroupée — « Structure » (ex-Paragraphe + Scinder + date/heure), « Focus » en bouton
            direct, « Outils » réduit à l'analyse, la lecture, la voix, le sprint et l'export ; plus aucune icône ⓘ ici. -->
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn" id="tb-structure-btn" title="Structure : titres, paragraphes, scinder le chapitre">¶<span class="tb-label"> Structure</span> ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn" id="tb-structure-btn" title="Structure : titres, paragraphes, scinder le chapitre">¶<span class="tb-label"> Structure</span> <svg class="icon icon-caret" aria-hidden="true" focusable="false"><use href="#i-chevron-down"></use></svg></button>
         <div class="toolbar-menu">
           <button id="fmt-title-btn" title="Transformer la ligne en sous-titre">Titre</button>
           <button id="fmt-para-btn" title="Revenir à un paragraphe normal">Paragraphe normal</button>
-          <button id="split-chapter-btn" title="Couper le chapitre à l'endroit du curseur : la suite devient un nouveau chapitre">✂️ Scinder ici</button>
-          <button id="insert-datetime-btn" title="Insérer la date et l'heure actuelles à l'endroit du curseur">🕐 Insérer date/heure</button>
+          <button id="split-chapter-btn" title="Couper le chapitre à l'endroit du curseur : la suite devient un nouveau chapitre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-scissors"></use></svg> Scinder ici</button>
+          <button id="insert-datetime-btn" title="Insérer la date et l'heure actuelles à l'endroit du curseur"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-clock"></use></svg> Insérer date/heure</button>
         </div>
       </div>
 
-      <button class="action-btn btn-sm" id="focus-btn" title="Écrire en plein écran, sans distraction (Échap pour quitter)">🎯<span class="tb-label"> Focus</span></button>
+      <button class="action-btn btn-sm" id="focus-btn" title="Écrire en plein écran, sans distraction (Échap pour quitter)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-target"></use></svg><span class="tb-label"> Focus</span></button>
 
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn" id="tb-tools-btn" title="Outils d'écriture">🛠️<span class="tb-label"> Outils</span> ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn" id="tb-tools-btn" title="Outils d'écriture"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-wrench"></use></svg><span class="tb-label"> Outils</span> <svg class="icon icon-caret" aria-hidden="true" focusable="false"><use href="#i-chevron-down"></use></svg></button>
         <div class="toolbar-menu">
-          <button id="analyze-btn" title="Surligner les mots faibles/répétitifs dans le texte">🔍 Analyser le style</button>
-          <button id="clear-btn" title="Retirer les surlignages de style (le texte n'est pas modifié)">🧹 Nettoyer les surlignages</button>
-          <button id="reading-mode-btn" title="Relire tout le roman à la suite, comme un lecteur">📖 Mode Lecture</button>
-          <button id="voice-btn" title="Lire le texte à voix haute ou écrire par dictée">🎙️ Voix (dictée/lecture)</button>
+          <button id="analyze-btn" title="Surligner les mots faibles/répétitifs dans le texte"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg> Analyser le style</button>
+          <button id="clear-btn" title="Retirer les surlignages de style (le texte n'est pas modifié)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-eraser"></use></svg> Nettoyer les surlignages</button>
+          <button id="reading-mode-btn" title="Relire tout le roman à la suite, comme un lecteur"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-book-open"></use></svg> Mode Lecture</button>
+          <button id="voice-btn" title="Lire le texte à voix haute ou écrire par dictée"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-mic"></use></svg> Voix (dictée/lecture)</button>
           <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
-          <button id="sprint-start-menu-btn" title="Chronomètre de 25 minutes : le temps restant et les mots gagnés s'affichent en bas de l'écran">⏱ Démarrer un sprint de 25 min</button>
-          <button id="export-chapter-btn" title="Exporter le chapitre ouvert (DOCX, ODT, PDF, EPUB)">📤 Exporter ce chapitre…</button>
-          <button id="export-doc-btn" title="Exporter tout ou partie du manuscrit (raccourci : Ctrl+E)">📤 Exporter le manuscrit…</button>
+          <button id="sprint-start-menu-btn" title="Chronomètre de 25 minutes : le temps restant et les mots gagnés s'affichent en bas de l'écran"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-timer"></use></svg> Démarrer un sprint de 25 min</button>
+          <button id="export-chapter-btn" title="Exporter le chapitre ouvert (DOCX, ODT, PDF, EPUB)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-upload"></use></svg> Exporter ce chapitre…</button>
+          <button id="export-doc-btn" title="Exporter tout ou partie du manuscrit (raccourci : Ctrl+E)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-upload"></use></svg> Exporter le manuscrit…</button>
         </div>
       </div>
 
       <div class="toolbar-dropdown">
-        <button class="action-btn btn-sm toolbar-dropdown-btn" id="tb-search-btn" title="Rechercher du texte">🔎<span class="tb-label"> Rechercher</span> ▾</button>
+        <button class="action-btn btn-sm toolbar-dropdown-btn" id="tb-search-btn" title="Rechercher du texte"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg><span class="tb-label"> Rechercher</span> <svg class="icon icon-caret" aria-hidden="true" focusable="false"><use href="#i-chevron-down"></use></svg></button>
         <div class="toolbar-menu">
           <button id="global-search-btn" title="Rechercher un mot dans tout le projet">Dans tout le projet</button>
           <button id="find-replace-btn" title="Rechercher et remplacer du texte dans ce chapitre">Ici, avec remplacement</button>
@@ -634,10 +737,10 @@
            bloc vers IA & Mémoire → IA sur mobile (voir relocateLexToolsForMobile()
            dans router.js). Sur PC, ce wrapper reste ici, inchangé. -->
       <div id="lex-tools-wrapper" class="u-d-flex u-ai-center u-gap-6px">
-        <button class="action-btn btn-sm" id="lex-tools-toggle-btn" title="Synonymes et antonymes" aria-label="Synonymes et antonymes" aria-expanded="false">✨<span class="tb-label"> Mots</span> ▾</button>
+        <button class="action-btn btn-sm" id="lex-tools-toggle-btn" title="Synonymes et antonymes" aria-label="Synonymes et antonymes" aria-expanded="false"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-sparkles"></use></svg><span class="tb-label"> Mots</span> <svg class="icon icon-caret" aria-hidden="true" focusable="false"><use href="#i-chevron-down"></use></svg></button>
         <div class="u-d-flex u-gap-6px" id="lex-tools-group">
           <select id="search-mode" class="field u-w-auto" aria-label="Mode dictionnaire" title="Choisir entre synonymes et antonymes">
-            <option value="syn">✨ Synonymes</option><option value="ant">🌑 Antonymes</option>
+            <option value="syn">Synonymes</option><option value="ant">Antonymes</option>
           </select>
           <input id="lex-in" class="field u-w-85px" placeholder="mot…" aria-label="Mot à chercher" title="Tapez un mot puis cliquez sur GO">
           <button class="action-btn" id="search-btn" aria-label="Rechercher" title="Chercher les synonymes ou antonymes de ce mot">GO</button>
@@ -646,20 +749,20 @@
     </div>
     <div class="u-d-flex u-ai-center u-gap-10px u-mb-6px" id="chapter-title-row">
       <div class="u-fs-1_45rem u-fwt-700 u-c-title u-outline-none u-minh-28px u-fg-1" id="chapter-title" contenteditable="true" role="textbox" aria-label="Titre" title="Cliquez pour renommer ce chapitre"></div>
-      <button class="mode-indicator u-fsh-0" id="chapter-notes-toggle-btn" title="Objectif de mots et notes de recherche pour ce chapitre">📓 Notes</button>
+      <button class="mode-indicator u-fsh-0" id="chapter-notes-toggle-btn" title="Objectif de mots et notes de recherche pour ce chapitre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-notebook"></use></svg> Notes</button>
       <select id="chapter-status-sel" class="field u-w-auto u-fsh-0" aria-label="Statut du chapitre" title="Statut d'avancement de ce chapitre">
-        <option value="draft">📝 Brouillon</option>
-        <option value="review">🔎 À revoir</option>
-        <option value="final">✅ Final</option>
+        <option value="draft">Brouillon</option>
+        <option value="review">À revoir</option>
+        <option value="final">Final</option>
       </select>
     </div>
     <div id="chapter-notes-panel" class="u-d-none u-mb-10px">
       <div class="u-d-flex u-ai-center u-gap-8px u-mb-6px">
-        <label class="u-fs-sm u-c-v-text-muted" for="chapter-word-goal-input">🎯 Objectif de mots (ce chapitre)</label>
+        <label class="u-fs-sm u-c-v-text-muted" for="chapter-word-goal-input"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-target"></use></svg> Objectif de mots (ce chapitre)</label>
         <input type="number" id="chapter-word-goal-input" class="field u-w-90px" min="0" step="100" placeholder="0">
         <span class="u-fs-sm u-c-v-text-muted" id="chapter-word-goal-progress"></span>
       </div>
-      <label class="u-fs-sm u-c-v-text-muted u-d-block u-mb-4px" for="chapter-research-notes">📓 Notes de recherche</label>
+      <label class="u-fs-sm u-c-v-text-muted u-d-block u-mb-4px" for="chapter-research-notes"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-notebook"></use></svg> Notes de recherche</label>
       <textarea id="chapter-research-notes" class="field u-w-100pc" rows="3" placeholder="Prononciation, faits historiques, références..."></textarea>
     </div>
     <div id="writer" contenteditable="true" role="textbox" aria-multiline="true"
@@ -667,17 +770,17 @@
     <div id="corkboard-view" class="corkboard u-d-none" role="list" aria-label="Tableau de fiches des chapitres"></div>
     <div id="ai-summary-panel" role="dialog" aria-label="Résumé IA">
       <div class="u-d-flex u-jc-space-between u-ai-center">
-        <strong class="u-fs-base">✨ Résumé IA</strong>
-        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="ai-panel-close" title="Fermer">×</button>
+        <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-sparkles"></use></svg> Résumé IA</strong>
+        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="ai-panel-close" title="Fermer" aria-label="Fermer"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
       </div>
       <div id="ai-summary-text" aria-live="polite"></div>
-      <button class="action-btn btn-secondary btn-sm" id="ai-summary-copy" title="Copier ce résumé dans le presse-papier">📋 Copier résumé</button>
+      <button class="action-btn btn-secondary btn-sm" id="ai-summary-copy" title="Copier ce résumé dans le presse-papier"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-clipboard-copy"></use></svg> Copier résumé</button>
     </div>
 
     <div id="lex-panel" role="dialog" aria-label="Synonymes et antonymes">
       <div class="u-d-flex u-jc-space-between u-ai-center">
-        <span id="lex-panel-title">✨ Synonymes</span>
-        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="lex-panel-close" aria-label="Fermer" title="Fermer">×</button>
+        <span id="lex-panel-title"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-sparkles"></use></svg> Synonymes</span>
+        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="lex-panel-close" aria-label="Fermer" title="Fermer"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
       </div>
       <div class="u-fs-xs u-c-v-text-muted" id="lex-panel-word"></div>
       <div id="lex-words"></div>
@@ -686,8 +789,8 @@
 
     <div id="fr-panel" role="dialog" aria-label="Rechercher et remplacer">
       <div class="u-d-flex u-jc-space-between u-ai-center">
-        <strong class="u-fs-base">🔁 Rechercher / Remplacer</strong>
-        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="fr-panel-close" aria-label="Fermer" title="Fermer">×</button>
+        <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-replace"></use></svg> Rechercher / Remplacer</strong>
+        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="fr-panel-close" aria-label="Fermer" title="Fermer"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
       </div>
       <input id="fr-find-input" class="field" placeholder="Rechercher...">
       <input id="fr-replace-input" class="field" placeholder="Remplacer par...">
@@ -707,10 +810,10 @@
 
     <div id="ai-chat-panel" role="dialog" aria-label="Assistant IA">
       <div class="u-d-flex u-jc-space-between u-ai-center">
-        <strong class="u-fs-base">🤖 Assistant IA</strong>
+        <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-bot"></use></svg> Assistant IA</strong>
         <div class="u-d-flex u-gap-4px">
-          <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1rem" id="ai-chat-reset-btn" title="Nouvelle conversation">🔄</button>
-          <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="ai-chat-close-btn" aria-label="Fermer" title="Fermer">×</button>
+          <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1rem" id="ai-chat-reset-btn" title="Nouvelle conversation" aria-label="Nouvelle conversation"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh-cw"></use></svg></button>
+          <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="ai-chat-close-btn" aria-label="Fermer" title="Fermer"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
         </div>
       </div>
       <label class="u-d-flex u-ai-center u-gap-6px u-fs-xs u-c-v-text-muted">
@@ -724,25 +827,25 @@
       <div id="ai-chat-chips" class="u-d-flex u-gap-6px u-fw-wrap"></div>
       <div class="u-d-flex u-gap-6px">
         <input type="text" id="ai-chat-input" class="field u-flex-1" placeholder="Écrire un message…" aria-label="Message à l'assistant IA">
-        <button class="action-btn btn-sm u-fsh-0" id="ai-chat-send-btn" title="Envoyer">➤</button>
+        <button class="action-btn btn-sm u-fsh-0" id="ai-chat-send-btn" title="Envoyer" aria-label="Envoyer"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-send"></use></svg></button>
       </div>
     </div>
 
     <div id="mode-bar">
       <div id="save-indicator" aria-hidden="true"></div>
       <span class="u-fs-xs u-c-v-text-muted" id="autosave-label"></span>
-      <button hidden class="mode-indicator" id="sprint-chip" title="Sprint en cours : ouvrir Config → Sprint"><span aria-hidden="true">⏱</span> <span id="sprint-chip-time">25:00</span> · <span id="sprint-chip-words">+0</span> mots</button>
+      <button hidden class="mode-indicator" id="sprint-chip" title="Sprint en cours : ouvrir Config → Sprint"><span aria-hidden="true"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-timer"></use></svg></span> <span id="sprint-chip-time">25:00</span> · <span id="sprint-chip-words">+0</span> mots</button>
       <span class="u-d-flex u-ai-center u-gap-4px" id="sync-status-dot-wrap" title="État de la dernière synchronisation">
         <span id="sync-status-dot" aria-hidden="true"></span>
         <span class="u-fs-xs u-c-v-text-muted" id="sync-status-label"></span>
       </span>
-      <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre"><span aria-hidden="true">🌙</span><span class="mb-label"> Nuit</span></button>
-      <button class="mode-indicator" id="dictate-btn" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro"><span aria-hidden="true">🎤</span><span class="mb-label"> Dictée</span></button>
-      <button class="mode-indicator" id="ai-chat-btn" title="Discuter avec l'assistant IA"><span aria-hidden="true">🤖</span><span class="mb-label"> IA</span></button>
+      <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre"><span aria-hidden="true"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-moon"></use></svg></span><span class="mb-label"> Nuit</span></button>
+      <button class="mode-indicator" id="dictate-btn" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro"><span aria-hidden="true"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-mic"></use></svg></span><span class="mb-label"> Dictée</span></button>
+      <button class="mode-indicator" id="ai-chat-btn" title="Discuter avec l'assistant IA"><span aria-hidden="true"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-bot"></use></svg></span><span class="mb-label"> IA</span></button>
       <span class="u-fs-xs u-c-v-text-muted" id="dictate-status"></span>
       <span id="dictate-preview" aria-live="polite"></span>
-      <button class="u-d-none u-bg-linear-gradient-135deg-v-acc-1qh64 u-c-hfff u-bd-none u-p-5px-14px u-br-pill u-cur-pointer u-fs-sm u-fwt-700 u-ff-inherit u-shadow-elev-1" id="install-app-btn" title="Installer Plume comme application sur cet ordinateur">📲 Installer sur le bureau</button>
-      <button id="shortcuts-hint-btn" class="mode-indicator u-ml-auto u-p-2px-8px" title="Aide et raccourcis clavier (touche ?)" aria-label="Aide et raccourcis">❔<span class="mb-label"> Aide</span></button>
+      <button class="u-d-none u-bg-linear-gradient-135deg-v-acc-1qh64 u-c-hfff u-bd-none u-p-5px-14px u-br-pill u-cur-pointer u-fs-sm u-fwt-700 u-ff-inherit u-shadow-elev-1" id="install-app-btn" title="Installer Plume comme application sur cet ordinateur"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-download"></use></svg> Installer sur le bureau</button>
+      <button id="shortcuts-hint-btn" class="mode-indicator u-ml-auto u-p-2px-8px" title="Aide et raccourcis clavier (touche ?)" aria-label="Aide et raccourcis"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-circle-help"></use></svg><span class="mb-label"> Aide</span></button>
     </div>
   </div>
 <div id="tab-container" role="region" aria-label="Volet latéral">
@@ -751,27 +854,27 @@
   <div id="panel-resizer" role="separator" aria-orientation="vertical" aria-label="Redimensionner le volet (flèches gauche/droite)" tabindex="0" aria-valuemin="320"></div>
   <div id="panel-head">
     <strong id="panel-title"></strong>
-    <button class="action-btn btn-secondary btn-sm" id="panel-close-btn" title="Fermer le volet (Échap)" aria-label="Fermer le volet"><span class="pc-x" aria-hidden="true">✕ Fermer</span><span class="pc-back">← Retour au texte</span></button>
+    <button class="action-btn btn-secondary btn-sm" id="panel-close-btn" title="Fermer le volet (Échap)" aria-label="Fermer le volet"><span class="pc-x" aria-hidden="true"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg> Fermer</span><span class="pc-back">← Retour au texte</span></button>
   </div>
 
   <!-- CATÉGORIE : Univers narratif (nouveau v7.4.0 — regroupe 5 anciens onglets) -->
   <div id="tab-univers" class="tab-content" role="region" aria-label="Univers narratif">
     <div class="subtab-nav" role="tablist" aria-label="Univers narratif">
-      <button class="subtab-btn active" data-subtab="tab-chars" title="Fiches de vos personnages">👥 Personnages</button>
-      <button class="subtab-btn" data-subtab="tab-places" title="Fiches de vos lieux">🏰 Lieux</button>
-      <button class="subtab-btn" data-subtab="tab-quests" title="Suivi des intrigues et fils narratifs">🎯 Quêtes</button>
-      <button class="subtab-btn" data-subtab="tab-timeline" title="Chronologie des événements du roman">🕐 Chronologie</button>
-      <button class="subtab-btn" data-subtab="tab-graph" title="Graphe des relations entre personnages, lieux et quêtes">🕸️ Relations</button>
+      <button class="subtab-btn active" data-subtab="tab-chars" title="Fiches de vos personnages"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-users"></use></svg> Personnages</button>
+      <button class="subtab-btn" data-subtab="tab-places" title="Fiches de vos lieux"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-castle"></use></svg> Lieux</button>
+      <button class="subtab-btn" data-subtab="tab-quests" title="Suivi des intrigues et fils narratifs"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-target"></use></svg> Quêtes</button>
+      <button class="subtab-btn" data-subtab="tab-timeline" title="Chronologie des événements du roman"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-clock"></use></svg> Chronologie</button>
+      <button class="subtab-btn" data-subtab="tab-graph" title="Graphe des relations entre personnages, lieux et quêtes"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-network"></use></svg> Relations</button>
     </div>
 
     <div id="tab-chars" class="subtab-content active" role="tabpanel">
       <div class="db-grid">
         <div>
           <div class="u-d-flex u-ai-center u-gap-6px u-mb-6px">
-            <input id="char-filter" class="field u-flex-1" placeholder="🔍 Filtrer les personnages..." aria-label="Filtrer les personnages" title="Filtrer la liste par nom">
+            <input id="char-filter" class="field u-flex-1" placeholder="Filtrer les personnages..." aria-label="Filtrer les personnages" title="Filtrer la liste par nom">
             <div class="ch-view-toggle uni-view-toggle" role="group" aria-label="Vue des personnages">
-              <button class="mode-indicator uni-view-list-btn active" data-uni-view="list" title="Vue liste">☰</button>
-              <button class="mode-indicator uni-view-cards-btn" data-uni-view="cards" title="Vue cartes">🗂️</button>
+              <button class="mode-indicator uni-view-list-btn active" data-uni-view="list" title="Vue liste" aria-label="Vue liste"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-menu"></use></svg></button>
+              <button class="mode-indicator uni-view-cards-btn" data-uni-view="cards" title="Vue cartes" aria-label="Vue cartes"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-layout-grid"></use></svg></button>
             </div>
           </div>
           <div class="list-box u-h-260px" id="char-list-db" role="list"></div>
@@ -786,10 +889,10 @@
       <div class="db-grid">
         <div>
           <div class="u-d-flex u-ai-center u-gap-6px u-mb-6px">
-            <input id="place-filter" class="field u-flex-1" placeholder="🔍 Filtrer les lieux..." aria-label="Filtrer les lieux" title="Filtrer la liste par nom">
+            <input id="place-filter" class="field u-flex-1" placeholder="Filtrer les lieux..." aria-label="Filtrer les lieux" title="Filtrer la liste par nom">
             <div class="ch-view-toggle uni-view-toggle" role="group" aria-label="Vue des lieux">
-              <button class="mode-indicator uni-view-list-btn active" data-uni-view="list" title="Vue liste">☰</button>
-              <button class="mode-indicator uni-view-cards-btn" data-uni-view="cards" title="Vue cartes">🗂️</button>
+              <button class="mode-indicator uni-view-list-btn active" data-uni-view="list" title="Vue liste" aria-label="Vue liste"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-menu"></use></svg></button>
+              <button class="mode-indicator uni-view-cards-btn" data-uni-view="cards" title="Vue cartes" aria-label="Vue cartes"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-layout-grid"></use></svg></button>
             </div>
           </div>
           <div class="list-box u-h-260px" id="place-list-db" role="list"></div>
@@ -803,7 +906,7 @@
     <div id="tab-quests" class="subtab-content" role="tabpanel">
       <div class="db-grid">
         <div>
-          <input id="quest-filter" class="field u-mb-6px" placeholder="🔍 Filtrer les quêtes..." aria-label="Filtrer les quêtes" title="Filtrer la liste par texte">
+          <input id="quest-filter" class="field u-mb-6px" placeholder="Filtrer les quêtes..." aria-label="Filtrer les quêtes" title="Filtrer la liste par texte">
           <div id="quest-list" class="list-box u-h-260px" role="list"></div>
           <div class="u-d-flex u-gap-6px u-mt-8px">
             <input id="q-in" class="field u-flex-1" placeholder="Nouvelle quête...">
@@ -821,7 +924,7 @@
         <select id="tl-chapter-sel" class="field u-maxw-135px"></select>
         <button class="action-btn btn-sm" id="tl-add-btn" title="Ajouter cet événement à la chronologie">+ Ajouter</button>
         <button class="action-btn btn-secondary btn-sm u-d-none" id="tl-cancel-edit-btn" title="Abandonner la modification en cours">Annuler</button>
-        <button class="action-btn btn-secondary btn-sm" id="tl-sort-btn" title="Classer les événements selon l'ordre des chapitres (ceux sans chapitre vont à la fin)">↕ Trier selon les chapitres</button>
+        <button class="action-btn btn-secondary btn-sm" id="tl-sort-btn" title="Classer les événements selon l'ordre des chapitres (ceux sans chapitre vont à la fin)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-arrow-up-down"></use></svg> Trier selon les chapitres</button>
       </div>
       <div id="timeline-container">
         <div id="timeline-track">
@@ -833,7 +936,7 @@
 
     <div id="tab-graph" class="subtab-content" role="tabpanel">
       <div id="graph-controls">
-        <button class="action-btn btn-sm" id="graph-rebuild-btn" title="Reconstruire le graphe des relations entre personnages, lieux et quêtes">🔄 Reconstruire</button>
+        <button class="action-btn btn-sm" id="graph-rebuild-btn" title="Reconstruire le graphe des relations entre personnages, lieux et quêtes"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh-cw"></use></svg> Reconstruire</button>
         <div class="graph-legend">
           <span><span class="legend-dot legend-chars"></span>Perso</span>
           <span><span class="legend-dot legend-places"></span>Lieu</span>
@@ -848,30 +951,30 @@
   <!-- CATÉGORIE : IA & Mémoire (nouveau v7.4.0 — regroupe 2 anciens onglets) -->
   <div id="tab-ia-memoire" class="tab-content" role="region" aria-label="IA et mémoire">
     <div class="subtab-nav" role="tablist" aria-label="IA et mémoire">
-      <button class="subtab-btn active" data-subtab="tab-ai" title="Continuation, incohérences et noms générés par IA">🤖 IA</button>
-      <button class="subtab-btn" data-subtab="tab-memory" title="Poser des questions sur le contenu déjà écrit">🧠 Mémoire</button>
+      <button class="subtab-btn active" data-subtab="tab-ai" title="Continuation, incohérences et noms générés par IA"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-bot"></use></svg> IA</button>
+      <button class="subtab-btn" data-subtab="tab-memory" title="Poser des questions sur le contenu déjà écrit"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-brain"></use></svg> Mémoire</button>
     </div>
 
     <div id="tab-ai" class="subtab-content active" role="tabpanel">
       <div class="u-d-flex u-gap-10px u-fw-wrap">
         <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-14px u-bd-1px-solid-v-border">
-          <strong>✨ Résumé du chapitre</strong>
+          <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-sparkles"></use></svg> Résumé du chapitre</strong>
           <p class="u-fs-sm u-op-_7 u-m-5px-0">Résumé en 3-5 phrases du chapitre ouvert.</p>
           <button class="action-btn btn-sm" id="ai-summary-btn" title="Demander à l'IA un résumé du chapitre">Résumer</button>
         </div>
         <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-14px u-bd-1px-solid-v-border">
-          <strong>💬 Discuter de la sélection</strong>
+          <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-message-square"></use></svg> Discuter de la sélection</strong>
           <p class="u-fs-sm u-op-_7 u-m-5px-0">Envoie le texte sélectionné dans l'éditeur au chat IA.</p>
           <button class="action-btn btn-sm" id="ai-selection-to-chat-btn" title="Envoyer le passage sélectionné à l'assistant IA">Discuter</button>
         </div>
         <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-14px u-bd-1px-solid-v-border">
-          <strong>💡 Continuation</strong>
+          <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-lightbulb"></use></svg> Continuation</strong>
           <p class="u-fs-sm u-op-_7 u-m-5px-0">3 façons de poursuivre.</p>
           <button class="action-btn btn-sm" id="ai-continue-btn" title="Demander à l'IA 3 idées pour poursuivre le chapitre">Générer</button>
           <div class="u-mt-8px u-fs-sm u-lh-1_6" id="ai-continue-result"></div>
         </div>
         <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-14px u-bd-1px-solid-v-border">
-          <strong>🔍 Incohérences</strong>
+          <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg> Incohérences</strong>
           <p class="u-fs-sm u-op-_7 u-m-5px-0">Croise Personnages & texte. L'écran indique toujours ce qui a été lu.</p>
           <select id="ai-check-scope" class="field u-w-100pc u-mb-6px" title="Portée de l'analyse" aria-describedby="ai-check-scope-help">
             <option value="chapter">Ce chapitre</option>
@@ -882,7 +985,7 @@
           <div class="u-mt-8px u-fs-sm u-lh-1_6" id="ai-check-result"></div>
         </div>
         <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-14px u-bd-1px-solid-v-border">
-          <strong>✨ Générateur de noms</strong>
+          <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-sparkles"></use></svg> Générateur de noms</strong>
           <div class="u-d-flex u-gap-6px u-m-6px-0 u-fw-wrap">
             <select id="name-genre-sel" class="field u-w-auto">
               <option value="fantasy">Fantasy</option><option value="sci-fi">Sci-Fi</option>
@@ -900,7 +1003,7 @@
              router.js y déplace #lex-tools-wrapper au chargement (voir
              relocateLexToolsForMobile()). -->
         <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-14px u-bd-1px-solid-v-border u-d-none" id="ia-lex-tools-mount">
-          <strong>✨ Synonymes / Antonymes</strong>
+          <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-sparkles"></use></svg> Synonymes / Antonymes</strong>
           <p class="u-fs-sm u-op-_7 u-m-5px-0">Tapez un mot, choisissez synonymes ou antonymes.</p>
         </div>
       </div>
@@ -909,12 +1012,12 @@
     <div id="tab-memory" class="subtab-content" role="tabpanel">
       <div class="u-d-flex u-gap-8px u-ai-center u-fw-wrap u-mb-6px">
         <strong>&#129504; Memoire Narrative</strong>
-        <button class="action-btn btn-secondary btn-sm" id="memory-index-btn" title="Analyser tout le roman pour permettre les recherches ci-dessous">&#128260; Indexer le roman</button>
+        <button class="action-btn btn-secondary btn-sm" id="memory-index-btn" title="Analyser tout le roman pour permettre les recherches ci-dessous"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh-cw"></use></svg> Indexer le roman</button>
         <span class="u-fs-sm u-c-v-text-muted" id="memory-index-status"></span>
       </div>
       <div class="u-d-flex u-gap-8px u-mb-10px">
         <input id="memory-query-input" class="field u-flex-1" placeholder="Que portait Lea au ch.3 ? Ou est mentionne le chateau ?">
-        <button class="action-btn" id="memory-query-btn" title="Poser une question sur le contenu du roman">&#128269; Interroger</button>
+        <button class="action-btn" id="memory-query-btn" title="Poser une question sur le contenu du roman"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg> Interroger</button>
       </div>
       <div class="u-fg-1 u-ovy-auto u-d-flex u-fd-column u-gap-8px" id="memory-results">
         <div class="u-op-72 u-fs-base u-ta-center u-p-20px">
@@ -927,10 +1030,10 @@
   <!-- CATÉGORIE : Analyse (nouveau v7.4.0 — regroupe 3 anciens onglets) -->
   <div id="tab-analysegroup" class="tab-content" role="region" aria-label="Analyse">
     <div class="subtab-nav" role="tablist" aria-label="Analyse">
-      <button class="subtab-btn active" data-subtab="tab-stats" title="Statistiques d'écriture">📊 Stats</button>
-      <button class="subtab-btn" data-subtab="tab-wordcloud" title="Nuage des mots les plus utilisés">☁️ Mots</button>
-      <button class="subtab-btn" data-subtab="tab-analytics" title="Longueur des chapitres et lisibilité du texte">📈 Détail</button>
-      <button class="subtab-btn" data-subtab="tab-map" title="Courbe de tension narrative du manuscrit">🏗️ Structure</button>
+      <button class="subtab-btn active" data-subtab="tab-stats" title="Statistiques d'écriture"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-chart-column"></use></svg> Stats</button>
+      <button class="subtab-btn" data-subtab="tab-wordcloud" title="Nuage des mots les plus utilisés"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-cloud"></use></svg> Mots</button>
+      <button class="subtab-btn" data-subtab="tab-analytics" title="Longueur des chapitres et lisibilité du texte"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-chart-line"></use></svg> Détail</button>
+      <button class="subtab-btn" data-subtab="tab-map" title="Courbe de tension narrative du manuscrit"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-list-tree"></use></svg> Structure</button>
     </div>
 
     <div id="tab-stats" class="subtab-content active" role="tabpanel">
@@ -940,7 +1043,7 @@
 
     <div id="tab-wordcloud" class="subtab-content" role="tabpanel">
       <div id="wordcloud-controls">
-        <button class="action-btn btn-sm" id="wc-gen-btn" title="Créer le nuage à partir des mots les plus fréquents">🔄 Générer</button>
+        <button class="action-btn btn-sm" id="wc-gen-btn" title="Créer le nuage à partir des mots les plus fréquents"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh-cw"></use></svg> Générer</button>
         <label class="u-fs-sm u-d-flex u-ai-center u-gap-4px u-cur-pointer">
           <input type="checkbox" id="wc-all-chapters"> Tout le projet
         </label>
@@ -977,33 +1080,33 @@
   <!-- CATÉGORIE : Système (nouveau v7.4.0 — regroupe 3 anciens onglets) -->
   <div id="tab-systeme" class="tab-content" role="region" aria-label="Système">
     <div class="subtab-nav" role="tablist" aria-label="Système">
-      <button class="subtab-btn active" data-subtab="tab-history" title="Anciennes versions de chaque chapitre">🔖 Versions</button>
-      <button class="subtab-btn" data-subtab="tab-plugins" title="Modules complémentaires activables">🔌 Plugins</button>
+      <button class="subtab-btn active" data-subtab="tab-history" title="Anciennes versions de chaque chapitre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-bookmark"></use></svg> Versions</button>
+      <button class="subtab-btn" data-subtab="tab-plugins" title="Modules complémentaires activables"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-plug"></use></svg> Plugins</button>
     </div>
 
     <div id="tab-history" class="subtab-content active" role="tabpanel">
       <div class="u-d-flex u-gap-8px u-ai-center u-fw-wrap">
         <strong>Versions automatiques : chapitre courant</strong>
-        <button class="action-btn btn-sm" id="snapshot-btn" title="Enregistrer une copie du chapitre actuel dans l'historique">📸 Enregistrer une version</button>
-        <button class="action-btn btn-secondary btn-sm" id="open-diff-btn" title="Comparer deux versions du chapitre">↔ Comparer versions</button>
+        <button class="action-btn btn-sm" id="snapshot-btn" title="Enregistrer une copie du chapitre actuel dans l'historique"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-camera"></use></svg> Enregistrer une version</button>
+        <button class="action-btn btn-secondary btn-sm" id="open-diff-btn" title="Comparer deux versions du chapitre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-arrow-left-right"></use></svg> Comparer versions</button>
       </div>
       <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-5px" id="snapshot-list"></div>
     </div>
 
     <div id="tab-plugins" class="subtab-content" role="tabpanel">
-      <strong class="u-fs-base">🔌 Plugins actifs</strong>
+      <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-plug"></use></svg> Plugins actifs</strong>
       <div class="u-d-grid u-gtc-repeat-auto-fill-minmax-200px-1fr u-gap-10px u-mt-10px" id="plugins-grid"></div>
     </div>
   </div>
 
   <div id="tab-config" class="tab-content" role="region" aria-label="Config">
     <div class="subtab-nav" role="tablist" aria-label="Config">
-      <button class="subtab-btn active" data-subtab="tab-config-main" title="Apparence, objectifs, mots faibles, profil">⚙️ Réglages</button>
-      <button class="subtab-btn" data-subtab="tab-sprint" title="Chronomètre pour une session d'écriture concentrée">⏱️ Sprint</button>
+      <button class="subtab-btn active" data-subtab="tab-config-main" title="Apparence, objectifs, mots faibles, profil"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-settings"></use></svg> Réglages</button>
+      <button class="subtab-btn" data-subtab="tab-sprint" title="Chronomètre pour une session d'écriture concentrée"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-timer"></use></svg> Sprint</button>
     </div>
 
     <div id="tab-config-main" class="subtab-content active" role="tabpanel">
-    <strong>📖 Type de projet</strong>
+    <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-book-open"></use></svg> Type de projet</strong>
     <div class="u-mt-8px u-mb-14px">
       <select id="project-type-sel" class="field u-w-min-260px-100pc">
         <option value="fantasy">Roman (fantasy / aventure)</option>
@@ -1014,7 +1117,7 @@
       <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-0">Adapte le vocabulaire de l'app (ex. "Quêtes" → "Intrigues" pour un roman contemporain). N'affecte aucune donnée.</p>
     </div>
     <hr class="u-bdc-v-border u-m-10px-0">
-    <strong>🎨 Apparence</strong>
+    <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-palette"></use></svg> Apparence</strong>
     <div class="u-fs-sm u-c-v-text-muted u-m-10px-0-8px">Palette de couleurs</div>
     <div class="u-d-flex u-gap-9px u-fw-wrap u-mb-14px" id="palette-picker">
       <button class="palette-swatch" data-palette="rouge-violet" title="Rouge &amp; Violet" aria-label="Rouge &amp; Violet"><span></span><span></span></button>
@@ -1025,9 +1128,9 @@
     </div>
     <div class="u-fs-sm u-c-v-text-muted u-m-0-0-8px">Thème</div>
     <div class="u-d-flex u-gap-8px u-mb-14px" id="theme-picker">
-      <button class="mode-indicator" data-theme="light" title="Thème clair">☀️ Clair</button>
-      <button class="mode-indicator" data-theme="dark" title="Thème sombre">🌙 Sombre</button>
-      <button class="mode-indicator" data-theme="paper" title="Thème papier/sépia">📜 Papier</button>
+      <button class="mode-indicator" data-theme="light" title="Thème clair"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-sun"></use></svg> Clair</button>
+      <button class="mode-indicator" data-theme="dark" title="Thème sombre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-moon"></use></svg> Sombre</button>
+      <button class="mode-indicator" data-theme="paper" title="Thème papier/sépia"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-scroll-text"></use></svg> Papier</button>
     </div>
     <div class="u-fs-sm u-c-v-text-muted u-m-0-0-8px">Police d'écriture</div>
     <div class="u-d-flex u-fd-column u-gap-6px u-mb-6px" id="font-picker">
@@ -1093,7 +1196,7 @@
     <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-0">0 = pas d'objectif. Affiché en barre de progression sur la carte de ce manuscrit dans la bibliothèque.</p>
     <p class="u-fs-sm u-c-v-accent u-m-6px-0-0" id="finish-date-estimate"></p>
     <hr class="u-bdc-v-border u-m-10px-0">
-    <strong>👤 Profil</strong>
+    <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-user"></use></svg> Profil</strong>
     <div class="u-d-flex u-gap-8px u-mt-8px u-fw-wrap">
       <button class="action-btn btn-sm" id="my-profile-btn" title="Modifier votre nom, mot de passe ou question de sécurité">Mon profil</button>
       <button class="action-btn btn-secondary btn-sm" id="manage-profiles-btn" title="Ajouter, renommer ou supprimer des profils (administrateur)">Gérer les profils</button>
@@ -1105,7 +1208,7 @@
       <div class="u-ta-center u-p-20px">
         <div class="u-fs-3rem u-fwt-700 u-ls-2px" id="sprint-timer" aria-live="polite">25:00</div>
         <div class="u-d-flex u-gap-8px u-jc-center u-m-12px-0">
-          <button class="action-btn" id="sprint-start-btn" title="Démarrer un sprint d'écriture chronométré">▶ Démarrer</button>
+          <button class="action-btn" id="sprint-start-btn" title="Démarrer un sprint d'écriture chronométré"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-play"></use></svg> Démarrer</button>
           <button class="action-btn btn-secondary" id="sprint-reset-btn" title="Remettre le chronomètre à zéro">↺ Reset</button>
         </div>
         Progression : <strong><span id="sprint-progress" aria-live="polite">0</span></strong> mots
@@ -1126,7 +1229,7 @@
     <span id="focus-wordcount">0</span> mots
     <span class="u-op-_3">|</span><span class="u-op-72" id="focus-chapter-label"></span>
     <span class="u-op-_3">|</span><span class="u-op-72 u-fs-xs">Échap pour quitter</span>
-    <button id="focus-close-btn" title="Revenir à l'écriture normale">✕ Quitter</button>
+    <button id="focus-close-btn" title="Revenir à l'écriture normale"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg> Quitter</button>
   </div>
 </div>
 
@@ -1134,46 +1237,46 @@
      cartes bibliothèque pour ne pas être rogné par leur overflow (v7.9.0) -->
 <div id="cover-picker-menu" class="toolbar-menu" role="menu">
   <button class="cover-swatch u-bg-linear-gradient-135deg-v-acc-1qh64" data-cover="auto" title="Automatique (couleurs de l'interface)">↺</button>
-  <button class="cover-swatch u-bg-linear-gradient-135deg-hc039-cnzbn" data-cover="rouge-violet" title="Rouge &amp; Violet"></button>
-  <button class="cover-swatch u-bg-linear-gradient-135deg-h2980-oxi60" data-cover="bleu-ocean" title="Bleu Océan"></button>
-  <button class="cover-swatch u-bg-linear-gradient-135deg-h27ae-1dgf3" data-cover="emeraude" title="Émeraude"></button>
-  <button class="cover-swatch u-bg-linear-gradient-135deg-hc218-14gzs" data-cover="rose-poudre" title="Rose Poudré"></button>
-  <button class="cover-swatch u-bg-linear-gradient-135deg-h3449-e6s27" data-cover="ardoise" title="Ardoise"></button>
-  <button class="cover-swatch u-bg-linear-gradient-135deg-hf39c-nzaub" data-cover="coucher-soleil" title="Coucher de Soleil"></button>
-  <button class="cover-swatch u-bg-linear-gradient-135deg-h1621-1hjru" data-cover="nuit-etoilee" title="Nuit Étoilée"></button>
-  <button class="cover-swatch u-bg-linear-gradient-135deg-h6d4c-1msqp" data-cover="sepia" title="Sépia"></button>
-  <button class="cover-swatch u-bg-linear-gradient-135deg-hee5a-17vu9" data-cover="corail" title="Corail"></button>
-  <button class="cover-swatch u-bg-linear-gradient-135deg-h8e7c-1o1k5" data-cover="lavande" title="Lavande"></button>
-  <button class="cover-swatch cover-foret-mystique" data-cover="foret-mystique" title="Forêt Mystique"></button>
-  <button class="cover-swatch cover-or-et-nuit" data-cover="or-et-nuit" title="Or et Nuit"></button>
-  <button class="cover-swatch cover-terre-cuite" data-cover="terre-cuite" title="Terre Cuite"></button>
-  <button class="cover-swatch cover-glacier" data-cover="glacier" title="Glacier"></button>
-  <button class="cover-swatch cover-vin-profond" data-cover="vin-profond" title="Vin Profond"></button>
-  <button class="cover-swatch cover-encre-de-chine" data-cover="encre-de-chine" title="Encre de Chine"></button>
-  <button class="cover-swatch cover-aurore" data-cover="aurore" title="Aurore"></button>
-  <button class="cover-swatch cover-bronze-antique" data-cover="bronze-antique" title="Bronze Antique"></button>
-  <button class="cover-swatch cover-jade" data-cover="jade" title="Jade"></button>
-  <button class="cover-swatch cover-poussiere-etoiles" data-cover="poussiere-etoiles" title="Poussière d'étoiles"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-hc039-cnzbn" data-cover="rouge-violet" title="Rouge &amp; Violet" aria-label="Rouge &amp; Violet"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-h2980-oxi60" data-cover="bleu-ocean" title="Bleu Océan" aria-label="Bleu Océan"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-h27ae-1dgf3" data-cover="emeraude" title="Émeraude" aria-label="Émeraude"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-hc218-14gzs" data-cover="rose-poudre" title="Rose Poudré" aria-label="Rose Poudré"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-h3449-e6s27" data-cover="ardoise" title="Ardoise" aria-label="Ardoise"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-hf39c-nzaub" data-cover="coucher-soleil" title="Coucher de Soleil" aria-label="Coucher de Soleil"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-h1621-1hjru" data-cover="nuit-etoilee" title="Nuit Étoilée" aria-label="Nuit Étoilée"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-h6d4c-1msqp" data-cover="sepia" title="Sépia" aria-label="Sépia"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-hee5a-17vu9" data-cover="corail" title="Corail" aria-label="Corail"></button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-h8e7c-1o1k5" data-cover="lavande" title="Lavande" aria-label="Lavande"></button>
+  <button class="cover-swatch cover-foret-mystique" data-cover="foret-mystique" title="Forêt Mystique" aria-label="Forêt Mystique"></button>
+  <button class="cover-swatch cover-or-et-nuit" data-cover="or-et-nuit" title="Or et Nuit" aria-label="Or et Nuit"></button>
+  <button class="cover-swatch cover-terre-cuite" data-cover="terre-cuite" title="Terre Cuite" aria-label="Terre Cuite"></button>
+  <button class="cover-swatch cover-glacier" data-cover="glacier" title="Glacier" aria-label="Glacier"></button>
+  <button class="cover-swatch cover-vin-profond" data-cover="vin-profond" title="Vin Profond" aria-label="Vin Profond"></button>
+  <button class="cover-swatch cover-encre-de-chine" data-cover="encre-de-chine" title="Encre de Chine" aria-label="Encre de Chine"></button>
+  <button class="cover-swatch cover-aurore" data-cover="aurore" title="Aurore" aria-label="Aurore"></button>
+  <button class="cover-swatch cover-bronze-antique" data-cover="bronze-antique" title="Bronze Antique" aria-label="Bronze Antique"></button>
+  <button class="cover-swatch cover-jade" data-cover="jade" title="Jade" aria-label="Jade"></button>
+  <button class="cover-swatch cover-poussiere-etoiles" data-cover="poussiere-etoiles" title="Poussière d'étoiles" aria-label="Poussière d'étoiles"></button>
 </div>
 
 <!-- Menu contextuel des chapitres (⋮) — élément unique, hors de la sidebar pour
      ne pas être rogné par son overflow (nouveau v7.8.1) -->
 <div id="chapter-ctx-menu" class="toolbar-menu" role="menu">
-  <button id="cctx-rename" role="menuitem">✏️ Renommer</button>
-  <button id="cctx-tags" role="menuitem">🏷️ Tags</button>
+  <button id="cctx-rename" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-pencil"></use></svg> Renommer</button>
+  <button id="cctx-tags" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-tag"></use></svg> Tags</button>
   <button id="cctx-dup" role="menuitem">⧉ Dupliquer</button>
   <button id="cctx-merge" role="menuitem" title="Ajouter le chapitre suivant à la fin de celui-ci (le suivant va à la corbeille)">⤵ Fusionner avec le suivant</button>
   <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
-  <button id="cctx-del" role="menuitem" class="ch-menu-danger">✕ Supprimer</button>
+  <button id="cctx-del" role="menuitem" class="ch-menu-danger"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg> Supprimer</button>
 </div>
 
 <!-- Menu contextuel des manuscrits (⋮) — élément unique, même patron que
      #chapter-ctx-menu (ADR-17), utilisé en vue Grille ET Étagère (v7.13.0, Lot 10) -->
 <div id="library-ctx-menu" class="toolbar-menu" role="menu">
-  <button id="lctx-cover" role="menuitem">🎨 Changer la couverture</button>
-  <button id="lctx-export" role="menuitem">📤 Exporter</button>
+  <button id="lctx-cover" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-palette"></use></svg> Changer la couverture</button>
+  <button id="lctx-export" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-upload"></use></svg> Exporter</button>
   <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
-  <button id="lctx-del" role="menuitem" class="ch-menu-danger" title="Le manuscrit reste récupérable 30 jours dans la corbeille">🗑️ Mettre à la corbeille</button>
+  <button id="lctx-del" role="menuitem" class="ch-menu-danger" title="Le manuscrit reste récupérable 30 jours dans la corbeille"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-trash-2"></use></svg> Mettre à la corbeille</button>
 </div>
 
 <!-- Menu "Plus d'actions" de la barre du haut de la bibliothèque (mobile
@@ -1181,13 +1284,13 @@
      Chaque bouton ne fait que déclencher le clic du vrai bouton correspondant
      (voir #library-topbar-actions plus haut) : aucune logique dupliquée. -->
 <div id="library-topbar-overflow-menu" class="toolbar-menu" role="menu">
-  <button id="ltop-my-profile" role="menuitem">👤 Mon profil</button>
-  <button id="ltop-manage-profiles" role="menuitem">🛡️ Gérer les profils</button>
-  <button id="ltop-system" role="menuitem">💾 Système</button>
-  <button id="ltop-tour" role="menuitem">🎓 Visite de la bibliothèque</button>
-  <button id="ltop-full-tour" role="menuitem">🎓 Visite complète</button>
+  <button id="ltop-my-profile" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-user"></use></svg> Mon profil</button>
+  <button id="ltop-manage-profiles" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-shield"></use></svg> Gérer les profils</button>
+  <button id="ltop-system" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-save"></use></svg> Système</button>
+  <button id="ltop-tour" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-graduation-cap"></use></svg> Visite de la bibliothèque</button>
+  <button id="ltop-full-tour" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-graduation-cap"></use></svg> Visite complète</button>
   <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
-  <button id="ltop-logout" role="menuitem">🚪 Déconnexion</button>
+  <button id="ltop-logout" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-log-out"></use></svg> Déconnexion</button>
 </div>
 
 <div id="toast" role="alert" aria-live="assertive"></div>
@@ -1195,7 +1298,7 @@
 <!-- READING MODE (nouveau v6.2.0) -->
 <div id="reading-overlay" role="dialog" aria-modal="true" aria-label="Mode lecture">
   <div id="reading-content"></div>
-  <button id="reading-close-btn" title="Revenir à l'écriture normale">✕ Quitter la lecture</button>
+  <button id="reading-close-btn" title="Revenir à l'écriture normale"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg> Quitter la lecture</button>
 </div>
 
 <!-- v9.2.0 — Modale de comparaison avant restauration d'une sauvegarde de
@@ -1203,21 +1306,21 @@
 <div id="conflict-diff-overlay" role="dialog" aria-modal="true" aria-label="Comparer les deux versions">
   <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-480px-92vw u-maxh-85vh u-ovy-auto">
     <div class="u-d-flex u-jc-space-between u-ai-center u-gap-8px">
-      <strong>🔍 Modifié sur les deux appareils — <span id="conflict-diff-title"></span></strong>
+      <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg> Modifié sur les deux appareils — <span id="conflict-diff-title"></span></strong>
       <!-- v9.3.0 — Demande explicite de l'utilisateur : pouvoir refermer pour
            y réfléchir et y revenir. Rien n'est écrasé entre-temps, la synchro
            de ce manuscrit reste en pause jusqu'à la décision. -->
-      <button class="action-btn btn-ghost btn-sm" id="conflict-diff-close-btn" title="Fermer sans choisir — vous pourrez y revenir" aria-label="Fermer sans choisir">✕</button>
+      <button class="action-btn btn-ghost btn-sm" id="conflict-diff-close-btn" title="Fermer sans choisir — vous pourrez y revenir" aria-label="Fermer sans choisir"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
     </div>
 
     <div class="u-d-flex u-gap-10px u-fw-wrap u-mt-12px">
       <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-12px u-bd-1px-solid-v-border">
-        <p class="u-fs-sm u-c-v-text-muted u-m-0">💻 Cet appareil</p>
+        <p class="u-fs-sm u-c-v-text-muted u-m-0"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-laptop"></use></svg> Cet appareil</p>
         <p class="u-fs-base u-fwt-700 u-m-4px-0-2px" id="conflict-diff-local-words"></p>
         <p class="u-fs-xs u-c-v-text-muted u-m-0" id="conflict-diff-local-date"></p>
       </div>
       <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-12px u-bd-1px-solid-v-border">
-        <p class="u-fs-sm u-c-v-text-muted u-m-0">📱 Autre appareil</p>
+        <p class="u-fs-sm u-c-v-text-muted u-m-0"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-smartphone"></use></svg> Autre appareil</p>
         <p class="u-fs-base u-fwt-700 u-m-4px-0-2px" id="conflict-diff-remote-words"></p>
         <p class="u-fs-xs u-c-v-text-muted u-m-0" id="conflict-diff-remote-date"></p>
       </div>
@@ -1226,14 +1329,15 @@
     <p class="u-fs-xs u-c-v-text-muted u-m-12px-0-0">Rouge = présent uniquement sur cet appareil. Vert = présent uniquement sur l'autre appareil.</p>
     <div id="conflict-diff-content" class="u-fs-base u-mt-8px u-mb-14px"></div>
     <div class="u-d-flex u-gap-8px u-fw-wrap">
-      <button class="action-btn" id="conflict-diff-keep-local-btn" title="Conserver la version de cet appareil et l'envoyer à l'autre">💻 Garder cet appareil</button>
-      <button class="action-btn btn-secondary" id="conflict-diff-keep-backup-btn" title="Adopter la version de l'autre appareil">📱 Garder l'autre appareil</button>
+      <button class="action-btn" id="conflict-diff-keep-local-btn" title="Conserver la version de cet appareil et l'envoyer à l'autre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-laptop"></use></svg> Garder cet appareil</button>
+      <button class="action-btn btn-secondary" id="conflict-diff-keep-backup-btn" title="Adopter la version de l'autre appareil"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-smartphone"></use></svg> Garder l'autre appareil</button>
     </div>
     <p class="u-fs-xs u-c-v-text-muted u-m-10px-0-0">Fermer sans choisir ne perd rien : la synchronisation de ce manuscrit reste en pause jusqu'à votre décision.</p>
   </div>
 </div>
 
 <!-- Modules JS (ordre indifférent : tout s'exécute avant window.onload) -->
+<script src="js/icons.js"></script>
 <script src="js/schema.js"></script>
 <script src="js/images.js"></script>
 <script src="js/graphicnovel.js"></script>

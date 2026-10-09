@@ -1836,3 +1836,11 @@ html:has(body.dark-mode){color-scheme:dark;}
 .u-d-block{display:block}
 .u-w-min-360px-92vw{width:min(360px,92vw)}
 .u-w-min-260px-100pc{width:min(260px,100%)}
+
+/* ═══ v9.51.0 (audit AUD-04-002) — icônes vectorielles : sprite dans index.html, helper icon() dans js/icons.js ═══ */
+.svg-sprite{position:absolute;width:0;height:0;overflow:hidden;}
+.icon{width:1.15em;height:1.15em;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;
+  vertical-align:-.2em;flex-shrink:0;pointer-events:none;}
+.icon-caret{width:.95em;height:.95em;margin-left:2px;opacity:.7;vertical-align:-.15em;}
+.icon-lg{width:1.6em;height:1.6em;}
+.icon-xl{width:2.4em;height:2.4em;stroke-width:1.5;}

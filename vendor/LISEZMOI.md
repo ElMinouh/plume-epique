@@ -4,6 +4,8 @@ Ces fichiers sont des **copies exactes** des librairies que l'application charge
 (jsDelivr, unpkg, d3js.org). Depuis la v9.27.0 (audit AUD-01-003) elles sont servies par le site lui-même :
 plus de dépendance à un site tiers, plus d'exécution de code externe, `script-src 'self'` dans `_headers`.
 
+Icônes : `lucide-static` (ISC) n'est PAS un fichier de `vendor/` : seules les ~100 icônes utilisées sont copiées dans le sprite de `index.html` par `node scripts/build-icons.cjs` (version figée dans `package.json`, test `lot29-icones.test.js`).
+
 | Fichier | Paquet | Version |
 |---|---|---|
 | `dompurify-3.4.16.min.js` | dompurify | 3.4.16 |

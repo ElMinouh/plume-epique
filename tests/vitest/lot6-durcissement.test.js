@@ -38,6 +38,7 @@ describe('Librairies locales (vendor/) — AUD-01-003', () => {
   it('les versions de package.json (dependencies) correspondent aux fichiers de vendor/', () => {
     const noms = { 'chart.js': 'chart', 'file-saver': 'file-saver', jspdf: 'jspdf', dompurify: 'dompurify', idb: 'idb', d3: 'd3', docx: 'docx', jszip: 'jszip', html2canvas: 'html2canvas', mammoth: 'mammoth', 'odf-kit': 'odf-kit', fflate: 'fflate', marked: 'marked' };
     for (const [dep, version] of Object.entries(pkg.dependencies)) {
+      if (dep === 'lucide-static') continue; // icônes : sprite intégré à index.html (scripts/build-icons.cjs), pas un fichier de vendor/
       expect(vendorFiles.some(f => f.startsWith(noms[dep] + '-' + version)), `${dep}@${version}`).toBe(true);
     }
   });

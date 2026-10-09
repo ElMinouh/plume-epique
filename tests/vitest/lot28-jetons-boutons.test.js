@@ -157,8 +157,8 @@ describe('AUD-04-014 — états d\'interaction', () => {
 });
 
 describe('version', () => {
-  it('APP_VERSION et cache du service worker : 9.50.0', () => {
-    expect(read('js/router.js')).toContain("const APP_VERSION = '9.50.0';");
-    expect(read('sw.js')).toContain("'plume-epique-v9.50.0'");
+  it('APP_VERSION et cache du service worker sont identiques', () => {
+    const v = read('js/router.js').match(/const APP_VERSION = '([^']+)'/)[1];
+    expect(read('sw.js')).toContain("'plume-epique-v" + v + "'");
   });
 });

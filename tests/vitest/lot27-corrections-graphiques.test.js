@@ -114,9 +114,8 @@ describe('AUD-04-021 — bouton Bibliothèque de la barre mobile', () => {
 });
 
 describe('version', () => {
-  it('APP_VERSION et le cache du service worker sont identiques (9.50.0)', () => {
+  it('APP_VERSION et le cache du service worker sont identiques', () => {
     const v = read('js/router.js').match(/const APP_VERSION = '([^']+)'/)[1];
-    expect(v).toBe('9.50.0');
     expect(read('sw.js')).toContain("'plume-epique-v" + v + "'");
   });
 });
