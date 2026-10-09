@@ -5,6 +5,19 @@
 // pause au survol ; minuteur annulé à chaque nouveau message ; opts.sticky = reste jusqu'au ✕
 // (échec d'enregistrement, conflit de synchro, stockage plein) ; opts.kind identifie le message
 // (l'échec d'enregistrement est retiré tout seul au premier enregistrement réussi).
+// ═══════════════════════════════════════════════════════
+// TAILLE DE L'INTERFACE (v9.43.0, audit AUD-03-004)
+// Normale / Grande / Très grande = 100 / 112 / 125 % de la taille racine (tout ce qui est en rem suit).
+// Stocké dans localStorage (préférence d'affichage de CET appareil ; le lot « thème au niveau du profil »
+// la déplacera avec le thème) et appliqué dès le chargement, avant toute connexion.
+// ═══════════════════════════════════════════════════════
+const UI_SCALES = { normal: 100, grand: 112, 'tres-grand': 125 };
+function loadUiScale() { try { const k = localStorage.getItem('plume_ui_scale'); return UI_SCALES[k] ? k : 'normal'; } catch (e) { return 'normal'; } }
+function applyUiScale(key) { const pct = UI_SCALES[key] || 100; document.documentElement.style.fontSize = pct === 100 ? '' : pct + '%'; }
+function renderUiScaleUI() { const cur = loadUiScale(); document.querySelectorAll('#uiscale-picker .mode-indicator').forEach(b => b.classList.toggle('active', b.dataset.scale === cur)); }
+function selectUiScale(key) { try { localStorage.setItem('plume_ui_scale', key); } catch (e) { /* stockage indisponible : réglage valable pour cette session seulement */ } applyUiScale(key); renderUiScaleUI(); }
+applyUiScale(loadUiScale());
+
 let _toastTimer = null;
 function hideToast() {
   const el = document.getElementById('toast');

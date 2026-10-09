@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.42.0';
+const APP_VERSION = '9.43.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1312,6 +1312,7 @@ function wireAppEventListenersOnce(){
   document.getElementById('toggle-dark-btn').addEventListener('click',toggleMode);
   document.querySelectorAll('#palette-picker .palette-swatch').forEach(btn=>btn.addEventListener('click',()=>selectPalette(btn.dataset.palette)));
   document.querySelectorAll('#theme-picker .mode-indicator').forEach(btn=>btn.addEventListener('click',()=>selectTheme(btn.dataset.theme)));
+  document.querySelectorAll('#uiscale-picker .mode-indicator').forEach(btn=>btn.addEventListener('click',()=>selectUiScale(btn.dataset.scale)));
   // Menu ⋮ des chapitres — élément unique, câblé une seule fois (v7.8.1)
   document.getElementById('cctx-rename').addEventListener('click',()=>{const i=_ctxMenuChapterIdx;closeAllChapterMenus();if(i!==null)renameChapterInline(i);});
   document.getElementById('cctx-tags').addEventListener('click',()=>{const i=_ctxMenuChapterIdx;closeAllChapterMenus();if(i!==null)editChapterTags(i);});

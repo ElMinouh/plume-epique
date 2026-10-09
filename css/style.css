@@ -19,9 +19,18 @@
      boutons existaient déjà (u-bg-h2980b9 etc.), simplement nommées pour que
      leur usage soit intentionnel plutôt qu'un hex recopié au hasard. */
   --info:#2980b9; --confirm:#16a085; --ghost:#7f8c8d; --warn-strong:#d35400;
+  /* v9.43.0 (AUD-03-006) : remplissages de boutons à texte blanc ≥ 4,5:1 (avant : gris 3,48, sarcelle 3,28,
+     vert 2,87, bleu 4,30, danger 3,82, orange 2,85/4,17). Variables séparées de celles ci-dessus, car
+     celles-ci servent aussi de couleur de TEXTE sur fond sombre, où il faut les garder claires. */
+  --btn-ghost:#5c6a6b; --btn-info:#1f6f9f; --btn-confirm:#0e7a65; --btn-success:#1e8449;
+  --btn-danger:#c0392b; --btn-warn:#b9770e; --btn-warn-strong:#b34700;
+  --accent-text:var(--accent);
   /* Échelle typographique (audit v7.38.0) — remplace les ~30 tailles quasi
      identiques (0,01-0,02rem d'écart) qui traînaient dans ce fichier. */
-  --fs-xs:.68rem; --fs-sm:.75rem; --fs-base:.82rem; --fs-md:.95rem;
+  /* v9.43.0 (AUD-03-004) : plancher relevé (avant .68/.75/.82 rem = 10,9/12/13 px : 88 % des textes
+     visibles faisaient 12 px ou moins). Le réglage « Taille de l'interface » (Config) agit en plus
+     sur la taille racine. */
+  --fs-xs:.78rem; --fs-sm:.84rem; --fs-base:.9rem; --fs-md:.98rem;
   --fs-lg:1.15rem; --fs-xl:1.45rem;
   /* Tailles ≥1rem des classes utilitaires .u-fs-* (dette repérée pendant
      l'audit v7.38.0, laissée de côté à l'époque) — nommées par leur valeur
@@ -29,7 +38,7 @@
      ici, seulement nommée, donc aucun changement visuel. Une vraie fusion
      éventuelle (si certaines s'avèrent redondantes) resterait à valider sur
      maquette séparément. */
-  --fs-1rem:1rem; --fs-1_1rem:1.1rem; --fs-3rem:3rem; --fs-12px:12px;
+  --fs-1rem:1rem; --fs-1_1rem:1.1rem; --fs-3rem:3rem; --fs-12px:13px;
   /* --fs-12px équivaut numériquement à --fs-sm (.75rem) sous une taille de
      police racine standard (16px), mais gardé en px pour un rendu strictement
      identique même si la personne a changé la taille de police par défaut de
@@ -51,6 +60,7 @@
      juste avant chaque #xxx-overlay dans ce fichier pour son palier. */
 }
 body.dark-mode {
+  --accent-text:#ec6a58; /* rouge d'accent lisible en texte sur fond sombre (3,1:1 → 5,3:1) */
   --glass:rgba(22,22,35,0.98); --grad:linear-gradient(135deg,#0d0d1a 0%,#1a1a2e 100%);
   --text:#e8e0d0; --text-muted:#aaa; --border:rgba(255,255,255,0.1);
   --item-bg:rgba(255,255,255,0.07); --shadow:0 4px 20px rgba(0,0,0,0.4);
@@ -58,7 +68,7 @@ body.dark-mode {
 /* Thème papier/sépia (nouveau v7.7.0) — exclusif du mode sombre */
 body.paper-mode {
   --glass:#f4ecd8; --grad:linear-gradient(135deg,#e8dcc0 0%,#f4ecd8 100%);
-  --text:#3b2f1e; --text-muted:#7a6c52; --border:rgba(59,47,30,0.18);
+  --text:#3b2f1e; --text-muted:#6b5d44; --border:rgba(59,47,30,0.18);
   --item-bg:rgba(59,47,30,0.06); --shadow:0 4px 20px rgba(59,47,30,0.15);
 }
 /* Police d'écriture personnalisable (nouveau v7.7.0) — s'applique uniquement
@@ -102,7 +112,7 @@ main{flex-grow:1;width:98%;max-width:1500px;margin:0 auto 6px;
    conteneur prend la hauteur restante, et .chapter-list-container continue
    d'y grandir (flex-grow) pour remplir l'espace disponible. */
 #chapter-sidebar-body{display:flex;flex-direction:column;flex:1;min-height:0;}
-#document-title{font-size:1.02rem;font-weight:700;color:var(--accent);outline:none;
+#document-title{font-size:1.02rem;font-weight:700;color:var(--accent-text);outline:none;
   margin-bottom:8px;line-height:1.3;cursor:text;min-height:1.3em;}
 #document-title:empty:before{content:'Titre du manuscrit…';opacity:.4;font-weight:400;}
 .chapter-list-container{flex-grow:1;overflow-y:auto;margin:8px 0;}
@@ -115,9 +125,9 @@ main{flex-grow:1;width:98%;max-width:1500px;margin:0 auto 6px;
 .chapter-item:hover{border-color:var(--accent);}
 .chapter-item.active{border-color:var(--accent);background:rgba(192,57,43,.08);font-weight:700;}
 .chapter-item:focus-visible{outline:2px solid var(--accent);}
-.ch-num{opacity:.45;font-weight:700;min-width:18px;font-size:var(--fs-xs);}
+.ch-num{opacity:.72;font-weight:700;min-width:18px;font-size:var(--fs-xs);}
 .ch-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.ch-wordcount{font-size:var(--fs-xs);opacity:.45;flex-shrink:0;min-width:26px;text-align:right;}
+.ch-wordcount{font-size:var(--fs-xs);opacity:.72;flex-shrink:0;min-width:26px;text-align:right;}
 /* Chapitres : ligne + tags + glisser-déposer + menu ⋮ (nouveau v7.8.0) —
    scopé à #chapter-list pour ne pas affecter .chapter-item réutilisé ailleurs
    (listes Personnages/Lieux/Quêtes, qui restent une simple ligne). */
@@ -125,7 +135,7 @@ main{flex-grow:1;width:98%;max-width:1500px;margin:0 auto 6px;
 #chapter-list .chapter-item.dragging{opacity:.4;}
 #chapter-list .chapter-item.drag-over{border:2px dashed var(--accent);background:rgba(192,57,43,.08);}
 .ch-row{display:flex;align-items:center;gap:6px;}
-.ch-drag-handle{cursor:grab;opacity:.3;font-size:var(--fs-sm);flex-shrink:0;}
+.ch-drag-handle{cursor:grab;opacity:.6;font-size:var(--fs-sm);flex-shrink:0;}
 .chapter-item:hover .ch-drag-handle{opacity:.65;}
 .ch-tags{display:flex;flex-wrap:wrap;gap:4px;padding-left:2px;}
 .ch-tag{background:var(--accent2);color:#fff;font-size:var(--fs-xs);padding:1px 7px;border-radius:10px;line-height:1.5;}
@@ -398,7 +408,7 @@ select.gate-field{height:38px;}
 .lex-word{padding:4px 10px;background:var(--item-bg);border-radius:20px;font-size:var(--fs-base);
   cursor:pointer;border:1px solid var(--border);transition:.15s;}
 .lex-word:hover{border-color:var(--accent);background:rgba(192,57,43,.1);}
-.lex-empty{font-size:var(--fs-sm);opacity:.5;font-style:italic;padding:8px 0;}
+.lex-empty{font-size:var(--fs-sm);opacity:.72;font-style:italic;padding:8px 0;}
 #fr-panel{position:absolute;left:16px;top:58px;width:270px;background:var(--glass);
   border:1px solid var(--border);border-radius:14px;padding:14px;
   box-shadow:0 10px 40px rgba(0,0,0,.25);z-index:55;display:none;flex-direction:column;gap:8px;}
@@ -504,7 +514,7 @@ body:has(.gn-modal-overlay, #my-profile-overlay.active, #manage-profiles-overlay
   box-shadow:var(--shadow);transition:.2s;word-break:break-word;}
 .tl-card:hover{border-color:var(--accent);}
 .tl-card strong{display:block;color:var(--accent);margin-bottom:2px;font-size:var(--fs-xs);}
-.tl-card .tl-date{opacity:.55;font-size:var(--fs-xs);margin-bottom:3px;}
+.tl-card .tl-date{opacity:.72;font-size:var(--fs-xs);margin-bottom:3px;}
 #tl-add-form{display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--border);}
 #history-overlay{display:none;position:fixed;inset:0;z-index:8000;
   background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
@@ -622,7 +632,7 @@ body.library-mode #library-screen{display:block;}
 .library-card-title{font-weight:700;font-size:var(--fs-base);margin:0 0 4px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .library-card-meta{font-size:var(--fs-xs);color:var(--text-muted);margin:0;}
-.library-card-date{font-size:var(--fs-xs);color:var(--text-muted);opacity:.7;margin:4px 0 0;}
+.library-card-date{font-size:var(--fs-xs);color:var(--text-muted);margin:4px 0 0;}
 .library-new{border-style:dashed;display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:6px;min-height:126px;color:var(--text);}
 .library-new-icon{font-size:1.4rem;color:var(--accent);}
@@ -699,7 +709,10 @@ body.library-mode #library-screen{display:block;}
 .subtab-content{display:none;flex-direction:column;gap:10px;flex-grow:1;min-height:0;}
 .subtab-content.active{display:flex;}
 @media(max-width:768px){
-  main{grid-template-columns:1fr;height:auto;align-content:start;}
+  /* v9.43.0 (AUD-03-002) : minmax(0,1fr) + min-width:0 — sans cela la barre d'outils (421 px, défilante)
+     imposait sa largeur à la colonne : éditeur de 459 px dans un écran de 375 px. */
+  main{grid-template-columns:minmax(0,1fr);height:auto;align-content:start;}
+  #editor-wrapper,#chapter-sidebar{min-width:0;max-width:100%;}
   /* v9.5.4 — position:fixed inconditionnel retiré (il couvrait en permanence
      le bandeau Univers/IA & Mémoire/... — bug rapporté). Ce que demande
      précisément l'utilisateur ("normale en haut de l'écran, se fixe UNE FOIS
@@ -913,14 +926,14 @@ body.library-mode #library-screen{display:block;}
   .library-cover{height:44px;font-size:1.1rem;}
   .library-card-body{padding:5px 6px;}
   .library-card-title{font-size:var(--fs-xs);}
-  .library-card-meta{font-size:.62rem;}
+  .library-card-meta{font-size:var(--fs-xs);}
   .library-card-date{display:none;}
   .library-new{min-height:0;padding:10px 4px;gap:3px;}
   .library-new-icon{font-size:1.1rem;}
   .library-kebab-btn{top:0;right:0;width:44px;height:44px;
     display:flex;align-items:center;justify-content:center;
     border-radius:0 var(--radius) 0 8px;padding:0;font-size:.85rem;}
-  .library-progress-label{font-size:.6rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .library-progress-label{font-size:var(--fs-xs);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* Page d'écriture : chantier Responsive Mobile, écran 3/N.
      Même bug que ci-dessus, sur le menu ⋮ de chaque chapitre (renommer,
      tags, dupliquer, supprimer) — invisible au toucher sans ce correctif. */
@@ -976,21 +989,21 @@ body.library-mode #library-screen{display:block;}
 .u-as-flex-start{align-self:flex-start}
 
 /* --- background --- */
-.u-bg-h16a085.u-bg-h16a085.u-bg-h16a085{background:var(--confirm)}
+.u-bg-h16a085.u-bg-h16a085.u-bg-h16a085{background:var(--btn-confirm)}
 .u-bg-h1a1a2e.u-bg-h1a1a2e.u-bg-h1a1a2e{background:#1a1a2e}
-.u-bg-h27ae60.u-bg-h27ae60.u-bg-h27ae60{background:var(--success)}
-.u-bg-h2980b9.u-bg-h2980b9.u-bg-h2980b9{background:var(--info)}
+.u-bg-h27ae60.u-bg-h27ae60.u-bg-h27ae60{background:var(--btn-success)}
+.u-bg-h2980b9.u-bg-h2980b9.u-bg-h2980b9{background:var(--btn-info)}
 .u-bg-h2c3e50.u-bg-h2c3e50.u-bg-h2c3e50{background:#2c3e50}
 .u-bg-h34495e.u-bg-h34495e.u-bg-h34495e{background:#34495e}
 .u-bg-h7d5ba6.u-bg-h7d5ba6.u-bg-h7d5ba6{background:#7d5ba6}
-.u-bg-h7f8c8d.u-bg-h7f8c8d.u-bg-h7f8c8d{background:var(--ghost)}
+.u-bg-h7f8c8d.u-bg-h7f8c8d.u-bg-h7f8c8d{background:var(--btn-ghost)}
 .u-bg-h8e44ad.u-bg-h8e44ad.u-bg-h8e44ad{background:var(--accent2)}
 .u-bg-h9b59b6.u-bg-h9b59b6.u-bg-h9b59b6{background:#9b59b6}
 .u-bg-hc0392b.u-bg-hc0392b.u-bg-hc0392b{background:var(--accent)}
 .u-bg-hc2185b.u-bg-hc2185b.u-bg-hc2185b{background:#c2185b}
-.u-bg-hd35400.u-bg-hd35400.u-bg-hd35400{background:var(--warn-strong)}
+.u-bg-hd35400.u-bg-hd35400.u-bg-hd35400{background:var(--btn-warn-strong)}
 .u-bg-hd4af37.u-bg-hd4af37.u-bg-hd4af37{background:#d4af37}
-.u-bg-he67e22.u-bg-he67e22.u-bg-he67e22{background:var(--warn-strong)}
+.u-bg-he67e22.u-bg-he67e22.u-bg-he67e22{background:var(--btn-warn-strong)}
 .u-bg-hf39c12.u-bg-hf39c12.u-bg-hf39c12{background:var(--warn)}
 .u-bg-linear-gradient-135deg-h1621-1hjru.u-bg-linear-gradient-135deg-h1621-1hjru.u-bg-linear-gradient-135deg-h1621-1hjru{background:linear-gradient(135deg,#16213e,#6a3093)}
 .u-bg-linear-gradient-135deg-h27ae-1dgf3.u-bg-linear-gradient-135deg-h27ae-1dgf3.u-bg-linear-gradient-135deg-h27ae-1dgf3{background:linear-gradient(135deg,#27ae60,#2c3e50)}
@@ -1009,11 +1022,11 @@ body.library-mode #library-screen{display:block;}
 .u-bg-rgb00005.u-bg-rgb00005.u-bg-rgb00005{background:rgba(0,0,0,.05)}
 .u-bg-v-accent.u-bg-v-accent.u-bg-v-accent{background:var(--accent)}
 .u-bg-v-border.u-bg-v-border.u-bg-v-border{background:var(--border)}
-.u-bg-v-danger.u-bg-v-danger.u-bg-v-danger{background:var(--danger)}
+.u-bg-v-danger.u-bg-v-danger.u-bg-v-danger{background:var(--btn-danger)}
 .u-bg-v-glass.u-bg-v-glass.u-bg-v-glass{background:var(--glass)}
 .u-bg-v-item-bg.u-bg-v-item-bg.u-bg-v-item-bg{background:var(--item-bg)}
-.u-bg-v-success.u-bg-v-success.u-bg-v-success{background:var(--success)}
-.u-bg-v-warn.u-bg-v-warn.u-bg-v-warn{background:var(--warn)}
+.u-bg-v-success.u-bg-v-success.u-bg-v-success{background:var(--btn-success)}
+.u-bg-v-warn.u-bg-v-warn.u-bg-v-warn{background:var(--btn-warn)}
 
 /* --- border --- */
 .u-bd-1px-dashed-v-border{border:1px dashed var(--border)}
@@ -1039,7 +1052,7 @@ body.library-mode #library-screen{display:block;}
 /* --- color --- */
 .u-c-hfff{color:#fff}
 .u-c-inherit{color:inherit}
-.u-c-v-accent{color:var(--accent)}
+.u-c-v-accent{color:var(--accent-text)}
 .u-c-v-text-muted{color:var(--text-muted)}
 
 /* --- cursor --- */
@@ -1184,11 +1197,11 @@ body.library-mode #library-screen{display:block;}
 
 /* --- opacity --- */
 .u-op-_3{opacity:.3}
-.u-op-_35{opacity:.35}
-.u-op-_4{opacity:.4}
-.u-op-_5{opacity:.5}
-.u-op-_55{opacity:.55}
-.u-op-_6{opacity:.6}
+.u-op-_35{opacity:.72}
+.u-op-_4{opacity:.72}
+.u-op-_5{opacity:.72}
+.u-op-_55{opacity:.72}
+.u-op-_6{opacity:.75}
 .u-op-_7{opacity:.7}
 
 /* --- outline --- */
@@ -1248,7 +1261,7 @@ body.library-mode #library-screen{display:block;}
 .u-p-10px{padding:10px}
 .u-p-16px{padding:16px}
 .u-p-0-2px{padding:0 2px}
-.u-op-_45{opacity:.45}
+.u-op-_45{opacity:.72}
 .u-op-_8{opacity:.8}
 .u-pos-absolute{position:absolute}
 .u-top-50pc{top:50%}
@@ -1460,7 +1473,7 @@ body.graphicnovel-mode #graphicnovel-screen{display:flex;flex-direction:column;h
   border:1.5px dashed rgba(59,47,30,.35);cursor:pointer;color:#7a6c52;}
 .gn-zone-empty:hover{border-color:var(--accent2);color:var(--accent2);}
 .gn-empty-plus{font-size:1.3rem;line-height:1;}
-.gn-empty-label{font-size:.62rem;}
+.gn-empty-label{font-size:var(--fs-xs);}
 .gn-dpi-warn{position:absolute;top:4px;right:4px;font-size:.55rem;font-weight:700;color:#3b1f00;
   background:#f0b84d;padding:2px 5px;border-radius:3px;}
 /* Lot 2 (audit #2) : même principe que .gn-dpi-warn ci-dessus, pour le
@@ -1526,7 +1539,7 @@ body.graphicnovel-mode #graphicnovel-screen{display:flex;flex-direction:column;h
 .gn-gab:hover .gn-gab-del{opacity:1;}
 .gn-icon{position:relative;width:42px;height:52px;background:#f4ecd8;border-radius:3px;overflow:hidden;
   box-shadow:0 1px 3px rgba(0,0,0,.25);}
-.gn-gab-lbl{font-size:.62rem;color:var(--text-muted);text-align:center;line-height:1.25;}
+.gn-gab-lbl{font-size:var(--fs-xs);color:var(--text-muted);text-align:center;line-height:1.25;}
 .gn-layers{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
 .gn-layer-row{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:var(--radius-sm);
   background:var(--item-bg);font-size:var(--fs-sm);cursor:pointer;}
@@ -1660,3 +1673,39 @@ body.graphicnovel-mode #graphicnovel-screen{display:flex;flex-direction:column;h
    l'alerte « en attente de votre choix » n'a donc jamais été visible. Couleurs du thème utilisées à la place. */
 .conflict-row-awaiting { border: 2px solid var(--accent); }
 .conflict-badge-awaiting { background: var(--accent); color: #fff; margin-left: 6px; }
+
+
+/* ═══ v9.43.0 (audit AUD-03-005) — cibles de clic : plancher 24×24 px à la souris (WCAG 2.5.8),
+   44 px au toucher. Avant : 35 contrôles sur 40 faisaient moins de 32 px de haut, ⓘ 16×16, ⋮ 17×24. ═══ */
+.action-btn,.mode-indicator,.subtab-btn,.tab-btn,.toolbar-dropdown-btn,#toolbar-library-btn,#shortcuts-hint-btn{min-height:24px;min-width:24px;}
+/* Le rappel « sauvegarde GitHub » (v9.41.0) forçait 262 px dans l'en-tête de la bibliothèque : débordement de 10 px à 375 px. */
+#library-github-reminder{white-space:normal;text-align:left;max-width:100%;}
+.ch-kebab-btn,.library-kebab-btn,.lib-book-kebab,.lib-book-kebab{min-width:24px;min-height:24px;}
+.contextual-help-icon{width:24px;height:24px;font-size:12px;}
+.gn-pg-del,.gn-pg-dup{width:24px;height:24px;line-height:24px;font-size:.7rem;}
+.gn-pg-del{top:2px;right:2px;}
+.gn-pg-dup{top:2px;right:32px;}
+#shortcuts-hint-btn{min-height:26px;}
+@media (pointer:coarse){
+  .action-btn,.mode-indicator,.subtab-btn,.tab-btn,.toolbar-dropdown-btn,#toolbar-library-btn,#shortcuts-hint-btn,#chapter-status-sel{min-height:44px;min-width:44px;}
+  .ch-kebab-btn,.library-kebab-btn,.lib-book-kebab{min-width:44px;min-height:44px;}
+  .contextual-help-icon{width:32px;height:32px;font-size:14px;}
+  .gn-pg-del,.gn-pg-dup{width:32px;height:32px;line-height:32px;}
+  .gn-pg-dup{right:38px;}
+}
+
+/* ═══ v9.43.0 (audit AUD-03-032) — respect du réglage système « réduire les animations ». ═══ */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important;scroll-behavior:auto!important;}
+}
+
+/* v9.43.0 (AUD-03-006) — thème clair : le titre, le compteur et la bascule Grille/Étagère de la bibliothèque sont posés
+   directement sur le dégradé bleu du fond (le calcul de contraste par élément ne le voyait pas : ~2,4:1). */
+body:not(.dark-mode):not(.paper-mode) #library-screen > h2,
+body:not(.dark-mode):not(.paper-mode) #library-count{color:#fff;}
+body:not(.dark-mode):not(.paper-mode) #library-screen .mode-indicator:not(.active){background:rgba(255,255,255,.92);}
+
+/* v9.43.0 — avec « Taille de l'interface » en Grande/Très grande, les deux boutons du haut du panneau des
+   chapitres (« Ma bibliothèque » / « Accueil ») doivent pouvoir passer à la ligne au lieu d'être rognés. */
+#chapter-sidebar .action-btn{white-space:normal;min-width:0;}

@@ -294,6 +294,7 @@ function renderAppearanceUI() {
   const currentTheme = db.paperMode ? 'paper' : (db.darkMode ? 'dark' : 'light');
   document.querySelectorAll('#theme-picker .mode-indicator').forEach(b => b.classList.toggle('active', b.dataset.theme === currentTheme));
   document.querySelectorAll('#font-picker .font-option').forEach(el => el.classList.toggle('active', el.dataset.font === (db.editorFont||'palatino')));
+  renderUiScaleUI();
 }
 
 // ═══════════════════════════════════════════════════════
