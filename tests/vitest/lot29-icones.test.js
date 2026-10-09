@@ -12,7 +12,8 @@ import { fileURLToPath } from 'node:url';
 import createDOMPurify from 'dompurify';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8');
+// fins de ligne normalisées : le dépôt peut être extrait en CRLF (Windows) ou en LF (CI)
+const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8').replace(/\r\n/g, '\n');
 const html = read('index.html');
 const iconsJs = read('js/icons.js');
 const sw = read('sw.js');
