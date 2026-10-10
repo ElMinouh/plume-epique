@@ -89,7 +89,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 
 ```bash
 npm install
-npm test            # Vitest : ~604 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
+npm test            # Vitest : ~608 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
 ```
 
 Pas de build, pas de linter. Les tests partagent un contexte applicatif global : `fileParallelism: false`.
