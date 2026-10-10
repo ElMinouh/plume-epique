@@ -256,6 +256,8 @@ const ACCENT_PALETTES = {
   'ardoise':      { label:'Ardoise',        a:'#34495e', b:'#5c6a6b', tl:'#34495e', td:'#9fb4c7' }
 };
 const EDITOR_FONTS = {
+  // v9.54.0 (AUD-04-016) : « literata » (embarquée) est la police par défaut ; Palatino devient un choix comme les autres.
+  'literata': { css:"'Literata','Palatino Linotype',Georgia,serif" },
   'palatino': { css:"'Palatino Linotype',Georgia,serif" },
   'times':    { css:"'Times New Roman',Times,serif" },
   'verdana':  { css:'Verdana,Arial,sans-serif' },
@@ -270,8 +272,8 @@ function applyAccentPalette(key) {
   document.documentElement.style.setProperty('--accent-text-dark', p.td);
 }
 function applyEditorFont(key) {
-  document.body.classList.remove('font-times','font-verdana','font-courier');
-  if (key && key !== 'palatino' && EDITOR_FONTS[key]) document.body.classList.add('font-'+key);
+  document.body.classList.remove('font-palatino','font-times','font-verdana','font-courier');
+  if (key && key !== 'literata' && EDITOR_FONTS[key]) document.body.classList.add('font-'+key);
 }
 function selectPalette(key) {
   if (!ACCENT_PALETTES[key]) return;
@@ -293,8 +295,10 @@ function selectTheme(mode) {
   db.darkMode = (mode === 'dark');
   db.paperMode = (mode === 'paper');
   rememberAppearance({ theme: mode });
-  document.body.classList.toggle('dark-mode', db.darkMode);
-  document.body.classList.toggle('paper-mode', db.paperMode);
+  (typeof runThemeSwitch === 'function' ? runThemeSwitch : f => f())(() => {
+    document.body.classList.toggle('dark-mode', db.darkMode);
+    document.body.classList.toggle('paper-mode', db.paperMode);
+  });
   renderAppearanceUI();
   save();
 }
@@ -316,7 +320,7 @@ function toggleMode(){
   db.darkMode=!db.darkMode;
   // Le thème papier est exclusif du mode sombre (voir selectTheme ci-dessus).
   if (db.darkMode && db.paperMode) { db.paperMode=false; document.body.classList.remove('paper-mode'); renderAppearanceUI(); }
-  document.body.classList.toggle('dark-mode',db.darkMode);
+  (typeof runThemeSwitch === 'function' ? runThemeSwitch : f => f())(() => document.body.classList.toggle('dark-mode',db.darkMode));
   rememberAppearance({ theme: db.paperMode ? 'paper' : (db.darkMode ? 'dark' : 'light') });
   save();
 }
@@ -341,7 +345,7 @@ function addItem(k){
 // ═══════════════════════════════════════════════════════
 function renderWeakWords() {
   const c=document.getElementById('weak-words-list');
-  c.innerHTML=db.weakWords.map((w,i)=>`<span class="link-badge">${DOMPurify.sanitize(w)} <button class="remove-weak u-bg-none u-bd-none u-c-hfff u-cur-pointer u-fwt-700 u-p-0-2px" data-idx="${i}">${icon('x')}</button></span>`).join('');
+  c.innerHTML=db.weakWords.map((w,i)=>`<span class="link-badge">${DOMPurify.sanitize(w)} <button class="remove-weak u-bg-none u-bd-none u-c-hfff u-cur-pointer u-fwt-600 u-p-0-2px" data-idx="${i}">${icon('x')}</button></span>`).join('');
   c.querySelectorAll('.remove-weak').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();db.weakWords.splice(parseInt(btn.dataset.idx),1);save();renderWeakWords();}));
 }
 function addWeakWord(){const i=document.getElementById('new-weak-word');const w=i.value.trim().toLowerCase();if(w&&!db.weakWords.includes(w)){db.weakWords.push(w);i.value='';save();renderWeakWords();}}

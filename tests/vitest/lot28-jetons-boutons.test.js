@@ -110,7 +110,7 @@ describe('AUD-04-005 — rôles de couleur', () => {
     expect(ratio(rootVar(':root', 'title-on-dark'), '#0a0a0f')).toBeGreaterThanOrEqual(4.5);
   });
   it('titre du manuscrit et du chapitre en couleur de titre, plus en accent', () => {
-    expect(css).toContain('#document-title{font-size:1.02rem;font-weight:700;color:var(--title);');
+    expect(css).toMatch(/#document-title\{font-size:var\(--fs-md\);font-weight:600;color:var\(--title\);/);
     expect(html).toMatch(/u-c-title[^"]*" id="chapter-title"/);
   });
   it('état actif = fond teinté + contour (onglets, sous-onglets, filtres), plus d\'aplat plein d\'accent', () => {

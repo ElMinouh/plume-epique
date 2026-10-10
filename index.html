@@ -172,7 +172,7 @@
            Masqué par défaut : n'apparaît que si une clé de synchro est
            configurée sur cet appareil. -->
       <button hidden id="library-sync-status-badge" title="Statut de la synchronisation">
-        <i class="u-fs-1rem" id="library-sync-status-icon"></i>
+        <i class="u-fs-md" id="library-sync-status-icon"></i>
         <span class="u-fs-sm" id="library-sync-status-text"></span>
       </button>
       <!-- v9.41.0 (AUD-03-001) : rappel discret, remplace la bulle bloquante de configuration. -->
@@ -238,7 +238,7 @@
     </div>
 
     <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border" id="lib-sys-doc-zone">
-      <label class="u-fs-base u-fwt-700" for="lib-system-doc-select"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-book-open"></use></svg> Manuscrit concerné</label>
+      <label class="u-fs-base u-fwt-600" for="lib-system-doc-select"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-book-open"></use></svg> Manuscrit concerné</label>
       <select id="lib-system-doc-select" class="field u-w-100pc u-mt-6px"></select>
     </div>
 
@@ -579,7 +579,7 @@
 <div id="tts-panel" role="dialog" aria-label="Lecture à voix haute">
   <div class="u-d-flex u-jc-space-between u-ai-center">
     <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-mic"></use></svg> Voix</strong>
-    <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="tts-close-btn" title="Fermer" aria-label="Fermer"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
+    <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-lg" id="tts-close-btn" title="Fermer" aria-label="Fermer"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
   </div>
   <div class="u-fs-sm u-c-v-text-muted">Lecture à voix haute</div>
   <div class="tts-row">
@@ -766,7 +766,7 @@
       </div>
     </div>
     <div class="u-d-flex u-ai-center u-gap-10px u-mb-6px" id="chapter-title-row">
-      <div class="u-fs-1_45rem u-fwt-700 u-c-title u-outline-none u-minh-28px u-fg-1" id="chapter-title" contenteditable="true" role="textbox" aria-label="Titre" title="Cliquez pour renommer ce chapitre"></div>
+      <div class="u-fs-xl u-fwt-600 u-c-title u-outline-none u-minh-28px u-fg-1" id="chapter-title" contenteditable="true" role="textbox" aria-label="Titre" title="Cliquez pour renommer ce chapitre"></div>
       <button class="mode-indicator u-fsh-0" id="chapter-notes-toggle-btn" title="Objectif de mots et notes de recherche pour ce chapitre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-notebook"></use></svg> Notes</button>
       <select id="chapter-status-sel" class="field u-w-auto u-fsh-0" aria-label="Statut du chapitre" title="Statut d'avancement de ce chapitre">
         <option value="draft">Brouillon</option>
@@ -789,7 +789,7 @@
     <div id="ai-summary-panel" role="dialog" aria-label="Résumé IA">
       <div class="u-d-flex u-jc-space-between u-ai-center">
         <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-sparkles"></use></svg> Résumé IA</strong>
-        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="ai-panel-close" title="Fermer" aria-label="Fermer"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
+        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-lg" id="ai-panel-close" title="Fermer" aria-label="Fermer"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
       </div>
       <div id="ai-summary-text" aria-live="polite"></div>
       <button class="action-btn btn-secondary btn-sm" id="ai-summary-copy" title="Copier ce résumé dans le presse-papier"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-clipboard-copy"></use></svg> Copier résumé</button>
@@ -798,7 +798,7 @@
     <div id="lex-panel" role="dialog" aria-label="Synonymes et antonymes">
       <div class="u-d-flex u-jc-space-between u-ai-center">
         <span id="lex-panel-title"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-sparkles"></use></svg> Synonymes</span>
-        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="lex-panel-close" aria-label="Fermer" title="Fermer"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
+        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-lg" id="lex-panel-close" aria-label="Fermer" title="Fermer"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
       </div>
       <div class="u-fs-xs u-c-v-text-muted" id="lex-panel-word"></div>
       <div id="lex-words"></div>
@@ -808,7 +808,7 @@
     <div id="fr-panel" role="dialog" aria-label="Rechercher et remplacer">
       <div class="u-d-flex u-jc-space-between u-ai-center">
         <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-replace"></use></svg> Rechercher / Remplacer</strong>
-        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="fr-panel-close" aria-label="Fermer" title="Fermer"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
+        <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-lg" id="fr-panel-close" aria-label="Fermer" title="Fermer"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
       </div>
       <input id="fr-find-input" class="field" placeholder="Rechercher...">
       <input id="fr-replace-input" class="field" placeholder="Remplacer par...">
@@ -830,8 +830,8 @@
       <div class="u-d-flex u-jc-space-between u-ai-center">
         <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-bot"></use></svg> Assistant IA</strong>
         <div class="u-d-flex u-gap-4px">
-          <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1rem" id="ai-chat-reset-btn" title="Nouvelle conversation" aria-label="Nouvelle conversation"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh-cw"></use></svg></button>
-          <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-1_1rem" id="ai-chat-close-btn" aria-label="Fermer" title="Fermer"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
+          <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-md" id="ai-chat-reset-btn" title="Nouvelle conversation" aria-label="Nouvelle conversation"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh-cw"></use></svg></button>
+          <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-lg" id="ai-chat-close-btn" aria-label="Fermer" title="Fermer"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
         </div>
       </div>
       <label class="u-d-flex u-ai-center u-gap-6px u-fs-xs u-c-v-text-muted">
@@ -862,7 +862,7 @@
       <button class="mode-indicator" id="ai-chat-btn" title="Discuter avec l'assistant IA"><span aria-hidden="true"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-bot"></use></svg></span><span class="mb-label"> IA</span></button>
       <span class="u-fs-xs u-c-v-text-muted" id="dictate-status"></span>
       <span id="dictate-preview" aria-live="polite"></span>
-      <button class="u-d-none u-bg-linear-gradient-135deg-v-acc-1qh64 u-c-hfff u-bd-none u-p-5px-14px u-br-pill u-cur-pointer u-fs-sm u-fwt-700 u-ff-inherit u-shadow-elev-1" id="install-app-btn" title="Installer Plume comme application sur cet ordinateur"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-download"></use></svg> Installer sur le bureau</button>
+      <button class="u-d-none u-bg-linear-gradient-135deg-v-acc-1qh64 u-c-hfff u-bd-none u-p-5px-14px u-br-pill u-cur-pointer u-fs-sm u-fwt-600 u-ff-inherit u-shadow-elev-1" id="install-app-btn" title="Installer Plume comme application sur cet ordinateur"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-download"></use></svg> Installer sur le bureau</button>
       <button id="shortcuts-hint-btn" class="mode-indicator u-ml-auto u-p-2px-8px" title="Aide et raccourcis clavier (touche ?)" aria-label="Aide et raccourcis"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-circle-help"></use></svg><span class="mb-label"> Aide</span></button>
     </div>
   </div>
@@ -989,7 +989,7 @@
           <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-lightbulb"></use></svg> Continuation</strong>
           <p class="u-fs-sm u-op-_7 u-m-5px-0">3 façons de poursuivre.</p>
           <button class="action-btn btn-sm" id="ai-continue-btn" title="Demander à l'IA 3 idées pour poursuivre le chapitre">Générer</button>
-          <div class="u-mt-8px u-fs-sm u-lh-1_6" id="ai-continue-result"></div>
+          <div class="u-mt-8px u-fs-sm u-lh-normal" id="ai-continue-result"></div>
         </div>
         <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-14px u-bd-1px-solid-v-border">
           <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg> Incohérences</strong>
@@ -1000,7 +1000,7 @@
           </select>
           <p class="u-fs-sm u-op-_7 u-m-0-0-6px" id="ai-check-scope-help">Un chapitre : comparé aux fiches. Tout le roman : plusieurs appels IA.</p>
           <button class="action-btn btn-sm" id="ai-check-btn" title="Demander à l'IA de repérer des incohérences avec vos personnages">Analyser</button>
-          <div class="u-mt-8px u-fs-sm u-lh-1_6" id="ai-check-result"></div>
+          <div class="u-mt-8px u-fs-sm u-lh-normal" id="ai-check-result"></div>
         </div>
         <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-14px u-bd-1px-solid-v-border">
           <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-sparkles"></use></svg> Générateur de noms</strong>
@@ -1014,7 +1014,7 @@
             </select>
           </div>
           <button class="action-btn btn-sm" id="ai-names-btn" title="Demander à l'IA de proposer des noms de personnages">Générer</button>
-          <div class="u-mt-8px u-fs-sm u-lh-1_8" id="ai-names-result"></div>
+          <div class="u-mt-8px u-fs-sm u-lh-relaxed" id="ai-names-result"></div>
         </div>
         <!-- v9.2.3 — Point d'ancrage mobile uniquement : sur PC, reste vide
              (Synonymes/Antonymes reste dans la barre d'outils). Sur mobile,
@@ -1153,7 +1153,8 @@
     </div>
     <div class="u-fs-sm u-c-v-text-muted u-m-0-0-8px">Police d'écriture</div>
     <div class="u-d-flex u-fd-column u-gap-6px u-mb-6px" id="font-picker">
-      <div class="font-option" data-font="palatino" tabindex="0" role="radio" title="Police par défaut"><span class="font-dot"></span><span class="u-ff-palatino-linotype-georgia-serif">Palatino / Georgia (défaut)</span></div>
+      <div class="font-option" data-font="literata" tabindex="0" role="radio" title="Police par défaut"><span class="font-dot"></span><span class="u-ff-read">Literata (défaut)</span></div>
+      <div class="font-option" data-font="palatino" tabindex="0" role="radio" title="Palatino, avec Georgia en repli"><span class="font-dot"></span><span class="u-ff-palatino">Palatino / Georgia</span></div>
       <div class="font-option" data-font="times" tabindex="0" role="radio" title="Times New Roman"><span class="font-dot"></span><span class="u-ff-times-new-roman-times-serif">Times New Roman</span></div>
       <div class="font-option" data-font="verdana" tabindex="0" role="radio" title="Verdana, sans-serif"><span class="font-dot"></span><span class="u-ff-verdana-arial-sans-serif">Verdana (sans-serif)</span></div>
       <div class="font-option" data-font="courier" tabindex="0" role="radio" title="Courier New, façon machine à écrire"><span class="font-dot"></span><span class="u-ff-courier-new-courier-monospace">Courier New (machine à écrire)</span></div>
@@ -1225,7 +1226,7 @@
 
     <div id="tab-sprint" class="subtab-content" role="tabpanel">
       <div class="u-ta-center u-p-20px">
-        <div class="u-fs-3rem u-fwt-700 u-ls-2px" id="sprint-timer" aria-live="polite">25:00</div>
+        <div class="u-fs-3xl u-fwt-600 u-ls-2px" id="sprint-timer" aria-live="polite">25:00</div>
         <div class="u-d-flex u-gap-8px u-jc-center u-m-12px-0">
           <button class="action-btn" id="sprint-start-btn" title="Démarrer un sprint d'écriture chronométré"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-play"></use></svg> Démarrer</button>
           <button class="action-btn btn-secondary" id="sprint-reset-btn" title="Remettre le chronomètre à zéro">↺ Reset</button>
@@ -1335,12 +1336,12 @@
     <div class="u-d-flex u-gap-10px u-fw-wrap u-mt-12px">
       <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-12px u-bd-1px-solid-v-border">
         <p class="u-fs-sm u-c-v-text-muted u-m-0"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-laptop"></use></svg> Cet appareil</p>
-        <p class="u-fs-base u-fwt-700 u-m-4px-0-2px" id="conflict-diff-local-words"></p>
+        <p class="u-fs-base u-fwt-600 u-m-4px-0-2px" id="conflict-diff-local-words"></p>
         <p class="u-fs-xs u-c-v-text-muted u-m-0" id="conflict-diff-local-date"></p>
       </div>
       <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-12px u-bd-1px-solid-v-border">
         <p class="u-fs-sm u-c-v-text-muted u-m-0"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-smartphone"></use></svg> Autre appareil</p>
-        <p class="u-fs-base u-fwt-700 u-m-4px-0-2px" id="conflict-diff-remote-words"></p>
+        <p class="u-fs-base u-fwt-600 u-m-4px-0-2px" id="conflict-diff-remote-words"></p>
         <p class="u-fs-xs u-c-v-text-muted u-m-0" id="conflict-diff-remote-date"></p>
       </div>
     </div>

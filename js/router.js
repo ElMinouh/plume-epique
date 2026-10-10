@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.53.1';
+const APP_VERSION = '9.54.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1353,9 +1353,11 @@ const debouncedSave = (() => {
 // ═══════════════════════════════════════════════════════
 function initApp(){
   syncDbAppearanceFromPrefs(); // v9.48.0 (AUD-03-022) : l'apparence est celle du profil, pas du manuscrit
-  if(db.darkMode)document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');
   // v7.7.0 — Apparence : thème papier, palette de couleurs, police d'écriture.
-  document.body.classList.toggle('paper-mode', !!db.paperMode);
+  (typeof runThemeSwitch === 'function' ? runThemeSwitch : f => f())(() => {
+    if(db.darkMode)document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');
+    document.body.classList.toggle('paper-mode', !!db.paperMode);
+  });
   applyAccentPalette(db.accentPalette);
   applyEditorFont(db.editorFont);
   const dt = document.getElementById('document-title'); if (dt) dt.innerText = db.title || '';
