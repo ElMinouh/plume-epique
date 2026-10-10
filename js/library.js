@@ -229,6 +229,7 @@ async function syncReconcileKey(key) {
     // la version du serveur est la seule qui existe.
     await writeLocalOnly(key, remote);
     setSyncVersion(key, version);
+    await markRemoteAdopted(key, remote); // v9.53.1 : adoption réelle → base commune posée ici (plus dans syncPull)
     return;
   }
   if (key === 'profiles' || isDocListKey(key)) {
@@ -241,13 +242,17 @@ async function syncReconcileKey(key) {
     if (JSON.stringify(merged) !== JSON.stringify(remote)) queueSyncPush(key, merged);
     return;
   }
-  const verdict = await classifySyncDivergence(local, remote, baseFp, baseCoreFp);
+  let verdict = await classifySyncDivergence(local, remote, baseFp, baseCoreFp);
+  // v9.53.1 — manuscrit ouvert avec des frappes non enregistrées : pas d'adoption
+  // silencieuse (voir isOpenDocumentProtected, router.js) → arbitrage par l'utilisateur.
+  if (verdict === 'remote-only' && await isOpenDocumentProtected(key)) verdict = 'both';
   if (verdict === 'identical' || verdict === 'remote-only') {
     // Rien de neuf chez nous : on adopte la version du serveur.
     await writeLocalOnly(key, remote);
     setSyncVersion(key, version);
-    setKnownRemoteHash(key, await sha256Hex(JSON.stringify(remote)));
-    await rememberRemoteBase(key, remote);
+    await markRemoteAdopted(key, remote);
+    // v9.53.1 — si ce manuscrit est ouvert dans l'éditeur, il recharge la version adoptée.
+    if (verdict === 'remote-only' && isOpenDocumentKey(key)) await onRemoteVersionAdopted(key);
     return;
   }
   if (verdict === 'local-only') {
@@ -267,12 +272,63 @@ async function syncReconcileKey(key) {
 
 // v9.3.0 — Points d'accroche appelés par router.js pour rafraîchir l'écran
 // quand la synchronisation a changé quelque chose en arrière-plan.
-async function onRemoteVersionAdopted() {
+async function onRemoteVersionAdopted(key) {
   try {
     if (document.getElementById('library-screen') && !document.getElementById('library-screen').classList.contains('u-d-none')) {
       await renderLibraryScreen();
     }
   } catch(e) { /* rafraîchissement cosmétique : ne doit jamais faire échouer la synchro */ }
+  // v9.53.1 — la version adoptée est celle du manuscrit OUVERT : l'éditeur doit la recharger.
+  try { if (key && isOpenDocumentKey(key)) await reloadOpenDocumentFromLocal(key); }
+  catch(e) { /* en cas d'échec, la copie locale est à jour : le prochain envoi sera arbitré par le serveur */ }
+}
+
+// v9.53.1 — PERTE SILENCIEUSE CORRIGÉE (constatée en test réel le 2026-10-10).
+// Quand une version plus récente d'un autre appareil était adoptée (rafraîchissement
+// d'arrière-plan de loadData, envoi refusé puis arbitré, réconciliation) alors que le
+// manuscrit était DÉJÀ ouvert, la copie locale (IndexedDB) était remplacée mais
+// `db`, en mémoire, gardait l'ancien texte : la frappe suivante s'enregistrait
+// puis partait avec un numéro de version à jour, et le serveur l'acceptait —
+// la phrase de l'autre appareil disparaissait sans conflit ni sauvegarde.
+// Remède : l'éditeur recharge la version adoptée. Si des frappes ont eu lieu entre-temps
+// (les `await` ci-dessous), on ne remplace rien : conflit arbitré, sauvegarde de l'autre version.
+async function reloadOpenDocumentFromLocal(key) {
+  const env = await readLocalOnly(key);
+  if (!env || !env._enc || !_dataKey) return false;
+  const dec = await Crypto.decrypt(env.data, _dataKey);
+  if (!dec) return false;
+  let fresh;
+  try { fresh = migrateDb(JSON.parse(dec)); } catch(e) { return false; }
+  if (!isOpenDocumentKey(key)) return false; // l'utilisateur a quitté le manuscrit entre-temps
+  if (await isOpenDocumentProtected(key)) {
+    // Frappes arrivées pendant le déchiffrement : on garde le texte de l'éditeur (copie locale
+    // réécrite), la version de l'autre appareil est sauvegardée, la synchro de ce manuscrit
+    // est mise en pause et l'utilisateur arbitre (rien n'est perdu ni écrasé).
+    await persistConflictBackup(key, env);
+    addConflictPausedKey(key);
+    try { if (typeof flushCurrentChapter === 'function') flushCurrentChapter(); await save(); } catch(e) { /* meilleure tentative */ }
+    if (typeof onSyncConflictDetected === 'function') onSyncConflictDetected(key);
+    if (typeof toast === 'function') toast("Synchro : ce manuscrit a été modifié sur les deux appareils. Votre texte est intact — ouvrez « Système » pour comparer et choisir.", 'error', { sticky: true, kind: 'conflict' });
+    return false;
+  }
+  db = fresh;
+  if (!Array.isArray(db.chapters) || cur >= db.chapters.length) cur = 0;
+  refreshEditorFromDb();
+  markOpenDocumentBaseline(); // nouvelle référence : « rien tapé depuis ce chargement »
+  if (typeof toast === 'function') toast('Ce manuscrit vient d\'être modifié sur un autre appareil : sa version la plus récente est chargée.', 'info');
+  return true;
+}
+// Réaffiche l'éditeur depuis `db` sans repasser par initApp() (qui relance parcours guidé,
+// instantané d'ouverture, câblages…). Roman graphique : jamais adopté en arrière-plan (voir
+// isOpenDocumentProtected), donc rien à faire ici.
+function refreshEditorFromDb() {
+  if (db.docType === 'roman_graphique') return;
+  const call = (name, ...a) => { try { if (typeof globalThis[name] === 'function') globalThis[name](...a); } catch(e) { /* affichage seulement */ } };
+  const dt = document.getElementById('document-title'); if (dt) dt.innerText = db.title || '';
+  try { _undoStacks = {}; _pendingUndoFlush = false; } catch(e) { /* pas d'éditeur chargé */ }
+  call('renderChapterList'); call('loadChapter', cur);
+  call('renderLibrary', 'chars'); call('renderLibrary', 'places'); call('renderQuests');
+  call('updateDailyStats'); call('updateEstimatedFinishDate');
 }
 async function onSyncConflictDetected() {
   try { await renderLibrarySyncBadge(); } catch(e) { /* idem */ }
@@ -367,6 +423,11 @@ async function renderLibrarySyncBadge() {
     badge.classList.add('sync-warn');
     iconEl.innerHTML = icon('triangle-alert');
     text.textContent = count + (count > 1 ? ' conflits à vérifier' : ' conflit à vérifier');
+  } else if (getPendingSyncKeys().length > 0) {
+    // v9.53.1 — « à jour » seulement si plus rien n'attend d'être envoyé (voir renderSyncDot).
+    badge.classList.remove('sync-warn');
+    iconEl.innerHTML = icon('clock');
+    text.textContent = 'Envoi en attente';
   } else {
     badge.classList.remove('sync-warn');
     iconEl.innerHTML = icon('circle-check');
@@ -881,10 +942,24 @@ async function renderLibraryShelf(sorted) {
 }
 
 async function openDocument(docId) {
-  const stored = await loadData(docDataKey(_currentProfileId, docId));
+  const dataKey = docDataKey(_currentProfileId, docId);
+  const lireVersion = () => (typeof getSyncVersion === 'function' ? getSyncVersion(dataKey) : 0);
+  const versionAvantLecture = lireVersion();
+  let stored = await loadData(dataKey);
   if (!stored || !stored._enc) { toast('Manuscrit introuvable.', 'error'); return; }
-  const dec = await Crypto.decrypt(stored.data, _dataKey);
+  let dec = await Crypto.decrypt(stored.data, _dataKey);
   if (!dec) { toast('Impossible de déchiffrer ce manuscrit.', 'error'); return; }
+  // v9.53.1 — loadData() renvoie la copie locale tout de suite et rafraîchit en arrière-plan : si ce
+  // rafraîchissement a adopté une version plus récente PENDANT le déchiffrement (avant que le
+  // manuscrit soit marqué ouvert, donc avant que onRemoteVersionAdopted puisse recharger l'éditeur),
+  // on relit la copie locale à jour plutôt que d'ouvrir l'ancienne.
+  if (lireVersion() !== versionAvantLecture) {
+    const frais = await readLocalOnly(dataKey);
+    if (frais && frais._enc && frais._fp !== stored._fp) {
+      const d2 = await Crypto.decrypt(frais.data, _dataKey);
+      if (d2) { stored = frais; dec = d2; }
+    }
+  }
   let opened;
   try { opened = migrateDb(JSON.parse(dec)); }
   catch (e) {
@@ -902,6 +977,8 @@ async function openDocument(docId) {
   // chapitre par chapitre (db.pages au lieu de db.chapters — voir schema.js).
   if (db.docType === 'roman_graphique') { openGraphicNovelScreen(); return; }
   initApp();
+  // v9.53.1 — référence « rien tapé depuis ce chargement » (voir isOpenDocumentProtected, router.js).
+  if (typeof markOpenDocumentBaseline === 'function') markOpenDocumentBaseline();
 }
 
 // Au clic sur "Nouveau projet" : fenêtre de choix du type de document
@@ -925,6 +1002,8 @@ async function createNewTextDocument() {
   cur = 0;
   hideLibraryScreen();
   initApp();
+  // v9.53.1 — référence « rien tapé depuis ce chargement » (voir isOpenDocumentProtected, router.js).
+  if (typeof markOpenDocumentBaseline === 'function') markOpenDocumentBaseline();
 }
 
 // Suppression définitive d'un manuscrit depuis la bibliothèque — confirmation

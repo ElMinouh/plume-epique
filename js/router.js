@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.53.0';
+const APP_VERSION = '9.53.1';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -157,8 +157,18 @@ function renderSyncDot() {
   dot.classList.remove('sync-ok','sync-warn','sync-error');
   if (!getSyncKey()) { label.textContent = 'Local seulement'; dot.title = 'Synchro multi-appareils non configurée : ce manuscrit reste sur cet appareil'; return; }
   const status = getLastSyncStatus();
+  // v9.53.1 — « Synchronisé » = le dernier échange réseau a réussi, PAS « tout est parti » : l'envoi
+  // d'un manuscrit est différé (1 min sans frappe, voir scheduleSyncPush). Tant qu'il reste des
+  // clés en file, on le dit — sinon on passait sur l'autre appareil en croyant tout envoyé.
+  const enAttente = getPendingSyncKeys().length;
+  if (status.ok !== false && enAttente > 0) {
+    dot.classList.add('sync-warn');
+    label.innerHTML = icon('clock') + ' En attente d\'envoi';
+    dot.title = 'Pas encore envoyé au serveur (' + enAttente + ' élément' + (enAttente > 1 ? 's' : '') + ') : l\'envoi part après une minute sans frappe, ou en quittant le manuscrit.';
+    return;
+  }
   if (status.ok === null) { label.textContent = ''; dot.title = 'Aucune synchro tentée depuis l\'ouverture de la page'; return; }
-  if (status.ok) { dot.classList.add('sync-ok'); label.innerHTML = icon('cloud') + ' Synchronisé'; dot.title = 'Dernière synchro réussie'; }
+  if (status.ok) { dot.classList.add('sync-ok'); label.innerHTML = icon('cloud') + ' Synchronisé'; dot.title = 'Dernière synchro réussie, rien en attente d\'envoi'; }
   else { dot.classList.add('sync-error'); label.innerHTML = icon('triangle-alert') + ' Échec de synchro'; dot.title = 'Dernière tentative de synchro échouée — réessai automatique à la prochaine sauvegarde'; }
 }
 
@@ -306,6 +316,18 @@ async function rememberRemoteBase(key, value) {
   if (cfp) localStorage.setItem('plume_synccfp_' + key, cfp);
   else localStorage.removeItem('plume_synccfp_' + key);
 }
+// v9.53.1 — La base commune (et le « hash connu ») ne se posent QUE lorsque cet
+// appareil et le serveur détiennent réellement la même chose : après un envoi
+// accepté (syncPush) ou après avoir ADOPTÉ une version distante en local.
+// Avant, syncPull() les posait à chaque simple lecture : un rafraîchissement
+// d'arrière-plan qui n'adoptait pas la version distante (copie locale non
+// confirmée, envoi en vol…) laissait pourtant la « base » = version de l'autre
+// appareil, et l'arbitrage suivant concluait « seul le distant n'a pas bougé »
+// (local-only) → notre copie périmée repartait et écrasait son travail.
+async function markRemoteAdopted(key, value) {
+  setKnownRemoteHash(key, await sha256Hex(JSON.stringify(value)));
+  await rememberRemoteBase(key, value);
+}
 
 // ═══════════════════════════════════════════════════════
 // ARBITRAGE D'UN REFUS SERVEUR (v9.3.0)
@@ -355,6 +377,43 @@ async function classifySyncDivergence(localValue, remoteValue, baseFp, baseCoreF
 // qu'on cherche à éviter. Les AUTRES manuscrits continuent de se synchroniser
 // normalement. Persisté : la pause survit à un rechargement de la page.
 // ═══════════════════════════════════════════════════════
+// v9.53.1 — Cette clé est-elle celle du manuscrit actuellement ouvert dans
+// l'éditeur ? Et, si oui, l'éditeur détient-il des données que la copie locale
+// n'a pas (frappes en attente d'enregistrement) ou ne sait-il pas se recharger
+// (roman graphique) ? Dans ce cas, aucune version distante ne doit être adoptée
+// en arrière-plan : l'éditeur resterait sur l'ancien contenu et son prochain
+// enregistrement écraserait en silence le travail de l'autre appareil.
+function isOpenDocumentKey(key) {
+  if (typeof _currentDocumentId === 'undefined' || !_currentDocumentId || !_currentProfileId) return false;
+  if (typeof document !== 'undefined' && document.body && document.body.classList.contains('library-mode')) return false;
+  return key === 'doc_' + _currentProfileId + '_' + _currentDocumentId;
+}
+// « L'auteur a-t-il écrit quelque chose dans l'éditeur depuis le chargement ? » ne se lit pas dans
+// _unsavedChanges : à l'ouverture, initApp() arme lui-même un enregistrement différé (historique,
+// instantané d'ouverture) alors que rien n'a été tapé. On compare donc l'empreinte « cœur » du manuscrit
+// en mémoire (sans history, lastPosition… voir coreFingerprint) à celle prise juste après son chargement.
+let _openBaselinePromise = null;
+function memoryCoreFingerprint() {
+  if (typeof flushCurrentChapter === 'function') { try { flushCurrentChapter(); } catch(e) { /* pas d'éditeur affiché */ } }
+  const payload = { ...db }; delete payload.cloudToken;
+  return coreFingerprint(JSON.stringify(payload)); // JSON.stringify est synchrone : l'instantané est pris tout de suite
+}
+// À appeler dès que `db` vient d'être posé (ouverture, création, rechargement après adoption).
+function markOpenDocumentBaseline() {
+  _openBaselinePromise = memoryCoreFingerprint();
+  return _openBaselinePromise;
+}
+async function isOpenDocumentProtected(key) {
+  if (!isOpenDocumentKey(key)) return false;
+  if (db && db.docType === 'roman_graphique') return true; // éditeur du roman graphique : pas de rechargement à chaud
+  if (!_openBaselinePromise) return true;                  // chargement non repéré : prudence
+  try {
+    const baseline = await _openBaselinePromise;
+    const now = await memoryCoreFingerprint();
+    return !baseline || !now || now !== baseline;
+  } catch(e) { return true; }
+}
+
 function getConflictPausedKeys() {
   try { const v = JSON.parse(localStorage.getItem('plume_conflict_paused') || '[]'); return Array.isArray(v) ? v : []; }
   catch(e) { return []; }
@@ -669,15 +728,22 @@ async function syncPush(key, payload, attempt = 0) {
       }
 
       // ── Manuscrits : arbitrage à trois voies ──
-      const verdict = await classifySyncDivergence(payload, pulled.data, baseFpBeforePull, baseCoreBeforePull);
+      let verdict = await classifySyncDivergence(payload, pulled.data, baseFpBeforePull, baseCoreBeforePull);
+
+      // v9.53.1 — Manuscrit OUVERT dans l'éditeur avec des frappes non encore
+      // enregistrées (ou roman graphique ouvert) : adopter la version distante
+      // « en silence » laisserait l'éditeur sur l'ancien texte, et la frappe
+      // suivante repartirait en écrasant le travail de l'autre appareil (perte
+      // constatée en test réel le 2026-10-10). On ne peut pas fusionner : c'est
+      // un vrai conflit, que l'utilisateur arbitre (rien n'est perdu).
+      if (verdict === 'remote-only' && await isOpenDocumentProtected(key)) verdict = 'both';
 
       if (verdict === 'identical') {
         // Même texte des deux côtés, seul l'emballage chiffré diffère (sel et
         // IV aléatoires). Rien à signaler : on adopte la version distante pour
         // se recaler sur son numéro de version, et on s'arrête là.
         await writeLocalOnly(key, pulled.data);
-        setKnownRemoteHash(key, await sha256Hex(JSON.stringify(pulled.data)));
-        await rememberRemoteBase(key, pulled.data);
+        await markRemoteAdopted(key, pulled.data);
         return;
       }
 
@@ -689,8 +755,7 @@ async function syncPush(key, payload, attempt = 0) {
         // manuscrit qui « rétrécissait » à chaque connexion de l'autre
         // appareil. On adopte désormais sa version, silencieusement.
         await writeLocalOnly(key, pulled.data);
-        setKnownRemoteHash(key, await sha256Hex(JSON.stringify(pulled.data)));
-        await rememberRemoteBase(key, pulled.data);
+        await markRemoteAdopted(key, pulled.data);
         if (typeof onRemoteVersionAdopted === 'function') onRemoteVersionAdopted(key);
         return;
       }
@@ -778,14 +843,9 @@ async function syncPull(key) {
     setLastSyncStatus(true);
     const version = readVersionHeader(resp);
     const data = await resp.json(); // peut être `null` (clé jamais synchronisée) : géré par l'appelant
-    // v7.27.0 — on mémorise l'empreinte de ce qu'on vient de lire, pour que la
-    // détection de conflit (voir syncPush) sache dès la prochaine écriture
-    // locale si quelqu'un d'autre a modifié la donnée entre-temps.
-    if (data !== null && data !== undefined) {
-      setKnownRemoteHash(key, await sha256Hex(JSON.stringify(data)));
-      // v9.3.0 — voir setKnownRemoteFp() : base commune servant à l'arbitrage.
-      await rememberRemoteBase(key, data);
-    }
+    // v9.53.1 — Lecture PURE : plus aucune écriture de la base commune ni du
+    // hash connu ici (voir markRemoteAdopted). Jusqu'en v9.53.0, chaque lecture
+    // les remplaçait par la version distante, adoptée ou non.
     return { data, version };
   } catch(e) { setLastSyncStatus(false); return { data: undefined, version: null }; }
 }
@@ -855,15 +915,25 @@ function getPendingSyncKeys() {
   try { const raw = JSON.parse(localStorage.getItem(PENDING_SYNC_STORAGE_KEY) || '[]'); return Array.isArray(raw) ? raw : []; }
   catch(e) { return []; }
 }
+// v9.53.1 — l'indicateur de synchro (éditeur et bibliothèque) dépend de cette file : on le remet à jour.
+function refreshSyncIndicators() {
+  try {
+    if (typeof renderSyncDot === 'function') renderSyncDot();
+    if (typeof renderLibrarySyncBadge === 'function' && document.body.classList.contains('library-mode')) renderLibrarySyncBadge();
+  } catch(e) { /* affichage seulement */ }
+}
 function addPendingSyncKey(key) {
   const keys = new Set(getPendingSyncKeys());
+  if (keys.has(key)) return; // déjà en file (appelé à chaque frappe) : rien à écrire ni à réafficher
   keys.add(key);
   localStorage.setItem(PENDING_SYNC_STORAGE_KEY, JSON.stringify([...keys]));
+  refreshSyncIndicators();
 }
 function removePendingSyncKey(key) {
   const keys = new Set(getPendingSyncKeys());
   if (!keys.delete(key)) return;
   localStorage.setItem(PENDING_SYNC_STORAGE_KEY, JSON.stringify([...keys]));
+  refreshSyncIndicators();
 }
 // Lecture strictement locale (IndexedDB ou localStorage), sans jamais
 // déclencher le rafraîchissement en arrière-plan de loadData() : on veut
@@ -1108,19 +1178,32 @@ async function loadData(key) {
         // les écrase pas. Elles seront poussées, refusées, puis réconciliées.
         const localHash = await sha256Hex(JSON.stringify(local));
         if (!knownHashAtPullStart || localHash !== knownHashAtPullStart) return;
+        // v9.53.1 — Manuscrit ouvert avec des frappes non enregistrées : on
+        // n'adopte rien (voir isOpenDocumentProtected) ; son envoi sera refusé
+        // puis arbitré normalement.
+        if (await isOpenDocumentProtected(key)) return;
+        // Une frappe a pu partir pendant les `await` ci-dessus.
+        if ((_localWriteVersion[key] || 0) !== versionAtPullStart) return;
 
         if (key === 'profiles') {
           // Garde-fou : un profil présent en local ne disparaît jamais.
           const merged = mergeProfilesIndex(local, remote);
           await writeLocalOnly(key, merged);
           setSyncVersion(key, remoteVersion);
+          // v9.53.1 — la base ne se pose que si la fusion est égale au distant ;
+          // sinon l'envoi de la fusion (ci-dessous) la posera à son succès.
+          if (JSON.stringify(merged) === JSON.stringify(remote)) await markRemoteAdopted(key, remote);
           purgeTombstonedProfiles(merged); // v9.39.0 : profils supprimés ailleurs
           // Des profils locaux absents du serveur ? On les y renvoie.
           if (JSON.stringify(merged) !== JSON.stringify(remote)) queueSyncPush(key, merged);
         } else {
           await writeLocalOnly(key, remote);
           setSyncVersion(key, remoteVersion);
+          await markRemoteAdopted(key, remote);
           if (isDocListKey(key)) purgeTombstonedDocs(key, remote);
+          // v9.53.1 — manuscrit ouvert entre-temps : l'éditeur recharge la
+          // version adoptée (sinon il garde l'ancien texte en mémoire).
+          else if (isOpenDocumentKey(key) && typeof onRemoteVersionAdopted === 'function') onRemoteVersionAdopted(key);
         }
       } catch(e) { /* en cas de doute, on ne remplace rien */ }
     });
@@ -1132,6 +1215,8 @@ async function loadData(key) {
   if (remote !== undefined && remote !== null) {
     if (idbStore) await idbStore.put('data', remote, key);
     if (remoteVersion !== null) setSyncVersion(key, remoteVersion);
+    // v9.53.1 — adoption réelle (premier accès) : base commune posée ici, plus dans syncPull.
+    await markRemoteAdopted(key, remote);
     if (isDocListKey(key)) purgeTombstonedDocs(key, remote);
     if (key === 'profiles') purgeTombstonedProfiles(remote);
     return remote;
