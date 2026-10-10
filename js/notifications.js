@@ -314,6 +314,11 @@ function loadAppearancePrefs() {
       p.palette = 'marine-or'; p.paletteDefault953 = 1;
       try { localStorage.setItem(appearancePrefsKey(), JSON.stringify(p)); } catch (e) { /* appliqué pour cette session */ }
     }
+    // v9.54.0 (AUD-04-016) : même principe pour la police d'écriture (Palatino était le défaut, Literata le remplace une fois).
+    if (p.font === 'palatino' && !p.fontDefault954) {
+      p.font = 'literata'; p.fontDefault954 = 1;
+      try { localStorage.setItem(appearancePrefsKey(), JSON.stringify(p)); } catch (e) { /* appliqué pour cette session */ }
+    }
     return p;
   }
   catch (e) { return null; }
@@ -325,9 +330,25 @@ function rememberAppearance(part) {
 function systemThemeKey() {
   try { return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; } catch (e) { return 'light'; }
 }
+// v9.54.0 (AUD-04-015) : un changement de thème suspend toutes les transitions pendant une image (classe .theme-switching), pour que
+// fonds, textes et bordures basculent ensemble au lieu de laisser des libellés pâles à mi-chemin.
+function runThemeSwitch(fn) {
+  const b = document.body;
+  b.classList.add('theme-switching');
+  try { fn(); }
+  finally {
+    void b.offsetWidth;
+    const done = () => b.classList.remove('theme-switching');
+    // deux images (les changements de style sont alors appliqués), avec un filet de sécurité si l'onglet est en arrière-plan (rAF suspendu)
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(done));
+    setTimeout(done, 150);
+  }
+}
 function applyThemeKey(k) {
-  document.body.classList.toggle('dark-mode', k === 'dark');
-  document.body.classList.toggle('paper-mode', k === 'paper');
+  runThemeSwitch(() => {
+    document.body.classList.toggle('dark-mode', k === 'dark');
+    document.body.classList.toggle('paper-mode', k === 'paper');
+  });
 }
 // Connexion / bibliothèque : appliquer les préférences du profil (ou le système).
 function applyProfileAppearance() {
@@ -345,7 +366,7 @@ function syncDbAppearanceFromPrefs() {
     if (p.font) db.editorFont = p.font;
     return;
   }
-  rememberAppearance({ theme: db.paperMode ? 'paper' : (db.darkMode ? 'dark' : 'light'), palette: db.accentPalette || 'marine-or', font: db.editorFont || 'palatino' });
+  rememberAppearance({ theme: db.paperMode ? 'paper' : (db.darkMode ? 'dark' : 'light'), palette: db.accentPalette || 'marine-or', font: db.editorFont || 'literata' });
 }
 
 // v9.53.0 (AUD-04-001) — la couleur de la barre d'état / du navigateur suit le thème actif (ivoire en clair, papier, marine nuit).

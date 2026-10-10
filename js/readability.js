@@ -56,7 +56,7 @@ function renderAnalytics() {
   });
   document.getElementById('analytics-flesch').innerHTML = `
     <div class="flesch-score">${flesch}</div>
-    <div><div class="u-fwt-700 flesch-label">${flLabel}</div>
+    <div><div class="u-fwt-600 flesch-label">${flLabel}</div>
     <div class="u-fs-xs u-op-_7">/100 — Plus élevé = plus lisible</div></div>`;
   document.querySelectorAll('#analytics-flesch .flesch-score, #analytics-flesch .flesch-label')
     .forEach(el => { el.style.color = flColor; });

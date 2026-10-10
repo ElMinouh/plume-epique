@@ -119,18 +119,18 @@ async function queryNarrativeMemory() {
 
     const answerCard = document.createElement('div');
     answerCard.className = 'memory-answer-card';
-    answerCard.innerHTML = `<div class="u-fwt-700 u-c-v-accent2 u-mb-6px">${icon('brain')} Réponse</div>${DOMPurify.sanitize(answer.replace(/\n/g,'<br>'))}`;
+    answerCard.innerHTML = `<div class="u-fwt-600 u-c-v-accent2 u-mb-6px">${icon('brain')} Réponse</div>${DOMPurify.sanitize(answer.replace(/\n/g,'<br>'))}`;
     resultsEl.appendChild(answerCard);
 
     const sourcesTitle = document.createElement('div');
-    sourcesTitle.className = 'u-fs-sm u-fwt-700 u-c-v-text-muted u-mt-4px';
+    sourcesTitle.className = 'u-fs-sm u-fwt-600 u-c-v-text-muted u-mt-4px';
     sourcesTitle.textContent = 'Passages sources :';
     resultsEl.appendChild(sourcesTitle);
 
     passages.forEach((p, i) => {
       const card = document.createElement('div');
-      card.className = 'u-bg-v-item-bg u-bd-1px-solid-v-border u-br-2 u-p-10px u-fs-sm u-lh-1_55 u-cur-pointer';
-      card.innerHTML = `<div class="u-fwt-700 u-c-v-accent u-mb-4px">${DOMPurify.sanitize(p.chTitle)} <span class="u-op-72">· score: ${p.score}</span></div><div class="u-op-_8">${DOMPurify.sanitize(p.text.substring(0, 200))}${p.text.length>200?'…':''}</div>`;
+      card.className = 'u-bg-v-item-bg u-bd-1px-solid-v-border u-br-2 u-p-10px u-fs-sm u-lh-normal u-cur-pointer';
+      card.innerHTML = `<div class="u-fwt-600 u-c-v-accent u-mb-4px">${DOMPurify.sanitize(p.chTitle)} <span class="u-op-72">· score: ${p.score}</span></div><div class="u-op-_8">${DOMPurify.sanitize(p.text.substring(0, 200))}${p.text.length>200?'…':''}</div>`;
       if (p.chId) {
         card.title = 'Cliquer pour aller à ce chapitre';
         card.addEventListener('click', () => {

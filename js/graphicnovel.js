@@ -62,8 +62,10 @@ function openGraphicNovelScreen() {
   if (typeof wireAppEventListenersOnce === 'function') wireAppEventListenersOnce();
   showGraphicNovelScreen();
   syncDbAppearanceFromPrefs(); // v9.48.0 (AUD-03-022)
-  if (db.darkMode) document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');
-  document.body.classList.toggle('paper-mode', !!db.paperMode);
+  (typeof runThemeSwitch === 'function' ? runThemeSwitch : f => f())(() => {
+    if (db.darkMode) document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');
+    document.body.classList.toggle('paper-mode', !!db.paperMode);
+  });
   _gnActivePage = 0; _gnSelectedElId = null; _gnPreviewGabarit = null;
   const titleEl = document.getElementById('gn-doc-title');
   if (titleEl) titleEl.textContent = db.title || 'Sans titre';

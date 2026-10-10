@@ -4,6 +4,8 @@ Ces fichiers sont des **copies exactes** des librairies que l'application charge
 (jsDelivr, unpkg, d3js.org). Depuis la v9.27.0 (audit AUD-01-003) elles sont servies par le site lui-même :
 plus de dépendance à un site tiers, plus d'exécution de code externe, `script-src 'self'` dans `_headers`.
 
+Polices : `vendor/fonts/` contient 3 fichiers WOFF2 (sous-ensemble latin) copiés de `@fontsource-variable/literata` et `@fontsource-variable/inter` (version 5.3.0, licence SIL OFL 1.1 jointe : `LICENCE-OFL-*.txt`) — Literata droit et italique (écriture), Inter (interface). Mise à jour = recopier les fichiers `files/*-latin-wght-*.woff2` du paquet, renommer avec la version, mettre à jour `css/style.css` (@font-face), `sw.js` (CORE_ASSETS) et `package.json` ; `lot31-typographie-mouvement.test.js` vérifie le tout.
+
 Icônes : `lucide-static` (ISC) n'est PAS un fichier de `vendor/` : seules les ~100 icônes utilisées sont copiées dans le sprite de `index.html` par `node scripts/build-icons.cjs` (version figée dans `package.json`, test `lot29-icones.test.js`).
 
 | Fichier | Paquet | Version |

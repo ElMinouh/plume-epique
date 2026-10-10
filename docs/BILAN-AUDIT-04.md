@@ -9,7 +9,7 @@ Base : v9.48.0. Document d'origine : `Audit-04` (rapport `.docx` + `.csv`, hors 
 | 3a | 9.51.0 | 002, 003, 023 (partie statique) | Sprite d'icônes Lucide (98 symboles, ISC, version figée) intégré à `index.html`, `js/icons.js` (helper `icon()` et lexique), emojis et chevrons ▾ de `index.html` remplacés, placeholders et options de liste sans emoji, test de conformité du sprite | livré |
 | 3b | 9.52.0 | 002, 003, 023 (partie dynamique) | 211 emojis des 17 fichiers JS : gabarits en `icon()` (onglets sans chevron, quêtes par type de projet, chronologie, couvertures, roman graphique, connexion), messages / titres de visites / plugins sans emoji, icône par type de toast ; test « aucun emoji dans js/*.js » | livré |
 | 4 | 9.53.0 | 001, 007, 018, 022, 030 | Palette « Marine & Or » par défaut (bascule unique de l'ancien défaut), marque dans l'en-tête, thème clair ivoire, surfaces à 3 niveaux (`--glass` / `--surface-2`), `theme-color` dynamique, code de récupération en grille, logo `icons/plume.svg` (reproduction à valider ; PNG d'installation inchangés) | livré |
-| 5 | — | 016, 015 | Typographie embarquée, mouvement | à venir |
+| 5 | 9.54.0 | 016, 015 | Literata + Inter embarquées (`vendor/fonts/`, OFL), police d'écriture par défaut migrée une fois, 9 tailles / 3 poids / 4 interlignes en jetons, entrée animée des fenêtres et du volet, `runThemeSwitch` | livré |
 | 6 | — | 017, 019, 011, 020, 026 | Composition, roman graphique, étagère, rappel, modes Focus/Lecture | à venir |
 | 7 | — | 024, 025, 027, 028 | États vides, pastilles, impression, zones non vues | à venir |
 
