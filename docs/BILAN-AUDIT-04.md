@@ -10,7 +10,7 @@ Base : v9.48.0. Document d'origine : `Audit-04` (rapport `.docx` + `.csv`, hors 
 | 3b | 9.52.0 | 002, 003, 023 (partie dynamique) | 211 emojis des 17 fichiers JS : gabarits en `icon()` (onglets sans chevron, quêtes par type de projet, chronologie, couvertures, roman graphique, connexion), messages / titres de visites / plugins sans emoji, icône par type de toast ; test « aucun emoji dans js/*.js » | livré |
 | 4 | 9.53.0 | 001, 007, 018, 022, 030 | Palette « Marine & Or » par défaut (bascule unique de l'ancien défaut), marque dans l'en-tête, thème clair ivoire, surfaces à 3 niveaux (`--glass` / `--surface-2`), `theme-color` dynamique, code de récupération en grille, logo `icons/plume.svg` (reproduction à valider ; PNG d'installation inchangés) | livré |
 | 5 | 9.54.0 | 016, 015 | Literata + Inter embarquées (`vendor/fonts/`, OFL), police d'écriture par défaut migrée une fois, 9 tailles / 3 poids / 4 interlignes en jetons, entrée animée des fenêtres et du volet, `runThemeSwitch` | livré |
-| 6 | — | 017, 019, 011, 020, 026 | Composition, roman graphique, étagère, rappel, modes Focus/Lecture | à venir |
+| 6 | 9.55.0 | 017, 019, 011, 020, 026 | Colonne unique pour barre/titre/texte ; roman graphique en `--accent` (second accent réservé à image/texte) ; étagère en jetons `--shelf-*` + dos élargis ; rappel GitHub discret après 7 jours ; Focus/Lecture en `--imm-bg` / `--imm-text` | livré |
 | 7 | — | 024, 025, 027, 028 | États vides, pastilles, impression, zones non vues | à venir |
 
 Note lot 1 : les couvertures claires (glacier, coucher de soleil, rose poudré, corail, or…) sont plus profondes qu'avant ; c'est le prix d'un titre blanc lisible. Test : `tests/vitest/lot27-corrections-graphiques.test.js`.

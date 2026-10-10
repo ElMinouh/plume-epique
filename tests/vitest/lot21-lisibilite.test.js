@@ -79,7 +79,7 @@ describe('AUD-03-005 — cibles de clic', () => {
     expect(css).toContain('.action-btn,.mode-indicator,.subtab-btn,.tab-btn,.toolbar-dropdown-btn,#toolbar-library-btn,#shortcuts-hint-btn{min-height:24px;min-width:24px;}');
     expect(css).toMatch(/@media \(pointer:coarse\)\{\s*\.action-btn,\.mode-indicator,\.subtab-btn,\.tab-btn,\.toolbar-dropdown-btn,#toolbar-library-btn,#shortcuts-hint-btn,#chapter-status-sel\{min-height:44px;min-width:44px;\}/);
     expect(css).toContain('.contextual-help-icon{width:24px;height:24px;');
-    expect(css).toContain('.gn-pg-dup{top:2px;right:32px;}');
+    expect(css).toContain('.gn-pg-dup{top:2px;right:36px;}');
   });
 });
 

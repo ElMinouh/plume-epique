@@ -404,9 +404,19 @@ async function enterLibrary() {
 // une éventuelle anomalie de synchro au premier coup d'œil. Masqué si aucune
 // clé de synchro n'est configurée sur cet appareil (rien à signaler).
 // v9.41.0 (AUD-03-001) : rappel discret, remplace la bulle bloquante.
+// v9.55.0 (AUD-04-020) : le rappel n'apparaît qu'après 7 jours d'utilisation de cet appareil (date mémorisée localement, non
+// synchronisée) : l'absence de sauvegarde GitHub est un choix légitime, pas une urgence dès la première visite.
+const GITHUB_REMINDER_DELAY_MS = 7 * 24 * 3600 * 1000;
+function firstUseAgeMs() {
+  try {
+    let t = parseInt(localStorage.getItem('plume_first_use'), 10);
+    if (!t) { t = Date.now(); localStorage.setItem('plume_first_use', String(t)); }
+    return Date.now() - t;
+  } catch (e) { return 0; }
+}
 function renderGithubReminder() {
   const btn = document.getElementById('library-github-reminder');
-  if (btn) btn.hidden = !!_cloudToken;
+  if (btn) btn.hidden = !!_cloudToken || firstUseAgeMs() < GITHUB_REMINDER_DELAY_MS;
 }
 async function renderLibrarySyncBadge() {
   const badge = document.getElementById('library-sync-status-badge');
@@ -876,9 +886,10 @@ async function renderLibraryShelf(sorted) {
       const d = it.d;
       const cover = d.cover && d.cover !== 'auto' ? COVER_PALETTES[d.cover] : null;
       const shelfCoverClass = cover ? ` shelf-cover-${d.cover}` : '';
-      const h = Math.max(110, Math.min(190, 110 + Math.round((d.wordCount||0) / 700)));
+      // v9.55.0 (AUD-04-011) : la hauteur tient aussi compte de la longueur du titre (2 colonnes de ~7,5 px par caractère), plafonnée à 190 px.
+      const h = Math.min(190, Math.max(110 + Math.round((d.wordCount||0) / 700), 56 + Math.ceil(String(d.title || 'Sans titre').length * 4.2)));
       const safeTitle = DOMPurify.sanitize(d.title || 'Sans titre');
-      return `<div class="lib-book${shelfCoverClass}" data-doc-id="${d.id}" data-h="${h}" data-band-margin-default="${Math.round(h*0.16)}" data-band-margin-max="6" role="button" tabindex="0" title="Ouvrir « ${safeTitle} »">
+      return `<div class="lib-book${shelfCoverClass}" data-doc-id="${d.id}" data-h="${h}" data-band-margin-default="${Math.max(28, Math.round(h*0.16))}" data-band-margin-max="28" role="button" tabindex="0" title="Ouvrir « ${safeTitle} »">
         <button class="lib-book-kebab" data-kebab-doc="${d.id}" title="Actions du manuscrit" aria-label="Actions du manuscrit">${icon('ellipsis-vertical')}</button>
         ${it.isRecent ? '<span class="lib-book-recent-dot" title="Modifié le plus récemment" aria-hidden="true"></span>' : ''}
         <span class="lib-book-band lib-book-band-top" aria-hidden="true"></span>
@@ -919,13 +930,15 @@ async function renderLibraryShelf(sorted) {
       titleEl.style.maxHeight = Math.max(14, h - 2*m - 12) + 'px';
     };
     applyMargin(marginDefault); // 1er passage : écritures seulement
-    items2.push({ titleEl, applyMargin, marginMax });
+    items2.push({ el, titleEl, applyMargin, marginMax });
   });
   // 2e passage : lectures seulement (regroupées, un seul recalcul global).
   items2.forEach(it => { it.overflow = it.titleEl.scrollHeight > it.titleEl.clientHeight + 1; });
   // 3e passage : écritures de réajustement seulement, pour les titres qui
   // débordaient réellement de l'espace par défaut.
-  items2.forEach(it => { if (it.overflow) it.applyMargin(it.marginMax); });
+  // v9.55.0 (AUD-04-011) : un titre qui déborde élargit le dos (deux colonnes de titre) au lieu d'être tronqué ; les filets restent
+  // à 28 px des bords, sous le bouton ⋮ qui ne recouvre donc jamais le titre.
+  items2.forEach(it => { if (it.overflow) { it.el.classList.add('lib-book-wide'); it.applyMargin(it.marginMax); } });
 
   cont.querySelectorAll('[data-doc-id]').forEach(book => {
     book.addEventListener('click', e => { if (e.target.closest('.lib-book-kebab')) return; openDocument(book.dataset.docId); });
