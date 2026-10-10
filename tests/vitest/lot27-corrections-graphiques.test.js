@@ -23,7 +23,7 @@ const lum = hex => {
   return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
 };
 const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
-const WHITE = '#ffffff', PAPER = '#f4ecd8', DARK = '#161623';
+const WHITE = '#ffffff', PAPER = '#faf5e8', DARK = '#222d3d'; // DARK = surface la plus claire du thème sombre (menus, fenêtres)
 const evalConst = (src, name) => vm.runInNewContext(src.match(new RegExp('const ' + name + ' = \\{[\\s\\S]*?\\n\\};'))[0].replace('const ' + name, name) + '; ' + name);
 
 describe('AUD-04-004 — vue Fiches : le fond de statut ne vaut que pour la pastille', () => {
@@ -66,9 +66,11 @@ describe('AUD-04-008 — textes colorés', () => {
 describe('AUD-04-009 — palettes d\'accent', () => {
   const P = evalConst(dbjs, 'ACCENT_PALETTES');
   it('chaque palette : boutons, second accent et texte d\'accent ≥ 4,5:1 sur les trois thèmes', () => {
-    expect(Object.keys(P).length).toBe(5);
+    expect(Object.keys(P).length).toBe(6);
+    expect(Object.keys(P)[0]).toBe('marine-or');
     for (const [k, p] of Object.entries(P)) {
       expect(ratio(WHITE, p.a), k + ' a').toBeGreaterThanOrEqual(4.5);
+      expect(ratio(WHITE, p.ad || p.a), k + ' a (sombre)').toBeGreaterThanOrEqual(4.5);
       expect(ratio(WHITE, p.b), k + ' b').toBeGreaterThanOrEqual(4.5);
       expect(ratio(p.tl, WHITE), k + ' texte clair').toBeGreaterThanOrEqual(4.5);
       expect(ratio(p.tl, PAPER), k + ' texte papier').toBeGreaterThanOrEqual(4.5);
@@ -84,7 +86,8 @@ describe('AUD-04-009 — palettes d\'accent', () => {
   it('applyAccentPalette pose les variables de texte d\'accent par thème', () => {
     expect(dbjs).toContain("--accent-text-light', p.tl");
     expect(dbjs).toContain("--accent-text-dark', p.td");
-    expect(css).toContain('--accent-text:var(--accent-text-dark,#ec6a58)');
+    expect(css).toContain('--accent-text:var(--accent-text-dark,#d9b45e)');
+    expect(dbjs).toContain("--accent-dark', p.ad || p.a");
   });
 });
 

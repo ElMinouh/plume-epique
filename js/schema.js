@@ -229,7 +229,7 @@ function DEFAULT_DB_GRAPHIC() {
     pages: [ defaultGraphicPage('texteSeul') ],
     trash: [], history:{}, plugins:{}, customGabarits: [],
     darkMode:true, gistId:'', sessionStats:{},
-    accentPalette:'rouge-violet', paperMode:false,
+    accentPalette:'marine-or', paperMode:false,
     projectType:'fantasy', wordCountRebased:true
   };
 }
@@ -289,7 +289,7 @@ function migrateDb(data) {
   if (v < 9) {
     // Apparence personnalisable : palette de couleurs, thème papier, police
     // d'écriture (v7.7.0). Valeurs par défaut = rendu identique à avant.
-    if (!data.accentPalette) data.accentPalette = 'rouge-violet';
+    if (!data.accentPalette) data.accentPalette = 'marine-or';
     if (typeof data.paperMode !== 'boolean') data.paperMode = false;
     if (!data.editorFont) data.editorFont = 'palatino';
   }
@@ -415,7 +415,7 @@ const DEFAULT_DB = () => ({
   weakWords:['juste','très'],
   tabOrder:['tab-univers','tab-ia-memoire','tab-analysegroup','tab-systeme','tab-config'],
   darkMode:true, gistId:'', dailyGoal:500, weeklyGoal:3000, monthlyGoal:12000, sessionStats:{}, sprint:null, trash:[],
-  accentPalette:'rouge-violet', paperMode:false, editorFont:'palatino', wordGoal:0,
+  accentPalette:'marine-or', paperMode:false, editorFont:'palatino', wordGoal:0,
   hourlyActivity: new Array(24).fill(0),
   projectType:'fantasy', wordCountRebased:true
 });

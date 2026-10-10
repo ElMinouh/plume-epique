@@ -68,6 +68,7 @@
 <symbol id="i-eraser" viewBox="0 0 24 24"><path d="M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21" /><path d="m5.082 11.09 8.828 8.828" /></symbol>
 <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></symbol>
 <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /><path d="m2 2 20 20" /></symbol>
+<symbol id="i-feather" viewBox="0 0 24 24"><path d="M14.086 18.412A2 2 0 0112.67 19H5v-7.672a2 2 0 01.586-1.414L11.75 3.75a6 6 0 118.49 8.49z" /><path d="M16 8 2 22" /><path d="M17.488 15H9" /></symbol>
 <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /></symbol>
 <symbol id="i-file-down" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M12 18v-6" /><path d="m9 15 3 3 3-3" /></symbol>
 <symbol id="i-file-text" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></symbol>
@@ -157,7 +158,7 @@
 <div id="library-screen">
   <div id="library-topbar">
     <div class="u-d-flex u-ai-center u-gap-8px u-fw-wrap u-minw-0">
-      <img src="icons/icon-32.png" class="topbar-logo" alt="" width="32" height="32">
+      <img src="icons/plume.svg" class="topbar-logo" alt="" width="32" height="32">
       <div class="u-d-flex u-fd-column u-gap-2px">
         <span id="library-profile-name"></span>
         <span class="u-fs-xs u-op-72" id="library-version-label"></span>
@@ -611,6 +612,7 @@
 </div>
 
 <header role="banner">
+<div class="brand" aria-label="Plume"><svg class="icon brand-mark" aria-hidden="true" focusable="false"><use href="#i-feather"></use></svg><span class="brand-name">Plume</span></div>
 <nav class="tab-menu" id="tab-menu" aria-label="Onglets principaux"></nav>
 </header>
 
@@ -1136,6 +1138,7 @@
     <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-palette"></use></svg> Apparence</strong>
     <div class="u-fs-sm u-c-v-text-muted u-m-10px-0-8px">Palette de couleurs</div>
     <div class="u-d-flex u-gap-9px u-fw-wrap u-mb-14px" id="palette-picker">
+      <button class="palette-swatch" data-palette="marine-or" title="Marine &amp; Or" aria-label="Marine &amp; Or"><span></span><span></span></button>
       <button class="palette-swatch" data-palette="rouge-violet" title="Rouge &amp; Violet" aria-label="Rouge &amp; Violet"><span></span><span></span></button>
       <button class="palette-swatch" data-palette="bleu-ocean" title="Bleu Océan" aria-label="Bleu Océan"><span></span><span></span></button>
       <button class="palette-swatch" data-palette="emeraude" title="Émeraude" aria-label="Émeraude"><span></span><span></span></button>

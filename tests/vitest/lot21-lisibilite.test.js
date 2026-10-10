@@ -33,9 +33,9 @@ describe('AUD-03-006 — contrastes', () => {
       expect(css).toContain(`.u-bg-v-${cls}.u-bg-v-${cls}.u-bg-v-${cls}{background:var(--${v})}`);
   });
   it('le rouge d\'accent en texte sur le thème sombre atteint 4,5:1 (fond #161623)', () => {
-    const m = css.match(/body\.dark-mode \{\s*--accent-text:(?:var\(--accent-text-dark,)?(#[0-9a-fA-F]{6})/);
+    const m = css.match(/body\.dark-mode \{[^}]*?--accent-text:(?:var\(--accent-text-dark,)?(#[0-9a-fA-F]{6})/);
     expect(m).not.toBeNull();
-    expect(ratio(m[1], '#161623')).toBeGreaterThanOrEqual(4.5);
+    expect(ratio(m[1], '#222d3d')).toBeGreaterThanOrEqual(4.5); // surface la plus claire du thème sombre
   });
   it('le texte secondaire (--text-muted) atteint 4,5:1 sur le fond de chaque thème, y compris sous la pastille', () => {
     const muted = sel => { const m = css.match(new RegExp(sel + ' \{[^}]*--text-muted:(#[0-9a-fA-F]{3,6})')); if (!m) return null; const h = m[1].slice(1); return '#' + (h.length === 3 ? [...h].map(c => c + c).join('') : h); };

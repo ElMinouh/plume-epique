@@ -303,7 +303,7 @@ function wirePasswordHint(inputId, hintId) {
 }
 function gateShell(innerHtml) {
   const g = gateEl();
-  g.innerHTML = `<div class="gate-card"><img src="icons/icon-192.png" class="gate-logo" alt="Plume" width="64" height="64"><form class="gate-form" novalidate>${innerHtml}</form></div>`;
+  g.innerHTML = `<div class="gate-card"><img src="icons/plume.svg" class="gate-logo" alt="Plume" width="64" height="64"><form class="gate-form" novalidate>${innerHtml}</form></div>`;
   wireGateForm(g.querySelector('form'));
   showGate();
 }
@@ -442,8 +442,8 @@ function showRecoveryCode(code, name, onContinue) {
   gateShell(`
     <div class="gate-title"><i>${icon('shield')}</i> Votre code de récupération</div>
     <div class="gate-sub">Conservez ce code en lieu sûr. Il permet de récupérer le profil « ${DOMPurify.sanitize(name)} » en cas d'oubli du mot de passe. Il ne sera plus jamais affiché.</div>
-    <div class="gate-code">${DOMPurify.sanitize(code)}</div>
-    <button id="rc-pdf" class="gate-btn gate-btn-accent">${icon('download')} Télécharger en PDF</button>
+    <div class="gate-code">${String(code).split('-').map(g => `<span>${DOMPurify.sanitize(g)}</span>`).join('')}</div>
+    <button id="rc-pdf" class="gate-btn gate-btn-ghost">${icon('download')} Télécharger en PDF</button>
     <label class="gate-check"><input type="checkbox" id="rc-ack"> J'ai mis ce code en sécurité</label>
     <button id="rc-continue" class="gate-btn gate-btn-ghost" disabled>Continuer</button>
   `);

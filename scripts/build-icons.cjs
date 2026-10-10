@@ -21,7 +21,7 @@ const ICONS = [
   'circle-x', 'grip-vertical', 'arrow-left', 'chevron-right', 'image', 'images', 'layers', 'pen-line', 'share-2', 'database', 'wand-sparkles',
   'route', 'square', 'file-down',
   'eye-off', 'lock-open', 'wifi-off', 'party-popper', 'link', 'arrow-right', 'type', 'image-plus', 'circle-alert',
-  'rectangle-horizontal', 'circle', 'maximize', 'minimize', 'chevron-up', 'rotate-ccw', 'square-round-corner',
+  'feather', 'rectangle-horizontal', 'circle', 'maximize', 'minimize', 'chevron-up', 'rotate-ccw', 'square-round-corner',
 ];
 
 function symbol(name) {

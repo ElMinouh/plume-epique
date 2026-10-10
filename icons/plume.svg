@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Plume">
+  <!-- Logo vectoriel de Plume (v9.53.0) : redessiné d'après icons/icon-512.png (marine #142a43, or #e0b866, blanc).
+       Les PNG de l'application installée restent inchangés ; ce fichier sert à l'écran (connexion, bibliothèque). -->
+  <rect width="512" height="512" rx="96" fill="#142a43"/>
+  <g fill="none" stroke="#e0b866" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M348 98 C250 60 100 120 90 270 C88 320 108 360 141 391"/>
+    <path d="M455 226 C468 300 430 410 330 455 C310 462 292 462 276 458"/>
+    <path d="M168 438 C205 420 235 428 255 440 C268 448 285 440 276 458"/>
+  </g>
+  <circle cx="166" cy="439" r="10" fill="#e0b866"/>
+  <path fill="#ffffff" d="M444 105 C380 118 298 168 250 244 C220 292 212 340 182 420 C226 388 254 352 312 338 C356 328 390 302 410 268 L370 274 C398 254 416 228 426 198 L390 202 C414 180 430 150 440 122 C442 116 444 110 444 105 Z"/>
+  <path fill="none" stroke="#142a43" stroke-width="6" stroke-linecap="round" d="M434 124 C356 182 286 256 220 384"/>
+</svg>

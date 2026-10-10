@@ -304,7 +304,18 @@ function showInfoModal({ title, message, confirmLabel } = {}) {
 // ═══════════════════════════════════════════════════════
 function appearancePrefsKey() { return 'plume_prefs_' + (typeof _currentProfileId !== 'undefined' && _currentProfileId ? _currentProfileId : ''); }
 function loadAppearancePrefs() {
-  try { const p = JSON.parse(localStorage.getItem(appearancePrefsKey()) || 'null'); return p && typeof p === 'object' ? p : null; }
+  try {
+    const p = JSON.parse(localStorage.getItem(appearancePrefsKey()) || 'null');
+    if (!p || typeof p !== 'object') return null;
+    // v9.53.0 (AUD-04-001) : « Rouge & Violet » était la palette PAR DÉFAUT ; la nouvelle (« Marine & Or », couleurs du logo) la remplace
+    // une seule fois. On ne peut pas distinguer « jamais changé » de « choisi », d'où le drapeau : après cette bascule, un choix
+    // explicite de « Rouge & Violet » est respecté.
+    if (p.palette === 'rouge-violet' && !p.paletteDefault953) {
+      p.palette = 'marine-or'; p.paletteDefault953 = 1;
+      try { localStorage.setItem(appearancePrefsKey(), JSON.stringify(p)); } catch (e) { /* appliqué pour cette session */ }
+    }
+    return p;
+  }
   catch (e) { return null; }
 }
 function rememberAppearance(part) {
@@ -334,5 +345,17 @@ function syncDbAppearanceFromPrefs() {
     if (p.font) db.editorFont = p.font;
     return;
   }
-  rememberAppearance({ theme: db.paperMode ? 'paper' : (db.darkMode ? 'dark' : 'light'), palette: db.accentPalette || 'rouge-violet', font: db.editorFont || 'palatino' });
+  rememberAppearance({ theme: db.paperMode ? 'paper' : (db.darkMode ? 'dark' : 'light'), palette: db.accentPalette || 'marine-or', font: db.editorFont || 'palatino' });
+}
+
+// v9.53.0 (AUD-04-001) — la couleur de la barre d'état / du navigateur suit le thème actif (ivoire en clair, papier, marine nuit).
+function syncThemeColorMeta() {
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (!m || !document.body) return;
+  const c = document.body.classList.contains('dark-mode') ? '#141b26' : document.body.classList.contains('paper-mode') ? '#e9dfc6' : '#efe9dc';
+  m.setAttribute('content', c);
+}
+if (typeof MutationObserver === 'function' && document.body) {
+  new MutationObserver(syncThemeColorMeta).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  syncThemeColorMeta();
 }

@@ -244,9 +244,12 @@ function selectProjectType(key) {
 // intactes, elles ne servent que tant qu'aucun manuscrit n'est encore ouvert.
 // ═══════════════════════════════════════════════════════
 const ACCENT_PALETTES = {
+  // v9.53.0 (AUD-04-001) : « Marine & or » = couleurs du logo, palette par défaut. ad = fond de bouton en thème sombre
+  // (le marine #1d3a5c y disparaîtrait sur les surfaces sombres).
+  'marine-or':    { label:'Marine & Or',    a:'#1d3a5c', ad:'#2f6aa8', b:'#8a6414', tl:'#1d3a5c', td:'#d9b45e' },
   // v9.49.0 (AUD-04-009) : a = fond de bouton (texte blanc ≥ 4,5:1), b = second accent (texte blanc ≥ 4,5:1),
   // tl / td = couleur d'accent EN TEXTE sur fond clair / sombre (≥ 4,5:1). Vérifié par tests/vitest/lot27-*.test.js.
-  'rouge-violet': { label:'Rouge & Violet', a:'#c0392b', b:'#8e44ad', tl:'#c0392b', td:'#ec6a58' },
+  'rouge-violet': { label:'Rouge & Violet', a:'#c0392b', b:'#8e44ad', tl:'#c0392b', td:'#f07a68' },
   'bleu-ocean':   { label:'Bleu Océan',     a:'#1f6f9f', b:'#0e7a65', tl:'#1f6f9f', td:'#6cb6e6' },
   'emeraude':     { label:'Émeraude',       a:'#1a7540', b:'#2c3e50', tl:'#1a7540', td:'#5fd08b' },
   'rose-poudre':  { label:'Rose Poudré',    a:'#c2185b', b:'#8f6a14', tl:'#c2185b', td:'#f06fa0' },
@@ -259,9 +262,10 @@ const EDITOR_FONTS = {
   'courier':  { css:"'Courier New',Courier,monospace" }
 };
 function applyAccentPalette(key) {
-  const p = ACCENT_PALETTES[key] || ACCENT_PALETTES['rouge-violet'];
+  const p = ACCENT_PALETTES[key] || ACCENT_PALETTES['marine-or'];
   document.documentElement.style.setProperty('--accent', p.a);
   document.documentElement.style.setProperty('--accent2', p.b);
+  document.documentElement.style.setProperty('--accent-dark', p.ad || p.a);
   document.documentElement.style.setProperty('--accent-text-light', p.tl);
   document.documentElement.style.setProperty('--accent-text-dark', p.td);
 }
