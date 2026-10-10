@@ -30,7 +30,7 @@ describe('AUD-04-004 — vue Fiches : le fond de statut ne vaut que pour la past
   it('aucune règle .ch-status-* ne pose de fond sur autre chose que .ch-status-dot', () => {
     const bad = css.split('\n').filter(l => /^\.ch-status-(draft|review|final)\{[^}]*background:/.test(l));
     expect(bad).toEqual([]);
-    expect(css).toContain('.ch-status-dot.ch-status-draft{background:');
+    expect(css).toContain('.ch-status-dot.ch-status-draft{');
     expect(css).toContain('.card.ch-status-draft{border-top-color:');
   });
   it('texte des cartes ≥ 4,5:1 sur le fond crème', () => {

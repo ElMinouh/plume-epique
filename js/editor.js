@@ -291,10 +291,11 @@ function restoreLastCursorPosition() {
     sel.removeAllRanges();
   } catch(e) { /* DOM inattendu : on renonce simplement à faire défiler */ }
 }
+// v9.56.0 (AUD-04-025) : plus de couleur ici — la pastille (forme + jeton) est dans le CSS (.ch-status-*).
 const CH_STATUS_META = {
-  draft: { color:'#7f8c8d', label:'Brouillon' },
-  review: { color:'#f39c12', label:'À revoir' },
-  final: { color:'#27ae60', label:'Final' }
+  draft: { label:'Brouillon' },
+  review: { label:'À revoir' },
+  final: { label:'Final' }
 };
 // Glisser-déposer des chapitres (remplace les flèches ↑/↓, nouveau v7.8.0) —
 // Alt+↑/↓ au clavier reste disponible via moveChapter() pour l'accessibilité.
@@ -538,7 +539,7 @@ function closeTrash() { document.getElementById('trash-overlay').classList.remov
 function renderTrashList() {
   const listEl = document.getElementById('trash-list');
   if (!db.trash || !db.trash.length) {
-    listEl.innerHTML = '<div class="u-op-72 u-p-16px u-ta-center u-fs-base">La corbeille est vide.</div>';
+    listEl.innerHTML = emptyState('trash-2', 'La corbeille est vide', 'Les chapitres supprimés y restent récupérables.');
     return;
   }
   listEl.innerHTML = db.trash.map((t,i) => {

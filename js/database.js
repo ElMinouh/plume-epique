@@ -16,7 +16,9 @@ function renderLibrary(k){
     .map((item,i)=>({item,i}))
     .filter(({item})=>!filter||(item.name||'').toLowerCase().includes(filter))
     .map(({item,i})=>`<div class="chapter-item" data-type="${k}" data-idx="${i}" role="listitem" tabindex="0">${DOMPurify.sanitize(item.name)}</div>`).join('')
-    || `<div class="u-op-72 u-fs-sm u-p-10px u-ta-center">${filter?'Aucun résultat.':'Aucun élément pour le moment.'}</div>`;
+    || (filter ? emptyState('search', 'Aucun résultat', 'Essayez un autre mot.')
+      : k==='chars' ? emptyState('users', 'Aucun personnage', 'Créez la première fiche avec « + Personnage » ci-dessous.')
+      : emptyState('castle', 'Aucun lieu', 'Ajoutez un lieu avec « + Lieu » ci-dessous.'));
   c.querySelectorAll('.chapter-item').forEach(el=>{el.addEventListener('click',()=>showEdit(el.dataset.type,parseInt(el.dataset.idx)));el.addEventListener('keydown',e=>{if(e.key==='Enter')showEdit(el.dataset.type,parseInt(el.dataset.idx));});});
   // v7.36.0 — la vue Cartes (si active) reste synchronisée avec la liste,
   // même principe que le Corkboard des chapitres et l'étagère de la
@@ -193,7 +195,8 @@ function renderQuests(){
     .map((q,i)=>({q,i}))
     .filter(({q})=>!filter||(q.text||'').toLowerCase().includes(filter))
     .map(({q,i})=>`<div class="chapter-item" data-quest-idx="${i}" role="listitem" tabindex="0"><input type="checkbox" ${q.done?'checked':''} data-quest-check="${i}"> ${DOMPurify.sanitize(q.text)}</div>`).join('')
-    || `<div class="u-op-72 u-fs-sm u-p-10px u-ta-center">${filter?'Aucun résultat.':'Aucune quête pour le moment.'}</div>`;
+    || (filter ? emptyState('search', 'Aucun résultat', 'Essayez un autre mot.')
+      : emptyState('target', 'Aucune quête', 'Notez un objectif ou une intrigue avec le bouton « + » ci-dessus.'));
   c.querySelectorAll('[data-quest-check]').forEach(cb=>cb.addEventListener('click',e=>{e.stopPropagation();db.quests[parseInt(cb.dataset.questCheck)].done=cb.checked;save();}));
   c.querySelectorAll('[data-quest-idx]').forEach(el=>el.addEventListener('click',()=>showQuestEdit(parseInt(el.dataset.questIdx))));
 }

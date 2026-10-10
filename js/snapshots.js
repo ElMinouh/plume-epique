@@ -76,7 +76,7 @@ function snapshotRowHtml(snap) {
 function renderHistoryTab() {
   const key = db.chapters[cur]?.id, snaps = (key && db.history[key]) || [];
   const list = document.getElementById('snapshot-list');
-  list.innerHTML = snaps.length ? '' : '<div class="u-op-72 u-fs-base u-p-10px">Aucune version pour ce chapitre.</div>';
+  list.innerHTML = snaps.length ? '' : emptyState('history', 'Aucune version', 'Enregistrez une version du chapitre pour pouvoir y revenir.');
   snaps.forEach((snap, i) => {
     const el = document.createElement('div');
     el.className = 'history-item';
@@ -96,7 +96,7 @@ function openDiffViewer(preselectIdx) {
   const key = db.chapters[cur]?.id, snaps = (key && db.history[key]) || [];
   document.getElementById('history-chapter-name').textContent = db.chapters[cur].title;
   const list = document.getElementById('history-list');
-  list.innerHTML = snaps.length ? '' : '<div class="u-op-72 u-fs-base">Aucune version.</div>';
+  list.innerHTML = snaps.length ? '' : emptyState('history', 'Aucune version', 'Enregistrez une version du chapitre pour pouvoir y revenir.');
   const rows = [];
   snaps.forEach((snap, i) => {
     const el = document.createElement('div');

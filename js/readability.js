@@ -8,11 +8,12 @@ function fleschKincaid(text) {
   return Math.round(score);
 }
 function fleschLabel(score) {
-  if (score>=90) return ['Très facile','#27ae60'];
-  if (score>=70) return ['Facile','#2ecc71'];
-  if (score>=50) return ['Standard','#f39c12'];
-  if (score>=30) return ['Difficile','#e67e22'];
-  return ['Très difficile','#e74c3c'];
+  // v9.56.0 (AUD-04-025) : jetons de rôle (lisibles dans chaque thème) au lieu de teintes figées ; le libellé porte le sens.
+  if (score>=90) return ['Très facile','var(--success-text)'];
+  if (score>=70) return ['Facile','var(--success-text)'];
+  if (score>=50) return ['Standard','var(--text)'];
+  if (score>=30) return ['Difficile','var(--warn-text)'];
+  return ['Très difficile','var(--danger-text)'];
 }
 function countDialogLines(text) {
   const lines = text.split('\n');

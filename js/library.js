@@ -1159,7 +1159,7 @@ async function openDocTrash() {
 async function renderDocTrash() {
   const listEl = document.getElementById('doc-trash-list');
   const trashed = trashedDocuments(await loadDocList()).sort((a, b) => b.trashedAt - a.trashedAt);
-  if (!trashed.length) { listEl.innerHTML = '<div class="u-op-72 u-p-16px u-ta-center u-fs-base">La corbeille est vide.</div>'; return; }
+  if (!trashed.length) { listEl.innerHTML = emptyState('trash-2', 'La corbeille est vide', 'Les manuscrits supprimés y restent récupérables.'); return; }
   listEl.innerHTML = trashed.map(d => `<div class="history-item u-cur-default">
       <span>${escapeHtml(d.title || 'Sans titre')}<br><span class="u-op-72 u-fs-xs">${d.docType === 'roman_graphique' ? (d.chapterCount || 0) + ' page(s)' : (d.chapterCount || 0) + ' chapitre(s)'} · ${d.wordCount || 0} mots — supprimé définitivement dans ${docTrashDaysLeft(d)} j</span></span>
       <span class="u-d-flex u-gap-4px u-fsh-0">
@@ -1482,7 +1482,7 @@ async function libOpenGistHistory(docId) {
     const resp = await fetchWithTimeout(`https://api.github.com/gists/${mData.gistId}/commits`, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const commits = await resp.json();
-    if (!commits.length) { listEl.innerHTML = '<div class="u-p-10px u-op-75">Aucun historique.</div>'; return; }
+    if (!commits.length) { listEl.innerHTML = emptyState('history', 'Aucun historique', 'Chaque sauvegarde GitHub apparaîtra ici.'); return; }
     listEl.innerHTML = '';
     commits.slice().reverse().forEach((c, i) => {
       const date = new Date(c.committed_at).toLocaleString('fr');

@@ -39,7 +39,8 @@ function toast(msg, type='info', opts={}) {
   el.textContent = msg;
   // v9.52.0 : une icône par type de message (succès / erreur / information) — le texte (textContent) reste celui du message.
   el.insertAdjacentHTML('afterbegin', icon(type === 'success' ? 'circle-check' : type === 'error' ? 'circle-alert' : 'info', 'toast-icon'));
-  el.style.borderLeftColor = type==='success'?'#27ae60':type==='error'?'#e74c3c':'#8e44ad';
+  // v9.56.0 (AUD-04-025) : la couleur du liseré vient du CSS (#toast[data-type]) — jetons, plus de teinte figée.
+  el.dataset.type = type;
   const closable = type === 'error' || !!opts.sticky;
   el.classList.toggle('has-close', closable);
   if (opts.kind) el.dataset.kind = opts.kind; else delete el.dataset.kind;

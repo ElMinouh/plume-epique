@@ -31,7 +31,7 @@
        dans la lignée du logo ; --accent reste la couleur d'ACTION (boutons principaux), choisie par la palette. */
   --danger:#e74c3c; --success:#27ae60; --warn:#f39c12;
   --danger-solid:#9b2c2c; --success-solid:#1e8449; --warn-solid:#b34700;
-  --danger-text:#b02a1f; --success-text:#1e7a45;
+  --danger-text:#b02a1f; --success-text:#1e7a45; --warn-text:#8a4b00;
   --accent-text:var(--accent-text-light,var(--accent));
   --title:#80590f; --title-on-dark:#dcb866;
   --focus:var(--accent-text);
@@ -64,7 +64,7 @@
 body.dark-mode {
   --accent:var(--accent-dark); /* fond de bouton propre au thème sombre (voir ACCENT_PALETTES.ad) */
   --accent-text:var(--accent-text-dark,#d9b45e); /* texte d'accent lisible sur fond sombre */
-  --success-text:#5fd08b; --danger-text:#ff8a80; --title:#dcb866;
+  --success-text:#5fd08b; --danger-text:#ff8a80; --warn-text:#f5b041; --title:#dcb866;
   color-scheme:dark;
   --shelf-bg:linear-gradient(160deg,#1b2a3f,#101a28); --shelf-plank:linear-gradient(#3b5578,#2a3d58 45%,#1b2a3f); --shelf-ink:#e8d9b8;
   --imm-bg:#0b1017; --imm-text:#d9d2c2;
@@ -134,7 +134,7 @@ main{flex-grow:1;width:98%;max-width:1500px;margin:0 auto 6px;
 .chapter-item.active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent);font-weight:600;}
 .chapter-item:focus-visible{outline:2px solid var(--accent);}
 .ch-num{opacity:.72;font-weight:500;min-width:18px;font-size:var(--fs-xs);}
-.ch-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.ch-status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;box-sizing:border-box;}
 .ch-wordcount{font-size:var(--fs-xs);opacity:.72;flex-shrink:0;min-width:26px;text-align:right;}
 /* Chapitres : ligne + tags + glisser-déposer + menu ⋮ (nouveau v7.8.0) —
    scopé à #chapter-list pour ne pas affecter .chapter-item réutilisé ailleurs
@@ -276,18 +276,19 @@ mark{background-color:color-mix(in srgb,var(--accent) 22%,transparent);color:var
 #save-indicator{display:inline-block;width:8px;height:8px;border-radius:50%;
   background:var(--save-glow);opacity:0;transition:opacity var(--t-slow);}
 #mode-bar{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;position:relative;}
-#sync-status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:#7f8c8d;}
-#sync-status-dot.sync-ok{background:#27ae60;}
-#sync-status-dot.sync-warn{background:#e67e22;}
-#sync-status-dot.sync-error{background:#e74c3c;}
+/* v9.56.0 (AUD-04-025) : état = forme ET couleur — rond plein (ok), losange (en attente), carré (échec), rond gris (inactif). */
+#sync-status-dot{width:9px;height:9px;border-radius:50%;display:inline-block;background:var(--text-muted);}
+#sync-status-dot.sync-ok{background:var(--success-solid);}
+#sync-status-dot.sync-warn{background:var(--warn-solid);border-radius:var(--r-1);transform:rotate(45deg) scale(.9);}
+#sync-status-dot.sync-error{background:var(--danger-solid);border-radius:var(--r-1);}
 /* v9.2.3 — Pastille de statut de synchro visible dès l'entrée dans la
    bibliothèque (voir renderLibrarySyncBadge() dans library.js). */
 [hidden]{display:none!important;}
 #library-sync-status-badge{display:inline-flex;align-items:center;gap:5px;
-  border:none;border-radius:var(--radius-pill);padding:4px 10px;cursor:pointer;background:rgba(39,174,96,.18);}
-#library-sync-status-badge #library-sync-status-icon,#library-sync-status-badge #library-sync-status-text{color:#27ae60;}
-#library-sync-status-badge.sync-warn{background:rgba(231,76,60,.18);}
-#library-sync-status-badge.sync-warn #library-sync-status-icon,#library-sync-status-badge.sync-warn #library-sync-status-text{color:#e74c3c;}
+  border:none;border-radius:var(--radius-pill);padding:4px 10px;cursor:pointer;background:color-mix(in srgb,var(--success-solid) 18%,transparent);}
+#library-sync-status-badge #library-sync-status-icon,#library-sync-status-badge #library-sync-status-text{color:var(--success-text);}
+#library-sync-status-badge.sync-warn{background:color-mix(in srgb,var(--danger-solid) 18%,transparent);}
+#library-sync-status-badge.sync-warn #library-sync-status-icon,#library-sync-status-badge.sync-warn #library-sync-status-text{color:var(--danger-text);}
 #dictate-preview{position:absolute;bottom:100%;left:0;margin-bottom:4px;font-size:var(--fs-sm);font-style:italic;
   color:var(--text-muted,inherit);opacity:.85;pointer-events:none;max-width:90%;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;}
@@ -313,7 +314,7 @@ mark{background-color:color-mix(in srgb,var(--accent) 22%,transparent);color:var
 .stat-card .stat-label{font-size:var(--fs-xs);color:var(--text-muted);margin-top:4px;}
 #goal-section{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:var(--fs-sm);}
 #goal-bar-wrap{flex-grow:1;background:var(--item-bg);border-radius:var(--r-2);height:8px;overflow:hidden;}
-#goal-bar{height:100%;background:linear-gradient(90deg,var(--success),#2ecc71);border-radius:var(--r-2);transition:width var(--t-slow);width:0;}
+#goal-bar{height:100%;background:linear-gradient(90deg,var(--success),color-mix(in srgb,var(--success) 70%,#fff));border-radius:var(--r-2);transition:width var(--t-slow);width:0;}
 .export-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
 #toast{position:fixed;bottom:24px;right:24px;z-index:20000;background:#1a1a2e;color:#e8e0d0;
   padding:12px 20px;border-radius:var(--r-2);font-size:var(--fs-base);font-family:inherit;
@@ -1287,12 +1288,13 @@ body.library-mode #library-screen{display:block;}
    style="background:${sm.color}" et style="border-top-color:${sm.color}"
    qui étaient injectés dynamiquement en JS (bloqué par la CSP style-src sans
    'unsafe-inline'). CH_STATUS_META (editor.js) n'a que ces 3 valeurs fixes. */
-.ch-status-dot.ch-status-draft{background:#7f8c8d}
-.ch-status-dot.ch-status-review{background:#f39c12}
-.ch-status-dot.ch-status-final{background:#27ae60}
-.card.ch-status-draft{border-top-color:#7f8c8d}
-.card.ch-status-review{border-top-color:#f39c12}
-.card.ch-status-final{border-top-color:#27ae60}
+/* v9.56.0 (AUD-04-025) : brouillon = anneau vide, à revoir = demi-disque, final = disque plein (la forme porte le sens, pas seulement la teinte). */
+.ch-status-dot.ch-status-draft{border:1.5px solid var(--text-muted);background:transparent}
+.ch-status-dot.ch-status-review{border:1.5px solid var(--warn-solid);background:linear-gradient(90deg,var(--warn-solid) 50%,transparent 50%)}
+.ch-status-dot.ch-status-final{border:1.5px solid var(--success-solid);background:var(--success-solid)}
+.card.ch-status-draft{border-top-color:var(--text-muted)}
+.card.ch-status-review{border-top-color:var(--warn-solid)}
+.card.ch-status-final{border-top-color:var(--success-solid)}
 
 /* Couvertures de manuscrit (COVER_PALETTES, library.js) — remplacent les
    style="background:linear-gradient(...)" injectés dynamiquement (bloqué
@@ -1908,3 +1910,59 @@ body.theme-switching,body.theme-switching *,body.theme-switching *::before,body.
 /* ═══ v9.55.0 (audit AUD-04-020) — rappel de sauvegarde GitHub : pastille discrète (contour + point d'alerte), jamais un aplat saturé ═══ */
 #library-github-reminder::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warn);margin-right:6px;vertical-align:1px;}
 @media (max-width:480px){#library-github-reminder{display:none !important;}}
+
+
+/* ═══ v9.56.0 (audit AUD-04-024) — états vides accompagnés : icône, titre, phrase d'aide ═══ */
+.empty-state{display:flex;flex-direction:column;align-items:center;gap:6px;padding:22px 14px;text-align:center;color:var(--text-muted);}
+.empty-state .empty-icon{width:34px;height:34px;color:var(--text-muted);opacity:.8;}
+.empty-title{font-size:var(--fs-base);font-weight:600;color:var(--text);}
+.empty-hint{font-size:var(--fs-sm);line-height:var(--lh-normal);max-width:26em;}
+#timeline-events > .empty-state{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);}
+
+/* ═══ v9.56.0 (audit AUD-04-025) — liseré des messages : un jeton par type ═══ */
+#toast[data-type="success"]{border-left-color:var(--success);}
+#toast[data-type="error"]{border-left-color:var(--danger);}
+#toast[data-type="info"]{border-left-color:var(--accent);}
+
+/* ═══ v9.56.0 (audit AUD-04-027) — IMPRESSION : seul le texte du chapitre (ou le mode Lecture) sort, en noir sur blanc ═══ */
+@media print {
+  @page{margin:18mm;}
+  html,body{background:#fff !important;color:#000 !important;height:auto !important;overflow:visible !important;}
+  header,#chapter-sidebar,#tab-container,#editor-wrapper > .toolbar,#mode-bar,#panel-resizer,#toast,#library-screen,
+  #chapter-notes-panel,[id$="-overlay"]:not(#reading-overlay),#sync-status-label,#shortcuts-hint-btn{display:none !important;}
+  main{display:block !important;height:auto !important;width:100% !important;max-width:none !important;margin:0 !important;}
+  #editor-wrapper{display:block !important;height:auto !important;overflow:visible !important;box-shadow:0 0 0 0 transparent !important;background:transparent !important;border:none !important;}
+  #chapter-title-row{padding:0 0 8pt !important;}
+  #chapter-title{color:#000 !important;font-family:var(--font-read);}
+  #chapter-title-row > :not(#chapter-title){display:none !important;}
+  body:has(#reading-overlay.active) main{display:none !important;}
+  #writer{height:auto !important;overflow:visible !important;max-width:none !important;color:#000 !important;background:transparent !important;
+    font-family:var(--font-read);font-size:var(--fs-md);line-height:var(--lh-normal);border:none !important;}
+  #writer p{orphans:3;widows:3;}
+  #writer h1,#writer h2,#writer h3{break-after:avoid;color:#000 !important;}
+  /* mode Lecture ouvert : tout le manuscrit sort, un chapitre après l'autre */
+  #reading-overlay.active{position:static !important;display:block !important;background:#fff !important;color:#000 !important;overflow:visible !important;}
+  #reading-overlay.active ~ *,#reading-overlay.active button{display:none !important;}
+  .reading-chapter{break-before:page;}
+  .reading-chapter:first-child{break-before:auto;}
+  .reading-chapter h2{color:#000 !important;}
+  #reading-content{max-width:none !important;color:#000 !important;font-size:var(--fs-md);}
+}
+
+/* ═══ v9.56.0 (audit AUD-04-027) — CONTRASTE FORCÉ (Windows) et contraste renforcé ═══ */
+@media (forced-colors: active) {
+  .action-btn,.btn-secondary,.btn-ghost,.btn-danger,.btn-warn,input,select,textarea,.card,.chapter-item,.lib-book{border:1px solid ButtonText;}
+  .action-btn:focus-visible,button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:2px solid Highlight;outline-offset:2px;}
+  .chapter-item.active,.card.active{outline:2px solid Highlight;}
+  /* les pastilles d'état gardent leur forme : les fonds sont neutralisés, on les rend en couleurs système */
+  .ch-status-dot,#sync-status-dot{forced-color-adjust:none;}
+  .ch-status-dot.ch-status-draft{border-color:CanvasText;}
+  .ch-status-dot.ch-status-review{border-color:CanvasText;background:linear-gradient(90deg,CanvasText 50%,transparent 50%);}
+  .ch-status-dot.ch-status-final{border-color:CanvasText;background:CanvasText;}
+  #sync-status-dot{background:CanvasText !important;}
+  .empty-state .empty-icon{color:CanvasText;opacity:1;}
+}
+@media (prefers-contrast: more) {
+  :root,body.dark-mode,body.paper-mode{--border:currentColor;}
+  .empty-hint,.ch-wordcount{opacity:1;}
+}

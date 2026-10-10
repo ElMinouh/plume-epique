@@ -21,3 +21,8 @@ const ICON_NAMES = ["archive","arrow-left","arrow-left-right","arrow-right","arr
 function icon(name, cls) {
   return '<svg class="icon' + (cls ? ' ' + cls : '') + '" aria-hidden="true" focusable="false"><use href="#i-' + name + '"></use></svg>';
 }
+// v9.56.0 (AUD-04-024) : état vide accompagné — icône du sprite, titre court, phrase d'aide qui dit quoi faire ensuite.
+// Textes passés par les appelants : toujours des chaînes fixes de l'application, jamais du contenu d'auteur.
+function emptyState(name, title, hint) {
+  return '<div class="empty-state" role="status">' + icon(name, 'empty-icon') + '<div class="empty-title">' + title + '</div>' + (hint ? '<div class="empty-hint">' + hint + '</div>' : '') + '</div>';
+}

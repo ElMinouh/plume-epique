@@ -2118,7 +2118,7 @@ function gnRenderTrashList() {
   if (!list) return;
   const entries = (db.trash || []).map((t, i) => ({ t, i })).filter(e => e.t.kind === 'gn-page' || e.t.kind === 'gn-element');
   if (!entries.length) {
-    list.innerHTML = '<div class="u-op-72 u-p-16px u-ta-center u-fs-base">La corbeille est vide.</div>';
+    list.innerHTML = emptyState('trash-2', 'La corbeille est vide', 'Les pages et éléments supprimés y restent récupérables.');
     return;
   }
   list.innerHTML = entries.slice().reverse().map(({ t, i }) => {
@@ -2236,7 +2236,7 @@ function gnRenderPageHistoryList() {
   const page = db.pages[_gnActivePage];
   const snaps = (page && page.id && db.history && db.history[page.id]) || [];
   if (!snaps.length) {
-    list.innerHTML = '<div class="u-op-72 u-p-16px u-ta-center u-fs-base">Aucun historique pour cette page.</div>';
+    list.innerHTML = emptyState('history', 'Aucun historique', 'Les versions de cette page apparaîtront ici.');
     return;
   }
   list.innerHTML = snaps.map((snap, i) => `

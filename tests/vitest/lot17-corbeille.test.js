@@ -37,7 +37,7 @@ function makeDevice(serverFetch) {
   ctx.Request = globalThis.Request; ctx.Response = globalThis.Response; ctx.fetch = (u, o) => serverFetch(u, o);
   ctx.toast = vi.fn(); ctx.DOMPurify = { sanitize: x => x };
   ctx.indexedDB = globalThis.indexedDB; ctx.IDBKeyRange = globalThis.IDBKeyRange; ctx.idb = idb;
-  for (const f of ['schema.js', 'crypto.js', 'images.js', 'router.js', 'library.js', 'export-format-utils.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', f), 'utf8').replace("'plume_epique_images'", "'plume_epique_images_lot17_" + (++seq) + "'"), ctx, { filename: f });
+  for (const f of ['schema.js', 'icons.js', 'crypto.js', 'images.js', 'router.js', 'library.js', 'export-format-utils.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', f), 'utf8').replace("'plume_epique_images'", "'plume_epique_images_lot17_" + (++seq) + "'"), ctx, { filename: f });
   ctx.onload = null; ctx.setSyncKey(KEY);
   vm.runInContext(`_dataKey = 'cle-donnees'; _currentProfileId = '${PID}';`, ctx);
   ctx.showConfirmModal = async () => true; ctx.renderLibraryScreen = async () => {};
