@@ -283,3 +283,136 @@ describe('indicateur de synchro : « Synchronisé » seulement s’il ne reste r
     expect(label()).toContain('Échec de synchro'); // l'échec prime sur l'attente
   });
 });
+
+// ═══════════════════════════════════════════════════════
+// v9.53.2 — FAUX CONFLIT : APPARENCE PROPRE À L'APPAREIL (signalé le 2026-10-10 sur la v9.53.1)
+// À chaque ouverture, syncDbAppearanceFromPrefs() (notifications.js) réécrit darkMode, paperMode,
+// accentPalette et editorFont DANS le manuscrit, depuis les préférences de l'appareil (v9.48.0).
+// Ces quatre champs faisaient partie du « cœur » de l'empreinte : deux appareils aux préférences
+// différentes se renvoyaient un changement de cœur à chaque ouverture, sans que personne n'ait écrit,
+// et l'arbitrage concluait « modifié sur les deux appareils » (cœur local ≠ base, cœur distant ≠ base).
+// ═══════════════════════════════════════════════════════
+describe('Faux conflit : apparence propre à l’appareil (thème, palette, police)', () => {
+  let server;
+  beforeEach(() => { server = makeServer(); });
+
+  const ms = (texte, apparence) => ({ ...manuscrit(texte), ...apparence });
+  async function ecrireMs(ctx, m, { envoyer = true } = {}) {
+    await ctx.persistData(DOC_KEY, await ctx.makeEncryptedEnvelope(JSON.stringify(m)));
+    if (envoyer) { ctx.flushPendingSyncPushes(); await settle(); }
+  }
+  const sombre = { darkMode: true, paperMode: false, accentPalette: 'marine-or', editorFont: 'palatino' };
+  const clair = { darkMode: false, paperMode: false, accentPalette: 'rouge-violet', editorFont: 'garamond' };
+  const papier = { darkMode: false, paperMode: true, accentPalette: 'marine-or', editorFont: 'palatino' };
+
+  it('A rouvre un manuscrit adopté et y remet SON apparence, puis B écrit : A adopte B, aucun conflit', async () => {
+    const a = makeDevice(server.serverFetch);
+    await ecrireMs(a, ms('texte commun', sombre));
+    const b = makeDevice(server.serverFetch);
+    await b.syncReconcileKey(DOC_KEY); await settle();
+
+    // A n'a touché à rien d'autre qu'à l'apparence : son ouverture a remis le thème papier de l'appareil.
+    await ecrireMs(a, ms('texte commun', papier), { envoyer: false });
+    // B écrit pour de bon, avec son propre thème clair.
+    await ecrireMs(b, ms('texte commun puis la suite de B', clair));
+
+    a.__toasts = [];
+    await a.syncReconcileKey(DOC_KEY); await settle();
+
+    expect(a.__toasts).toEqual([]);
+    expect(a.getConflictPausedKeys()).toEqual([]);
+    expect(await lireLocal(a)).toBe('texte commun puis la suite de B');
+  });
+
+  it('un vrai changement de texte des deux côtés reste un conflit, même avec des apparences différentes', async () => {
+    const a = makeDevice(server.serverFetch);
+    await ecrireMs(a, ms('texte commun', sombre));
+    const b = makeDevice(server.serverFetch);
+    await b.syncReconcileKey(DOC_KEY); await settle();
+
+    await ecrireMs(a, ms('A change le texte', papier), { envoyer: false });
+    await ecrireMs(b, ms('B change aussi le texte', clair));
+    await a.syncReconcileKey(DOC_KEY); await settle();
+
+    expect(a.isConflictPaused(DOC_KEY)).toBe(true);
+    expect(await lireLocal(a)).toBe('A change le texte');
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// v9.53.2 — « En attente d'envoi » ne doit pas rester affiché sans raison
+// (signalé le 2026-10-10 : l'indicateur restait alors que les PUT revenaient en 200).
+// Une clé restait dans la file après une adoption (envoi refusé puis arbitré, réconciliation) ou en
+// pause de conflit : plus rien à envoyer, ou en attente d'un arbitrage qui a son propre indicateur.
+// ═══════════════════════════════════════════════════════
+describe('File d’envois en attente : plus de clé fantôme', () => {
+  let server;
+  beforeEach(() => { server = makeServer(); });
+  const label = ctx => ctx.document.getElementById('sync-status-label').innerHTML;
+
+  it('après l’adoption d’une version distante (envoi refusé), la clé est retirée de la file', async () => {
+    const a = makeDevice(server.serverFetch);
+    await ecrire(a, 'phrase de depart');
+    const b = makeDevice(server.serverFetch);
+    await b.syncReconcileKey(DOC_KEY); await settle();
+    await ecrire(b, 'phrase de depart. Suite de B.');
+
+    // A repousse sa copie périmée sans rien avoir changé : refus, puis adoption de la version de B.
+    a.addPendingSyncKey(DOC_KEY);
+    await a.syncPush(DOC_KEY, await a.readLocalOnly(DOC_KEY)); await settle();
+
+    expect(await lireLocal(a)).toBe('phrase de depart. Suite de B.');
+    expect(a.getPendingSyncKeys()).toEqual([]);
+    a.setLastSyncStatus(true);
+    expect(label(a)).toContain('Synchronisé');
+  });
+
+  it('après une réconciliation qui adopte la version distante, la clé est retirée de la file', async () => {
+    const a = makeDevice(server.serverFetch);
+    await ecrire(a, 'phrase de depart');
+    const b = makeDevice(server.serverFetch);
+    await b.syncReconcileKey(DOC_KEY); await settle();
+    await ecrire(b, 'phrase de depart. Suite de B.');
+
+    a.addPendingSyncKey(DOC_KEY);
+    await a.syncReconcileKey(DOC_KEY); await settle();
+
+    expect(await lireLocal(a)).toBe('phrase de depart. Suite de B.');
+    expect(a.getPendingSyncKeys()).toEqual([]);
+  });
+
+  it('une clé en pause de conflit n’est pas « en attente d’envoi » (elle a son propre indicateur de conflit)', () => {
+    const a = makeDevice(server.serverFetch);
+    a.setLastSyncStatus(true);
+    a.addPendingSyncKey(DOC_KEY);
+    a.addConflictPausedKey(DOC_KEY);
+    a.renderSyncDot();
+    expect(label(a)).toContain('Synchronisé');
+    expect(label(a)).not.toContain('En attente');
+  });
+});
+
+describe('Envoi différé programmé AVANT une adoption : il ne doit pas repartir sur la version adoptée', () => {
+  let server;
+  beforeEach(() => { server = makeServer(); });
+
+  it('l’ancienne copie, restée programmée, n’écrase pas la version de B adoptée entre-temps', async () => {
+    const a = makeDevice(server.serverFetch);
+    await ecrire(a, 'phrase de depart');
+    const b = makeDevice(server.serverFetch);
+    await b.syncReconcileKey(DOC_KEY); await settle();
+    await ecrire(b, 'phrase de depart. Suite de B.');
+
+    // A réécrit sa copie sans changer le texte (écriture dérivée) : envoi différé programmé, rien n'est parti.
+    const env = await a.makeEncryptedEnvelope(JSON.stringify({ ...manuscrit('phrase de depart'), history: { c1: [{ ts: 1 }] } }));
+    await a.persistData(DOC_KEY, env);
+    // Réconciliation : A adopte la version de B.
+    await a.syncReconcileKey(DOC_KEY); await settle();
+    expect(await lireLocal(a)).toBe('phrase de depart. Suite de B.');
+
+    // L'envoi programmé part (onglet masqué ou minuteur : c'est la copie gardée EN MÉMOIRE qui est envoyée).
+    a.flushPendingSyncPushes(true); await settle();
+    expect(await lireServeur(a, server)).toBe('phrase de depart. Suite de B.');
+    expect(await lireLocal(a)).toBe('phrase de depart. Suite de B.');
+  });
+});

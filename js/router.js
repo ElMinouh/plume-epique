@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.53.1';
+const APP_VERSION = '9.53.2';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -160,7 +160,8 @@ function renderSyncDot() {
   // v9.53.1 — « Synchronisé » = le dernier échange réseau a réussi, PAS « tout est parti » : l'envoi
   // d'un manuscrit est différé (1 min sans frappe, voir scheduleSyncPush). Tant qu'il reste des
   // clés en file, on le dit — sinon on passait sur l'autre appareil en croyant tout envoyé.
-  const enAttente = getPendingSyncKeys().length;
+  // Une clé en pause de conflit n'attend pas d'envoi : elle attend un arbitrage (indicateur de conflit à part).
+  const enAttente = getPendingSyncKeys().filter(k => !isConflictPaused(k)).length;
   if (status.ok !== false && enAttente > 0) {
     dot.classList.add('sync-warn');
     label.innerHTML = icon('clock') + ' En attente d\'envoi';
@@ -252,7 +253,12 @@ async function makeEncryptedEnvelope(plaintext) {
 // ⚠️ Ne retirer ici QUE des données régénérables ; en ajouter une vraie donnée
 // d'auteur ferait écraser son travail en silence (cf. incident v8.1.0).
 // ═══════════════════════════════════════════════════════
-const SYNC_DERIVED_FIELDS = ['history', 'lastPosition', 'sessionStats', 'hourlyActivity'];
+// v9.53.2 — apparence (thème, palette, police) : propre à l'APPAREIL depuis la v9.48.0, mais réécrite dans le
+// manuscrit à chaque ouverture par syncDbAppearanceFromPrefs() (notifications.js). Deux appareils aux
+// préférences différentes se renvoyaient donc un « changement de cœur » à chaque ouverture, sans que personne
+// ait écrit : faux conflit « modifié sur les deux appareils ». Régénérable depuis les préférences locales.
+const SYNC_DERIVED_FIELDS = ['history', 'lastPosition', 'sessionStats', 'hourlyActivity',
+  'darkMode', 'paperMode', 'accentPalette', 'editorFont'];
 function stableStringify(v) {
   if (v === null || typeof v !== 'object') return JSON.stringify(v);
   if (Array.isArray(v)) return '[' + v.map(stableStringify).join(',') + ']';
@@ -744,6 +750,7 @@ async function syncPush(key, payload, attempt = 0) {
         // se recaler sur son numéro de version, et on s'arrête là.
         await writeLocalOnly(key, pulled.data);
         await markRemoteAdopted(key, pulled.data);
+        cancelScheduledPush(key); // v9.53.2 : plus rien à envoyer (voir cancelScheduledPush)
         return;
       }
 
@@ -756,6 +763,7 @@ async function syncPush(key, payload, attempt = 0) {
         // appareil. On adopte désormais sa version, silencieusement.
         await writeLocalOnly(key, pulled.data);
         await markRemoteAdopted(key, pulled.data);
+        cancelScheduledPush(key); // v9.53.2
         if (typeof onRemoteVersionAdopted === 'function') onRemoteVersionAdopted(key);
         return;
       }
@@ -1030,6 +1038,16 @@ function computePushDelay(isIndex, pendingSince, now, backoffUntil) {
   return delay;
 }
 
+// v9.53.2 — Une version distante vient d'être ADOPTÉE pour cette clé : tout envoi différé programmé avant
+// l'adoption porte une copie périmée (celle gardée en mémoire par scheduleSyncPush, ou relue au flush urgent).
+// Sans cette annulation, il repartait avec un numéro de version à jour, le serveur l'acceptait et écrasait la
+// version adoptée (constaté en test le 2026-10-10) ; et la clé restait « en attente » à l'indicateur.
+function cancelScheduledPush(key) {
+  if (_pushDebounceTimers[key]) { clearTimeout(_pushDebounceTimers[key]); delete _pushDebounceTimers[key]; }
+  delete _pendingSince[key]; delete _pendingPayload[key];
+  removePendingSyncKey(key);
+}
+
 function scheduleSyncPush(key, payload) {
   // Seules les clés de manuscrit ('doc_<profil>_<id>') et l'index de la
   // bibliothèque ('doclist_<profil>') sont réécrites à chaque sauvegarde. Les
@@ -1200,6 +1218,7 @@ async function loadData(key) {
           await writeLocalOnly(key, remote);
           setSyncVersion(key, remoteVersion);
           await markRemoteAdopted(key, remote);
+          cancelScheduledPush(key); // v9.53.2
           if (isDocListKey(key)) purgeTombstonedDocs(key, remote);
           // v9.53.1 — manuscrit ouvert entre-temps : l'éditeur recharge la
           // version adoptée (sinon il garde l'ancien texte en mémoire).

@@ -251,6 +251,7 @@ async function syncReconcileKey(key) {
     await writeLocalOnly(key, remote);
     setSyncVersion(key, version);
     await markRemoteAdopted(key, remote);
+    cancelScheduledPush(key); // v9.53.2 : un envoi différé de l'ancienne copie ne doit pas repartir
     // v9.53.1 — si ce manuscrit est ouvert dans l'éditeur, il recharge la version adoptée.
     if (verdict === 'remote-only' && isOpenDocumentKey(key)) await onRemoteVersionAdopted(key);
     return;
@@ -423,7 +424,7 @@ async function renderLibrarySyncBadge() {
     badge.classList.add('sync-warn');
     iconEl.innerHTML = icon('triangle-alert');
     text.textContent = count + (count > 1 ? ' conflits à vérifier' : ' conflit à vérifier');
-  } else if (getPendingSyncKeys().length > 0) {
+  } else if (getPendingSyncKeys().filter(k => !isConflictPaused(k)).length > 0) {
     // v9.53.1 — « à jour » seulement si plus rien n'attend d'être envoyé (voir renderSyncDot).
     badge.classList.remove('sync-warn');
     iconEl.innerHTML = icon('clock');
@@ -1759,8 +1760,8 @@ async function resolveConflictKeepBackup(key, docId) {
   const payload = await getConflictBackupPayload(key);
   if (payload === undefined) { toast('Sauvegarde introuvable (déjà supprimée ?).', 'error'); await renderConflictBackups(); return; }
   await writeLocalOnly(dataKey, payload);
-  await rememberRemoteBase(dataKey, payload);
-  setKnownRemoteHash(dataKey, await sha256Hex(JSON.stringify(payload)));
+  await markRemoteAdopted(dataKey, payload);
+  cancelScheduledPush(dataKey); // v9.53.2
   await removeConflictBackup(key);
   removeConflictPausedKey(dataKey);
   closeConflictDiff();
