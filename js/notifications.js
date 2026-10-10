@@ -339,7 +339,9 @@ function runThemeSwitch(fn) {
   finally {
     void b.offsetWidth;
     const done = () => b.classList.remove('theme-switching');
-    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(done)); else done();
+    // deux images (les changements de style sont alors appliqués), avec un filet de sécurité si l'onglet est en arrière-plan (rAF suspendu)
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(done));
+    setTimeout(done, 150);
   }
 }
 function applyThemeKey(k) {
