@@ -152,7 +152,7 @@
 </svg>
 
 <!-- GATE PROFILS (v7.0.0) — écrans connexion/création/récupération/migration -->
-<div id="profile-gate" class="profile-gate" role="dialog" aria-modal="true"></div>
+<div id="profile-gate" class="profile-gate" role="dialog" aria-modal="true" aria-label="Accès à Plume"></div>
 
 <!-- BIBLIOTHÈQUE (nouveau v7.2.0) — écran affiché après connexion, avant l'éditeur -->
 <div id="library-screen">
@@ -399,7 +399,7 @@
 </div>
 
 <!-- GLOBAL SEARCH -->
-<div id="search-overlay" role="dialog" aria-modal="true">
+<div id="search-overlay" role="dialog" aria-modal="true" aria-label="Recherche dans le projet">
   <div id="search-box">
     <input id="search-input" type="search" placeholder="Rechercher dans tout le projet..." aria-label="Rechercher">
     <div id="search-count"></div>
@@ -1241,7 +1241,7 @@
 </main>
 
 <!-- FOCUS -->
-<div id="focus-overlay" role="dialog" aria-modal="true">
+<div id="focus-overlay" role="dialog" aria-modal="true" aria-label="Mode focus">
   <input id="focus-title" aria-label="Titre du chapitre" type="text" placeholder="Titre du chapitre...">
   <!-- Correction V56 : contenteditable au lieu de textarea, pour ne plus perdre le gras/italique/souligné -->
   <div id="focus-writer" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Écriture en mode focus" data-placeholder="Écrivez librement... (Échap pour quitter)"></div>

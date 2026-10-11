@@ -5,7 +5,7 @@ Base : v9.56.0. Document d'origine : `Audit-05` (rapport `.docx` + `.csv`, hors 
 | Lot | Version | Constats | Contenu | Statut |
 |---|---|---|---|---|
 | 1 | 9.57.0 | 001, 002 (+ début 017) | `label for` sur les 16 libellés des écrans de profil ; `aria-label` sur 28 champs de index.html et 2 de la récupération ; 3 labels reliés ; test garde-fou `lot34-formulaires-accessibles.test.js` | livré |
-| 2 | — | 003, 004, 016 | Fenêtres : retour du focus, noms, arrière-plan inerte, messages en pause au focus | à venir |
+| 2 | 9.58.0 | 003, 004, 016 | Gestionnaire central des fenêtres modales (retour du focus au déclencheur, `inert` sur le reste de la page) ; noms des fenêtres connexion / recherche / Focus ; messages en pause au focus clavier. Les fenêtres du roman graphique restituaient déjà le focus (`gnWireModalA11y`) : le constat 003 les visait à tort | livré |
 | 3 | — | 005, 012, 006 | États ARIA des sélecteurs, annonces, titres, lien d'évitement | à venir |
 | 4 | — | 010, 011 | Roman graphique : pages au clavier, texte alternatif | à venir |
 | 5 | — | 007, 013, 018 | Contours de champs, bouton ⋮ tactile, mesure du zoom | à venir |

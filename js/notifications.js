@@ -52,11 +52,14 @@ function toast(msg, type='info', opts={}) {
     el.appendChild(btn);
   }
   el.classList.add('show');
-  if (opts.sticky) return;
+  if (opts.sticky) { el.onmouseenter = el.onmouseleave = el.onfocusin = el.onfocusout = null; return; }
   const ms = type === 'error' ? 8000 : type === 'success' ? 3000 : 4000;
   const arm = () => { clearTimeout(_toastTimer); _toastTimer = setTimeout(hideToast, ms); };
+  // v9.58.0 (AUD-05-016) : pause aussi quand le focus clavier est dans le message (le temps de le lire).
   el.onmouseenter = () => { clearTimeout(_toastTimer); };
   el.onmouseleave = arm;
+  el.onfocusin = () => { clearTimeout(_toastTimer); };
+  el.onfocusout = arm;
   arm();
 }
 // v9.42.0 (AUD-03-019) : état d'échec d'enregistrement PERMANENT dans le pied de page, jusqu'au
@@ -381,3 +384,74 @@ if (typeof MutationObserver === 'function' && document.body) {
   new MutationObserver(syncThemeColorMeta).observe(document.body, { attributes: true, attributeFilter: ['class'] });
   syncThemeColorMeta();
 }
+
+// ── FENÊTRES MODALES (début) ───────────────────────────────────────────
+// v9.58.0 (AUD-05-003 / 004) — gestion CENTRALE de toutes les fenêtres role="dialog" aria-modal="true" :
+//  · à la fermeture, le focus revient à l'élément qui avait déclenché l'ouverture (avant : il retombait sur <body>,
+//    l'utilisateur clavier ou lecteur d'écran repartait du début de la page) ;
+//  · tant qu'une fenêtre est ouverte, le reste de la page est inerte (`inert`) : ni Tab, ni lecteur d'écran n'y accèdent.
+// Pourquoi central : une vingtaine de fenêtres s'ouvrent/ferment chacune par leur propre code (classe .active, style.display) ;
+// les observer d'un seul endroit couvre les existantes ET les futures sans les modifier. Les fenêtres du roman graphique
+// (.gn-modal-overlay) gèrent déjà leur focus (gnWireModalA11y) et sont ignorées ici.
+// Piège évité : au moment où l'observateur s'exécute, le focus est DÉJÀ dans la fenêtre (et les événements « focus » ne
+// partent pas si la page n'a pas le focus système) ; l'ouvreur est donc la dernière cible d'une action de l'utilisateur
+// (touche ou clic, en capture), pas document.activeElement.
+const _modalOpeners = new Map();   // fenêtre → élément déclencheur
+const _modalStack = [];            // ordre d'ouverture : la dernière est au premier plan
+let _modalTrigger = null, _modalTriggerAt = 0;
+const _MODAL_TRIGGER_SEL = 'button,a[href],input,select,textarea,summary,[tabindex],[role="button"],[role="menuitem"],[role="tab"]';
+function _modalMark(e) {
+  const t = e.target;
+  if (!t || t.nodeType !== 1) return;
+  _modalTrigger = t.closest(_MODAL_TRIGGER_SEL) || t; _modalTriggerAt = Date.now();
+}
+function _modalVisible(d) { return d.getClientRects().length > 0; }
+function _modalApplyInert() {
+  document.querySelectorAll('[data-modal-inert]').forEach(el => { el.inert = false; el.removeAttribute('data-modal-inert'); });
+  const top = _modalStack[_modalStack.length - 1];
+  if (!top) return;
+  // on rend inertes les frères de chaque ancêtre de la fenêtre au premier plan (sauf le message temporaire, qui a un bouton ✕)
+  for (let node = top; node && node !== document.body && node.parentElement; node = node.parentElement) {
+    Array.from(node.parentElement.children).forEach(sib => {
+      if (sib === node || sib.id === 'toast' || sib.tagName === 'SCRIPT') return;
+      // un élément non affiché (autre fenêtre fermée, menu…) reste actif : s'il s'ouvre par-dessus (confirmation depuis une fenêtre),
+      // il doit pouvoir recevoir le focus AU MOMENT de son ouverture, avant que l'observateur ne recalcule l'inertie.
+      if (!sib.getClientRects().length) return;
+      sib.inert = true; sib.setAttribute('data-modal-inert', '1');
+    });
+  }
+}
+function _modalSync() {
+  document.querySelectorAll('[role="dialog"][aria-modal="true"]').forEach(d => {
+    if (d.closest('.gn-modal-overlay')) return;
+    const vis = _modalVisible(d), known = _modalOpeners.has(d);
+    if (vis && !known) {
+      let opener = (_modalTrigger && _modalTrigger.isConnected && Date.now() - _modalTriggerAt < 30000) ? _modalTrigger : document.activeElement;
+      if (!opener || opener === document.body || d.contains(opener)) opener = null;
+      _modalOpeners.set(d, opener); _modalStack.push(d);
+    } else if (!vis && known) {
+      const opener = _modalOpeners.get(d);
+      _modalOpeners.delete(d);
+      const i = _modalStack.indexOf(d); if (i !== -1) _modalStack.splice(i, 1);
+      _modalApplyInert();   // l'inertie doit être levée AVANT de refocaliser
+      const ae = document.activeElement;
+      const perdu = !ae || ae === document.body || d.contains(ae) || !ae.getClientRects().length;
+      if (opener && opener.isConnected && perdu && opener.getClientRects().length) opener.focus();
+    }
+  });
+  _modalApplyInert();
+}
+function _initModalWatch() {
+  if (typeof MutationObserver === 'undefined' || !document.body) return;
+  ['keydown', 'mousedown'].forEach(n => document.addEventListener(n, _modalMark, true));
+  let queued = false;
+  new MutationObserver(muts => {
+    // seules les fenêtres modales comptent : on ignore le reste (frappe, classes de la page…)
+    if (queued || !muts.some(m => m.target.matches && m.target.matches('[role="dialog"][aria-modal="true"]'))) return;
+    queued = true;
+    Promise.resolve().then(() => { queued = false; _modalSync(); });
+  }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
+  _modalSync();
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _initModalWatch); else _initModalWatch();
+// ── FENÊTRES MODALES (fin) ─────────────────────────────────────────────

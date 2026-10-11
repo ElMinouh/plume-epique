@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.57.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.58.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -53,6 +53,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 - **Confort d'écriture** (v9.47.0) : barre d'outils regroupée (**Structure**, **Focus** direct, Outils, Rechercher, ✨ Mots) ; invite « Commencez à écrire ici… » et curseur dans le chapitre vide ; réglage **Largeur du texte** (Config, 72 caractères par défaut) ; filtre de chapitres (dès 8 chapitres) ; curseur « Tension du chapitre : n/100 » ; pied de page regroupé (✔ Enregistré · ☁ Synchronisé ou Local seulement) ; **❔ Aide** unique (premiers pas, visite guidée, confidentialité et IA, raccourcis) et seulement 5 icônes ⓘ.
 - **Plus de faux conflit entre deux appareils** (v9.52.1) : l'historique automatique, la position du curseur et les statistiques d'écriture ne comptent plus comme « modifié ici » quand Plume arbitre une divergence de synchro (empreinte « cœur » `_cfp`, `plume_synccfp_*`). Un appareil resté ouvert qui n'a ajouté qu'un instantané reprend simplement la version de l'autre ; un vrai changement de texte des deux côtés reste un conflit.
 - **Plus de perte silencieuse à l'ouverture d'un manuscrit** (v9.53.1) : quand un autre appareil a écrit entre-temps, Plume recharge la version la plus récente dans l'éditeur (message « sa version la plus récente est chargée ») au lieu de laisser l'ancien texte en mémoire — auparavant, la frappe suivante repartait avec un numéro de version à jour et le serveur effaçait la phrase de l'autre appareil sans conflit. Avec des frappes non encore enregistrées, rien n'est remplacé : c'est un conflit à arbitrer (Système). La base commune de l'arbitrage n'est plus modifiée par une simple lecture du serveur (seulement après un envoi accepté ou une adoption réelle). L'indicateur du pied de page affiche **« En attente d'envoi »** (et la bibliothèque « Envoi en attente ») tant qu'un envoi différé n'est pas parti ; « Synchronisé » ne veut plus dire que « le dernier échange a réussi ».
+- **Fenêtres accessibles** (v9.58.0, AUD-05-003/004/016) : un gestionnaire central (`notifications.js`) rend le focus au déclencheur à la fermeture de chaque fenêtre modale et rend le reste de la page inerte tant qu'elle est ouverte ; les 3 fenêtres sans nom (connexion, recherche, Focus) en ont un ; les messages temporaires se mettent aussi en pause au focus clavier.
 - **Champs de formulaire accessibles** (v9.57.0, AUD-05-001/002) : chaque champ a un nom accessible (`label for` ou `aria-label`) sur les écrans de connexion, de création/récupération de profil et dans tous les panneaux ; `lot34-formulaires-accessibles.test.js` échoue si un champ perd son nom (placeholder et title ne comptent pas).
 - **États, impression et contraste** (v9.56.0) : états vides accompagnés (icône, titre, phrase d'aide) dans Univers, chronologie, corbeilles, versions et historiques ; pastilles d'état par jetons de rôle ET par forme (chapitre : anneau / demi-disque / disque plein ; synchro : rond / losange / carré), lisibles sans la couleur ; impression propre (Ctrl+P : seul le texte du chapitre, ou tout le manuscrit en mode Lecture, noir sur blanc en Literata) ; mode contraste forcé de Windows et préférence « contraste renforcé » pris en charge ; un test interdit toute nouvelle teinte d'état en dur. Limite : rendu non vérifié sur iOS / Android réels.
 - **Composition et modules** (v9.55.0) : barre d'outils, titre, notes et texte alignés sur la même colonne ; roman graphique au même langage d'état que le reste (accent unique, cibles agrandies) ; étagère aux couleurs du thème (chêne en clair et papier, bleu nuit en sombre) dont les dos s'élargissent pour afficher le titre ; rappel de sauvegarde GitHub en pastille discrète, affiché après 7 jours d'usage et masqué sur téléphone ; modes Focus et Lecture qui suivent le thème et la largeur de colonne.
@@ -95,7 +96,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 
 ```bash
 npm install
-npm test            # Vitest : ~666 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
+npm test            # Vitest : ~677 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
 ```
 
 Pas de build, pas de linter. Les tests partagent un contexte applicatif global : `fileParallelism: false`.
