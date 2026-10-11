@@ -132,7 +132,7 @@ function renderSyncKeyGate() {
   gateShell(`
     <div class="gate-title"><i>${icon('key-round')}</i> Où sont vos manuscrits ?</div>
     <div class="gate-sub">Pour retrouver vos profils et manuscrits sur cet appareil, saisissez la clé de synchronisation de votre famille (demandez-la à votre administrateur). Sinon, écrivez ici seulement.</div>
-    <label class="gate-label">Clé de synchronisation</label>
+    <label class="gate-label" for="sync-key-input">Clé de synchronisation</label>
     <input id="sync-key-input" type="password" class="gate-field" placeholder="Collez ou saisissez la clé" autocomplete="off">
     <div id="sync-key-status" class="gate-err" aria-live="polite"></div>
     <button id="sync-key-submit-btn" class="gate-btn gate-btn-primary">Utiliser cette clé</button>
@@ -321,9 +321,9 @@ function renderLoginScreen(idx) {
   gateShell(`
     <div class="gate-title">Plume</div>
     <div class="gate-sub">Choisissez votre profil</div>
-    <label class="gate-label">Profil</label>
+    <label class="gate-label" for="login-profile-sel">Profil</label>
     <select id="login-profile-sel" class="gate-field">${opts}</select>
-    <label class="gate-label">Mot de passe</label>
+    <label class="gate-label" for="login-pwd">Mot de passe</label>
     <input id="login-pwd" type="password" class="gate-field" placeholder="Mot de passe" autocomplete="current-password">
     <div id="login-err" class="gate-err"></div>
     <button id="login-btn" class="gate-btn gate-btn-primary">Se connecter</button>
@@ -360,17 +360,17 @@ function renderCreateProfile(opts) {
   const defaultName = '';
   gateShell(`
     <div class="gate-title"><i>${icon('user')}</i> ${opts.firstAdmin ? 'Bienvenue — créez le profil administrateur' : 'Nouveau profil'}</div>
-    <label class="gate-label">Nom du profil</label>
+    <label class="gate-label" for="cp-name">Nom du profil</label>
     <input id="cp-name" type="text" class="gate-field" value="${DOMPurify.sanitize(defaultName)}" placeholder="Votre prénom ou pseudo" autocomplete="username">
-    <label class="gate-label">Mot de passe</label>
+    <label class="gate-label" for="cp-pwd">Mot de passe</label>
     <input id="cp-pwd" type="password" class="gate-field" placeholder="Choisissez un mot de passe" autocomplete="new-password">
     <div id="cp-pwd-hint" class="gate-hint"></div>
-    <label class="gate-label">Confirmer le mot de passe</label>
+    <label class="gate-label" for="cp-pwd2">Confirmer le mot de passe</label>
     <input id="cp-pwd2" type="password" class="gate-field" placeholder="Répétez le mot de passe" autocomplete="new-password">
     <div class="gate-section">
-      <label class="gate-label">Question de sécurité</label>
+      <label class="gate-label" for="cp-question">Question de sécurité</label>
       <select id="cp-question" class="gate-field">${questionOptionsHtml()}</select>
-      <label class="gate-label">Votre réponse</label>
+      <label class="gate-label" for="cp-answer">Votre réponse</label>
       <input id="cp-answer" type="text" class="gate-field" placeholder="Réponse (à retenir)">
     </div>
     <div id="cp-err" class="gate-err"></div>
@@ -481,18 +481,18 @@ function renderRecovery(profileId) {
       <div class="gate-box">
         <div class="gate-box-title">${icon('circle-help')} Question de sécurité</div>
         <div class="gate-q">${DOMPurify.sanitize(profil.question || '')}</div>
-        <input id="rec-answer" type="text" class="gate-field" placeholder="Votre réponse">
+        <input id="rec-answer" aria-label="Réponse à la question de sécurité" type="text" class="gate-field" placeholder="Votre réponse">
       </div>
       <div class="gate-or">— ou —</div>
       <div class="gate-box">
         <div class="gate-box-title">${icon('key-round')} Code de récupération</div>
-        <input id="rec-code" type="text" class="gate-field u-ff-monospace" placeholder="XXXX-XXXX-XXXX-…">
+        <input id="rec-code" aria-label="Code de récupération" type="text" class="gate-field u-ff-monospace" placeholder="XXXX-XXXX-XXXX-…">
       </div>
       <div class="gate-section">
-        <label class="gate-label">Nouveau mot de passe</label>
+        <label class="gate-label" for="rec-pwd">Nouveau mot de passe</label>
         <input id="rec-pwd" type="password" class="gate-field" placeholder="Nouveau mot de passe" autocomplete="new-password">
         <div id="rec-pwd-hint" class="gate-hint"></div>
-        <label class="gate-label">Confirmer</label>
+        <label class="gate-label" for="rec-pwd2">Confirmer</label>
         <input id="rec-pwd2" type="password" class="gate-field" placeholder="Répétez" autocomplete="new-password">
       </div>
       <div id="rec-err" class="gate-err"></div>
@@ -771,19 +771,19 @@ function renderMigration(legacy) {
   gateShell(`
     <div class="gate-title"><i>${icon('sparkles')}</i> Mise à jour : profils</div>
     <div class="gate-sub">Plume gère maintenant plusieurs profils. On sécurise vos données actuelles dans le profil administrateur.</div>
-    <label class="gate-label">Nom du profil</label>
+    <label class="gate-label" for="mig-name">Nom du profil</label>
     <input id="mig-name" type="text" class="gate-field" placeholder="Votre prénom ou pseudo">
     ${encrypted
-      ? `<label class="gate-label">Votre mot de passe actuel</label>
+      ? `<label class="gate-label" for="mig-oldpwd">Votre mot de passe actuel</label>
          <input id="mig-oldpwd" type="password" class="gate-field" placeholder="Mot de passe actuel" autocomplete="current-password">`
-      : `<label class="gate-label">Choisissez un mot de passe</label>
+      : `<label class="gate-label" for="mig-newpwd">Choisissez un mot de passe</label>
          <input id="mig-newpwd" type="password" class="gate-field" placeholder="Mot de passe (12 caractères minimum)" autocomplete="new-password">
-         <label class="gate-label">Confirmer</label>
+         <label class="gate-label" for="mig-newpwd2">Confirmer</label>
          <input id="mig-newpwd2" type="password" class="gate-field" placeholder="Répétez" autocomplete="new-password">`}
     <div class="gate-section">
-      <label class="gate-label">Question de sécurité</label>
+      <label class="gate-label" for="mig-question">Question de sécurité</label>
       <select id="mig-question" class="gate-field">${questionOptionsHtml()}</select>
-      <label class="gate-label">Votre réponse</label>
+      <label class="gate-label" for="mig-answer">Votre réponse</label>
       <input id="mig-answer" type="text" class="gate-field" placeholder="Réponse (à retenir)">
     </div>
     <div id="mig-err" class="gate-err"></div>

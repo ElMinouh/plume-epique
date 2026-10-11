@@ -248,7 +248,7 @@
       <div class="export-row u-jc-flex-start u-mt-8px">
         <button class="action-btn btn-secondary btn-sm" id="lib-export-btn" title="Exporter ce manuscrit (choix du format ensuite)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-upload"></use></svg> Exporter</button>
         <button class="action-btn btn-secondary btn-sm" id="lib-import-doc-trigger-btn" title="Importer un fichier Word (.docx) ou OpenDocument (.odt)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-download"></use></svg> Importer (DOCX/ODT)</button>
-        <input class="u-d-none" type="file" id="lib-import-doc-file" accept=".docx,.odt">
+        <input class="u-d-none" type="file" id="lib-import-doc-file" aria-label="Fichier Word ou OpenDocument à importer" accept=".docx,.odt">
       </div>
       </div>
       <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
@@ -256,7 +256,7 @@
       <div class="export-row u-jc-flex-start u-mt-8px">
         <button class="action-btn btn-secondary btn-sm" id="lib-export-json-btn" title="Télécharger tous les manuscrits dans un seul fichier de sauvegarde"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-save"></use></svg> Export JSON (tout)</button>
         <button class="action-btn btn-secondary btn-sm" id="lib-import-json-trigger-btn" title="Charger un fichier de sauvegarde JSON (ajoute les manuscrits sans écraser l'existant)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-download"></use></svg> Import JSON (tout)</button>
-        <input class="u-d-none" type="file" id="lib-import-json-file" accept=".json">
+        <input class="u-d-none" type="file" id="lib-import-json-file" aria-label="Fichier de sauvegarde JSON à importer" accept=".json">
       </div>
       <p class="u-fs-xs u-c-v-text-muted u-m-6px-0-0"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-triangle-alert"></use></svg> Ce fichier ne peut être réimporté que dans le <strong>même profil</strong> (ex. après réinstallation) — un import dans un autre profil produit des manuscrits illisibles.</p>
       </div>
@@ -266,13 +266,13 @@
       <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
       <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-cloud"></use></svg> Sauvegarde GitHub — un seul jeton d'accès pour tout le compte</strong><br>
       <div class="u-d-flex u-gap-6px u-mt-6px">
-        <input type="password" id="lib-gh-token" class="field u-flex-1" placeholder="Jeton d'accès GitHub" title="Mémorisé automatiquement (chiffré)">
+        <input type="password" id="lib-gh-token" aria-label="Jeton d'accès GitHub" class="field u-flex-1" placeholder="Jeton d'accès GitHub" title="Mémorisé automatiquement (chiffré)">
         <button class="action-btn btn-secondary btn-sm u-fsh-0" id="lib-verify-token-btn" title="Vérifier que ce jeton d'accès est valide auprès de GitHub"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-circle-check"></use></svg> Vérifier</button>
       </div>
       <p class="u-fs-sm u-m-6px-0-0" id="lib-token-status" aria-live="polite"></p>
       <div class="u-d-flex u-ai-center u-gap-8px u-mt-8px u-fs-sm u-fw-wrap">
         Sauvegarde auto (toute la bibliothèque) :
-        <select id="lib-auto-gist-interval" class="field u-w-auto" title="Fréquence de la sauvegarde GitHub automatique de toute la bibliothèque">
+        <select id="lib-auto-gist-interval" aria-label="Fréquence de la sauvegarde GitHub automatique" class="field u-w-auto" title="Fréquence de la sauvegarde GitHub automatique de toute la bibliothèque">
           <option value="0">Désactivée</option>
           <option value="15">Toutes les 15 min</option>
           <option value="30">Toutes les 30 min</option>
@@ -307,7 +307,7 @@
       <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-key-round"></use></svg> Clé de synchronisation</strong><br>
       <p class="u-fs-xs u-c-v-text-muted u-m-6px-0-8px">Commune à cet appareil, valable pour tous les profils.</p>
       <div class="u-d-flex u-gap-6px">
-        <input type="password" id="lib-sync-key-input" class="field u-flex-1" readonly>
+        <input type="password" id="lib-sync-key-input" aria-label="Clé de synchronisation" class="field u-flex-1" readonly>
         <button class="action-btn btn-sm u-fsh-0" id="lib-sync-key-reveal-btn" title="Afficher/masquer la clé" aria-label="Afficher/masquer la clé"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-eye"></use></svg></button>
         <button class="action-btn btn-secondary btn-sm u-fsh-0" id="lib-sync-key-verify-btn" title="Vérifier que cette clé est acceptée par le Worker"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-circle-check"></use></svg> Vérifier</button>
       </div>
@@ -333,11 +333,11 @@
       <button class="mode-indicator" id="docx-mode-existing-btn" title="Ajouter comme chapitre à un manuscrit déjà existant"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-files"></use></svg> Chapitre existant</button>
     </div>
     <div id="docx-new-fields">
-      <label class="u-fs-sm u-c-v-text-muted">Titre du nouveau manuscrit</label>
+      <label class="u-fs-sm u-c-v-text-muted" for="docx-new-title">Titre du nouveau manuscrit</label>
       <input type="text" id="docx-new-title" class="field u-w-100pc u-mt-4px">
     </div>
     <div class="u-d-none" id="docx-existing-fields">
-      <label class="u-fs-sm u-c-v-text-muted">Manuscrit de destination</label>
+      <label class="u-fs-sm u-c-v-text-muted" for="docx-existing-select">Manuscrit de destination</label>
       <select id="docx-existing-select" class="field u-w-100pc u-mt-4px"></select>
     </div>
     <div class="u-d-none u-mt-8px" id="docx-split-wrap">
@@ -354,26 +354,26 @@
       <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-user"></use></svg> Mon profil</strong>
       <button class="action-btn btn-ghost btn-sm" id="my-profile-close-btn" title="Fermer cette fenêtre" aria-label="Fermer cette fenêtre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
     </div>
-    <label class="u-fs-sm u-c-v-text-muted">Nom du profil</label>
+    <label class="u-fs-sm u-c-v-text-muted" for="mp-my-name">Nom du profil</label>
     <div class="u-d-flex u-gap-6px">
       <input id="mp-my-name" class="field u-flex-1">
       <button class="action-btn btn-sm" id="mp-save-name-btn" title="Enregistrer le nouveau nom">Enregistrer</button>
     </div>
     <hr class="u-bdc-v-border u-m-6px-0">
     <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-key-round"></use></svg> Changer le mot de passe</strong>
-    <input id="mp-old-pwd" type="password" class="field" placeholder="Mot de passe actuel" autocomplete="current-password">
-    <input id="mp-new-pwd" type="password" class="field" placeholder="Nouveau mot de passe" autocomplete="new-password">
-    <input id="mp-new-pwd2" type="password" class="field" placeholder="Confirmer le nouveau mot de passe" autocomplete="new-password">
+    <input id="mp-old-pwd" aria-label="Mot de passe actuel" type="password" class="field" placeholder="Mot de passe actuel" autocomplete="current-password">
+    <input id="mp-new-pwd" aria-label="Nouveau mot de passe" type="password" class="field" placeholder="Nouveau mot de passe" autocomplete="new-password">
+    <input id="mp-new-pwd2" aria-label="Confirmer le nouveau mot de passe" type="password" class="field" placeholder="Confirmer le nouveau mot de passe" autocomplete="new-password">
     <button class="action-btn btn-secondary btn-sm u-as-flex-start" id="mp-save-pwd-btn" title="Enregistrer le nouveau mot de passe">Modifier le mot de passe</button>
     <hr class="u-bdc-v-border u-m-6px-0">
     <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-circle-help"></use></svg> Question de sécurité</strong>
-    <select id="mp-my-question" class="field"></select>
-    <input id="mp-my-answer" class="field" placeholder="Nouvelle réponse">
+    <select id="mp-my-question" aria-label="Question de sécurité" class="field"></select>
+    <input id="mp-my-answer" aria-label="Nouvelle réponse à la question de sécurité" class="field" placeholder="Nouvelle réponse">
     <button class="action-btn btn-sm u-as-flex-start" id="mp-save-question-btn" title="Utile pour récupérer votre compte en cas de mot de passe oublié">Mettre à jour la question</button>
     <hr class="u-bdc-v-border u-m-6px-0">
     <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-timer"></use></svg> Rester connecté sur cet appareil</strong>
     <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-6px">Évite de retaper le mot de passe pendant cette durée. Se déconnecter l'annule immédiatement.</p>
-    <select id="mp-session-duration" class="field">
+    <select id="mp-session-duration" aria-label="Durée de connexion conservée sur cet appareil" class="field">
       <option value="0">Ne pas rester connecté</option>
       <option value="60">1 heure</option>
       <option value="360">6 heures</option>
@@ -810,8 +810,8 @@
         <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-replace"></use></svg> Rechercher / Remplacer</strong>
         <button class="u-bg-none u-bd-none u-cur-pointer u-c-inherit u-fs-lg" id="fr-panel-close" aria-label="Fermer" title="Fermer"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
       </div>
-      <input id="fr-find-input" class="field" placeholder="Rechercher...">
-      <input id="fr-replace-input" class="field" placeholder="Remplacer par...">
+      <input id="fr-find-input" aria-label="Texte à rechercher" class="field" placeholder="Rechercher...">
+      <input id="fr-replace-input" aria-label="Texte de remplacement" class="field" placeholder="Remplacer par...">
       <div class="u-d-flex u-gap-10px u-fw-wrap u-fs-sm">
         <label class="u-d-flex u-ai-center u-gap-6px u-cur-pointer" title="Distinguer majuscules et minuscules"><input type="checkbox" id="fr-case-cb"> Respecter la casse</label>
         <label class="u-d-flex u-ai-center u-gap-6px u-cur-pointer" title="Ne pas trouver le texte à l'intérieur d'un autre mot"><input type="checkbox" id="fr-word-cb"> Mot entier</label>
@@ -927,7 +927,7 @@
           <input id="quest-filter" class="field u-mb-6px" placeholder="Filtrer les quêtes..." aria-label="Filtrer les quêtes" title="Filtrer la liste par texte">
           <div id="quest-list" class="list-box u-h-260px" role="list"></div>
           <div class="u-d-flex u-gap-6px u-mt-8px">
-            <input id="q-in" class="field u-flex-1" placeholder="Nouvelle quête...">
+            <input id="q-in" aria-label="Nouvelle quête" class="field u-flex-1" placeholder="Nouvelle quête...">
             <button class="action-btn" id="add-quest-btn" title="Ajouter une nouvelle quête">+</button>
           </div>
         </div>
@@ -937,9 +937,9 @@
 
     <div id="tab-timeline" class="subtab-content" role="tabpanel">
       <div id="tl-add-form">
-        <input id="tl-event-text" class="field u-flex-1 u-minw-130px" placeholder="Événement...">
-        <input id="tl-event-date" class="field u-w-105px" placeholder="Date / Moment">
-        <select id="tl-chapter-sel" class="field u-maxw-135px"></select>
+        <input id="tl-event-text" aria-label="Texte de l'événement" class="field u-flex-1 u-minw-130px" placeholder="Événement...">
+        <input id="tl-event-date" aria-label="Date ou moment de l'événement" class="field u-w-105px" placeholder="Date / Moment">
+        <select id="tl-chapter-sel" aria-label="Chapitre de l'événement" class="field u-maxw-135px"></select>
         <button class="action-btn btn-sm" id="tl-add-btn" title="Ajouter cet événement à la chronologie">+ Ajouter</button>
         <button class="action-btn btn-secondary btn-sm u-d-none" id="tl-cancel-edit-btn" title="Abandonner la modification en cours">Annuler</button>
         <button class="action-btn btn-secondary btn-sm" id="tl-sort-btn" title="Classer les événements selon l'ordre des chapitres (ceux sans chapitre vont à la fin)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-arrow-up-down"></use></svg> Trier selon les chapitres</button>
@@ -994,7 +994,7 @@
         <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-14px u-bd-1px-solid-v-border">
           <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg> Incohérences</strong>
           <p class="u-fs-sm u-op-_7 u-m-5px-0">Croise Personnages & texte. L'écran indique toujours ce qui a été lu.</p>
-          <select id="ai-check-scope" class="field u-w-100pc u-mb-6px" title="Portée de l'analyse" aria-describedby="ai-check-scope-help">
+          <select id="ai-check-scope" class="field u-w-100pc u-mb-6px" aria-label="Portée de l'analyse" title="Portée de l'analyse" aria-describedby="ai-check-scope-help">
             <option value="chapter">Ce chapitre</option>
             <option value="novel">Tout le roman</option>
           </select>
@@ -1005,11 +1005,11 @@
         <div class="u-flex-1 u-minw-180px u-bg-v-item-bg u-br-2 u-p-14px u-bd-1px-solid-v-border">
           <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-sparkles"></use></svg> Générateur de noms</strong>
           <div class="u-d-flex u-gap-6px u-m-6px-0 u-fw-wrap">
-            <select id="name-genre-sel" class="field u-w-auto">
+            <select id="name-genre-sel" aria-label="Genre littéraire des noms" class="field u-w-auto">
               <option value="fantasy">Fantasy</option><option value="sci-fi">Sci-Fi</option>
               <option value="historique">Historique</option><option value="contemporain">Contemporain</option>
             </select>
-            <select id="name-sex-sel" class="field u-w-auto">
+            <select id="name-sex-sel" aria-label="Sexe des noms" class="field u-w-auto">
               <option value="mixte">Mixte</option><option value="féminin">Féminin</option><option value="masculin">Masculin</option>
             </select>
           </div>
@@ -1034,7 +1034,7 @@
         <span class="u-fs-sm u-c-v-text-muted" id="memory-index-status"></span>
       </div>
       <div class="u-d-flex u-gap-8px u-mb-10px">
-        <input id="memory-query-input" class="field u-flex-1" placeholder="Que portait Lea au ch.3 ? Ou est mentionne le chateau ?">
+        <input id="memory-query-input" aria-label="Question sur le manuscrit" class="field u-flex-1" placeholder="Que portait Lea au ch.3 ? Ou est mentionne le chateau ?">
         <button class="action-btn" id="memory-query-btn" title="Poser une question sur le contenu du roman"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg> Interroger</button>
       </div>
       <div class="u-fg-1 u-ovy-auto u-d-flex u-fd-column u-gap-8px" id="memory-results">
@@ -1126,7 +1126,7 @@
     <div id="tab-config-main" class="subtab-content active" role="tabpanel">
     <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-book-open"></use></svg> Type de projet</strong>
     <div class="u-mt-8px u-mb-14px">
-      <select id="project-type-sel" class="field u-w-min-260px-100pc">
+      <select id="project-type-sel" aria-label="Type de projet" class="field u-w-min-260px-100pc">
         <option value="fantasy">Roman (fantasy / aventure)</option>
         <option value="contemporain">Roman contemporain</option>
         <option value="polar">Polar / thriller</option>
@@ -1176,20 +1176,20 @@
     <strong>Mots faibles</strong>
     <div class="u-m-8px-0" id="weak-words-list"></div>
     <div class="u-d-flex u-gap-6px">
-      <input id="new-weak-word" class="field u-flex-1" placeholder="Ex: soudain">
+      <input id="new-weak-word" aria-label="Mot faible à ajouter" class="field u-flex-1" placeholder="Ex: soudain">
       <button class="action-btn" id="add-weak-word-btn" title="Ajouter ce mot à la liste des mots à surveiller">Ajouter</button>
     </div>
     <hr class="u-bdc-v-border u-m-10px-0">
     <strong>Objectif quotidien</strong>
     <div class="u-mt-8px" id="goal-section">
-      <input type="number" id="daily-goal-input" class="field u-w-90px" min="100" max="10000" step="100">
+      <input type="number" id="daily-goal-input" aria-label="Objectif quotidien en mots" class="field u-w-90px" min="100" max="10000" step="100">
       <span>mots/jour</span>
       <div id="goal-bar-wrap"><div id="goal-bar"></div></div>
       <span class="u-minw-60px" id="goal-label">0 %</span>
     </div>
     <div class="u-mt-10px">
       <div class="u-d-flex u-ai-center u-gap-8px">
-        <input type="number" id="weekly-goal-input" class="field u-w-90px" min="100" step="100">
+        <input type="number" id="weekly-goal-input" aria-label="Objectif hebdomadaire en mots" class="field u-w-90px" min="100" step="100">
         <span>mots/semaine</span>
       </div>
       <div class="u-bg-v-item-bg u-br-2 u-h-8px u-ov-hidden u-mt-4px">
@@ -1199,7 +1199,7 @@
     </div>
     <div class="u-mt-10px">
       <div class="u-d-flex u-ai-center u-gap-8px">
-        <input type="number" id="monthly-goal-input" class="field u-w-90px" min="100" step="100">
+        <input type="number" id="monthly-goal-input" aria-label="Objectif mensuel en mots" class="field u-w-90px" min="100" step="100">
         <span>mots/mois</span>
       </div>
       <div class="u-bg-v-item-bg u-br-2 u-h-8px u-ov-hidden u-mt-4px">
@@ -1210,7 +1210,7 @@
     <hr class="u-bdc-v-border u-m-10px-0">
     <strong>Objectif du manuscrit</strong>
     <div class="u-mt-8px u-d-flex u-ai-center u-gap-8px">
-      <input type="number" id="manuscript-goal-input" class="field u-w-90px" min="0" step="1000" placeholder="0">
+      <input type="number" id="manuscript-goal-input" aria-label="Objectif du manuscrit en mots" class="field u-w-90px" min="0" step="1000" placeholder="0">
       <span>mots au total</span>
     </div>
     <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-0">0 = pas d'objectif. Affiché en barre de progression sur la carte de ce manuscrit dans la bibliothèque.</p>
@@ -1242,7 +1242,7 @@
 
 <!-- FOCUS -->
 <div id="focus-overlay" role="dialog" aria-modal="true">
-  <input id="focus-title" type="text" placeholder="Titre du chapitre...">
+  <input id="focus-title" aria-label="Titre du chapitre" type="text" placeholder="Titre du chapitre...">
   <!-- Correction V56 : contenteditable au lieu de textarea, pour ne plus perdre le gras/italique/souligné -->
   <div id="focus-writer" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Écriture en mode focus" data-placeholder="Écrivez librement... (Échap pour quitter)"></div>
   <div id="focus-bar">
