@@ -31,3 +31,7 @@ Sur smartphone, en défilant un long texte : la barre d'outils épinglée devena
 - **Cause du saut** : l'épinglage ajoutait `padding-top:64px` à `#editor-wrapper`, qui contient la sentinelle surveillée par `initToolbarPin()` ; le remplissage la repoussait de 64 px, elle repassait sous le seuil, la barre se désépinglait, etc. (boucle). Reproduit avant correctif : 7 bascules `PuPuPuP` en un seul défilement.
 - **Cause de la transparence** : fond `--item-bg` (≈ 6 % d'opacité) conservé une fois la barre sortie de la carte.
 - **Correctif** : marge de la sentinelle (`--toolbar-h`, hauteur mesurée avant l'épinglage) à la place du padding ; fond `--surface-2` opaque quand la barre est épinglée. Après correctif : une seule bascule par sens, hauteur du document et position du texte inchangées à l'épinglage ; test `lot41-barre-epinglee.test.js`.
+
+## Retouche hors lot — v9.63.2 (demandée par l'utilisateur, 2026-10-11)
+
+Bouton « Bibliothèque » de la barre d'outils mobile : l'icône était rangée en haut à gauche de son carré tactile de 44 px (`display:inline-flex` sans `align-items` ni `justify-content`) ; elle est maintenant centrée (décalage mesuré 0 px). Le bouton est aussi repérable : or de repère (`--title`, comme les titres et le logo), fond mélangé à 14 % et contour à 50 %, survol à 22 %. Contraste de l'icône : ≥ 4,5:1 au repos, ≥ 3:1 au survol, dans les trois thèmes (`lot42-bouton-bibliotheque.test.js`).

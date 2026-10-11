@@ -814,6 +814,11 @@ body.library-mode #library-screen{display:block;}
   /* v9.5.0 — Bouton bibliothèque dans la toolbar (mobile uniquement) : voir
      le commentaire au-dessus de #toolbar-library-btn dans index.html. */
   #toolbar-library-btn,#toolbar-library-sep{display:inline-flex;}
+  /* v9.63.2 : icône centrée (inline-flex sans alignement la rangeait en haut à gauche du carré de 44 px) et bouton « Bibliothèque »
+     repérable — or de repère (--title : titres, logo), fond et contour très légers, pour le distinguer des commandes de mise en forme. */
+  .toolbar #toolbar-library-btn{align-items:center;justify-content:center;color:var(--title);
+    background:color-mix(in srgb,var(--title) 14%,var(--glass));border-color:color-mix(in srgb,var(--title) 50%,transparent);}
+  .toolbar #toolbar-library-btn:hover{background:color-mix(in srgb,var(--title) 22%,var(--glass));border-color:var(--title);}
   #chapter-sidebar-body{display:none;margin-top:8px;}
   #chapter-sidebar-body.open{display:flex;max-height:60vh;overflow-y:auto;}
   /* Filet de sécurité (bug rapporté, capture d'écran à l'appui) : le panneau
