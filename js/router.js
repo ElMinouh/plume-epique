@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.63.0';
+const APP_VERSION = '9.63.1';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1778,6 +1778,10 @@ function initToolbarPin(){
   new IntersectionObserver(entries => {
     entries.forEach(entry => {
       const pinned = entry.boundingClientRect.top < 0;
+      // v9.63.1 : hauteur à réserver = celle de la barre en flux (mesurée AVANT de la sortir du flux) + sa marge basse.
+      if (pinned && !toolbar.classList.contains('toolbar-fixed')) {
+        wrapper.style.setProperty('--toolbar-h', (toolbar.offsetHeight + parseFloat(getComputedStyle(toolbar).marginBottom || '0')) + 'px');
+      }
       toolbar.classList.toggle('toolbar-fixed', pinned);
       wrapper.classList.toggle('toolbar-fixed-active', pinned);
     });

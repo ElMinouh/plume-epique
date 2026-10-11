@@ -777,7 +777,13 @@ body.library-mode #library-screen{display:block;}
   #toolbar-sentinel{height:0;}
   .toolbar.toolbar-fixed{position:fixed;top:0;left:1%;right:1%;z-index:200;
     margin-bottom:0;border-radius:0 0 var(--r-2) var(--r-2);box-shadow:var(--elev-2);}
-  #editor-wrapper.toolbar-fixed-active{padding-top:64px;}
+  /* v9.63.1 : la place laissée par la barre épinglée est réservée par une MARGE de la sentinelle (hauteur mesurée par
+     initToolbarPin), et non plus par un padding-top de #editor-wrapper : ce padding poussait la sentinelle elle-même de 64 px
+     vers le bas, ce qui la faisait repasser sous le seuil, donc désépingler, donc remonter… (boucle visible comme un « saut »
+     en défilant). Une marge ne déplace pas le rectangle de la sentinelle : plus de boucle, et le contenu ne bouge pas d'un pixel.
+     Fond OPAQUE une fois épinglée : --item-bg (≈ 6 % d'opacité) laissait voir le texte défiler dessous. */
+  #editor-wrapper.toolbar-fixed-active #toolbar-sentinel{margin-bottom:var(--toolbar-h,64px);}
+  .toolbar.toolbar-fixed{background:var(--surface-2);}
   #editor-wrapper{overflow:visible;}
   /* v7.41.1 — Chantier Responsive Mobile, écran 3/N (page d'écriture).
      Remplace l'ancien `#chapter-sidebar{max-height:200px}` : le contenu fixe
