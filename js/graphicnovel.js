@@ -645,7 +645,10 @@ function gnRenderPagesSidebar() {
   gnApplyMiniIconStyles(box);
   if (refocus) {
     const cible = box.querySelector(`.gn-pg-thumb[data-idx="${refocus.idx}"] .${refocus.kind}:not(:disabled)`) || box.querySelector(`.gn-pg-thumb[data-idx="${refocus.idx}"] .gn-pg-select`);
-    if (cible) cible.focus();
+    // les boutons monter/descendre ne sont affichés (donc focalisables) que si la vignette a le focus : on le donne d'abord au numéro
+    const num = box.querySelector(`.gn-pg-thumb[data-idx="${refocus.idx}"] .gn-pg-select`);
+    if (num) num.focus();
+    if (cible && cible !== num) cible.focus();
   }
 }
 let _gnPendingPageFocus = null;

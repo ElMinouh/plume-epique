@@ -22,6 +22,10 @@ describe('AUD-05-010 — pages du roman graphique au clavier', () => {
     expect(gn).toMatch(/_gnPendingPageFocus = \{ idx: to, kind: 'gn-pg-select' \}/);
     expect(gn).toMatch(/gnWirePageDragReorder\(\);\n  gnWirePageTouchDragReorder\(\);\n  gnWirePageKeyboard\(\);/);
   });
+  it('le focus suit après un re-rendu, y compris sur monter/descendre (numéro en premier)', () => {
+    expect(gn).toContain('if (num) num.focus();');
+    expect(gn).toContain('if (cible && cible !== num) cible.focus();');
+  });
   it('monter/descendre visibles au survol et au focus, plus seulement au tactile', () => {
     expect(css).toMatch(/\.gn-pg-thumb:hover \.gn-pg-move,\.gn-pg-thumb:focus-within \.gn-pg-move\{display:flex;/);
     expect(css).toMatch(/focus-within \.gn-pg-del,\.gn-pg-thumb:focus-within \.gn-pg-dup\{opacity:1;\}/);
