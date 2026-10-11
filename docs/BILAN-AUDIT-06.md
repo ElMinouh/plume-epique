@@ -7,7 +7,7 @@ rapport `.docx`, liste `.csv`, preuve rejouable `poc-verification-worker.mjs`. P
 |---|---|---|
 | 1 | 012, 013 | étape A livrée (v9.63.3) ; étape B : Worker sans repli KV prêt, déploiement après migration |
 | 2 | 009, 010, 011, 022, 023 | codé en v9.64.0 (voir ci-dessous) |
-| 3 | 001, 002, 017 | à faire |
+| 3 | 001, 002, 017 | 3a codé en v9.65.0 (serrure par profil + quotas) ; 3b (index `profiles`) à faire |
 | 4 | 003, 004, 006, 007 | à faire |
 | 5 | 005, 018, 019, 021 | à faire |
 | 6 | 008, 014, 015 | à faire (dépend du lot 3) |
@@ -32,3 +32,10 @@ rapport `.docx`, liste `.csv`, preuve rejouable `poc-verification-worker.mjs`. P
 - **022** : `report-uri`/`report-to` + `Reporting-Endpoints` vers `/csp-report`, `Cross-Origin-Resource-Policy: same-origin`. **Écart par rapport au plan annoncé** : Trusted Types en mode rapport n'est PAS activé (≈ 170 `innerHTML` généreraient des milliers de rapports et consommeraient le quota de requêtes) ; reporté au lot 5 (constat 018), une fois les `innerHTML` assainis.
 - **023** : en-tête `X-Plume-Client-Version` (toutes les requêtes vers le Worker de synchro), 426 sous `MIN_CLIENT_VERSION`, bandeau de rechargement.
 - Tests : `tests/vitest/lot-aud06-2-durcissement.test.js` (23).
+
+## Lot 3a — serrure par profil et quotas (v9.65.0)
+
+- **001 / 002** (données d'un profil) : jeton dérivé de la clé de données (`Crypto.authToken`), empreinte en D1 (`profile_auth`), contrôle sur GET/PUT/DELETE de `data_`, `doclist_`, `doc_`, `aichat_`, `libsettings_`, `img_` ; verrouillage progressif ; le scénario d'attaque de l'audit (pierre tombale forgée + DELETE) est rejoué et refusé (test). **Écart avec le plan annoncé** : pas de pierres tombales signées ni de suppression logique de 30 jours : la serrure rend la forge impossible, le filet reste D1 Time Travel (7 jours).
+- **017** : quotas 150 Mo / 2 000 clés par profil, 20 profils, garde-fou global 90 % ; message dans l'application sur 507. Le plafond d'appels IA reste la règle Cloudflare du lot 2 (pas de stockage côté Worker IA).
+- **Reste (3b)** : index `profiles` (ajout/suppression/rôle d'un profil), création du rôle administrateur côté serveur. **Pour le lot 4** : la rotation de la clé de données change le jeton ; prévoir le remplacement de l'empreinte sur le serveur.
+- Tests : `tests/vitest/lot-aud06-3a-serrure-profil.test.js` (22).

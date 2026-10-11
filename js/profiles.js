@@ -545,6 +545,7 @@ async function openProfile(profil, dek) {
   _currentProfileId = profil.id;
   _currentProfile = profil;
   _dataKey = dek;
+  _profileToken = await Crypto.authToken(dek); // v9.65.0 : serrure par profil sur le Worker de synchro (AUD-06-001)
   persistLocalSession(profil, dek);
   hideGate();
   syncPushEntireLibrary(); // arrière-plan, non bloquant — voir library.js

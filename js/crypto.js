@@ -99,6 +99,15 @@ const Crypto = {
     return key;
   },
   imageKey(dek) { return this.derive(dek, 'plume-image-v1'); },
+  // v9.65.0 (audit AUD-06-001) — JETON D'AUTHENTIFICATION DU PROFIL auprès du Worker de synchro : 256 bits dérivés
+  // (HKDF, domaine distinct de ceux des textes et des images) de la clé de données ; le Worker n'en garde que
+  // l'empreinte SHA-256. Un jeton ne permet pas de remonter à la clé de données (dérivation à sens unique).
+  async authToken(dek) {
+    const ikm = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(dek));
+    const base = await crypto.subtle.importKey('raw', ikm, 'HKDF', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(32), info: new TextEncoder().encode('plume-auth-v1') }, base, 256);
+    return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+  },
   async encryptBytes(bytes, dek) {
     const key = await this.imageKey(dek);
     const iv = crypto.getRandomValues(new Uint8Array(12));

@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.64.0';
+const APP_VERSION = '9.65.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -108,7 +108,14 @@ const DEFAULT_FETCH_TIMEOUT_MS = 30000;
 // (X-Plume-Client-Version) ; si le serveur exige une version minimale supérieure (426), l'utilisateur est invité à
 // recharger la page pour installer la mise à jour. Un point d'entrée unique évite d'oublier l'en-tête sur un des
 // sites d'appel (synchro, images, usage, vérification de clé).
-let _clientTooOldShown = false;
+let _clientTooOldShown = false, _profileLockedShown = false;
+// v9.65.0 (AUD-06-001) — jeton du profil connecté (voir Crypto.authToken), posé par openProfile().
+let _profileToken = null;
+function onProfileLocked() {
+  if (_profileLockedShown) return;
+  _profileLockedShown = true;
+  if (typeof toast === 'function') toast('Ce profil est protégé par un autre appareil déjà mis à jour : rechargez la page (Ctrl+F5) pour installer la dernière version de Plume.', 'error', { sticky: true });
+}
 function onClientTooOld() {
   if (_clientTooOldShown) return;
   _clientTooOldShown = true;
@@ -117,7 +124,14 @@ function onClientTooOld() {
 async function fetchWithTimeout(url, opts) {
   const { timeoutMs, ...fetchOpts } = opts || {};
   const toSync = typeof SYNC_WORKER_URL !== 'undefined' && typeof url === 'string' && url.startsWith(SYNC_WORKER_URL);
-  if (toSync) fetchOpts.headers = { ...(fetchOpts.headers || {}), 'X-Plume-Client-Version': APP_VERSION };
+  if (toSync) {
+    fetchOpts.headers = { ...(fetchOpts.headers || {}), 'X-Plume-Client-Version': APP_VERSION };
+    // Serrure par profil : le Worker ne regarde ces en-têtes que pour les clés d'un profil.
+    if (_profileToken && typeof _currentProfileId !== 'undefined' && _currentProfileId) {
+      fetchOpts.headers['X-Plume-Profile-Id'] = _currentProfileId;
+      fetchOpts.headers['X-Plume-Profile-Token'] = _profileToken;
+    }
+  }
   const ms = timeoutMs || DEFAULT_FETCH_TIMEOUT_MS;
   if (typeof AbortController === 'undefined') return fetch(url, fetchOpts);
   const controller = new AbortController();
@@ -125,6 +139,9 @@ async function fetchWithTimeout(url, opts) {
   try {
     const resp = await fetch(url, { ...fetchOpts, signal: controller.signal });
     if (toSync && resp.status === 426) onClientTooOld();
+    if (toSync && resp.status === 403) {
+      try { const j = await resp.clone().json(); if (j && j.error && j.error.code === 'profile-token') onProfileLocked(); } catch (e) { /* corps illisible : aucun message */ }
+    }
     return resp;
   } catch (e) {
     if (e && e.name === 'AbortError') throw new Error('Délai dépassé (' + Math.round(ms / 1000) + ' s) : le serveur ne répond pas.');
@@ -812,12 +829,14 @@ async function syncPush(key, payload, attempt = 0) {
       // au prochain refus, qui a réellement modifié quoi.
       await rememberRemoteBase(key, payload);
       removePendingSyncKey(key);
-    } else if (resp.status === 400 || resp.status === 413) {
+    } else if (resp.status === 400 || resp.status === 413 || resp.status === 403 || resp.status === 507) {
       // v9.20.0 — refus définitif du serveur (clé non autorisée, donnée trop
       // volumineuse) : le réessayer ne changerait rien, on ne l'empile pas
       // dans la file de nouvelles tentatives.
       removePendingSyncKey(key);
       console.warn('Synchro refusée par le serveur (' + resp.status + ') pour la clé', key);
+      // v9.65.0 : quota atteint (507) → le dire ; 403 de serrure → déjà signalé par fetchWithTimeout.
+      if (resp.status === 507 && typeof toast === 'function') toast('Espace de synchronisation plein pour ce profil : vos données restent sur cet appareil mais ne sont plus envoyées. Supprimez des images ou contactez l\'administrateur.', 'error', { sticky: true });
     } else {
       // v8.0.2 — Réponse reçue mais pas 2xx (Worker en erreur, quota
       // dépassé...) : jusqu'ici abandonné en silence comme un échec réseau,

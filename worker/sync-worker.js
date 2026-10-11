@@ -130,6 +130,72 @@ function cspReportAllowed(ip, now) {
   return ++rec.count <= 30;
 }
 
+// ═══════════════════════════════════════════════════════
+// v9.65.0 (audit AUD-06-001, 002, 017) — SERRURE PAR PROFIL ET QUOTAS
+// Avant : la clé de synchronisation commune ouvrait TOUTES les données de TOUS les profils (lire, écrire, supprimer,
+// y compris poser une pierre tombale qui fait détruire un manuscrit chez tout le monde).
+// Désormais chaque profil a un jeton, dérivé de sa clé de données (jamais envoyée au serveur), dont le Worker ne
+// garde que l'empreinte (table profile_auth). Toute requête sur une donnée d'un profil (data_, doclist_, doc_,
+// aichat_, libsettings_, img_) doit porter X-Plume-Profile-Id + X-Plume-Profile-Token.
+//   • Mise en place PROGRESSIVE : tant qu'un profil n'a pas été « verrouillé » (premier appareil mis à jour qui s'y
+//     connecte), les appareils plus anciens continuent de fonctionner sans jeton. Une fois verrouillé, tout
+//     appareil sans jeton valide reçoit 403 (code « profile-token »).
+//   • La serrure se pose à la première requête portant un jeton bien formé pour un profil non verrouillé (premier
+//     arrivé). Au plus MAX_CLAIMED_PROFILES profils (507 au-delà).
+//   • L'index `profiles` n'est pas encore protégé ici (lot 3b).
+// Quotas (écritures) : PROFILE_QUOTA_BYTES et PROFILE_QUOTA_KEYS par profil ; au-delà de GLOBAL_GUARD_BYTES pour
+// toute la base (limite gratuite de D1 : 500 Mo, partagée avec d'autres projets) : 507 plutôt qu'une base saturée.
+// ═══════════════════════════════════════════════════════
+const MAX_CLAIMED_PROFILES = 20;
+const PROFILE_QUOTA_BYTES = 150 * 1024 * 1024;
+const PROFILE_QUOTA_KEYS = 2000;
+const GLOBAL_GUARD_BYTES = Math.floor(D1_DB_LIMIT_BYTES * 0.9);
+// Identifiant de profil contenu dans une clé de synchronisation (null : clé non rattachée à un profil).
+const PROFILE_KEY_PATTERNS = [
+  /^(?:data|doclist|libsettings)_([A-Za-z0-9-]{1,80})$/,
+  /^(?:doc|aichat)_([A-Za-z0-9-]{1,80})_.+$/,
+  /^img_([A-Za-z0-9-]{1,80})_.+$/
+];
+function profileIdOfKey(key) {
+  for (const re of PROFILE_KEY_PATTERNS) { const m = re.exec(key); if (m) return m[1]; }
+  return null;
+}
+async function sha256Hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+let _authTableReady = null;
+function ensureAuthTable(db) {
+  if (!_authTableReady) {
+    _authTableReady = db.prepare('CREATE TABLE IF NOT EXISTS profile_auth (pid TEXT PRIMARY KEY, verifier TEXT NOT NULL, created_at INTEGER NOT NULL)').run()
+      .catch(e => { _authTableReady = null; throw e; });
+  }
+  return _authTableReady;
+}
+// Renvoie null si la requête est autorisée, sinon la réponse de refus.
+async function authorizeProfile(request, env, pid, cors) {
+  const refuse = (status, code, message, extra) => new Response(JSON.stringify({ error: { message, code }, ...(extra || {}) }), {
+    status, headers: { ...cors, 'Content-Type': 'application/json' }
+  });
+  await ensureAuthTable(env.DB);
+  const token = request.headers.get('X-Plume-Profile-Token') || '';
+  const claimedId = request.headers.get('X-Plume-Profile-Id') || '';
+  const wellFormed = /^[0-9a-f]{64}$/.test(token) && claimedId === pid;
+  const row = await env.DB.prepare('SELECT verifier FROM profile_auth WHERE pid = ?1').bind(pid).first();
+  if (row) {
+    if (wellFormed && timingSafeEqual(await sha256Hex(token), row.verifier)) return null;
+    return refuse(403, 'profile-token', 'Ce profil est protégé par un autre appareil : mettez Plume à jour (rechargez la page) puis reconnectez-vous.');
+  }
+  if (!wellFormed) return null; // profil pas encore verrouillé : ancien appareil toléré
+  const n = (await env.DB.prepare('SELECT COUNT(*) AS n FROM profile_auth').first()).n;
+  if (n >= MAX_CLAIMED_PROFILES) return refuse(507, 'profile-limit', 'Nombre maximal de profils atteint sur ce serveur.', { quota: 'profiles' });
+  const verifier = await sha256Hex(token);
+  await env.DB.prepare('INSERT OR IGNORE INTO profile_auth (pid, verifier, created_at) VALUES (?1, ?2, ?3)').bind(pid, verifier, Date.now()).run();
+  const won = await env.DB.prepare('SELECT verifier FROM profile_auth WHERE pid = ?1').bind(pid).first();
+  return won && timingSafeEqual(won.verifier, verifier) ? null
+    : refuse(403, 'profile-token', 'Ce profil vient d\'être verrouillé par un autre appareil : rechargez la page.');
+}
+
 function timingSafeEqual(a, b) {
   const enc = new TextEncoder();
   const x = enc.encode(a), y = enc.encode(b);
@@ -216,6 +282,18 @@ function d1Store(env) {
       const meta = await readMeta(key);
       return meta ? meta.version : 0;
     },
+    // Octets et nombre de clés d'un profil (hors la clé `excludeKey`, celle qu'on s'apprête à réécrire).
+    async profileUsage(pid, excludeKey) {
+      const where = "(k = ?1 OR k = ?2 OR k = ?3 OR (k >= ?4 AND k < ?5) OR (k >= ?6 AND k < ?7) OR (k >= ?8 AND k < ?9)) AND k != ?10";
+      const args = ['data_' + pid, 'doclist_' + pid, 'libsettings_' + pid, 'doc_' + pid + '_', 'doc_' + pid + '`', 'aichat_' + pid + '_', 'aichat_' + pid + '`', 'img_' + pid + '_', 'img_' + pid + '`', excludeKey || ''];
+      const b = await db.prepare('SELECT COALESCE(SUM(LENGTH(data)), 0) AS n FROM sync_chunks WHERE ' + where).bind(...args).first();
+      const c = await db.prepare('SELECT COUNT(*) AS n FROM sync_meta WHERE ' + where).bind(...args).first();
+      return { bytes: b ? b.n : 0, keys: c ? c.n : 0 };
+    },
+    async totalBytes() {
+      const r = await db.prepare('SELECT COALESCE(SUM(LENGTH(data)), 0) AS n FROM sync_chunks').first();
+      return r ? r.n : 0;
+    },
     // Octets déjà occupés par les images (préfixe de clé « img_ » : parcours par intervalle sur la clé primaire).
     async imagesBytes() {
       const r = await db.prepare("SELECT COALESCE(SUM(LENGTH(data)), 0) AS n FROM sync_chunks WHERE k >= 'img_' AND k < 'img`'").first();
@@ -284,7 +362,7 @@ async function handleRequest(request, env) {
       ...(requestOrigin && originOk ? { 'Access-Control-Allow-Origin': requestOrigin } : {}),
       'Vary': 'Origin',
       'Access-Control-Allow-Methods': 'GET,PUT,DELETE,POST,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Plume-Base-Version, X-Plume-Client-Version',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Plume-Base-Version, X-Plume-Client-Version, X-Plume-Profile-Id, X-Plume-Profile-Token',
       // Sans ceci, le navigateur cache la réponse mais REFUSE au JavaScript
       // de lire nos en-têtes de version (règle CORS) : le client croirait
       // alors toujours être en version 0 et le contrôle ne servirait à rien.
@@ -370,6 +448,13 @@ async function handleRequest(request, env) {
     }
     if (key === '__ping__') {
       return new Response(JSON.stringify({ ok: true }), { headers: { ...cors, 'Content-Type': 'application/json' } });
+    }
+
+    // Serrure par profil (voir l'en-tête de ce fichier) : GET, PUT et DELETE d'une donnée de profil.
+    const keyPid = env.DB ? profileIdOfKey(key) : null;
+    if (keyPid) {
+      const denied = await authorizeProfile(request, env, keyPid, cors);
+      if (denied) return denied;
     }
 
     if (request.method === 'GET') {
@@ -460,6 +545,17 @@ async function handleRequest(request, env) {
         }), {
           status: 409, headers: { ...cors, 'Content-Type': 'application/json', 'X-Plume-Version': String(current) }
         });
+      }
+
+      // v9.65.0 (AUD-06-017) — Quotas par profil et garde-fou global (D1 seulement).
+      if (store.profileUsage) {
+        const over = (quota, message) => new Response(JSON.stringify({ error: { message }, quota }), { status: 507, headers: { ...cors, 'Content-Type': 'application/json' } });
+        if ((await store.totalBytes()) + body.length > GLOBAL_GUARD_BYTES) return over('global', 'Le stockage du serveur de synchronisation est presque plein : écriture refusée.');
+        if (keyPid) {
+          const u = await store.profileUsage(keyPid, key);
+          if (u.bytes + body.length > PROFILE_QUOTA_BYTES) return over('profile', 'Espace de synchronisation de ce profil plein (150 Mo).');
+          if (current === 0 && u.keys >= PROFILE_QUOTA_KEYS) return over('keys', 'Nombre maximal d\'éléments synchronisés pour ce profil atteint.');
+        }
       }
 
       // v9.3.3 — Sans ce filet, une écriture refusée par Cloudflare (quota

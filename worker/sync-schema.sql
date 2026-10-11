@@ -14,3 +14,10 @@ CREATE TABLE IF NOT EXISTS sync_chunks (
   data TEXT NOT NULL,            -- morceau de la valeur (≤ 600 000 caractères)
   PRIMARY KEY (k, wid, idx)
 );
+-- v9.65.0 (audit AUD-06-001) — serrure par profil : empreinte (SHA-256) du jeton dérivé de la clé de données du
+-- profil. Le jeton transite (HTTPS) dans chaque requête mais seul son hachage est conservé. Créée aussi à la volée par le Worker (IF NOT EXISTS).
+CREATE TABLE IF NOT EXISTS profile_auth (
+  pid        TEXT PRIMARY KEY,   -- identifiant du profil
+  verifier   TEXT NOT NULL,      -- SHA-256 (hex) du jeton du profil
+  created_at INTEGER NOT NULL
+);
