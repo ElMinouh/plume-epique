@@ -22,6 +22,9 @@
   --glass:#fbf8f1; --surface-2:#ffffff; --accent:#1d3a5c; --accent2:#8a6414; --accent-dark:#2f6aa8;
   --grad:linear-gradient(180deg,#f3eee3 0%,#ebe4d5 100%);
   --text:#1b2430; --text-muted:#5b6472; --border:rgba(70,56,32,0.2);
+  /* v9.61.0 (AUD-05-007) : contour des COMPOSANTS (champs, listes) ≥ 3:1 sur toute surface et sur leur remplissage (WCAG 1.4.11) ;
+     --border reste réservé aux séparateurs décoratifs. Valeurs vérifiées par tests/vitest/lot38-*.test.js. */
+  --border-strong:#80776a;
   --item-bg:rgba(70,56,32,0.055); --save-glow:#27ae60;
   /* v9.50.0 (AUD-04-029/005) — couleurs par RÔLE, un jeton = un sens.
      · --danger / --success / --warn : teintes vives (pastilles, fonds translucides, graphiques) ;
@@ -69,14 +72,14 @@ body.dark-mode {
   --shelf-bg:linear-gradient(160deg,#1b2a3f,#101a28); --shelf-plank:linear-gradient(#3b5578,#2a3d58 45%,#1b2a3f); --shelf-ink:#e8d9b8;
   --imm-bg:#0b1017; --imm-text:#d9d2c2;
   --glass:#1a2330; --surface-2:#222d3d; --grad:linear-gradient(135deg,#0f151e 0%,#141b26 100%);
-  --text:#ece6d8; --text-muted:#a3acb9; --border:rgba(255,255,255,0.14);
+  --text:#ece6d8; --text-muted:#a3acb9; --border:rgba(255,255,255,0.14); --border-strong:#808c9c;
   --item-bg:rgba(255,255,255,0.07); --elev-2:0 4px 20px rgba(0,0,0,0.4); --scrim:rgba(0,0,0,.72);
 }
 /* Thème papier/sépia (nouveau v7.7.0) — exclusif du mode sombre */
 body.paper-mode {
   --shelf-bg:linear-gradient(160deg,#d6c29a,#c0a679); --imm-bg:#efe6d0; --imm-text:#3b2f1e;
   --glass:#faf5e8; --surface-2:#fffbf0; --grad:linear-gradient(135deg,#e9dfc6 0%,#efe6d0 100%);
-  --text:#3b2f1e; --text-muted:#6b5d44; --border:rgba(59,47,30,0.24);
+  --text:#3b2f1e; --text-muted:#6b5d44; --border:rgba(59,47,30,0.24); --border-strong:#80745e;
   --item-bg:rgba(59,47,30,0.06); --elev-2:0 4px 20px rgba(59,47,30,0.15);
 }
 /* Police d'écriture personnalisable (nouveau v7.7.0) — s'applique uniquement
@@ -232,7 +235,7 @@ mark{background-color:color-mix(in srgb,var(--accent) 22%,transparent);color:var
 .toolbar .action-btn:active{filter:none;background:color-mix(in srgb,var(--text) 14%,transparent);}
 .toolbar .action-btn[aria-expanded="true"]{background:var(--item-bg);border-color:var(--text-muted);}
 .toolbar .action-btn.fmt-active{background:var(--item-bg);background:color-mix(in srgb,var(--accent) 16%,var(--glass));color:var(--accent-text);border-color:var(--accent);}
-.field{background:var(--item-bg);color:var(--text);border:1px solid var(--border);
+.field{background:var(--item-bg);color:var(--text);border:1px solid var(--border-strong);
   border-radius:var(--r-2);padding:7px 10px;outline:none;font-family:inherit;
   font-size:var(--fs-base);width:100%;transition:border-color var(--t-base);}
 .field:focus{border-color:var(--accent);}
@@ -268,7 +271,7 @@ mark{background-color:color-mix(in srgb,var(--accent) 22%,transparent);color:var
 .edit-box{background:rgba(255,255,255,.04);border-radius:var(--r-2);padding:14px;
   border:1px solid var(--border);display:flex;flex-direction:column;gap:8px;overflow-y:auto;}
 .edit-box textarea,.edit-box input,.edit-box select{background:var(--item-bg);color:inherit;
-  border:1px solid var(--border);border-radius:var(--r-2);padding:7px;outline:none;width:100%;font-family:inherit;}
+  border:1px solid var(--border-strong);border-radius:var(--r-2);padding:7px;outline:none;width:100%;font-family:inherit;}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .link-badge{display:inline-block;background:var(--accent2);color:#fff;
   padding:3px 8px;border-radius:var(--r-3);font-size:var(--fs-xs);margin:2px;cursor:pointer;}
@@ -343,7 +346,7 @@ mark{background-color:color-mix(in srgb,var(--accent) 22%,transparent);color:var
 .gate-sub{color:#9a95a8;font-size:var(--fs-sm);text-align:center;line-height:var(--lh-normal);margin-bottom:4px;}
 .gate-label{color:#9a95a8;font-size:var(--fs-sm);margin-top:4px;}
 .gate-field{width:100%;height:38px;background:rgba(255,255,255,.07);color:#e8e0d0;
-  border:1px solid rgba(255,255,255,.15);border-radius:var(--r-2);padding:0 12px;outline:none;
+  border:1px solid #808c9c;border-radius:var(--r-2);padding:0 12px;outline:none;
   font-family:inherit;font-size:var(--fs-md);}
 .gate-field:focus{border-color:var(--accent);}
 select.gate-field{height:38px;}
@@ -1581,7 +1584,7 @@ button.gn-pg-select{background:none;border:none;font-family:inherit;padding:2px 
   border-radius:var(--r-2);cursor:pointer;display:flex;align-items:center;justify-content:center;
   color:var(--text-muted);font-size:var(--fs-md);}
 .gn-shape-btn.gn-active{border-color:var(--accent);color:var(--accent-text);background:color-mix(in srgb,var(--accent) 12%,transparent);}
-.gn-alt-input{width:100%;margin-top:6px;padding:7px 8px;border:1.5px solid var(--border);
+.gn-alt-input{width:100%;margin-top:6px;padding:7px 8px;border:1.5px solid var(--border-strong);
   background:var(--item-bg);border-radius:var(--r-2);color:var(--text);font-size:var(--fs-sm);}
 
 /* ── Texte déplaçable + mise en forme professionnelle — maquette validée,
@@ -1595,7 +1598,7 @@ button.gn-pg-select{background:none;border:none;font-family:inherit;padding:2px 
   .gn-move-handle{width:34px;height:34px;top:-38px;}
 }
 .gn-txtprops{margin-top:8px;}
-.gn-txtprops select{width:100%;padding:7px 8px;border:1.5px solid var(--border);background:var(--item-bg);
+.gn-txtprops select{width:100%;padding:7px 8px;border:1.5px solid var(--border-strong);background:var(--item-bg);
   border-radius:var(--r-2);color:var(--text);font-size:var(--fs-sm);}
 .gn-txtprops input[type=range]{width:100%;accent-color:var(--accent);}
 .gn-toggle-row{display:flex;gap:5px;}
@@ -1623,7 +1626,7 @@ button.gn-pg-select{background:none;border:none;font-family:inherit;padding:2px 
 .gn-modal-center{text-align:center;}
 .gn-modal-center #gn-export-cancel-btn{margin-top:16px;}
 /* Boîte de dialogue "options d'export" (Lot 2, audit #8). */
-.gn-export-opts select{width:100%;padding:7px 8px;margin:4px 0 12px;border:1.5px solid var(--border);
+.gn-export-opts select{width:100%;padding:7px 8px;margin:4px 0 12px;border:1.5px solid var(--border-strong);
   background:var(--item-bg);border-radius:var(--r-2);color:var(--text);font-size:var(--fs-sm);}
 /* Corbeille (Lot 3, audit #10/#11) — lignes en .history-item, déjà stylées
    ailleurs (historique des versions, corbeille des chapitres) ; seule la
@@ -1975,3 +1978,13 @@ body.theme-switching,body.theme-switching *,body.theme-switching *::before,body.
 .skip-link{position:fixed;top:8px;left:8px;z-index:100000;padding:8px 14px;border-radius:var(--r-2);background:var(--surface-2);color:var(--text);
   border:2px solid var(--focus);font-size:var(--fs-sm);font-weight:600;text-decoration:none;transform:translateY(-250%);}
 .skip-link:focus{transform:none;}
+
+/* v9.61.0 (AUD-05-018) — à 320 px (zoom 400 %), la ligne titre + notes + statut du chapitre débordait de 14 px (le <select> est
+   incompressible) ; elle passe à la ligne : le titre prend toute la largeur, les deux commandes dessous. */
+@media (max-width:480px){
+  #chapter-title-row{flex-wrap:wrap;}
+  #chapter-title{flex-basis:100%;}
+  /* même chose pour la barre du roman graphique (réflexion mesurée à 544 px de large pour 320 px d'écran) */
+  .gn-toolbar{flex-wrap:wrap;padding:8px 10px;gap:8px;}
+  .gn-tb-tools{flex-wrap:wrap;}
+}
