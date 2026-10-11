@@ -6,7 +6,7 @@ rapport `.docx`, liste `.csv`, preuve rejouable `poc-verification-worker.mjs`. P
 | Lot | Constats | État |
 |---|---|---|
 | 1 | 012, 013 | étape A livrée (v9.63.3) ; étape B : Worker sans repli KV prêt, déploiement après migration |
-| 2 | 009, 010, 011, 022, 023 | à faire |
+| 2 | 009, 010, 011, 022, 023 | codé en v9.64.0 (voir ci-dessous) |
 | 3 | 001, 002, 017 | à faire |
 | 4 | 003, 004, 006, 007 | à faire |
 | 5 | 005, 018, 019, 021 | à faire |
@@ -23,3 +23,12 @@ rapport `.docx`, liste `.csv`, preuve rejouable `poc-verification-worker.mjs`. P
   `tests/vitest/lot-aud06-1-migration-kv.test.js`. Étape B : repli KV supprimé du Worker (`d1Store.read/version`), binding `PLUME_SYNC` retiré de
   `wrangler-sync.toml`, tests mis à jour (`sync-d1.test.js`), ancien Worker figé en fixture pour tester la migration.
   Sauvegarde de KV faite le 11/10/2026 (48 clés) dans `C:SecretsPlumeackups-kvkv-backup-2026-10-11.json`.
+
+## Lot 2 — durcissement des Workers, des en-têtes et du dépôt publié (v9.64.0)
+
+- **009** : jeton IA dérivé (Worker IA + `js/ai.js`), `scripts/generer-cle.cjs`, `scripts/installer-jeton-ia.cjs`, règle de limitation de débit à créer dans Cloudflare (docs/EXPLOITATION.md §6 bis). **Reste à la charge du propriétaire** : poser `AI_TOKEN`, créer la règle, retirer `SYNC_KEY` du Worker IA une fois tous les appareils à jour, et adopter une clé aléatoire (rotation différée, §6).
+- **010** : CORS limité à l'application (403 sinon), corps lu en flux avec plafond, erreurs du Worker IA génériques.
+- **011** : `_routes.json` + `functions/_middleware.js` (404 sur docs, worker, tests, scripts, CLAUDE.md, README, package*.json).
+- **022** : `report-uri`/`report-to` + `Reporting-Endpoints` vers `/csp-report`, `Cross-Origin-Resource-Policy: same-origin`. **Écart par rapport au plan annoncé** : Trusted Types en mode rapport n'est PAS activé (≈ 170 `innerHTML` généreraient des milliers de rapports et consommeraient le quota de requêtes) ; reporté au lot 5 (constat 018), une fois les `innerHTML` assainis.
+- **023** : en-tête `X-Plume-Client-Version` (toutes les requêtes vers le Worker de synchro), 426 sous `MIN_CLIENT_VERSION`, bandeau de rechargement.
+- Tests : `tests/vitest/lot-aud06-2-durcissement.test.js` (23).

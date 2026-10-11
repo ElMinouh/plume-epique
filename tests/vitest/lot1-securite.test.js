@@ -162,8 +162,9 @@ describe('DOMPurify réel (AUD-01-002) — la suite principale le remplace par u
 // ── callClaude côté client ───────────────────────────────
 describe('callClaude — clé de synchronisation requise (AUD-01-004)', () => {
   function makeCtx(syncKey) {
-    const ctx = vm.createContext({ console, TextDecoder, setTimeout, clearTimeout, Promise });
+    const ctx = vm.createContext({ console, TextDecoder, TextEncoder, Uint8Array, crypto: globalThis.crypto, setTimeout, clearTimeout, Promise });
     ctx.AbortController = AbortController;
+    ctx.SYNC_WORKER_URL = 'https://plume-epique-sync.air7841.workers.dev'; ctx.APP_VERSION = '0.0.0-test';
     ctx.getSyncKey = () => syncKey;
     ctx.fetch = vi.fn(async () => new Response('data: {"choices":[{"delta":{"content":"salut"}}]}\n\ndata: [DONE]\n\n', { status: 200 }));
     const rt = read('js/router.js');
@@ -179,7 +180,10 @@ describe('callClaude — clé de synchronisation requise (AUD-01-004)', () => {
   it('avec clé : envoie Authorization: Bearer et renvoie le texte', async () => {
     const ctx = makeCtx('ma-cle');
     expect(await ctx.__callClaude('x')).toBe('salut');
-    expect(ctx.fetch.mock.calls[0][1].headers.Authorization).toBe('Bearer ma-cle');
+    // v9.64.0 (AUD-06-009) : le relais reçoit un jeton dérivé, jamais la clé de synchronisation elle-même.
+    const attendu = (await import('node:crypto')).createHash('sha256').update('plume-ai|ma-cle').digest('hex');
+    expect(ctx.fetch.mock.calls[0][1].headers.Authorization).toBe('Bearer ' + attendu);
+    expect(ctx.fetch.mock.calls[0][1].headers.Authorization).not.toContain('ma-cle');
   });
 });
 

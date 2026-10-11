@@ -85,6 +85,51 @@ const KEY_PATTERN = new RegExp(
 const IMG_BUDGET_BYTES = 350 * 1024 * 1024;
 const D1_DB_LIMIT_BYTES = 500 * 1024 * 1024; // limite de la base D1 du plan gratuit (information affichée)
 
+// ═══════════════════════════════════════════════════════
+// v9.64.0 (audit AUD-06-010, 023, 022) — DURCISSEMENT, LOT 2
+//   • CORS : plus de « * » ; seule l'application (et ses déploiements de prévisualisation) peut appeler ce
+//     Worker depuis un navigateur ; env.CORS_EXTRA (liste séparée par des virgules) sert aux tests locaux ;
+//   • corps des écritures lu en flux avec plafond (le contrôle ne dépend plus de Content-Length) ;
+//   • version minimale du client : un appareil trop ancien reçoit 426 (en-tête absent = accepté) ;
+//   • point de collecte des violations de CSP (/csp-report) : une ligne de journal, jamais de contenu.
+// ═══════════════════════════════════════════════════════
+const APP_ORIGIN = 'https://plume-epique.pages.dev';
+const DEFAULT_MIN_CLIENT_VERSION = '0.0.0'; // à relever (variable MIN_CLIENT_VERSION) pour imposer un correctif de sécurité
+function isAllowedOrigin(origin, env) {
+  if (origin === APP_ORIGIN) return true;
+  if (/^https:\/\/[a-z0-9-]+\.plume-epique\.pages\.dev$/.test(origin)) return true;
+  // CORS_EXTRA (tests locaux uniquement) : origines exactes, ou « http://localhost:* » pour tout port local.
+  return String((env && env.CORS_EXTRA) || '').split(',').map(x => x.trim()).filter(Boolean)
+    .some(x => x === origin || (x === 'http://localhost:*' && /^http:\/\/localhost:\d+$/.test(origin)));
+}
+function versionLess(a, b) {
+  const pa = String(a).split('.').map(n => parseInt(n, 10) || 0), pb = String(b).split('.').map(n => parseInt(n, 10) || 0);
+  for (let i = 0; i < 3; i++) { if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) < (pb[i] || 0); }
+  return false;
+}
+// Lit le corps par morceaux et s'arrête dès que le plafond est dépassé (renvoie null) : la mémoire du Worker
+// n'est plus exposée à un corps sans Content-Length.
+async function readBodyCapped(request, maxBytes) {
+  if (!request.body) return '';
+  const reader = request.body.getReader(), dec = new TextDecoder();
+  let total = 0, out = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) { try { await reader.cancel(); } catch (e) { /* déjà fermé */ } return null; }
+    out += dec.decode(value, { stream: true });
+  }
+  return out + dec.decode();
+}
+const _cspReports = new Map(); // adresse -> { count, since } : plafond de 30 rapports par minute et par adresse
+function cspReportAllowed(ip, now) {
+  if (_cspReports.size > 500) _cspReports.clear();
+  const rec = _cspReports.get(ip);
+  if (!rec || now - rec.since > 60000) { _cspReports.set(ip, { count: 1, since: now }); return true; }
+  return ++rec.count <= 30;
+}
+
 function timingSafeEqual(a, b) {
   const enc = new TextEncoder();
   const x = enc.encode(a), y = enc.encode(b);
@@ -232,10 +277,14 @@ async function handleRequest(request, env) {
     const url = new URL(request.url);
     const key = url.searchParams.get('key');
 
+    const requestOrigin = request.headers.get('Origin');
+    const originOk = !requestOrigin || isAllowedOrigin(requestOrigin, env);
     const cors = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,PUT,DELETE,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Plume-Base-Version',
+      // Origine absente (appel hors navigateur : l'authentification fait foi) ou autorisée ; jamais « * ».
+      ...(requestOrigin && originOk ? { 'Access-Control-Allow-Origin': requestOrigin } : {}),
+      'Vary': 'Origin',
+      'Access-Control-Allow-Methods': 'GET,PUT,DELETE,POST,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Plume-Base-Version, X-Plume-Client-Version',
       // Sans ceci, le navigateur cache la réponse mais REFUSE au JavaScript
       // de lire nos en-têtes de version (règle CORS) : le client croirait
       // alors toujours être en version 0 et le contrôle ne servirait à rien.
@@ -245,8 +294,27 @@ async function handleRequest(request, env) {
     };
     const store = env.DB ? d1Store(env) : kvStore(env);
 
+    if (!originOk) {
+      return new Response(JSON.stringify({ error: { message: 'Origine non autorisée.' } }), { status: 403, headers: { ...cors, 'Content-Type': 'application/json' } });
+    }
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: cors });
+    }
+
+    // Point de collecte des violations de CSP (rapports envoyés par le navigateur, sans clé). Une ligne de
+    // journal par rapport (directive, origine bloquée, page) ; jamais d'adresse ni de contenu ; plafonné.
+    if (request.method === 'POST' && url.pathname === '/csp-report') {
+      const rip = request.headers.get('CF-Connecting-IP') || 'inconnue';
+      if (cspReportAllowed(rip, Date.now())) {
+        try {
+          const raw = await readBodyCapped(request, 8192);
+          const j = raw ? JSON.parse(raw) : null;
+          const r = (j && (j['csp-report'] || (Array.isArray(j) && j[0] && j[0].body))) || {};
+          const origin = u => { try { return new URL(u).origin; } catch (e) { return String(u || '').slice(0, 40); } };
+          logEvent({ evt: 'csp', dir: String(r['violated-directive'] || r.effectiveDirective || '').slice(0, 60), blocked: origin(r['blocked-uri'] || r.blockedURL), page: origin(r['document-uri'] || r.documentURL) });
+        } catch (e) { /* rapport illisible : ignoré */ }
+      }
+      return new Response(null, { status: 204, headers: cors });
     }
 
     // Authentification : une seule clé partagée pour tout le foyer/compte,
@@ -268,6 +336,16 @@ async function handleRequest(request, env) {
       });
     }
     _authFails.delete(ip);
+
+    // Version minimale du client (audit AUD-06-023). En-tête absent (ancien appareil) : accepté, sans quoi un
+    // appareil d'avant la v9.64.0 serait coupé d'un coup ; relever la valeur pour imposer un correctif.
+    const clientVersion = request.headers.get('X-Plume-Client-Version');
+    const minVersion = (env && env.MIN_CLIENT_VERSION) || DEFAULT_MIN_CLIENT_VERSION;
+    if (clientVersion && versionLess(clientVersion, minVersion)) {
+      return new Response(JSON.stringify({ error: { message: 'Cette version de Plume est trop ancienne : rechargez la page pour la mettre à jour.' }, minVersion }), {
+        status: 426, headers: { ...cors, 'Content-Type': 'application/json' }
+      });
+    }
 
     if (!key) {
       return new Response(JSON.stringify({ error: { message: 'Paramètre "key" manquant.' } }), {
@@ -339,8 +417,8 @@ async function handleRequest(request, env) {
           status: 413, headers: { ...cors, 'Content-Type': 'application/json' }
         });
       }
-      const body = await request.text();
-      if (body.length > MAX_BODY_BYTES) {
+      const body = await readBodyCapped(request, MAX_BODY_BYTES);
+      if (body === null) {
         return new Response(JSON.stringify({ error: { message: 'Donnée trop volumineuse.' } }), {
           status: 413, headers: { ...cors, 'Content-Type': 'application/json' }
         });

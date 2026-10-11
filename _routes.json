@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "include": [
+    "/functions/*", "/docs/*", "/worker/*", "/tests/*", "/scripts/*", "/.github/*", "/.claude/*", "/node_modules/*",
+    "/CLAUDE.md", "/README.md", "/package.json", "/package-lock.json", "/vitest.config.js", "/.gitignore"
+  ],
+  "exclude": []
+}

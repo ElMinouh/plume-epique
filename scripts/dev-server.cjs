@@ -6,7 +6,7 @@ const PORT = Number(process.argv[2]);
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png' };
 // CSP réelle du site (_headers) + autorisation du Worker local, pour reproduire les blocages.
 const hdr = fs.readFileSync(path.join(ROOT, '_headers'), 'utf8');
-const CSP = (hdr.match(/Content-Security-Policy:\s*(.+)/) || [])[1].trim().replace("connect-src 'self'", "connect-src 'self' http://localhost:8787");
+const CSP = (hdr.match(/Content-Security-Policy:\s*(.+)/) || [])[1].trim().replace("connect-src 'self'", "connect-src 'self' http://localhost:8787").replace(/;\s*report-uri [^;]+/, '').replace(/;\s*report-to [^;]+/, ''); // pas de rapport de CSP vers la production depuis un test local
 http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
   if (p === '/') p = '/index.html';

@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.63.3**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.64.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -118,7 +118,7 @@ d'anciens profils de test).
 # 1. base D1 locale jetable (une seule fois)
 npx wrangler d1 execute plume-sync -c worker/wrangler-sync.toml --local --persist-to .wrangler-test --file worker/sync-schema.sql
 # 2. Worker de synchro local (clé de test)
-npx wrangler dev -c worker/wrangler-sync.toml --local --persist-to .wrangler-test --port 8787 --var SYNC_KEY:test-key-local-12345
+npx wrangler dev -c worker/wrangler-sync.toml --local --persist-to .wrangler-test --port 8787 --var SYNC_KEY:test-key-local-12345 --var "CORS_EXTRA:http://localhost:*"
 # 3. deux appareils (dans deux autres terminaux)
 node scripts/dev-server.cjs 8084
 node scripts/dev-server.cjs 8085
@@ -142,7 +142,7 @@ aussi les processus `workerd` laissés par `wrangler dev`.
 
 CSP stricte (`_headers`) : scripts et styles **uniquement** du site, aucun CDN, aucun style ni script en ligne ;
 tout HTML inséré est assaini (DOMPurify) ou échappé (`escapeHtml`). Worker de synchro : clé de synchronisation
-(comparaison à temps constant, freinage des essais), liste blanche de clés, tailles bornées, journaux sans contenu.
+(comparaison à temps constant, freinage des essais), liste blanche de clés, tailles bornées, CORS limité à l'application (v9.64.0), version minimale du client (426), journaux sans contenu. Worker IA : jeton DÉRIVÉ de la clé de synchro (le relais ne détient plus la clé), erreurs génériques. Le site ne publie plus `docs/`, `worker/`, `tests/`, `CLAUDE.md`… (404).
 Limites connues et choix assumés (question secrète conservée, clé de synchronisation commune à tous les profils d'un
 foyer, etc.) : `docs/DECISIONS.md`.
 

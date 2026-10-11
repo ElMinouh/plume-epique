@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.63.3';
+const APP_VERSION = '9.64.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -104,14 +104,28 @@ const SYNC_WORKER_URL = 'https://plume-epique-sync.air7841.workers.dev';
 // appelants existants la traitent comme tout échec réseau (file de réessai).
 // ═══════════════════════════════════════════════════════
 const DEFAULT_FETCH_TIMEOUT_MS = 30000;
+// v9.64.0 (audit AUD-06-023) — toute requête vers le Worker de synchro annonce la version du client
+// (X-Plume-Client-Version) ; si le serveur exige une version minimale supérieure (426), l'utilisateur est invité à
+// recharger la page pour installer la mise à jour. Un point d'entrée unique évite d'oublier l'en-tête sur un des
+// sites d'appel (synchro, images, usage, vérification de clé).
+let _clientTooOldShown = false;
+function onClientTooOld() {
+  if (_clientTooOldShown) return;
+  _clientTooOldShown = true;
+  if (typeof toast === 'function') toast('Cette version de Plume est trop ancienne pour la synchronisation : rechargez la page (Ctrl+F5) pour installer la mise à jour.', 'error', { sticky: true });
+}
 async function fetchWithTimeout(url, opts) {
   const { timeoutMs, ...fetchOpts } = opts || {};
+  const toSync = typeof SYNC_WORKER_URL !== 'undefined' && typeof url === 'string' && url.startsWith(SYNC_WORKER_URL);
+  if (toSync) fetchOpts.headers = { ...(fetchOpts.headers || {}), 'X-Plume-Client-Version': APP_VERSION };
   const ms = timeoutMs || DEFAULT_FETCH_TIMEOUT_MS;
   if (typeof AbortController === 'undefined') return fetch(url, fetchOpts);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
   try {
-    return await fetch(url, { ...fetchOpts, signal: controller.signal });
+    const resp = await fetch(url, { ...fetchOpts, signal: controller.signal });
+    if (toSync && resp.status === 426) onClientTooOld();
+    return resp;
   } catch (e) {
     if (e && e.name === 'AbortError') throw new Error('Délai dépassé (' + Math.round(ms / 1000) + ' s) : le serveur ne répond pas.');
     throw e;

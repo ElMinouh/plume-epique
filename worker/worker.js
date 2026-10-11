@@ -33,6 +33,17 @@ function timingSafeEqual(a, b) {
   for (let i = 0; i < n; i++) diff |= (x[i] || 0) ^ (y[i] || 0);
   return diff === 0;
 }
+// v9.64.0 (audit AUD-06-009) — JETON IA DÉRIVÉ. Le relais ne stocke plus la clé de synchronisation : il compare
+// avec AI_TOKEN = hex(SHA-256("plume-ai|" + clé de synchro)), calculé par le client (js/ai.js, aiAuthToken). Une
+// fuite du secret de CE Worker ne révèle donc plus la clé qui ouvre la synchro (la dérivation est à sens unique).
+// Transition : tant que le secret SYNC_KEY existe encore sur ce Worker, l'ancien format (clé brute, envoyé par les
+// appareils d'avant la v9.64.0) reste accepté ; une fois tous les appareils à jour, supprimer le secret SYNC_KEY de
+// ce Worker (npx wrangler secret delete SYNC_KEY -c worker/wrangler-ai.toml) : l'ancien format est alors refusé.
+function tokenAccepted(provided, env) {
+  if (!provided) return false;
+  if (env.AI_TOKEN && timingSafeEqual(provided, env.AI_TOKEN)) return true;
+  return !!env.SYNC_KEY && timingSafeEqual(provided, env.SYNC_KEY);
+}
 function jsonError(status, message, headers) {
   return new Response(JSON.stringify({ error: { message } }), {
     status, headers: { ...headers, 'Content-Type': 'application/json' }
@@ -60,7 +71,7 @@ async function handleRequest(request, env) {
 
     const auth = request.headers.get('Authorization') || '';
     const provided = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-    if (!env.SYNC_KEY || !provided || !timingSafeEqual(provided, env.SYNC_KEY)) {
+    if (!tokenAccepted(provided, env)) {
       return jsonError(401, "Clé de synchronisation requise pour utiliser l'IA.", corsHeaders);
     }
 
@@ -129,13 +140,11 @@ async function handleRequest(request, env) {
       );
 
       if (!resp.ok) {
-        let message = `Erreur Gemini (${resp.status})`;
-        try {
-          const raw = await resp.json();
-          if (raw.error?.message) {
-            message = raw.error.message + (raw.error.status ? ` (${raw.error.status})` : '');
-          }
-        } catch (e) {}
+        // AUD-06-010 : le détail du fournisseur (quota, projet, configuration) n'est PLUS renvoyé au navigateur ;
+        // il reste dans le journal (code seulement, voir logEvent). Message générique, 429 distingué pour l'utilisateur.
+        const message = resp.status === 429
+          ? 'Le service IA est momentanément saturé (quota atteint). Réessayez dans quelques minutes.'
+          : `Le service IA a refusé la demande (code ${resp.status}).`;
         return new Response(JSON.stringify({ error: { message } }), {
           status: resp.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
@@ -192,7 +201,7 @@ async function handleRequest(request, env) {
         headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' }
       });
     } catch (e) {
-      return new Response(JSON.stringify({ error: { message: e.message } }), {
+      return new Response(JSON.stringify({ error: { message: "Erreur interne du relais IA." } }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }

@@ -17,6 +17,12 @@
 // à chaque morceau reçu, pour un affichage progressif côté utilisateur.
 // onChunk est optionnel — sans lui, callClaude se comporte comme avant :
 // on attend simplement la fin et on renvoie le texte complet.
+// v9.64.0 (audit AUD-06-009) — le relais IA reçoit un jeton DÉRIVÉ de la clé de synchronisation (SHA-256 de
+// « plume-ai| » + clé), jamais la clé elle-même : voir worker/worker.js (tokenAccepted).
+async function aiAuthToken(syncKey) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('plume-ai|' + syncKey));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 async function callClaude(prompt, maxTokens=1000, onChunk) {
   // v9.20.0 (audit AUD-01-004) — le relais IA exige désormais la clé de
   // synchronisation (même secret que le Worker de synchro). Sans elle (mode
@@ -24,7 +30,7 @@ async function callClaude(prompt, maxTokens=1000, onChunk) {
   const syncKey = (typeof getSyncKey === 'function') ? getSyncKey() : '';
   if (!syncKey) throw new Error("L'IA nécessite la clé de synchronisation (Système → Synchronisation). Elle n'est pas configurée sur cet appareil.");
   const resp = await fetchWithTimeout('https://plume-epique-ai.air7841.workers.dev', {
-    timeoutMs: 60000, method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + syncKey},
+    timeoutMs: 60000, method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + await aiAuthToken(syncKey)},
     body:JSON.stringify({ prompt, maxTokens })
   });
   if (!resp.ok) {
