@@ -451,14 +451,15 @@ function gnWireEvents() {
     // tactile (voir CSS, media (pointer:coarse)), alternative au glisser
     // pour réorganiser les pages sans dépendre d'un geste.
     const up = e.target.closest('.gn-pg-up');
-    if (up) { e.stopPropagation(); gnMovePageTo(Number(up.dataset.idx), Number(up.dataset.idx) - 1); return; }
+    if (up) { e.stopPropagation(); _gnPendingPageFocus = { idx: Number(up.dataset.idx) - 1, kind: 'gn-pg-up' }; gnMovePageTo(Number(up.dataset.idx), Number(up.dataset.idx) - 1); return; }
     const down = e.target.closest('.gn-pg-down');
-    if (down) { e.stopPropagation(); gnMovePageTo(Number(down.dataset.idx), Number(down.dataset.idx) + 1); return; }
+    if (down) { e.stopPropagation(); _gnPendingPageFocus = { idx: Number(down.dataset.idx) + 1, kind: 'gn-pg-down' }; gnMovePageTo(Number(down.dataset.idx), Number(down.dataset.idx) + 1); return; }
     const thumb = e.target.closest('.gn-pg-thumb'); if (!thumb) return;
     gnSetActivePage(Number(thumb.dataset.idx));
   });
   gnWirePageDragReorder();
   gnWirePageTouchDragReorder();
+  gnWirePageKeyboard();
   document.getElementById('gn-gabarits').addEventListener('click', e => {
     const del = e.target.closest('.gn-gab-del');
     if (del) { e.stopPropagation(); gnDeleteCustomGabarit(del.dataset.id); return; }
@@ -618,10 +619,17 @@ function gnRenderPagesSidebar() {
   // Lot 5 (audit #16) : draggable="true" pour la réorganisation par glisser
   // (voir gnWirePageDragReorder) — PC uniquement, comme le reste de l'édition
   // libre du module (gnIsDesktop).
+  // v9.60.0 (AUD-05-010) : le rendu reconstruit toute la liste ; on retient donc quel bouton avait le focus pour le rendre
+  // (sinon un utilisateur clavier retomberait au début de la page après chaque sélection ou déplacement).
+  let refocus = _gnPendingPageFocus; _gnPendingPageFocus = null;
+  if (!refocus && box.contains(document.activeElement)) {
+    const t = document.activeElement.closest('.gn-pg-thumb'), k = ['gn-pg-select', 'gn-pg-up', 'gn-pg-down', 'gn-pg-dup', 'gn-pg-del'].find(c => document.activeElement.classList.contains(c));
+    if (t && k) refocus = { idx: Number(t.dataset.idx), kind: k };
+  }
   box.innerHTML = db.pages.map((p, i) => `
     <div class="gn-pg-thumb${i===_gnActivePage?' gn-active':''}" data-idx="${i}" title="Page ${i+1}"${gnIsDesktop()?' draggable="true"':''}>
       ${gnMiniIconHtml(p.elements)}
-      <span class="gn-pg-num">${i+1}</span>
+      <button class="gn-pg-num gn-pg-select" data-idx="${i}" aria-label="Page ${i+1} sur ${db.pages.length}${i===_gnActivePage?' (page affichée)':''}" aria-current="${i===_gnActivePage?'page':'false'}" title="Alt+↑ / Alt+↓ pour déplacer la page">${i+1}</button>
       <button class="gn-pg-dup" data-idx="${i}" title="Dupliquer la page ${i+1}" aria-label="Dupliquer la page ${i+1}">⧉</button>
       <button class="gn-pg-del" data-idx="${i}" title="Supprimer la page ${i+1}" aria-label="Supprimer la page ${i+1}">${icon('x')}</button>
       <span class="gn-pg-move">
@@ -635,6 +643,24 @@ function gnRenderPagesSidebar() {
     el.style.backgroundColor = db.pages[i].background || '#f4ecd8';
   });
   gnApplyMiniIconStyles(box);
+  if (refocus) {
+    const cible = box.querySelector(`.gn-pg-thumb[data-idx="${refocus.idx}"] .${refocus.kind}:not(:disabled)`) || box.querySelector(`.gn-pg-thumb[data-idx="${refocus.idx}"] .gn-pg-select`);
+    if (cible) cible.focus();
+  }
+}
+let _gnPendingPageFocus = null;
+// v9.60.0 (AUD-05-010) : Alt+↑ / Alt+↓ sur le numéro d'une page la déplace (comme Alt+↑/↓ pour les chapitres) — alternative
+// au glisser-déposer exigée par WCAG 2.5.7 ; les boutons monter/descendre sont aussi visibles au survol et au focus.
+function gnWirePageKeyboard() {
+  document.getElementById('gn-pages-list').addEventListener('keydown', e => {
+    const b = e.target.closest('.gn-pg-select');
+    if (!b || !e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    e.preventDefault();
+    const from = Number(b.dataset.idx), to = from + (e.key === 'ArrowUp' ? -1 : 1);
+    if (to < 0 || to >= db.pages.length) return;
+    _gnPendingPageFocus = { idx: to, kind: 'gn-pg-select' };
+    gnMovePageTo(from, to);
+  });
 }
 
 // Gabarits personnalisés (Lot 5, audit #20) : même « forme » {label, build()}
@@ -728,6 +754,9 @@ async function gnRenderCanvas(exportMode) {
         const lowRes = Math.max(el.imageW||0, el.imageH||0) < 1200;
         zone.innerHTML = `<div class="gn-frame-fill"><img class="gn-pannable" draggable="false" src="${url||''}" alt=""></div>` +
           (lowRes && !exportMode ? `<span class="gn-dpi-warn" title="Résolution basse pour une impression nette">${icon('triangle-alert')} basse résolution</span>` : '');
+        // v9.60.0 (AUD-05-011) : le texte alternatif saisi par l'auteur (el.alt) est appliqué au rendu — avant, alt="" en dur
+        // le perdait à chaque rechargement. Posé par la propriété DOM (texte libre : jamais concaténé dans le gabarit).
+        const imgEl = zone.querySelector('img'); if (imgEl) imgEl.alt = el.alt || '';
         if (!preview && !exportMode) gnMakePannable(zone.querySelector('.gn-frame-fill'), el);
       } else if (!preview && !exportMode) {
         zone.classList.add('gn-zone-empty');
@@ -1899,6 +1928,12 @@ async function gnExportBookDocx() {
   }
 }
 
+// v9.60.0 (AUD-05-011) : description d'une page exportée en image (EPUB) — « Page N » + textes alternatifs des images
+// et texte des bulles, dans l'ordre des éléments ; sans quoi la page est muette pour un lecteur d'écran.
+function gnPageAltText(page, num) {
+  const parts = (page && page.elements || []).map(el => el.type === 'image' ? (el.alt || '') : (el.content || '')).map(s => s.trim()).filter(Boolean);
+  return ('Page ' + num + (parts.length ? ' : ' + parts.join(' — ') : '')).slice(0, 1000);
+}
 async function gnExportBookEpub() {
   if (typeof JSZip === 'undefined') { toast(EXPORT_LIB_MISSING, 'error'); return; }
   const zip = new JSZip();
@@ -1924,7 +1959,7 @@ async function gnExportBookEpub() {
 `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head><title>Page ${num}</title><style>body{margin:0;padding:0;}img{width:100%;height:auto;display:block;}</style></head>
-<body><img src="images/${imgName}" alt="Page ${num}"/></body>
+<body><img src="images/${imgName}" alt="${escapeXml(gnPageAltText(db.pages[i], num))}"/></body>
 </html>`);
     manifestItems.push(`<item id="page${num}" href="${xfname}" media-type="application/xhtml+xml"/>`);
     manifestItems.push(`<item id="img${num}" href="images/${imgName}" media-type="image/jpeg"/>`);
