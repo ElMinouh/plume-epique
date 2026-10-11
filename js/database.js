@@ -318,7 +318,9 @@ function renderAppearanceUI() {
 // ═══════════════════════════════════════════════════════
 // DIVERS
 // ═══════════════════════════════════════════════════════
-function updateChart(){if(!tensionChart)return;tensionChart.data.labels=db.chapters.map((_,i)=>i+1);tensionChart.data.datasets[0].data=db.chapters.map(c=>c.tension);tensionChart.update();}
+// v9.62.0 (AUD-05-008) : équivalent textuel de la courbe de tension (nom du canvas + tableau), mis à jour avec elle.
+function setTensionAlt(){setChartAlt('tensionChart','Tension narrative par chapitre (échelle du curseur)',['Chapitre','Tension'],db.chapters.map((c,i)=>[(i+1)+' — '+(c.title||'sans titre'),c.tension]));}
+function updateChart(){if(!tensionChart)return;setTensionAlt();tensionChart.data.labels=db.chapters.map((_,i)=>i+1);tensionChart.data.datasets[0].data=db.chapters.map(c=>c.tension);tensionChart.update();}
 function toggleMode(){
   db.darkMode=!db.darkMode;
   // Le thème papier est exclusif du mode sombre (voir selectTheme ci-dessus).

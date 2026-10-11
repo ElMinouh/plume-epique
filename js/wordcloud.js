@@ -16,6 +16,9 @@ function renderWordCloud() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
   document.getElementById('wc-top-list').innerHTML = freq.slice(0,15).map(([w,c])=>
     `<span class="wc-chip"><span class="u-fwt-600 u-c-v-accent">${DOMPurify.sanitize(w)}</span>&nbsp;<span class="u-op-75">${c}</span></span>`).join('');
+  // v9.62.0 (AUD-05-008) : le nuage est une image ; ses mots les plus fréquents sont déjà en texte (liste ci-dessus), on les cite dans son nom.
+  canvas.setAttribute('role', 'img');
+  canvas.setAttribute('aria-label', freq.length ? 'Nuage des mots les plus fréquents : ' + freq.slice(0, 10).map(([w, c]) => w + ' ' + c).join(', ') + ' ; la liste des 15 premiers est affichée au-dessus' : 'Nuage de mots vide : aucun texte');
   if (!freq.length) { ctx.fillStyle='rgba(150,150,150,.5)'; ctx.font='14px Georgia'; ctx.textAlign='center'; ctx.fillText('Aucun texte.',canvas.width/2,canvas.height/2); return; }
   const top40=freq.slice(0,40), max=top40[0][1];
   const colors=['#c0392b','#8e44ad','#27ae60','#d4ac0d','#2980b9','#e67e22'];

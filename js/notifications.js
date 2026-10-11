@@ -484,3 +484,27 @@ function _initAriaState() {
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _initAriaState); else _initAriaState();
 // ── ÉTATS ARIA ET LIEN D'ÉVITEMENT (fin) ───────────────────────────────
+
+// ── ALTERNATIVE TEXTUELLE DES GRAPHIQUES (début) ───────────────────────
+// v9.62.0 (AUD-05-008) — un <canvas> est une image muette pour un lecteur d'écran. On lui donne un rôle img + un nom qui
+// RÉSUME les données, et un tableau « Afficher les données » (<details>) équivalent pour tous (lecteur d'écran, loupe, clavier).
+// Contenu fabriqué en DOM (textContent) : jamais de HTML concaténé.
+function setChartAlt(canvasId, title, headers, rows) {
+  const c = document.getElementById(canvasId); if (!c) return;
+  c.setAttribute('role', 'img');
+  c.setAttribute('aria-label', (title + ' — ' + rows.map(r => r.join(' : ')).join(' ; ')).slice(0, 700));
+  const id = 'chart-data-' + canvasId;
+  let det = document.getElementById(id);
+  if (!det) {
+    det = document.createElement('details'); det.id = id; det.className = 'chart-data';
+    const sum = document.createElement('summary'); sum.textContent = 'Afficher les données'; det.appendChild(sum);
+    (c.closest('.u-h-140px, .u-h-280px, .u-minh-120px') || c).insertAdjacentElement('afterend', det);
+  }
+  det.querySelectorAll('table').forEach(t => t.remove());
+  const t = document.createElement('table');
+  const cap = document.createElement('caption'); cap.textContent = title; t.appendChild(cap);
+  const hr = document.createElement('tr'); headers.forEach(h => { const th = document.createElement('th'); th.scope = 'col'; th.textContent = h; hr.appendChild(th); }); t.appendChild(hr);
+  rows.forEach(r => { const tr = document.createElement('tr'); r.forEach(v => { const td = document.createElement('td'); td.textContent = String(v); tr.appendChild(td); }); t.appendChild(tr); });
+  det.appendChild(t);
+}
+// ── ALTERNATIVE TEXTUELLE DES GRAPHIQUES (fin) ─────────────────────────
