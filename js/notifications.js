@@ -15,6 +15,7 @@ const UI_SCALES = { normal: 100, grand: 112, 'tres-grand': 125 };
 function loadUiScale() { try { const k = localStorage.getItem('plume_ui_scale'); return UI_SCALES[k] ? k : 'normal'; } catch (e) { return 'normal'; } }
 function applyUiScale(key) { const pct = UI_SCALES[key] || 100; document.documentElement.style.fontSize = pct === 100 ? '' : pct + '%'; }
 function renderUiScaleUI() {
+  renderComfortUI();
   const cur = loadUiScale(); document.querySelectorAll('#uiscale-picker .mode-indicator').forEach(b => b.classList.toggle('active', b.dataset.scale === cur));
   const w = loadTextWidth(); document.querySelectorAll('#textwidth-picker .mode-indicator').forEach(b => b.classList.toggle('active', b.dataset.width === w));
 }
@@ -26,6 +27,31 @@ function selectTextWidth(key) { try { localStorage.setItem('plume_text_width', k
 applyTextWidth(loadTextWidth());
 function selectUiScale(key) { try { localStorage.setItem('plume_ui_scale', key); } catch (e) { /* stockage indisponible : réglage valable pour cette session seulement */ } applyUiScale(key); renderUiScaleUI(); }
 applyUiScale(loadUiScale());
+
+// v9.63.0 (AUD-05-014) — confort de lecture, par appareil (comme la taille et la largeur) : interligne, espacement lettres/mots,
+// correction orthographique du navigateur (désactivée par défaut : elle souligne les noms propres d'un roman ; un auteur dyslexique
+// peut la réactiver — le texte reste dans le navigateur, rien n'est envoyé à un service externe).
+const COMFORT = {
+  lineheight: { key: 'plume_line_height', vals: ['normal', 'confortable', 'large'], def: 'normal', picker: '#lineheight-picker' },
+  spacing:    { key: 'plume_spacing',     vals: ['normal', 'large'],                 def: 'normal', picker: '#spacing-picker' },
+  spell:      { key: 'plume_spellcheck',  vals: ['off', 'on'],                       def: 'off',    picker: '#spellcheck-picker' }
+};
+function loadComfort(name) { const c = COMFORT[name]; try { const v = localStorage.getItem(c.key); return c.vals.includes(v) ? v : c.def; } catch (e) { return c.def; } }
+function applyComfort(name, v) {
+  if (name === 'spell') {
+    ['writer', 'focus-writer', 'chapter-title'].forEach(id => { const el = document.getElementById(id); if (el) el.spellcheck = v === 'on'; });
+    document.documentElement.dataset.spell = v;
+  } else document.documentElement.dataset[name] = v;
+}
+function renderComfortUI() {
+  Object.keys(COMFORT).forEach(name => { const cur = loadComfort(name); document.querySelectorAll(COMFORT[name].picker + ' .mode-indicator').forEach(b => b.classList.toggle('active', b.dataset.value === cur)); });
+}
+function selectComfort(name, v) {
+  if (!COMFORT[name] || !COMFORT[name].vals.includes(v)) return;
+  try { localStorage.setItem(COMFORT[name].key, v); } catch (e) { /* réglage valable pour cette session seulement */ }
+  applyComfort(name, v); renderComfortUI();
+}
+Object.keys(COMFORT).forEach(name => applyComfort(name, loadComfort(name)));
 
 let _toastTimer = null;
 function hideToast() {
@@ -461,7 +487,7 @@ if (document.readyState === 'loading') document.addEventListener('DOMContentLoad
 // la classe CSS `.active` : invisible pour un lecteur d'écran. Un observateur central recopie `.active` dans aria-pressed
 // (boutons à bascule) ou aria-checked (police, role="radio") : couvre les sélecteurs actuels sans toucher à chacun
 // des ~10 endroits qui basculent la classe, et les futurs placés dans les mêmes conteneurs.
-const _ARIA_PRESSED_SEL = '#palette-picker .palette-swatch, #theme-picker .mode-indicator, #uiscale-picker .mode-indicator, #textwidth-picker .mode-indicator, .ch-view-toggle button';
+const _ARIA_PRESSED_SEL = '#palette-picker .palette-swatch, #theme-picker .mode-indicator, #uiscale-picker .mode-indicator, #textwidth-picker .mode-indicator, #lineheight-picker .mode-indicator, #spacing-picker .mode-indicator, #spellcheck-picker .mode-indicator, .ch-view-toggle button';
 const _ARIA_CHECKED_SEL = '#font-picker .font-option';
 function _ariaMirror(el) {
   const on = el.classList.contains('active') ? 'true' : 'false';

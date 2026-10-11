@@ -726,6 +726,8 @@
         <div class="toolbar-menu">
           <button id="fmt-title-btn" title="Transformer la ligne en sous-titre">Titre</button>
           <button id="fmt-para-btn" title="Revenir à un paragraphe normal">Paragraphe normal</button>
+          <button id="fmt-lang-btn" title="Indiquer la langue du passage sélectionné (anglais, latin…) : les lecteurs d'écran le prononcent correctement">Langue du passage…</button>
+          <button id="fmt-lang-clear-btn" title="Retirer l'indication de langue du passage sélectionné">Retirer la langue du passage</button>
           <button id="split-chapter-btn" title="Couper le chapitre à l'endroit du curseur : la suite devient un nouveau chapitre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-scissors"></use></svg> Scinder ici</button>
           <button id="insert-datetime-btn" title="Insérer la date et l'heure actuelles à l'endroit du curseur"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-clock"></use></svg> Insérer date/heure</button>
         </div>
@@ -1163,6 +1165,7 @@
       <div class="font-option" data-font="palatino" tabindex="0" role="radio" title="Palatino, avec Georgia en repli"><span class="font-dot"></span><span class="u-ff-palatino">Palatino / Georgia</span></div>
       <div class="font-option" data-font="times" tabindex="0" role="radio" title="Times New Roman"><span class="font-dot"></span><span class="u-ff-times-new-roman-times-serif">Times New Roman</span></div>
       <div class="font-option" data-font="verdana" tabindex="0" role="radio" title="Verdana, sans-serif"><span class="font-dot"></span><span class="u-ff-verdana-arial-sans-serif">Verdana (sans-serif)</span></div>
+      <div class="font-option" data-font="atkinson" tabindex="0" role="radio" title="Atkinson Hyperlegible : lettres conçues pour être distinguées (basse vision, dyslexie)"><span class="font-dot"></span><span class="u-ff-atkinson">Atkinson Hyperlegible (lecture facilitée)</span></div>
       <div class="font-option" data-font="courier" tabindex="0" role="radio" title="Courier New, façon machine à écrire"><span class="font-dot"></span><span class="u-ff-courier-new-courier-monospace">Courier New (machine à écrire)</span></div>
     </div>
     <div class="u-fs-sm u-c-v-text-muted u-m-10px-0-8px">Taille de l'interface</div>
@@ -1178,6 +1181,23 @@
       <button class="mode-indicator" data-width="large">Large</button>
       <button class="mode-indicator" data-width="pleine">Pleine</button>
     </div>
+    <div class="u-fs-sm u-c-v-text-muted u-m-10px-0-8px">Interligne du texte</div>
+    <div class="u-d-flex u-gap-8px u-fw-wrap u-mb-6px" id="lineheight-picker" role="group" aria-label="Interligne du texte">
+      <button class="mode-indicator" data-value="normal">Normal</button>
+      <button class="mode-indicator" data-value="confortable">Confortable</button>
+      <button class="mode-indicator" data-value="large">Large</button>
+    </div>
+    <div class="u-fs-sm u-c-v-text-muted u-m-10px-0-8px">Espacement des lettres et des mots</div>
+    <div class="u-d-flex u-gap-8px u-fw-wrap u-mb-6px" id="spacing-picker" role="group" aria-label="Espacement des lettres et des mots">
+      <button class="mode-indicator" data-value="normal">Normal</button>
+      <button class="mode-indicator" data-value="large">Élargi</button>
+    </div>
+    <div class="u-fs-sm u-c-v-text-muted u-m-10px-0-8px">Correction orthographique du navigateur</div>
+    <div class="u-d-flex u-gap-8px u-fw-wrap u-mb-6px" id="spellcheck-picker" role="group" aria-label="Correction orthographique du navigateur">
+      <button class="mode-indicator" data-value="off">Désactivée</button>
+      <button class="mode-indicator" data-value="on">Activée</button>
+    </div>
+    <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-6px">Ces réglages de confort de lecture s'appliquent à l'écriture, au mode Focus et au mode Lecture, sur cet appareil. La correction du navigateur souligne les fautes sans envoyer votre texte à un service externe.</p>
     <hr class="u-bdc-v-border u-m-10px-0">
     <strong>Mots faibles</strong>
     <div class="u-m-8px-0" id="weak-words-list"></div>

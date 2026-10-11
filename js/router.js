@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.62.1';
+const APP_VERSION = '9.63.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1495,6 +1495,9 @@ function wireAppEventListenersOnce(){
   document.querySelectorAll('#theme-picker .mode-indicator').forEach(btn=>btn.addEventListener('click',()=>selectTheme(btn.dataset.theme)));
   document.querySelectorAll('#uiscale-picker .mode-indicator').forEach(btn=>btn.addEventListener('click',()=>selectUiScale(btn.dataset.scale)));
   document.querySelectorAll('#textwidth-picker .mode-indicator').forEach(btn=>btn.addEventListener('click',()=>selectTextWidth(btn.dataset.width)));
+  Object.keys(COMFORT).forEach(name=>document.querySelectorAll(COMFORT[name].picker+' .mode-indicator').forEach(btn=>btn.addEventListener('click',()=>selectComfort(name,btn.dataset.value))));
+  document.getElementById('fmt-lang-btn').addEventListener('click',markPassageLanguage);
+  document.getElementById('fmt-lang-clear-btn').addEventListener('click',clearPassageLanguage);
   document.getElementById('chapter-filter').addEventListener('input',applyChapterFilter);
   // Centre d'aide unique (AUD-03-024)
   document.getElementById('help-onboarding-btn').addEventListener('click',()=>{ closeShortcutsHelp(); startOnboardingTour(); });

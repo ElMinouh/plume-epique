@@ -264,6 +264,7 @@ const EDITOR_FONTS = {
   'palatino': { css:"'Palatino Linotype',Georgia,serif" },
   'times':    { css:"'Times New Roman',Times,serif" },
   'verdana':  { css:'Verdana,Arial,sans-serif' },
+  'atkinson': { css:"'Atkinson Hyperlegible',Verdana,sans-serif" },   // v9.63.0 (AUD-05-014)
   'courier':  { css:"'Courier New',Courier,monospace" }
 };
 function applyAccentPalette(key) {
@@ -275,7 +276,7 @@ function applyAccentPalette(key) {
   document.documentElement.style.setProperty('--accent-text-dark', p.td);
 }
 function applyEditorFont(key) {
-  document.body.classList.remove('font-palatino','font-times','font-verdana','font-courier');
+  document.body.classList.remove('font-palatino','font-times','font-verdana','font-atkinson','font-courier');
   if (key && key !== 'literata' && EDITOR_FONTS[key]) document.body.classList.add('font-'+key);
 }
 function selectPalette(key) {

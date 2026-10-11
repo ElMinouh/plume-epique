@@ -30,7 +30,7 @@ describe('AUD-04-016 — polices embarquées', () => {
   });
   it('@font-face : Literata droit et italique, Inter, font-display swap, chemins relatifs à css/', () => {
     const faces = [...css.matchAll(/@font-face\{([^}]*)\}/g)].map(m => m[1]);
-    expect(faces.length).toBe(3);
+    expect(faces.length).toBe(7);   // Literata ×2, Inter, Atkinson Hyperlegible ×4 (v9.63.0, AUD-05-014)
     for (const f of faces) {
       expect(f).toContain('font-display:swap');
       expect(f).toMatch(/src:url\(\.\.\/vendor\/fonts\/[\w.-]+\.woff2\) format\('woff2'\)/);
@@ -51,7 +51,7 @@ describe('AUD-04-016 — polices embarquées', () => {
     expect(db.indexOf("'literata':")).toBeGreaterThan(-1);
     expect(db.indexOf("'literata':")).toBeLessThan(db.indexOf("'palatino':"));
     expect(db).toContain("key !== 'literata' && EDITOR_FONTS[key]");
-    expect(db).toContain("remove('font-palatino','font-times','font-verdana','font-courier')");
+    expect(db).toContain("remove('font-palatino','font-times','font-verdana','font-atkinson','font-courier')");
     expect(css).toContain('body.font-palatino #writer,');
     const html = read('index.html');
     expect(html.indexOf('data-font="literata"')).toBeGreaterThan(-1);
@@ -79,9 +79,11 @@ describe('AUD-04-016 — échelle typographique', () => {
     expect(bad).toEqual([]);
   });
   it('trois poids seulement pour la hiérarchie (400, 500, 600) ; plus de gras 700 dans les règles', () => {
-    const w = new Set([...css.matchAll(/font-weight:(\d+)[;}]/g)].map(m => m[1]));
+    // les déclarations @font-face décrivent des fichiers de police (Atkinson a un gras 700) : elles ne sont pas des règles de hiérarchie
+    const regles = css.replace(/@font-face\{[^}]*\}/g, '');
+    const w = new Set([...regles.matchAll(/font-weight:(\d+)[;}]/g)].map(m => m[1]));
     expect([...w].sort()).toEqual(['400', '500', '600']);
-    expect(css).not.toContain('font-weight:700');
+    expect(regles).not.toContain('font-weight:700');
   });
   it('quatre interlignes (serré, normal, aéré, écriture) ; seules exceptions : 1 et les hauteurs en px des boutons-icônes', () => {
     const bad = [...css.matchAll(/line-height:([^;}\n]+)[;}]/g)].map(m => m[1].trim())

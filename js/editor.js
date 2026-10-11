@@ -768,6 +768,44 @@ function formatText(cmd) {
   liveCounter();
   checkpointNow();
 }
+// ═══════════════════════════════════════════════════════
+// LANGUE D'UN PASSAGE (v9.63.0, audit AUD-05-015 — WCAG 3.1.2)
+// Un lecteur d'écran lit tout le texte avec la voix française ; un dialogue en anglais ou une citation latine devient
+// incompréhensible. On entoure le passage d'un <span lang="en"> : conservé dans le manuscrit, le mode Lecture et l'export EPUB
+// (le DOCX n'a pas de notion équivalente ici : le marquage y est ignoré). Limité à un seul paragraphe : extraire une sélection
+// qui traverse plusieurs blocs insérerait des blocs dans un <span>, ce qui n'est pas du HTML valide.
+// ═══════════════════════════════════════════════════════
+const LANG_CODE_RE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
+function _passageRange() {
+  const w = document.getElementById('writer'), sel = window.getSelection();
+  if (!sel || !sel.rangeCount || sel.isCollapsed || !w.contains(sel.anchorNode) || !w.contains(sel.focusNode)) { toast('Sélectionnez d\'abord le passage dans le texte.', 'info'); return null; }
+  const r = sel.getRangeAt(0);
+  const bloc = n => { while (n && n !== w && !/^(P|H1|H2|H3|DIV)$/.test(n.nodeName)) n = n.parentNode; return n; };
+  if (bloc(r.startContainer) !== bloc(r.endContainer)) { toast('Sélectionnez un passage à l\'intérieur d\'un seul paragraphe.', 'info'); return null; }
+  return r;
+}
+function _afterPassageChange() { checkpointNow(); document.getElementById('writer').dispatchEvent(new Event('input', { bubbles: true })); }
+async function markPassageLanguage() {
+  const r = _passageRange(); if (!r) return;
+  const code = await showPromptModal({ title: 'Langue du passage', message: 'Indiquez le code de la langue du passage sélectionné : en (anglais), la (latin), de (allemand), es (espagnol), it (italien)…', label: 'Code de langue', value: 'en', confirmLabel: 'Appliquer' });
+  if (code === null) return;
+  const c = code.trim().toLowerCase();
+  if (!LANG_CODE_RE.test(c)) { toast('Code de langue non reconnu (exemples : en, la, de, es, it).', 'error'); return; }
+  checkpointNow();
+  const span = document.createElement('span'); span.lang = c;
+  span.appendChild(r.extractContents()); r.insertNode(span);
+  window.getSelection().removeAllRanges();
+  _afterPassageChange(); toast('Passage balisé en « ' + c + ' ».', 'success');
+}
+function clearPassageLanguage() {
+  const r = _passageRange(); if (!r) return;
+  const w = document.getElementById('writer');
+  const spans = Array.from(w.querySelectorAll('span[lang]')).filter(s => r.intersectsNode(s));
+  if (!spans.length) { toast('Aucune langue n\'est indiquée dans ce passage.', 'info'); return; }
+  checkpointNow();
+  spans.forEach(s => { while (s.firstChild) s.parentNode.insertBefore(s.firstChild, s); s.remove(); });
+  _afterPassageChange(); toast('Indication de langue retirée.', 'success');
+}
 function formatParagraph(tag) {
   checkpointNow();
   document.getElementById('writer').focus();

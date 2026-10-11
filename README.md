@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.62.1**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.63.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -53,6 +53,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 - **Confort d'écriture** (v9.47.0) : barre d'outils regroupée (**Structure**, **Focus** direct, Outils, Rechercher, ✨ Mots) ; invite « Commencez à écrire ici… » et curseur dans le chapitre vide ; réglage **Largeur du texte** (Config, 72 caractères par défaut) ; filtre de chapitres (dès 8 chapitres) ; curseur « Tension du chapitre : n/100 » ; pied de page regroupé (✔ Enregistré · ☁ Synchronisé ou Local seulement) ; **❔ Aide** unique (premiers pas, visite guidée, confidentialité et IA, raccourcis) et seulement 5 icônes ⓘ.
 - **Plus de faux conflit entre deux appareils** (v9.52.1) : l'historique automatique, la position du curseur et les statistiques d'écriture ne comptent plus comme « modifié ici » quand Plume arbitre une divergence de synchro (empreinte « cœur » `_cfp`, `plume_synccfp_*`). Un appareil resté ouvert qui n'a ajouté qu'un instantané reprend simplement la version de l'autre ; un vrai changement de texte des deux côtés reste un conflit.
 - **Plus de perte silencieuse à l'ouverture d'un manuscrit** (v9.53.1) : quand un autre appareil a écrit entre-temps, Plume recharge la version la plus récente dans l'éditeur (message « sa version la plus récente est chargée ») au lieu de laisser l'ancien texte en mémoire — auparavant, la frappe suivante repartait avec un numéro de version à jour et le serveur effaçait la phrase de l'autre appareil sans conflit. Avec des frappes non encore enregistrées, rien n'est remplacé : c'est un conflit à arbitrer (Système). La base commune de l'arbitrage n'est plus modifiée par une simple lecture du serveur (seulement après un envoi accepté ou une adoption réelle). L'indicateur du pied de page affiche **« En attente d'envoi »** (et la bibliothèque « Envoi en attente ») tant qu'un envoi différé n'est pas parti ; « Synchronisé » ne veut plus dire que « le dernier échange a réussi ».
+- **Confort de lecture** (v9.63.0, AUD-05-014/015) : dans Config, interligne (normal / confortable / large), espacement des lettres et des mots (normal / élargi), correction orthographique du navigateur (désactivée par défaut) et police **Atkinson Hyperlegible** (lettres conçues pour être distinguées, embarquée dans `vendor/fonts/`) ; réglages propres à l'appareil, appliqués à l'écriture, au mode Focus et au mode Lecture. Menu Structure → « Langue du passage… » entoure la sélection d'un `<span lang>` (lecteurs d'écran : bonne voix pour un dialogue en anglais ou une citation latine).
 - **Graphiques lisibles sans la vue** (v9.62.0, AUD-05-008/009) : chaque graphique (session, dialogue/narration, tension, nuage de mots) a un nom qui résume ses données et un tableau « Afficher les données » (`setChartAlt`, `notifications.js`) ; le graphe des relations a une liste textuelle équivalente (une ligne par élément avec ses relations), des nœuds focalisables et nommés, et son nom s'affiche aussi au focus clavier.
 - **Contours de champs et petits écrans** (v9.61.0, AUD-05-007/018) : jeton `--border-strong` (≥ 3:1 sur toute surface et sur le remplissage du champ, par thème ; écran de connexion inclus) pour les champs de saisie, vérifié par `lot38-contours-champs.test.js` ; à 320 px (zoom 400 %) la ligne titre/notes/statut du chapitre et la barre du roman graphique passent à la ligne au lieu de déborder (mesuré en navigateur : aucun défilement horizontal en bibliothèque, éditeur, volet latéral, roman graphique, fenêtres).
 - **Roman graphique au clavier** (v9.60.0, AUD-05-010/011) : chaque vignette de page a un bouton de sélection nommé (« Page 3 sur 8 », page affichée signalée) ; Alt+↑ / Alt+↓ déplacent la page et le focus la suit ; les boutons monter/descendre apparaissent aussi au survol et au focus (plus seulement au tactile) ; le texte alternatif saisi pour une image est appliqué au rendu et l'EPUB décrit chaque page (alts des images + texte des bulles).
@@ -100,7 +101,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 
 ```bash
 npm install
-npm test            # Vitest : ~707 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
+npm test            # Vitest : ~718 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
 ```
 
 Pas de build, pas de linter. Les tests partagent un contexte applicatif global : `fileParallelism: false`.
@@ -146,6 +147,9 @@ Limites connues et choix assumés (question secrète conservée, clé de synchro
 foyer, etc.) : `docs/DECISIONS.md`.
 
 ## Limites connues
+
+- **Langue d'un passage** : l'indication `lang` est conservée dans le manuscrit, le mode Lecture et l'export EPUB, **pas** dans l'export DOCX/ODT/PDF ; elle ne s'applique qu'à l'intérieur d'un seul paragraphe.
+- **Accessibilité** : audit AUD-05 traité de bout en bout (voir `docs/BILAN-AUDIT-05.md`) ; aucun test avec un lecteur d'écran réel n'a été fait (NVDA, VoiceOver, TalkBack) — à réaliser par une personne qui l'utilise au quotidien.
 
 - Le quota d'écritures de la base D1 gratuite (100 000 lignes/jour) est **partagé par tout le compte Cloudflare** ;
   la limite de la base est de 500 Mo (dont 350 Mo réservés aux images). Un manuscrit à la corbeille garde sa place
