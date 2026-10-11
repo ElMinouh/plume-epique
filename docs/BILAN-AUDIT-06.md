@@ -5,7 +5,7 @@ rapport `.docx`, liste `.csv`, preuve rejouable `poc-verification-worker.mjs`. P
 
 | Lot | Constats | État |
 |---|---|---|
-| 1 | 012, 013 | en cours (étape A livrée en v9.63.3 ; étape B = Worker sans repli KV) |
+| 1 | 012, 013 | étape A livrée (v9.63.3) ; étape B : Worker sans repli KV prêt, déploiement après migration |
 | 2 | 009, 010, 011, 022, 023 | à faire |
 | 3 | 001, 002, 017 | à faire |
 | 4 | 003, 004, 006, 007 | à faire |
@@ -20,5 +20,6 @@ rapport `.docx`, liste `.csv`, preuve rejouable `poc-verification-worker.mjs`. P
   fait)** : changer la clé de synchronisation et purger les anciennes versions OneDrive ; tant que ce n'est pas fait, la clé
   est à considérer comme exposée (la rotation est prévue avec la séparation des clés IA/synchro du lot 2).
 - **AUD-06-013** : `scripts/migrer-kv-vers-d1.cjs` (essai à blanc, `--appliquer`, `--vider-kv --confirmer`), testé par
-  `tests/vitest/lot-aud06-1-migration-kv.test.js`. Étape B (après exécution du script, accord explicite requis pour le
-  déploiement) : suppression du repli KV dans le Worker.
+  `tests/vitest/lot-aud06-1-migration-kv.test.js`. Étape B : repli KV supprimé du Worker (`d1Store.read/version`), binding `PLUME_SYNC` retiré de
+  `wrangler-sync.toml`, tests mis à jour (`sync-d1.test.js`), ancien Worker figé en fixture pour tester la migration.
+  Sauvegarde de KV faite le 11/10/2026 (48 clés) dans `C:SecretsPlumeackups-kvkv-backup-2026-10-11.json`.

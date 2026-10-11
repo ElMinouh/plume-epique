@@ -7,22 +7,15 @@ name = "plume-epique-sync"
 main = "sync-worker.js"
 compatibility_date = "2026-07-28"
 
-# Namespace KV où sont stockées les données synchronisées (voir
-# sync-worker.js, variable PLUME_SYNC dans le code). Le nom du binding
-# ("PLUME_SYNC") DOIT rester exactement celui-ci, c'est ce nom que le code
-# utilise. L'ID ci-dessous n'est PAS un secret (juste un identifiant
-# technique), il est normal qu'il apparaisse ici, dans un fichier du dépôt.
-[[kv_namespaces]]
-binding = "PLUME_SYNC"
-id = "9abfbc1017d245ef8def8a6ac8c72418"
+# v9.63.3 (audit AUD-06-013) — le namespace KV « plume-sync » n'est plus lié : il ne sert plus qu'à
+# l'archive (vidé par scripts/migrer-kv-vers-d1.cjs --vider-kv, puis supprimable depuis le dashboard).
 
 # Les secrets (SYNC_KEY) ne se déclarent JAMAIS ici (ce fichier est dans le
 # dépôt Git) : ils restent tels que déjà configurés dans le dashboard
 # Cloudflare (Worker → Variables and Secrets), et un déploiement Wrangler
 # ne les touche pas.
 
-# v9.23.0 — Stockage D1 (remplace KV pour les ecritures ; KV reste lu en repli
-# pendant la transition). Le nom du binding ("DB") est fige dans le code.
+# v9.23.0 — Stockage D1 (remplace KV ; plus aucun repli sur KV depuis la v9.63.3). Le nom du binding ("DB") est fige dans le code.
 # L identifiant n est pas un secret.
 [[d1_databases]]
 binding = "DB"

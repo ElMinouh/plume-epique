@@ -96,24 +96,26 @@ describe('Gros manuscrits : découpage en morceaux (limite D1 de 2 Mo)', () => {
   });
 });
 
-describe('Transition KV → D1 (aucune copie en masse)', () => {
-  it('une clé qui n\'existe que dans KV est lue depuis KV ; son 1er envoi migre dans D1 sans toucher à KV', async () => {
+describe('Fin de la transition KV → D1 (AUD-06-013) : plus aucun repli sur KV', () => {
+  it('une clé absente de D1 mais présente dans KV n\'est plus servie (null, version 0) ; KV reste intact', async () => {
     const s = makeServer({ withKv: true });
     s.kv.set(DOC, { value: '{"ancien":true}', metadata: { v: 7 } });
     const g = await s.call(DOC);
-    expect(await g.text()).toBe('{"ancien":true}');
-    expect(g.headers.get('X-Plume-Version')).toBe('7');
-    // base périmée → refus
-    expect((await s.call(DOC, { method: 'PUT', body: '"x"', base: '6' })).status).toBe(409);
-    const p = await s.call(DOC, { method: 'PUT', body: '{"nouveau":true}', base: '7' });
-    expect(p.status).toBe(200);
-    expect(p.headers.get('X-Plume-Version')).toBe('8');
-    // lu désormais dans D1, KV intact (retour arrière possible)
-    const g2 = await s.call(DOC);
-    expect(await g2.text()).toBe('{"nouveau":true}');
-    expect(g2.headers.get('X-Plume-Version')).toBe('8');
+    expect(await g.text()).toBe('null');
+    expect(g.headers.get('X-Plume-Version')).toBe('0');
     expect(s.kv.get(DOC)).toEqual({ value: '{"ancien":true}', metadata: { v: 7 } });
-    expect((await s.call(DOC, { method: 'PUT', body: '"re"', base: '7' })).status).toBe(409);
+  });
+
+  it('après une suppression autorisée, la lecture renvoie null même si KV garde une ancienne version', async () => {
+    const s = makeServer({ withKv: true });
+    s.kv.set('doc_p1_m1', { value: '"ANCIEN-KV"', metadata: { v: 3 } });
+    // la clé existe dans D1 (réécrite), puis le manuscrit est supprimé avec sa pierre tombale
+    expect((await s.call('doc_p1_m1', { method: 'PUT', body: '"NOUVEAU"', base: '0' })).status).toBe(200);
+    await s.call('doclist_p1', { method: 'PUT', body: JSON.stringify({ documents: [], deleted: [{ id: 'm1', at: Date.now() }] }), base: '0' });
+    expect((await s.call('doc_p1_m1', { method: 'DELETE' })).status).toBe(200);
+    const g = await s.call('doc_p1_m1');
+    expect(await g.text()).toBe('null');
+    expect(g.headers.get('X-Plume-Version')).toBe('0');
   });
 });
 

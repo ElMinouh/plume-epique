@@ -114,11 +114,12 @@ function noteAuthFailure(ip, now) {
 // écrites/jour (partagées avec les autres bases du compte), une cohérence
 // immédiate, des écritures atomiques et 7 jours de sauvegarde (Time Travel).
 //
-// Choix du stockage : si le binding `DB` (D1) existe, il est utilisé ; sinon le
-// Worker se comporte exactement comme avant avec KV (`PLUME_SYNC`). Pendant la
-// transition les deux sont liés : on LIT dans D1 puis, à défaut, dans KV ; on
-// n'ÉCRIT plus que dans D1. Chaque donnée migre donc toute seule à sa première
-// écriture (aucune copie en masse, KV n'est jamais modifié ni supprimé).
+// Choix du stockage : si le binding `DB` (D1) existe, il est utilisé ; sinon (tests, ancien
+// déploiement) le Worker se comporte comme avant avec KV (`PLUME_SYNC`).
+// AUD-06-013 (Lot 1, v9.63.3) — FIN DE LA TRANSITION : le repli de lecture sur KV est supprimé. Il faisait
+// réapparaître une donnée supprimée de D1 (l'ancienne version restée dans KV était servie à nouveau) : rien
+// n'était réellement effacé du serveur. Les clés restées uniquement dans KV ont été copiées dans D1 par
+// scripts/migrer-kv-vers-d1.cjs avant ce changement.
 //
 // Découpage : D1 limite une valeur à 2 Mo. Une version est découpée en morceaux
 // de D1_CHUNK_CHARS caractères (sync_chunks), repérés par un identifiant
@@ -151,11 +152,6 @@ function kvStore(env) {
 
 function d1Store(env) {
   const db = env.DB;
-  // Lecture de l'ancien stockage KV (transition) : valeur et version telles quelles.
-  async function kvFallback(key) {
-    if (!env.PLUME_SYNC) return { value: null, version: 0 };
-    return kvStore(env).read(key);
-  }
   const readMeta = key => db.prepare('SELECT version, wid, chunks FROM sync_meta WHERE k = ?1').bind(key).first();
   const dropChunks = (key, wid) => db.prepare('DELETE FROM sync_chunks WHERE k = ?1 AND wid = ?2').bind(key, wid).run();
   return {
@@ -163,7 +159,7 @@ function d1Store(env) {
     async read(key) {
       for (let attempt = 0; attempt < 3; attempt++) {
         const meta = await readMeta(key);
-        if (!meta) return kvFallback(key);
+        if (!meta) return { value: null, version: 0 }; // AUD-06-013 : plus de repli sur KV (une donnée supprimée ne réapparaît plus)
         const { results } = await db.prepare('SELECT data FROM sync_chunks WHERE k = ?1 AND wid = ?2 ORDER BY idx').bind(key, meta.wid).all();
         if (results.length === meta.chunks) return { value: results.map(r => r.data).join(''), version: meta.version };
         // Une écriture concurrente vient de remplacer cette version (ses anciens
@@ -173,7 +169,7 @@ function d1Store(env) {
     },
     async version(key) {
       const meta = await readMeta(key);
-      return meta ? meta.version : (await kvFallback(key)).version;
+      return meta ? meta.version : 0;
     },
     // Octets déjà occupés par les images (préfixe de clé « img_ » : parcours par intervalle sur la clé primaire).
     async imagesBytes() {

@@ -21,7 +21,7 @@ function makeServer() {
     async getWithMetadata(k) { return kv.has(k) ? kv.get(k) : { value: null, metadata: null }; },
     async put(k, v, o) { kv.set(k, { value: v, metadata: (o && o.metadata) || null }); }
   } };
-  const worker = new Function(fs.readFileSync(path.join(ROOT, 'worker', 'sync-worker.js'), 'utf8').replace('export default', 'return'))();
+  const worker = new Function(fs.readFileSync(path.join(ROOT, 'tests', 'vitest', 'fixtures', 'sync-worker-avec-repli-kv.js'), 'utf8').replace('export default', 'return'))();
   const call = (k, { method = 'GET', body, base } = {}) => worker.fetch(new Request('https://s.test/?key=' + k, {
     method, body, headers: { Authorization: 'Bearer ' + KEY, 'CF-Connecting-IP': '1.1.1.1', ...(base != null ? { 'X-Plume-Base-Version': String(base) } : {}) }
   }), env);
