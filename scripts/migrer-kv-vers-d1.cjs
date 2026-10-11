@@ -79,7 +79,10 @@ async function loadTombstones(call, kvKeys) {
 }
 
 function wrangler(args) {
-  const r = spawnSync('npx', ['wrangler', ...args], { encoding: 'utf8', shell: true, maxBuffer: 64 * 1024 * 1024 });
+  // shell:true (nécessaire pour npx sous Windows) concatène les arguments : on met entre guillemets ceux qui
+  // contiennent un espace (ex. la requête SQL), sinon wrangler les reçoit découpés.
+  const q = a => (/[\s"]/.test(a) ? '"' + a.replace(/"/g, '\\"') + '"' : a);
+  const r = spawnSync('npx', ['wrangler', ...args.map(q)], { encoding: 'utf8', shell: true, maxBuffer: 64 * 1024 * 1024 });
   if (r.status !== 0) throw new Error('wrangler ' + args.join(' ') + ' : ' + (r.stderr || r.stdout || '').slice(0, 400));
   return r.stdout;
 }
