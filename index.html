@@ -30,6 +30,7 @@
 <script type="module" src="js/odf-loader.js"></script>
 </head>
 <body>
+<a href="#" id="skip-link" class="skip-link">Aller au contenu</a>
 <!-- Sprite d'icônes (v9.51.0) : voir js/icons.js et scripts/build-icons.cjs -->
 <svg class="svg-sprite" aria-hidden="true" focusable="false">
 <!-- ICONES:DEBUT (généré par scripts/build-icons.cjs — ne pas modifier à la main) -->
@@ -206,7 +207,7 @@
          clic du vrai bouton correspondant ci-dessus — aucune logique dupliquée. -->
     <button class="mode-indicator u-d-none" id="library-topbar-more-btn" title="Plus d'actions" aria-label="Plus d'actions" aria-haspopup="true">⋯</button>
   </div>
-  <h2 class="u-m-18px-0-2px"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-library"></use></svg> Ma bibliothèque</h2>
+  <h2 class="u-m-18px-0-2px" aria-level="1"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-library"></use></svg> Ma bibliothèque</h2>
   <div class="u-d-flex u-jc-space-between u-ai-center u-m-0-0-6px">
     <p class="u-fs-sm u-c-v-text-muted u-m-0" id="library-count"></p>
     <button class="action-btn btn-secondary btn-sm u-d-none" id="library-trash-btn" title="Manuscrits supprimés, récupérables 30 jours"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-trash-2"></use></svg> Corbeille (0)</button>
@@ -402,7 +403,7 @@
 <div id="search-overlay" role="dialog" aria-modal="true" aria-label="Recherche dans le projet">
   <div id="search-box">
     <input id="search-input" type="search" placeholder="Rechercher dans tout le projet..." aria-label="Rechercher">
-    <div id="search-count"></div>
+    <div id="search-count" role="status"></div>
     <div id="search-results" role="list"></div>
   </div>
 </div>
@@ -617,7 +618,9 @@
 </header>
 
 <main role="main">
+  <h1 class="u-sr-only">Écriture du manuscrit</h1>
   <aside id="chapter-sidebar" aria-label="Chapitres">
+    <h2 class="u-sr-only">Chapitres</h2>
     <div class="u-d-flex u-ai-center u-gap-6px">
       <div id="document-title" class="u-fg-1" contenteditable="true" role="textbox" aria-label="Titre du manuscrit" title="Cliquez pour renommer votre manuscrit"></div>
       <!-- v7.41.1 — Chantier Responsive Mobile, écran 3/N. Sur mobile, le
@@ -664,6 +667,7 @@
     </div>
   </aside>
   <div id="editor-wrapper">
+    <h2 class="u-sr-only">Texte du chapitre</h2>
     <!-- v9.5.4 — Sentinelle invisible (hauteur nulle) placée exactement à
          l'emplacement naturel de la barre. Un IntersectionObserver
          (initToolbarPin(), router.js) surveille sa sortie/entrée d'écran
@@ -855,7 +859,7 @@
       <button hidden class="mode-indicator" id="sprint-chip" title="Sprint en cours : ouvrir Config → Sprint"><span aria-hidden="true"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-timer"></use></svg></span> <span id="sprint-chip-time">25:00</span> · <span id="sprint-chip-words">+0</span> mots</button>
       <span class="u-d-flex u-ai-center u-gap-4px" id="sync-status-dot-wrap" title="État de la dernière synchronisation">
         <span id="sync-status-dot" aria-hidden="true"></span>
-        <span class="u-fs-xs u-c-v-text-muted" id="sync-status-label"></span>
+        <span class="u-fs-xs u-c-v-text-muted" id="sync-status-label" role="status"></span>
       </span>
       <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre"><span aria-hidden="true"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-moon"></use></svg></span><span class="mb-label"> Nuit</span></button>
       <button class="mode-indicator" id="dictate-btn" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro"><span aria-hidden="true"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-mic"></use></svg></span><span class="mb-label"> Dictée</span></button>
@@ -867,6 +871,7 @@
     </div>
   </div>
 <div id="tab-container" role="region" aria-label="Volet latéral">
+  <h2 class="u-sr-only">Volet latéral</h2>
   <!-- v9.46.0 (AUD-03-003) : le panneau de 500 px qui repoussait le texte devient un volet à droite de l'éditeur
        (dans <main>, 3e colonne de la grille). Sur téléphone : plein écran avec « Retour au texte ». -->
   <div id="panel-resizer" role="separator" aria-orientation="vertical" aria-label="Redimensionner le volet (flèches gauche/droite)" tabindex="0" aria-valuemin="320"></div>
@@ -1137,7 +1142,7 @@
     <hr class="u-bdc-v-border u-m-10px-0">
     <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-palette"></use></svg> Apparence</strong>
     <div class="u-fs-sm u-c-v-text-muted u-m-10px-0-8px">Palette de couleurs</div>
-    <div class="u-d-flex u-gap-9px u-fw-wrap u-mb-14px" id="palette-picker">
+    <div class="u-d-flex u-gap-9px u-fw-wrap u-mb-14px" id="palette-picker" role="group" aria-label="Palette de couleurs">
       <button class="palette-swatch" data-palette="marine-or" title="Marine &amp; Or" aria-label="Marine &amp; Or"><span></span><span></span></button>
       <button class="palette-swatch" data-palette="rouge-violet" title="Rouge &amp; Violet" aria-label="Rouge &amp; Violet"><span></span><span></span></button>
       <button class="palette-swatch" data-palette="bleu-ocean" title="Bleu Océan" aria-label="Bleu Océan"><span></span><span></span></button>
@@ -1146,13 +1151,13 @@
       <button class="palette-swatch" data-palette="ardoise" title="Ardoise" aria-label="Ardoise"><span></span><span></span></button>
     </div>
     <div class="u-fs-sm u-c-v-text-muted u-m-0-0-8px">Thème</div>
-    <div class="u-d-flex u-gap-8px u-mb-14px" id="theme-picker">
+    <div class="u-d-flex u-gap-8px u-mb-14px" id="theme-picker" role="group" aria-label="Thème">
       <button class="mode-indicator" data-theme="light" title="Thème clair"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-sun"></use></svg> Clair</button>
       <button class="mode-indicator" data-theme="dark" title="Thème sombre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-moon"></use></svg> Sombre</button>
       <button class="mode-indicator" data-theme="paper" title="Thème papier/sépia"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-scroll-text"></use></svg> Papier</button>
     </div>
     <div class="u-fs-sm u-c-v-text-muted u-m-0-0-8px">Police d'écriture</div>
-    <div class="u-d-flex u-fd-column u-gap-6px u-mb-6px" id="font-picker">
+    <div class="u-d-flex u-fd-column u-gap-6px u-mb-6px" id="font-picker" role="radiogroup" aria-label="Police d'écriture">
       <div class="font-option" data-font="literata" tabindex="0" role="radio" title="Police par défaut"><span class="font-dot"></span><span class="u-ff-read">Literata (défaut)</span></div>
       <div class="font-option" data-font="palatino" tabindex="0" role="radio" title="Palatino, avec Georgia en repli"><span class="font-dot"></span><span class="u-ff-palatino">Palatino / Georgia</span></div>
       <div class="font-option" data-font="times" tabindex="0" role="radio" title="Times New Roman"><span class="font-dot"></span><span class="u-ff-times-new-roman-times-serif">Times New Roman</span></div>

@@ -1966,3 +1966,9 @@ body.theme-switching,body.theme-switching *,body.theme-switching *::before,body.
   :root,body.dark-mode,body.paper-mode{--border:currentColor;}
   .empty-hint,.ch-wordcount{opacity:1;}
 }
+
+/* v9.59.0 (AUD-05-006) — texte réservé aux technologies d'assistance (titres de structure) et lien d'évitement. */
+.u-sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+.skip-link{position:fixed;top:8px;left:8px;z-index:100000;padding:8px 14px;border-radius:var(--r-2);background:var(--surface-2);color:var(--text);
+  border:2px solid var(--focus);font-size:var(--fs-sm);font-weight:600;text-decoration:none;transform:translateY(-250%);}
+.skip-link:focus{transform:none;}

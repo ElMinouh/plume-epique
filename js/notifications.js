@@ -455,3 +455,32 @@ function _initModalWatch() {
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _initModalWatch); else _initModalWatch();
 // ── FENÊTRES MODALES (fin) ─────────────────────────────────────────────
+
+// ── ÉTATS ARIA ET LIEN D'ÉVITEMENT (début) ─────────────────────────────
+// v9.59.0 (AUD-05-005) — l'état choisi d'un sélecteur de réglage (thème, palette, police, taille, vues) n'était porté que par
+// la classe CSS `.active` : invisible pour un lecteur d'écran. Un observateur central recopie `.active` dans aria-pressed
+// (boutons à bascule) ou aria-checked (police, role="radio") : couvre les sélecteurs actuels sans toucher à chacun
+// des ~10 endroits qui basculent la classe, et les futurs placés dans les mêmes conteneurs.
+const _ARIA_PRESSED_SEL = '#palette-picker .palette-swatch, #theme-picker .mode-indicator, #uiscale-picker .mode-indicator, #textwidth-picker .mode-indicator, .ch-view-toggle button';
+const _ARIA_CHECKED_SEL = '#font-picker .font-option';
+function _ariaMirror(el) {
+  const on = el.classList.contains('active') ? 'true' : 'false';
+  if (el.matches(_ARIA_CHECKED_SEL)) el.setAttribute('aria-checked', on); else el.setAttribute('aria-pressed', on);
+}
+// v9.59.0 (AUD-05-006) : « Aller au contenu » donne le focus au titre de niveau 1 de l'écran affiché.
+function _skipToContent(e) {
+  e.preventDefault();
+  const cible = ['#graphicnovel-screen h1', '#library-screen [aria-level="1"]', 'main h1'].map(s => document.querySelector(s)).find(el => el && el.getClientRects().length);
+  if (cible) { cible.tabIndex = -1; cible.focus(); }
+}
+function _initAriaState() {
+  if (typeof MutationObserver === 'undefined' || !document.body) return;
+  const sel = _ARIA_PRESSED_SEL + ', ' + _ARIA_CHECKED_SEL;
+  document.querySelectorAll(sel).forEach(_ariaMirror);
+  new MutationObserver(muts => muts.forEach(m => { if (m.target.matches && m.target.matches(sel)) _ariaMirror(m.target); }))
+    .observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  const skip = document.getElementById('skip-link');
+  if (skip) skip.addEventListener('click', _skipToContent);
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _initAriaState); else _initAriaState();
+// ── ÉTATS ARIA ET LIEN D'ÉVITEMENT (fin) ───────────────────────────────

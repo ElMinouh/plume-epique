@@ -130,7 +130,7 @@ function renderSyncKeyGate() {
   // la clé (avant : « Vérifier » et « Valider » séparés, « Valider » acceptait une clé non
   // vérifiée). Plus de compteur « Étape x/3 » : il ne se suivait pas quand on ignorait l'étape.
   gateShell(`
-    <div class="gate-title"><i>${icon('key-round')}</i> Où sont vos manuscrits ?</div>
+    <div class="gate-title" role="heading" aria-level="1"><i>${icon('key-round')}</i> Où sont vos manuscrits ?</div>
     <div class="gate-sub">Pour retrouver vos profils et manuscrits sur cet appareil, saisissez la clé de synchronisation de votre famille (demandez-la à votre administrateur). Sinon, écrivez ici seulement.</div>
     <label class="gate-label" for="sync-key-input">Clé de synchronisation</label>
     <input id="sync-key-input" type="password" class="gate-field" placeholder="Collez ou saisissez la clé" autocomplete="off">
@@ -253,7 +253,7 @@ async function bootProfiles() {
 // de synchronisation depuis l'écran de configuration.
 function renderSyncUnavailable() {
   gateShell(`
-    <div class="gate-title"><i>${icon('wifi-off')}</i> Serveur injoignable</div>
+    <div class="gate-title" role="heading" aria-level="1"><i>${icon('wifi-off')}</i> Serveur injoignable</div>
     <div class="gate-sub">
       Vos profils sont peut-être stockés en ligne, mais le serveur de
       synchronisation ne répond pas pour l'instant. Aucun profil n'est affiché
@@ -319,7 +319,7 @@ function questionOptionsHtml() {
 function renderLoginScreen(idx) {
   const opts = idx.profiles.map(p => `<option value="${p.id}">${DOMPurify.sanitize(p.name)}</option>`).join('');
   gateShell(`
-    <div class="gate-title">Plume</div>
+    <div class="gate-title" role="heading" aria-level="1">Plume</div>
     <div class="gate-sub">Choisissez votre profil</div>
     <label class="gate-label" for="login-profile-sel">Profil</label>
     <select id="login-profile-sel" class="gate-field">${opts}</select>
@@ -359,7 +359,7 @@ function renderCreateProfile(opts) {
   opts = opts || {};
   const defaultName = '';
   gateShell(`
-    <div class="gate-title"><i>${icon('user')}</i> ${opts.firstAdmin ? 'Bienvenue — créez le profil administrateur' : 'Nouveau profil'}</div>
+    <div class="gate-title" role="heading" aria-level="1"><i>${icon('user')}</i> ${opts.firstAdmin ? 'Bienvenue — créez le profil administrateur' : 'Nouveau profil'}</div>
     <label class="gate-label" for="cp-name">Nom du profil</label>
     <input id="cp-name" type="text" class="gate-field" value="${DOMPurify.sanitize(defaultName)}" placeholder="Votre prénom ou pseudo" autocomplete="username">
     <label class="gate-label" for="cp-pwd">Mot de passe</label>
@@ -440,7 +440,7 @@ async function submitCreateProfile(opts) {
 // ── ÉCRAN 5 : Code de récupération ──────────────────────────────────────
 function showRecoveryCode(code, name, onContinue) {
   gateShell(`
-    <div class="gate-title"><i>${icon('shield')}</i> Votre code de récupération</div>
+    <div class="gate-title" role="heading" aria-level="1"><i>${icon('shield')}</i> Votre code de récupération</div>
     <div class="gate-sub">Conservez ce code en lieu sûr. Il permet de récupérer le profil « ${DOMPurify.sanitize(name)} » en cas d'oubli du mot de passe. Il ne sera plus jamais affiché.</div>
     <div class="gate-code">${String(code).split('-').map(g => `<span>${DOMPurify.sanitize(g)}</span>`).join('')}</div>
     <button id="rc-pdf" class="gate-btn gate-btn-ghost">${icon('download')} Télécharger en PDF</button>
@@ -476,7 +476,7 @@ function renderRecovery(profileId) {
     const profil = idx.profiles.find(p => p.id === profileId);
     if (!profil) { renderLoginScreen(idx); return; }
     gateShell(`
-      <div class="gate-title"><i>${icon('lock-open')}</i> Récupérer « ${DOMPurify.sanitize(profil.name)} »</div>
+      <div class="gate-title" role="heading" aria-level="1"><i>${icon('lock-open')}</i> Récupérer « ${DOMPurify.sanitize(profil.name)} »</div>
       <div class="gate-sub">Utilisez l'une des deux méthodes ci-dessous.</div>
       <div class="gate-box">
         <div class="gate-box-title">${icon('circle-help')} Question de sécurité</div>
@@ -769,7 +769,7 @@ async function saveMyQuestion() {
 function renderMigration(legacy) {
   const encrypted = !!(legacy && legacy._enc);
   gateShell(`
-    <div class="gate-title"><i>${icon('sparkles')}</i> Mise à jour : profils</div>
+    <div class="gate-title" role="heading" aria-level="1"><i>${icon('sparkles')}</i> Mise à jour : profils</div>
     <div class="gate-sub">Plume gère maintenant plusieurs profils. On sécurise vos données actuelles dans le profil administrateur.</div>
     <label class="gate-label" for="mig-name">Nom du profil</label>
     <input id="mig-name" type="text" class="gate-field" placeholder="Votre prénom ou pseudo">

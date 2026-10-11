@@ -353,6 +353,7 @@ function ensureGraphicNovelScreen() {
   const el = document.createElement('div');
   el.id = 'graphicnovel-screen';
   el.innerHTML = `
+    <h1 class="u-sr-only">Roman graphique</h1>
     <div class="gn-toolbar">
       <button class="gn-icon-btn" id="gn-back-btn" title="Retour à la bibliothèque" aria-label="Retour à la bibliothèque">${icon('arrow-left')}</button>
       <div class="gn-title-block">
