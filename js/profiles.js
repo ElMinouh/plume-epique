@@ -50,6 +50,39 @@ const DEFAULT_SESSION_MINUTES = 720; // 12h
 // v9.24.0 — longueur minimale des NOUVEAUX mots de passe (les anciens, plus
 // courts, continuent de fonctionner jusqu'à leur prochain changement).
 const MIN_PASSWORD_LENGTH = 12;
+
+// ═══════════════════════════════════════════════════════
+// MOTS DE PASSE TRIVIAUX (v9.66.0, audit AUD-06-004) — 12 caractères ne suffisent pas si c'est « motdepasse1234 » :
+// l'enveloppe du mot de passe est téléchargeable (clé de synchro) et se teste hors ligne. On refuse, à la création et
+// au changement, les mots de passe trop courants ou trop simples ; un mot de passe EXISTANT n'est jamais bloqué (un
+// simple rappel est affiché après la connexion). La règle est volontairement modeste (pas de majuscule/symbole
+// obligatoires) : une phrase de passe de quelques mots est préférée à un mot compliqué.
+// ═══════════════════════════════════════════════════════
+const COMMON_PASSWORD_BASES = new Set(('motdepasse password passw0rd passe azerty azertyuiop azertyuiopqsdfghjklm qwerty qwertyuiop qwertz ' +
+  'abcdef abcdefgh abcdefghij abcdefghijkl bonjour bonsoir salut soleil doudou chouchou chocolat bisous cheri cherie ' +
+  'iloveyou letmein welcome admin administrateur administrator root utilisateur user plume plumeepique ecrivain manuscrit roman ' +
+  'football marseille psg lyon paris france maison famille bonheur princesse dragon master monkey superman batman ' +
+  'internet ordinateur secret secretsecret changeme changezmoi test testtest tester azerty1 trustno1 sunshine shadow ' +
+  'lamarseillaise vacances amour toujours jetaime tiamo loulou minou').split(' '));
+function isWeakPassword(pwd, profileName) {
+  const p = String(pwd || '');
+  const lower = p.toLowerCase();
+  const letters = lower.replace(/[^a-zà-ÿ]/g, '');
+  const folded = letters.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (COMMON_PASSWORD_BASES.has(folded)) return true; // « motdepasse », « Motdepasse1234! », « azerty2024 »…
+  const uniq = new Set(lower).size;
+  if (uniq <= 4) return true; // « aaaaaaaaaaaa », « 121212121212 »
+  const seq = 'abcdefghijklmnopqrstuvwxyz0123456789 azertyuiopqsdfghjklmwxcvbn qwertyuiopasdfghjklzxcvbnm';
+  const compact = lower.replace(/\s+/g, '');
+  for (let i = 0; i + 8 <= compact.length; i++) { // 8 caractères consécutifs d'un alphabet, d'un clavier ou à l'envers
+    const win = compact.slice(i, i + 8);
+    if (seq.includes(win) || seq.split('').reverse().join('').includes(win)) { if (compact.length - 8 <= 4) return true; }
+  }
+  const name = String(profileName || '').trim().toLowerCase().replace(/\s+/g, '');
+  if (name.length >= 3 && compact.replace(/[^a-zà-ÿ]/g, '').length <= name.length + 6 && compact.includes(name)) return true; // prénom + 1234
+  return false;
+}
+const WEAK_PASSWORD_MESSAGE = 'Ce mot de passe est trop courant ou trop simple. Préférez une phrase de quelques mots (ex. « maison rouge pluie douce »).';
 function persistLocalSession(profil, dek) {
   const minutes = (profil.sessionMinutes === undefined || profil.sessionMinutes === null) ? DEFAULT_SESSION_MINUTES : profil.sessionMinutes;
   if (minutes === 0) { localStorage.removeItem(SESSION_STORAGE_KEY); return; }
@@ -295,10 +328,13 @@ function gateFail(errEl, fieldId, msg) {
   if (f) { f.setAttribute('aria-invalid', 'true'); errEl.setAttribute('role', 'alert'); f.focus(); }
 }
 // Règle visible sous un champ mot de passe : « 12 caractères minimum » + compteur.
-function wirePasswordHint(inputId, hintId) {
+function wirePasswordHint(inputId, hintId, nameInputId) {
   const input = document.getElementById(inputId), hint = document.getElementById(hintId);
   if (!input || !hint) return;
-  const upd = () => { const n = input.value.length; hint.textContent = n >= MIN_PASSWORD_LENGTH ? '' + n + ' caractères' : MIN_PASSWORD_LENGTH + ' caractères minimum (' + n + '/' + MIN_PASSWORD_LENGTH + ')'; hint.classList.toggle('ok', n >= MIN_PASSWORD_LENGTH); };
+  const upd = () => { const n = input.value.length;
+    const nameEl = nameInputId ? document.getElementById(nameInputId) : null;
+    if (n >= MIN_PASSWORD_LENGTH && typeof isWeakPassword === 'function' && isWeakPassword(input.value, nameEl ? nameEl.value : (_currentProfile && _currentProfile.name))) { hint.textContent = WEAK_PASSWORD_MESSAGE; hint.classList.remove('ok'); return; }
+    hint.textContent = n >= MIN_PASSWORD_LENGTH ? '' + n + ' caractères' : MIN_PASSWORD_LENGTH + ' caractères minimum (' + n + '/' + MIN_PASSWORD_LENGTH + ')'; hint.classList.toggle('ok', n >= MIN_PASSWORD_LENGTH); };
   input.addEventListener('input', upd); upd();
 }
 function gateShell(innerHtml) {
@@ -351,6 +387,20 @@ async function doLogin() {
   const dek = await Crypto.decrypt(profil.wrapPwd, pwd);
   if (!dek) { errEl.textContent = 'Mot de passe incorrect.'; return; }
   await openProfile(profil, dek);
+  afterPasswordLogin(profil, pwd, dek); // v9.66.0 : ré-enveloppement au coût actuel, rappel si mot de passe trop simple (arrière-plan)
+}
+// v9.66.0 (AUD-06-004) — après une connexion par mot de passe : (1) si l'écriture p2 est activée et que l'enveloppe est
+// ancienne, on la ré-écrit à 600 000 itérations (index : entrée du profil lui-même, droit du propriétaire) ; (2) si le
+// mot de passe est dans la liste des trop simples, un rappel (jamais bloquant, une fois par session).
+async function afterPasswordLogin(profil, pwd, dek) {
+  try {
+    if (Crypto.envelopeNeedsUpgrade(profil.wrapPwd)) {
+      const newWrap = await Crypto.encrypt(dek, pwd);
+      await mutateProfilesIndex(idx => { const p = idx.profiles.find(x => x.id === profil.id); if (p) p.wrapPwd = newWrap; });
+      profil.wrapPwd = newWrap; if (_currentProfile && _currentProfile.id === profil.id) _currentProfile.wrapPwd = newWrap;
+    }
+    if (isWeakPassword(pwd, profil.name) && typeof toast === 'function') toast('Votre mot de passe est trop simple : pensez à le changer (Mon profil), de préférence pour une phrase de quelques mots.', 'info', { sticky: true });
+  } catch (e) { /* amélioration facultative : la connexion n'en dépend pas */ }
 }
 
 // ── ÉCRAN 4 : Création d'un profil ──────────────────────────────────────
@@ -380,7 +430,7 @@ function renderCreateProfile(opts) {
   document.getElementById('cp-submit').addEventListener('click', () => submitCreateProfile(opts));
   initPasswordToggle('cp-pwd');
   initPasswordToggle('cp-pwd2');
-  wirePasswordHint('cp-pwd', 'cp-pwd-hint');
+  wirePasswordHint('cp-pwd', 'cp-pwd-hint', 'cp-name');
   const cancel = document.getElementById('cp-cancel');
   if (cancel) cancel.addEventListener('click', async () => {
     if (opts.byAdmin) { hideGate(); openManageProfiles(); }
@@ -401,6 +451,7 @@ async function submitCreateProfile(opts) {
   if (!name) { gateFail(errEl, 'cp-name', 'Entrez un nom de profil.'); return; }
   if (nameExists(idx, name)) { gateFail(errEl, 'cp-name', 'Ce nom de profil existe déjà.'); return; }
   if (pwd.length < MIN_PASSWORD_LENGTH) { gateFail(errEl, 'cp-pwd', 'Mot de passe trop court (' + MIN_PASSWORD_LENGTH + ' caractères minimum).'); return; }
+  if (isWeakPassword(pwd, name)) { gateFail(errEl, 'cp-pwd', WEAK_PASSWORD_MESSAGE); return; }
   if (pwd !== pwd2) { gateFail(errEl, 'cp-pwd2', 'Les deux mots de passe ne correspondent pas.'); return; }
   if (!answer.trim()) { gateFail(errEl, 'cp-answer', 'Entrez une réponse à la question de sécurité.'); return; }
 
@@ -518,6 +569,7 @@ async function submitRecovery(profileId) {
   errEl.textContent = '';
 
   if (pwd.length < MIN_PASSWORD_LENGTH) { gateFail(errEl, 'rec-pwd', 'Nouveau mot de passe trop court (' + MIN_PASSWORD_LENGTH + ' caractères minimum).'); return; }
+  if (isWeakPassword(pwd, profil && profil.name)) { gateFail(errEl, 'rec-pwd', WEAK_PASSWORD_MESSAGE); return; }
   if (pwd !== pwd2) { gateFail(errEl, 'rec-pwd2', 'Les deux mots de passe ne correspondent pas.'); return; }
 
   let dek = null;
@@ -532,9 +584,11 @@ async function submitRecovery(profileId) {
   // AUTRE profil, survenue pendant cette attente, serait silencieusement
   // écrasée par cette copie devenue périmée.
   const newWrapPwd = await Crypto.encrypt(dek, pwd);
+  // v9.66.0 : récupération par la RÉPONSE → on la ré-enveloppe aussi (elle n'est connue qu'ici) au coût actuel.
+  const newWrapAnswer = (answer.trim() && Crypto.envelopeNeedsUpgrade(profil.wrapAnswer)) ? await Crypto.encrypt(dek, Crypto.normalize(answer)) : null;
   await mutateProfilesIndex(freshIdx => {
     const freshProfil = freshIdx.profiles.find(p => p.id === profileId);
-    if (freshProfil) freshProfil.wrapPwd = newWrapPwd;
+    if (freshProfil) { freshProfil.wrapPwd = newWrapPwd; if (newWrapAnswer) freshProfil.wrapAnswer = newWrapAnswer; }
   });
   toast('Mot de passe réinitialisé', 'success');
   await openProfile(profil, dek);
@@ -739,6 +793,7 @@ async function saveMyPassword() {
   const oldOk = freshProfil && await Crypto.decrypt(freshProfil.wrapPwd, oldPwd);
   if (!oldOk) { toast('Mot de passe actuel incorrect.', 'error'); return; }
   if (newPwd.length < MIN_PASSWORD_LENGTH) { toast('Nouveau mot de passe trop court (' + MIN_PASSWORD_LENGTH + ' caractères minimum).', 'error'); return; }
+  if (isWeakPassword(newPwd, _currentProfile && _currentProfile.name)) { toast(WEAK_PASSWORD_MESSAGE, 'error'); return; }
   if (newPwd !== newPwd2) { toast('Les deux mots de passe ne correspondent pas.', 'error'); return; }
   const newWrapPwd = await Crypto.encrypt(_dataKey, newPwd);
   await mutateProfilesIndex(idx => {

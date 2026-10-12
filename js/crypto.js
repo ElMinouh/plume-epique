@@ -16,13 +16,31 @@ function bytesToBase64(bytes) {
   }
   return btoa(binary);
 }
+// v9.66.0 (audit AUD-06-004) — COÛT DE DÉRIVATION VERSIONNÉ. Le format historique (« v1 », base64 pur) fige PBKDF2 à
+// 310 000 itérations (valeur OWASP 2021 ; la recommandation actuelle pour PBKDF2-HMAC-SHA256 est de 600 000).
+// Le format « p2: » des enveloppes protégées par mot de passe (wrapPwd, wrapAnswer, wrapCode) écrit le nombre
+// d'itérations dans l'enveloppe : p2:<itérations>:base64(sel 16 octets + iv 12 octets + chiffré). Le coût pourra donc
+// encore monter sans casser la lecture des anciennes enveloppes. Les données chiffrées par la clé de données (« v2: »
+// ou v1 avec la clé de données comme mot de passe) ne sont pas concernées.
+const PBKDF2_ITERATIONS_LEGACY = 310000;
+const PBKDF2_ITERATIONS = 600000;
+// Une itération lue dans une enveloppe vient du stockage (non fiable) : bornée, sinon une valeur gigantesque ferait
+// geler la connexion (déni de service par un porteur de la clé de synchro).
+const PBKDF2_ITERATIONS_MIN = 100000, PBKDF2_ITERATIONS_MAX = 2000000;
 const Crypto = {
-  async deriveKey(password, salt) {
+  // ACTIVATION EN DEUX TEMPS (comme le format de texte v2, docs/EXPLOITATION.md §11) : un appareil d'avant la v9.66.0
+  // ne sait pas lire « p2: » (il afficherait « Mot de passe incorrect »). Étape 1 (v9.66.0) : tous les appareils LISENT
+  // p2, on continue d'ÉCRIRE l'ancien format (writeP2 = false). Étape 2 : writeP2 = true une fois tous les appareils
+  // en ≥ 9.66.0 ; chaque profil est alors ré-enveloppé à 600 000 itérations à sa prochaine connexion.
+  writeP2: false,
+  PBKDF2_ITERATIONS, PBKDF2_ITERATIONS_LEGACY,
+  async deriveKey(password, salt, iterations = PBKDF2_ITERATIONS_LEGACY) {
     const enc = new TextEncoder();
     const km = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
-    return crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations:310000, hash:'SHA-256' }, km, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+    return crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations, hash:'SHA-256' }, km, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
   },
-  async encrypt(plaintext, password) {
+  // Format historique (v1) : 310 000 itérations, sans marquage.
+  async encryptLegacy(plaintext, password) {
     const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
     const key = await this.deriveKey(password, salt);
     const ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, new TextEncoder().encode(plaintext));
@@ -30,8 +48,39 @@ const Crypto = {
     buf.set(salt); buf.set(iv, 16); buf.set(new Uint8Array(ct), 28);
     return bytesToBase64(buf);
   },
+  async encryptP2(plaintext, password, iterations = PBKDF2_ITERATIONS) {
+    const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await this.deriveKey(password, salt, iterations);
+    const ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, new TextEncoder().encode(plaintext));
+    const buf = new Uint8Array(16 + 12 + ct.byteLength);
+    buf.set(salt); buf.set(iv, 16); buf.set(new Uint8Array(ct), 28);
+    return 'p2:' + iterations + ':' + bytesToBase64(buf);
+  },
+  async decryptP2(rest, password) {
+    try {
+      const sep = rest.indexOf(':');
+      const iterations = parseInt(rest.slice(0, sep), 10);
+      if (!(iterations >= PBKDF2_ITERATIONS_MIN && iterations <= PBKDF2_ITERATIONS_MAX)) return null;
+      const buf = Uint8Array.from(atob(rest.slice(sep + 1)), c => c.charCodeAt(0));
+      const key = await this.deriveKey(password, buf.slice(0, 16), iterations);
+      const dec = await crypto.subtle.decrypt({ name:'AES-GCM', iv:buf.slice(16, 28) }, key, buf.slice(28));
+      return new TextDecoder().decode(dec);
+    } catch { return null; }
+  },
+  // Chiffrement par MOT DE PASSE (enveloppes de clé) : p2 si activé, sinon format historique.
+  async encrypt(plaintext, password) {
+    return this.writeP2 ? this.encryptP2(plaintext, password) : this.encryptLegacy(plaintext, password);
+  },
+  // Cette enveloppe est-elle à ré-écrire au coût actuel ? (seulement quand l'écriture p2 est activée)
+  envelopeNeedsUpgrade(b64) {
+    if (!this.writeP2 || typeof b64 !== 'string') return false;
+    if (b64.startsWith('v2:')) return false;
+    if (!b64.startsWith('p2:')) return true;
+    return (parseInt(b64.slice(3), 10) || 0) < PBKDF2_ITERATIONS;
+  },
   async decrypt(b64, password) {
     if (typeof b64 === 'string' && b64.startsWith('v2:')) return this.decryptV2(b64.slice(3), password); // v9.31.0 : format v2 (clé de données)
+    if (typeof b64 === 'string' && b64.startsWith('p2:')) return this.decryptP2(b64.slice(3), password); // v9.66.0 : coût de dérivation écrit dans l'enveloppe
     try {
       const buf = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
       const key = await this.deriveKey(password, buf.slice(0,16));
@@ -77,7 +126,7 @@ const Crypto = {
   // Point d'entrée UNIQUE pour chiffrer une donnée avec la clé de données du profil (manuscrits, historique du
   // chat IA, réglages, Gist…) : le format dépend de `writeV2`.
   encryptData(plaintext, dek) {
-    return this.writeV2 ? this.encryptV2(plaintext, dek) : this.encrypt(plaintext, dek);
+    return this.writeV2 ? this.encryptV2(plaintext, dek) : this.encryptLegacy(plaintext, dek); // jamais p2 : la clé de données est déjà forte
   },
 
   // ── Chiffrement d'OCTETS (images du roman graphique, v9.28.0) ──────────────
