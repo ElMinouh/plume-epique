@@ -27,7 +27,15 @@ function lister(dir, base = '') {
   }
   return out;
 }
-function sha256(fichier) { return crypto.createHash('sha256').update(fs.readFileSync(fichier)).digest('hex'); }
+// Les fins de ligne d'un fichier TEXTE dépendent de la machine (Git sous Windows convertit en CRLF à l'extraction) : on les
+// normalise en LF avant de hacher, sinon l'empreinte différerait entre le poste et la CI. Les fichiers binaires (woff2) sont
+// hachés tels quels.
+const TEXTE = /\.(js|mjs|txt|md|json|css)$/i;
+function sha256(fichier) {
+  let contenu = fs.readFileSync(fichier);
+  if (TEXTE.test(fichier)) contenu = Buffer.from(contenu.toString('utf8').replace(/\r\n/g, '\n'), 'utf8');
+  return crypto.createHash('sha256').update(contenu).digest('hex');
+}
 function calculer() { return lister(VENDOR).map(rel => ({ chemin: rel, empreinte: sha256(path.join(VENDOR, rel)) })); }
 function lireSommes() {
   if (!fs.existsSync(FICHIER)) return [];
@@ -52,7 +60,7 @@ function ecrire() {
   fs.writeFileSync(FICHIER, lignes.join('\n') + '\n', 'utf8');
   return lignes.length - 1;
 }
-module.exports = { calculer, lireSommes, comparer, ecrire, lister };
+module.exports = { calculer, lireSommes, comparer, ecrire, lister, sha256 };
 
 if (require.main === module) {
   if (process.argv.includes('--ecrire')) { console.log(ecrire() + ' empreinte(s) écrite(s) dans vendor/SHA256SUMS.'); process.exit(0); }

@@ -177,6 +177,15 @@ describe('020 — intégrité des bibliothèques de vendor/', () => {
     expect(emp.comparer(reel.slice(1), att).manquants).toEqual([reel[0].chemin]);
     expect(emp.comparer([...reel, { chemin: 'intrus.js', empreinte: 'a'.repeat(64) }], att).nouveaux).toEqual(['intrus.js']);
   });
+  it('les fins de ligne ne changent pas l\'empreinte d\'un fichier TEXTE (poste Windows en CRLF, CI Linux en LF), mais celle d\'un binaire oui', () => {
+    const os = require('node:os');
+    const d = fs.mkdtempSync(path.join(os.tmpdir(), 'emp-'));
+    fs.writeFileSync(path.join(d, 'a.txt'), 'ligne1\r\nligne2\r\n'); fs.writeFileSync(path.join(d, 'b.txt'), 'ligne1\nligne2\n');
+    fs.writeFileSync(path.join(d, 'a.woff2'), Buffer.from([1, 13, 10, 2])); fs.writeFileSync(path.join(d, 'b.woff2'), Buffer.from([1, 10, 2]));
+    expect(emp.sha256(path.join(d, 'a.txt'))).toBe(emp.sha256(path.join(d, 'b.txt')));
+    expect(emp.sha256(path.join(d, 'a.woff2'))).not.toBe(emp.sha256(path.join(d, 'b.woff2')));
+    fs.rmSync(d, { recursive: true, force: true });
+  });
   it('les bibliothèques « copies exactes » sont IDENTIQUES aux paquets npm officiels (seule la ligne sourceMappingURL est retirée)', () => {
     const { comparer } = require('../../scripts/vendor-compare-npm.cjs');
     const r = comparer();
