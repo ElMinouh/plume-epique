@@ -216,3 +216,21 @@ describe('015 — client : suppression de profil et page de confidentialité', (
     expect(read('js/router.js')).toMatch(/profile-deleted'\) onProfileDeleted\(\)/);
   });
 });
+
+describe('015 — la fenêtre de confidentialité est une vraie fenêtre (régression 9.68.1 : sans CSS elle restait affichée à la suite de la page)', () => {
+  const css = read('css/style.css');
+  it('#privacy-overlay est masquée par défaut et affichée par .active, comme les autres fenêtres (position fixe, au-dessus de tout)', () => {
+    expect(css).toMatch(/#shortcuts-overlay,#privacy-overlay,[^{]*\{display:none;position:fixed;inset:0;z-index:8500;/);
+    expect(css).toMatch(/#shortcuts-overlay\.active,#privacy-overlay\.active,[^{]*\{display:flex;\}/);
+  });
+  it('chaque fenêtre « overlay » de l\'aide a ses règles CSS (les deux sélecteurs partagent les mêmes lignes)', () => {
+    for (const sel of ['#shortcuts-overlay', '#privacy-overlay']) {
+      expect(css.split(sel + ',').length - 1 + css.split(sel + '.active').length - 1, sel).toBeGreaterThanOrEqual(4);
+    }
+  });
+  it('la fenêtre porte les attributs d\'une fenêtre modale (rôle, aria-modal, nom) et un bouton Fermer', () => {
+    const html = read('index.html');
+    expect(html).toMatch(/<div id="privacy-overlay" role="dialog" aria-modal="true" aria-label="Politique de confidentialité">/);
+    expect(html).toContain('id="privacy-close-btn"');
+  });
+});

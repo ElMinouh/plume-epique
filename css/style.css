@@ -482,11 +482,11 @@ select.gate-field{height:38px;}
   align-items:center;justify-content:center;}
 #gist-history-overlay.active{display:flex;}
 /* Corbeille, export sélectif, aide-mémoire raccourcis & import DOCX (v7.5.0/v7.12.0) — même gabarit d'overlay */
-#doc-trash-overlay,#trash-overlay,#export-select-overlay,#shortcuts-overlay,#docx-import-overlay,#library-system-overlay,#conflict-diff-overlay{display:none;position:fixed;inset:0;z-index:8500;
+#doc-trash-overlay,#trash-overlay,#export-select-overlay,#shortcuts-overlay,#privacy-overlay,#docx-import-overlay,#library-system-overlay,#conflict-diff-overlay{display:none;position:fixed;inset:0;z-index:8500;
   background:var(--scrim);
   backdrop-filter:blur(6px);
   align-items:center;justify-content:center;}
-#doc-trash-overlay.active,#trash-overlay.active,#export-select-overlay.active,#shortcuts-overlay.active,#docx-import-overlay.active,#library-system-overlay.active,#conflict-diff-overlay.active{display:flex;}
+#doc-trash-overlay.active,#trash-overlay.active,#export-select-overlay.active,#shortcuts-overlay.active,#privacy-overlay.active,#docx-import-overlay.active,#library-system-overlay.active,#conflict-diff-overlay.active{display:flex;}
 #confirm-modal-overlay{display:none;position:fixed;inset:0;z-index:9500;
   background:var(--scrim);
   backdrop-filter:blur(6px);
@@ -1915,10 +1915,10 @@ html:has(body.dark-mode){color-scheme:dark;}
    reste immédiat (un retard JavaScript coûterait plus de risques qu'il n'apporte). Pendant un changement de thème, toutes les transitions
    sont suspendues le temps d'une image (classe posée par runThemeSwitch) : plus de libellés pâles à mi-chemin. */
 :is(#my-profile-overlay,#manage-profiles-overlay,#gist-history-overlay,#doc-trash-overlay,#trash-overlay,#export-select-overlay,
-    #shortcuts-overlay,#docx-import-overlay,#library-system-overlay,#conflict-diff-overlay,#confirm-modal-overlay,#history-overlay,
+    #shortcuts-overlay,#privacy-overlay,#docx-import-overlay,#library-system-overlay,#conflict-diff-overlay,#confirm-modal-overlay,#history-overlay,
     #search-overlay).active,.gn-modal-overlay{animation:fadeIn var(--t-base) var(--ease);}
 :is(#my-profile-overlay,#manage-profiles-overlay,#gist-history-overlay,#doc-trash-overlay,#trash-overlay,#export-select-overlay,
-    #shortcuts-overlay,#docx-import-overlay,#library-system-overlay,#conflict-diff-overlay,#confirm-modal-overlay,#history-overlay,
+    #shortcuts-overlay,#privacy-overlay,#docx-import-overlay,#library-system-overlay,#conflict-diff-overlay,#confirm-modal-overlay,#history-overlay,
     #search-overlay).active > *,.gn-modal-overlay > *{animation:enter var(--t-base) var(--ease);}
 #tab-container.open{animation:panelIn var(--t-base) var(--ease);}
 @media (max-width:768px){#tab-container.open{animation:enter var(--t-base) var(--ease);}}
