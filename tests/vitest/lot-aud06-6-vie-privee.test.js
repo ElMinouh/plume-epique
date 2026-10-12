@@ -163,6 +163,18 @@ describe('015 — effacement des données d\'un profil supprimé (Worker)', () =
     }
     expect(s.d1.db.prepare("SELECT COUNT(*) AS n FROM sync_meta WHERE k LIKE '%" + BOB + "%'").get().n).toBe(0);
   });
+  it('même une simple LECTURE avec un jeton ne re-verrouille pas un profil supprimé (régression constatée au test réel local)', async () => {
+    const s = makeServer(); await installation(s);
+    await supprimerBob(s);
+    await s.call('profile_' + BOB, { method: 'DELETE', as: who(ADMIN) });
+    const lecture = await s.call('doclist_' + BOB, { as: who(BOB) });
+    expect(lecture.status).toBe(403);
+    expect((await lecture.json()).error.code).toBe('profile-deleted');
+    expect(s.d1.db.prepare('SELECT pid FROM profile_auth WHERE pid = ?').get(BOB)).toBeUndefined();
+    const ecriture = await s.call('data_' + BOB, { method: 'PUT', body: '"revenu"', base: 0, as: who(BOB) });
+    expect(ecriture.status).toBe(403);
+    expect(s.d1.db.prepare("SELECT COUNT(*) AS n FROM sync_meta WHERE k LIKE '%" + BOB + "%'").get().n).toBe(0);
+  });
   it('un profil NON supprimé garde l\'écriture normale (le contrôle ne gêne personne)', async () => {
     const s = makeServer(); await installation(s);
     expect((await s.call('doc_' + EVE + '_m9', { method: 'PUT', body: '"neuf"', base: 0, as: who(EVE) })).status).toBe(200);
@@ -191,6 +203,14 @@ describe('015 — client : suppression de profil et page de confidentialité', (
     const r = read('js/router.js');
     expect(r).toContain("byId('privacy-overlay', () => closePrivacyPolicy())");
     expect(r).toContain("help-privacy-policy-btn");
+  });
+  it('la page est aussi accessible depuis la BIBLIOTHÈQUE (menu Aide, bureau et mobile), pas seulement depuis l\'éditeur', () => {
+    const html = read('index.html'), lib = read('js/library.js');
+    expect(html).toContain('id="library-privacy-policy-btn"');
+    expect(html).toContain('id="ltop-privacy-policy"');
+    expect(lib).toContain("getElementById('library-privacy-policy-btn').addEventListener('click', openPrivacyPolicy)");
+    expect(lib).toContain("getElementById('ltop-privacy-policy').addEventListener('click'");
+    expect(lib).toContain("getElementById('privacy-close-btn').addEventListener('click', closePrivacyPolicy)");
   });
   it('un profil supprimé est signalé à l\'appareil concerné (403 « profile-deleted »)', () => {
     expect(read('js/router.js')).toMatch(/profile-deleted'\) onProfileDeleted\(\)/);

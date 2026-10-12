@@ -549,6 +549,8 @@ function wireLibraryStaticUI() {
   // Visite guidée complète (nouveau v7.39.0) — voir fulltour.js.
   document.getElementById('library-tour-btn').addEventListener('click', launchLibraryTour);
   document.getElementById('library-full-tour-btn').addEventListener('click', launchEditorFullTour);
+  document.getElementById('library-privacy-policy-btn').addEventListener('click', openPrivacyPolicy); // v9.68.0 (AUD-06-015)
+  document.getElementById('privacy-close-btn').addEventListener('click', closePrivacyPolicy); // fermable aussi depuis la bibliothèque (l'écouteur de l'éditeur n'existe qu'après l'ouverture d'un manuscrit)
   // v9.0.2 — Bug rapporté (Android uniquement) : ces clics remontaient
   // (bubbling) jusqu'à document, où des écouteurs génériques ("fermer tout
   // menu au clic extérieur", voir plus bas et router.js) refermaient
@@ -571,6 +573,7 @@ function wireLibraryStaticUI() {
   document.getElementById('ltop-system').addEventListener('click', () => { closeLibraryTopbarMenu(); openLibrarySystemPanel(); });
   document.getElementById('ltop-tour').addEventListener('click', () => { closeLibraryTopbarMenu(); launchLibraryTour(); });
   document.getElementById('ltop-full-tour').addEventListener('click', () => { closeLibraryTopbarMenu(); launchEditorFullTour(); });
+  document.getElementById('ltop-privacy-policy').addEventListener('click', () => { closeLibraryTopbarMenu(); openPrivacyPolicy(); });
   document.getElementById('ltop-logout').addEventListener('click', () => { closeLibraryTopbarMenu(); logout(); });
   document.addEventListener('click', () => closeLibraryTopbarMenu());
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLibraryTopbarMenu(); });

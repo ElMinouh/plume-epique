@@ -316,6 +316,11 @@ async function authorizeProfile(request, env, pid, cors) {
     status, headers: { ...cors, 'Content-Type': 'application/json' }
   });
   await ensureAuthTable(env);
+  // v9.68.0 : un profil SUPPRIMÉ par un administrateur (pierre tombale dans la liste) ne se verrouille plus et ne répond
+  // plus, quelle que soit la méthode : un appareil resté en retard ne fait pas renaître ses données (une simple lecture
+  // avec un jeton le « re-verrouillerait » sinon, puis ses écritures passeraient).
+  const idxNow = await currentIndex(d1Store(env));
+  if (idxNow && (idxNow.deletedProfiles || []).some(t => t.id === pid)) return refuse(403, 'profile-deleted', 'Ce profil a été supprimé par un administrateur.');
   const token = request.headers.get('X-Plume-Profile-Token') || '';
   const claimedId = request.headers.get('X-Plume-Profile-Id') || '';
   const wellFormed = /^[0-9a-f]{64}$/.test(token) && claimedId === pid;
@@ -326,10 +331,6 @@ async function authorizeProfile(request, env, pid, cors) {
   }
   // v9.68.0 : un profil SUPPRIMÉ par un administrateur ne peut plus rien écrire (ni se verrouiller de nouveau) :
   // un appareil resté en retard ne fait pas renaître ses données sur le serveur.
-  if (request.method === 'PUT' || request.method === 'POST') {
-    const idx = await currentIndex(d1Store(env));
-    if (idx && (idx.deletedProfiles || []).some(t => t.id === pid)) return refuse(403, 'profile-deleted', 'Ce profil a été supprimé par un administrateur.');
-  }
   if (!wellFormed) return null; // profil pas encore verrouillé : ancien appareil toléré
   const n = (await env.DB.prepare('SELECT COUNT(*) AS n FROM profile_auth').first()).n;
   if (n >= MAX_CLAIMED_PROFILES) return refuse(507, 'profile-limit', 'Nombre maximal de profils atteint sur ce serveur.', { quota: 'profiles' });
