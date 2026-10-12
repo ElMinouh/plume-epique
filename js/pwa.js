@@ -126,3 +126,45 @@ async function installPWA() {
     toast('Installation indisponible : déjà installée, ou non supportée par ce navigateur.', 'error');
   }
 }
+
+// ═══════════════════════════════════════════════════════
+// RAPPORT D'ERREURS DU NAVIGATEUR (v9.70.0, audit AUD-07-016)
+// Une erreur JavaScript n'était visible que par la personne qui la subissait : les incidents passés (sauvegarde
+// du 14/08/2026, scripts bloqués par la CSP pendant trois versions) ont été découverts tardivement. Chaque erreur
+// non interceptée est maintenant signalée au Worker de synchronisation (route /client-error) : version, famille de
+// navigateur (déduite côté serveur), message tronqué à 160 caractères, fichier:ligne. JAMAIS de texte de manuscrit,
+// d'identifiant de profil ni d'adresse. Garde-fous : rien n'est envoyé si la synchronisation n'est pas activée
+// (« écrire sur cet appareil seulement » = aucun échange avec le serveur), 5 rapports au plus par chargement de page,
+// une même erreur n'est signalée qu'une fois.
+// ═══════════════════════════════════════════════════════
+const CLIENT_ERROR_MAX_PER_PAGE = 5;
+let _clientErrorsSent = 0;
+const _clientErrorSeen = new Set();
+function reportClientError(message, source) {
+  try {
+    if (_clientErrorsSent >= CLIENT_ERROR_MAX_PER_PAGE) return false;
+    if (typeof SYNC_WORKER_URL === 'undefined' || typeof getSyncKey !== 'function' || typeof fetchWithTimeout !== 'function' || !getSyncKey()) return false;
+    const m = String(message == null ? '' : message).slice(0, 160);
+    const s = String(source == null ? '' : source).slice(0, 60);
+    const sig = m + '|' + s;
+    if (!m || _clientErrorSeen.has(sig)) return false;
+    _clientErrorSeen.add(sig);
+    _clientErrorsSent++;
+    fetchWithTimeout(SYNC_WORKER_URL + '/client-error', {
+      method: 'POST', keepalive: true, credentials: 'omit', timeoutMs: 8000,
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ v: typeof APP_VERSION !== 'undefined' ? APP_VERSION : '', m, s })
+    }).catch(() => { /* le rapport est un plus : son échec ne doit rien déranger */ });
+    return true;
+  } catch (e) { return false; }
+}
+window.addEventListener('error', e => {
+  // Les erreurs de chargement de ressources (images, scripts) n'ont pas de message : ignorées.
+  if (!e || !e.message) return;
+  const file = String(e.filename || '').split('/').pop().split('?')[0];
+  reportClientError(e.message, file ? file + ':' + (e.lineno || 0) : '');
+});
+window.addEventListener('unhandledrejection', e => {
+  const r = e && e.reason;
+  reportClientError((r && r.message) || String(r), 'promesse');
+});

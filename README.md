@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.69.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.70.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -17,6 +17,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 | [`docs/BILAN-AUDIT-01.md`](docs/BILAN-AUDIT-01.md) | Bilan de remédiation de l'audit technique d'octobre 2026 (28 constats) |
 | [`docs/BILAN-AUDIT-02.md`](docs/BILAN-AUDIT-02.md) | Bilan de remédiation de l'audit fonctionnel d'octobre 2026 (22 constats, v9.33.0 → v9.39.0) |
 | [`docs/BILAN-AUDIT-04.md`](docs/BILAN-AUDIT-04.md) | Suivi de remédiation de l'audit graphique / direction artistique d'octobre 2026 (30 constats, en cours) |
+| [`docs/BILAN-AUDIT-07.md`](docs/BILAN-AUDIT-07.md) | Suivi de remédiation de l'audit performances / scalabilité / résilience d'octobre 2026 (22 constats, en cours) |
 | [`docs/BILAN-AUDIT-03.md`](docs/BILAN-AUDIT-03.md) | Bilan de remédiation de l'audit ergonomique (UX) d'octobre 2026 (36 constats, v9.41.0 → v9.48.0) |
 | [`vendor/LISEZMOI.md`](vendor/LISEZMOI.md) | Librairies tierces servies localement et comment les mettre à jour |
 | [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md) | Ancien README : historique et incidents jusqu'en juillet 2026 |
@@ -101,7 +102,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 
 ```bash
 npm install
-npm test            # Vitest : ~728 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
+npm test            # Vitest : ~900 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
 ```
 
 Pas de build, pas de linter. Les tests partagent un contexte applicatif global : `fileParallelism: false`.
@@ -148,6 +149,7 @@ foyer, etc.) : `docs/DECISIONS.md`.
 
 ## Limites connues
 
+- **Détection** (v9.70.0) : une sonde `/health` publique, les erreurs JavaScript du navigateur signalées au serveur (synchronisation activée seulement, sans contenu), une alerte quotidienne de quota D1 (courriel GitHub à 80 %) et une sauvegarde chiffrée de la base à lancer à la main (`scripts/sauvegarder-d1.cjs`, dossier hors dépôt) : voir `docs/EXPLOITATION.md` §13. Aucune supervision externe n'est branchée tant que le propriétaire n'a pas créé le moniteur (UptimeRobot).
 - **Surveillance** (v9.69.0) : le serveur de synchro tient un registre des événements de sécurité (30 jours, sans IP ni contenu) à consulter avec `node scripts/evenements-securite.cjs` ; il n'envoie **aucune alerte** automatique. Les bibliothèques de `vendor/` sont protégées par des empreintes (`vendor/SHA256SUMS`, test et CI).
 - **Vie privée** (v9.68.0) : l'IA (Google Gemini), le correcteur (LanguageTool) et la dictée vocale ne partent qu'avec l'accord du profil (écran Accepter / Refuser, réglable dans Mon profil) ; une page « Politique de confidentialité » est dans l'aide. Les titres des manuscrits, leurs nombres de mots et dates, les prénoms des profils et la question de sécurité ne sont **pas chiffrés** sur le serveur (chiffrement des titres étudié puis annulé, `docs/BILAN-AUDIT-06.md`).
 - **Imports** (v9.67.0) : un .docx/.odt est refusé au-delà de 300 Mo (ou 3 Go une fois décompressé), une bibliothèque JSON au-delà de 900 Mo (au-delà de ≈ 500 Mo, le navigateur peut échouer à la lire de lui-même) ; message avec la taille et un conseil.

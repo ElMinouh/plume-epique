@@ -130,6 +130,22 @@ function cspReportAllowed(ip, now) {
   return ++rec.count <= 30;
 }
 
+// v9.70.0 (audit AUD-07-016) — limiteur simple par adresse et par minute pour les deux routes publiques
+// /health (sonde de disponibilité) et /client-error (erreurs du navigateur). Compteur propre à l'instance.
+function hitAllowed(map, ip, now, max) {
+  if (map.size > 500) map.clear();
+  const rec = map.get(ip);
+  if (!rec || now - rec.since > 60000) { map.set(ip, { count: 1, since: now }); return true; }
+  return ++rec.count <= max;
+}
+const _healthHits = new Map(), _clientErrorHits = new Map();
+function browserFamily(ua) {
+  ua = String(ua || '');
+  const mobile = /Mobile|Android|iPhone|iPad/i.test(ua) ? ' mobile' : '';
+  const f = /Edg\//.test(ua) ? 'Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'autre';
+  return f + mobile;
+}
+
 // ═══════════════════════════════════════════════════════
 // v9.65.0 (audit AUD-06-001, 002, 017) — SERRURE PAR PROFIL ET QUOTAS
 // Avant : la clé de synchronisation commune ouvrait TOUTES les données de TOUS les profils (lire, écrire, supprimer,
@@ -543,6 +559,39 @@ async function handleRequest(request, env) {
       return new Response(null, { status: 204, headers: cors });
     }
 
+    // v9.70.0 (audit AUD-07-016) — Sonde de disponibilité PUBLIQUE : aucune donnée, un SELECT 1 pour vérifier que la
+    // base répond. Destinée à un service de surveillance externe (courriel en cas de panne). Plafonnée par adresse.
+    if (request.method === 'GET' && url.pathname === '/health') {
+      if (!hitAllowed(_healthHits, request.headers.get('CF-Connecting-IP') || 'inconnue', Date.now(), 30)) {
+        return new Response(JSON.stringify({ ok: false }), { status: 429, headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Retry-After': '60' } });
+      }
+      try {
+        if (env.DB) await env.DB.prepare('SELECT 1 AS ok').first();
+        return new Response(JSON.stringify({ ok: true }), { headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+      } catch (e) {
+        return new Response(JSON.stringify({ ok: false }), { status: 503, headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+      }
+    }
+    // v9.70.0 — Erreurs JavaScript du navigateur (voir js/pwa.js). Sans clé (une erreur peut survenir avant la saisie
+    // de la clé) mais : origine de l'application seulement (contrôle plus haut), corps ≤ 2 Ko, 20 par minute et par
+    // adresse, champs tronqués. Une ligne de journal + un événement plafonné ; jamais d'adresse ni de contenu de texte.
+    if (request.method === 'POST' && url.pathname === '/client-error') {
+      const rip = request.headers.get('CF-Connecting-IP') || 'inconnue';
+      if (hitAllowed(_clientErrorHits, rip, Date.now(), 20)) {
+        try {
+          const raw = await readBodyCapped(request, 2048);
+          const j = raw ? JSON.parse(raw) : null;
+          if (j && typeof j === 'object') {
+            const v = String(j.v || '').slice(0, 12), m = String(j.m || '').slice(0, 160), s = String(j.s || '').slice(0, 60);
+            const br = browserFamily(request.headers.get('User-Agent'));
+            logEvent({ evt: 'client_error', v, m, s, br });
+            await noteEvent(env, 'client_error', null, (request.cf && request.cf.country) || null, (v + ' ' + br + ' ' + s).slice(0, 80));
+          }
+        } catch (e) { /* rapport illisible : ignoré */ }
+      }
+      return new Response(null, { status: 204, headers: cors });
+    }
+
     // Authentification : une seule clé partagée pour tout le foyer/compte,
     // choisie par vous à l'étape 4 ci-dessus — jamais le mot de passe d'un
     // profil individuel.
@@ -780,7 +829,7 @@ async function handleRequest(request, env) {
 // 3. Lecture : GET ?key=__security__ (résumé 24 h + derniers événements) ou scripts/evenements-securite.cjs.
 // ═══════════════════════════════════════════════════════
 const EVENT_RETENTION_MS = 30 * 24 * 3600 * 1000;
-const EVENT_CAPPED = new Set(['auth_fail', 'rate_limit', 'origin_refused', 'profile_denied', 'index_denied', 'quota']);
+const EVENT_CAPPED = new Set(['auth_fail', 'rate_limit', 'origin_refused', 'profile_denied', 'index_denied', 'quota', 'client_error']);
 const EVENT_CAP_PER_MINUTE = 10;
 const _eventCaps = new Map(); // « type:minute » -> nombre déjà enregistré par cette instance
 let _eventsTableReady = null;
