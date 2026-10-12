@@ -43,7 +43,7 @@ function renderAnalytics() {
   const maxCh = Math.max(...db.chapters.map(c=>getWordCount(c.content)), 1);
   document.getElementById('analytics-bars').innerHTML = db.chapters.map((ch,i) => {
     const wc=getWordCount(ch.content), pct=Math.round(wc/maxCh*100);
-    return `<div class="chapter-bar-row"><span class="u-minw-70px u-ovf-hidden u-tovf-ellipsis u-ws-nowrap" title="${DOMPurify.sanitize(ch.title)}">Ch.${i+1}</span>
+    return `<div class="chapter-bar-row"><span class="u-minw-70px u-ovf-hidden u-tovf-ellipsis u-ws-nowrap" title="${escapeHtml(ch.title)}">Ch.${i+1}</span>
       <div class="u-fg-1 u-bg-v-item-bg u-br-1 u-h-8px u-ovf-hidden">
         <div class="chapter-bar-fill" data-pct="${pct}"></div></div>
       <span class="u-minw-45px u-ta-right u-fs-xs">${wc} m.</span></div>`;

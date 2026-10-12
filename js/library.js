@@ -635,6 +635,7 @@ function wireLibraryStaticUI() {
     const ok = await libVerifyToken();
     if (ok) {
       statusEl.style.color = 'var(--success)'; statusEl.textContent = `Jeton valide (connecté en tant que @${ok}).`; saveLibSettings();
+      if (_tokenScopesTooBroad) { statusEl.style.color = 'var(--warn-text, var(--danger))'; statusEl.textContent += ' Attention : ce jeton donne accès à bien plus que les sauvegardes (vos dépôts, par exemple). Recréez-en un limité au seul droit « Gists ».'; }
       renderGithubReminder();
       if (_setupTourActive) await endSetupTour();
     }
@@ -798,8 +799,8 @@ async function renderLibraryScreen() {
       const hasShapes = isGraphic && Array.isArray(d.gnCoverShapes) && d.gnCoverShapes.length && typeof gnMiniIconHtml === 'function';
       const coverInner = hasShapes ? `<div class="gn-cover-preview">${gnMiniIconHtml(d.gnCoverShapes)}</div>` : (isGraphic ? icon('palette', 'icon-xl') : icon('book-open', 'icon-xl'));
       return `
-    <div class="library-card" data-doc-id="${d.id}" role="button" tabindex="0" title="Ouvrir « ${DOMPurify.sanitize(d.title || 'Sans titre')} »">
-      <button class="library-kebab-btn" data-kebab-doc="${d.id}" title="Actions du manuscrit" aria-label="Actions du manuscrit">${icon('ellipsis-vertical')}</button>
+    <div class="library-card" data-doc-id="${escapeHtml(d.id)}" role="button" tabindex="0" title="Ouvrir « ${escapeHtml(d.title || 'Sans titre')} »">
+      <button class="library-kebab-btn" data-kebab-doc="${escapeHtml(d.id)}" title="Actions du manuscrit" aria-label="Actions du manuscrit">${icon('ellipsis-vertical')}</button>
       <div class="library-cover${coverClass}">${coverInner}</div>
       <div class="library-card-body">
         <p class="library-card-title">${DOMPurify.sanitize(d.title || 'Sans titre')}</p>
@@ -889,8 +890,8 @@ async function renderLibraryShelf(sorted) {
       // v9.55.0 (AUD-04-011) : la hauteur tient aussi compte de la longueur du titre (2 colonnes de ~7,5 px par caractère), plafonnée à 190 px.
       const h = Math.min(190, Math.max(110 + Math.round((d.wordCount||0) / 700), 56 + Math.ceil(String(d.title || 'Sans titre').length * 4.2)));
       const safeTitle = DOMPurify.sanitize(d.title || 'Sans titre');
-      return `<div class="lib-book${shelfCoverClass}" data-doc-id="${d.id}" data-h="${h}" data-band-margin-default="${Math.max(28, Math.round(h*0.16))}" data-band-margin-max="28" role="button" tabindex="0" title="Ouvrir « ${safeTitle} »">
-        <button class="lib-book-kebab" data-kebab-doc="${d.id}" title="Actions du manuscrit" aria-label="Actions du manuscrit">${icon('ellipsis-vertical')}</button>
+      return `<div class="lib-book${shelfCoverClass}" data-doc-id="${escapeHtml(d.id)}" data-h="${h}" data-band-margin-default="${Math.max(28, Math.round(h*0.16))}" data-band-margin-max="28" role="button" tabindex="0" title="Ouvrir « ${safeTitle} »">
+        <button class="lib-book-kebab" data-kebab-doc="${escapeHtml(d.id)}" title="Actions du manuscrit" aria-label="Actions du manuscrit">${icon('ellipsis-vertical')}</button>
         ${it.isRecent ? '<span class="lib-book-recent-dot" title="Modifié le plus récemment" aria-hidden="true"></span>' : ''}
         <span class="lib-book-band lib-book-band-top" aria-hidden="true"></span>
         <span class="lib-book-title">${safeTitle}</span>
@@ -1236,11 +1237,20 @@ async function saveLibSettings() {
 // seule) — nouveau v7.14.0, suite à un retour utilisateur : aucun moyen de
 // confirmer qu'un token collé est valide avant de tenter une vraie
 // sauvegarde. Retourne le login GitHub si valide, sinon null.
+// v9.67.0 (audit AUD-06-021) — un jeton « classique » qui donne accès aux dépôts (repo), à l'administration ou aux
+// workflows expose bien plus que des sauvegardes (en-tête X-OAuth-Scopes ; un jeton à granularité fine n'en renvoie
+// pas : il est supposé limité). Simple avertissement, jamais un blocage.
+let _tokenScopesTooBroad = false;
+function tokenScopesTooBroad(scopes) {
+  return /(^|[\s,])(repo|admin:[a-z_]+|delete_repo|workflow|write:packages|delete:packages|site_admin)(\s*,|\s*$)/.test(String(scopes || ''));
+}
 async function libVerifyToken() {
   if (!_cloudToken) return null;
+  _tokenScopesTooBroad = false;
   try {
-    const resp = await fetchWithTimeout('https://api.github.com/user', { headers: { 'Authorization': `token ${_cloudToken}` }, timeoutMs: 15000 });
+    const resp = await fetchWithTimeout('https://api.github.com/user', { headers: { 'Authorization': `Bearer ${_cloudToken}` }, timeoutMs: 15000 });
     if (!resp.ok) return null;
+    _tokenScopesTooBroad = tokenScopesTooBroad(resp.headers.get('X-OAuth-Scopes'));
     const data = await resp.json();
     return data.login || 'compte GitHub';
   } catch(e) { return null; }
@@ -1368,7 +1378,7 @@ async function libSyncManuscript(docId, opts) {
     const newImageIds = [];
     const first = batches.shift() || [];
     first.forEach(f => { files[f.name] = { content: f.content }; });
-    let resp = await fetchWithTimeout(url, { timeoutMs: 120000, method, headers:{'Authorization':`token ${_cloudToken}`,'Content-Type':'application/json'}, body: JSON.stringify({ public:false, files }) });
+    let resp = await fetchWithTimeout(url, { timeoutMs: 120000, method, headers:{'Authorization':`Bearer ${_cloudToken}`,'Content-Type':'application/json'}, body: JSON.stringify({ public:false, files }) });
     if (!resp.ok) throw new Error(await gistErrorMessage(resp));
     let data = await resp.json();
     if (data.id && data.id !== mData.gistId) mData.gistId = data.id;
@@ -1378,7 +1388,7 @@ async function libSyncManuscript(docId, opts) {
       if (!opts.silent) toast(`Sauvegarde GitHub : images ${i + 2}/${totalBatches}…`, 'info');
       const extra = {}; batches[i].forEach(f => { extra[f.name] = { content: f.content }; });
       try {
-        const r2 = await fetchWithTimeout(`https://api.github.com/gists/${mData.gistId}`, { timeoutMs: 120000, method: 'PATCH', headers:{'Authorization':`token ${_cloudToken}`,'Content-Type':'application/json'}, body: JSON.stringify({ files: extra }) });
+        const r2 = await fetchWithTimeout(`https://api.github.com/gists/${mData.gistId}`, { timeoutMs: 120000, method: 'PATCH', headers:{'Authorization':`Bearer ${_cloudToken}`,'Content-Type':'application/json'}, body: JSON.stringify({ files: extra }) });
         if (!r2.ok) throw new Error(await gistErrorMessage(r2));
         batches[i].forEach(f => newImageIds.push(f.id));
       } catch (e) {
@@ -1417,7 +1427,7 @@ async function libLoadManuscript(docId) {
   try {
     const mData = await loadManuscriptData(docId);
     if (!mData.gistId) { toast("Ce manuscrit n'a pas encore de Gist.", 'error'); return; }
-    const resp = await fetchWithTimeout(`https://api.github.com/gists/${mData.gistId}`, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
+    const resp = await fetchWithTimeout(`https://api.github.com/gists/${mData.gistId}`, { headers: _cloudToken ? {'Authorization':`Bearer ${_cloudToken}`} : {} });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     const raw = data.files && data.files["plume.json"] && data.files["plume.json"].content;
@@ -1435,7 +1445,7 @@ async function libLoadManuscript(docId) {
           const file = data.files[fname];
           let content = file.content;
           if (file.truncated && file.raw_url) {
-            const rawResp = await fetchWithTimeout(file.raw_url, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
+            const rawResp = await fetchWithTimeout(file.raw_url, { headers: _cloudToken ? {'Authorization':`Bearer ${_cloudToken}`} : {} });
             content = await rawResp.text();
           }
           let rec = null;
@@ -1479,7 +1489,7 @@ async function libOpenGistHistory(docId) {
   listEl.innerHTML = '<div class="u-p-10px u-op-75">Chargement…</div>';
   document.getElementById('gist-history-overlay').classList.add('active');
   try {
-    const resp = await fetchWithTimeout(`https://api.github.com/gists/${mData.gistId}/commits`, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
+    const resp = await fetchWithTimeout(`https://api.github.com/gists/${mData.gistId}/commits`, { headers: _cloudToken ? {'Authorization':`Bearer ${_cloudToken}`} : {} });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const commits = await resp.json();
     if (!commits.length) { listEl.innerHTML = emptyState('history', 'Aucun historique', 'Chaque sauvegarde GitHub apparaîtra ici.'); return; }
@@ -1497,7 +1507,7 @@ async function libOpenGistHistory(docId) {
 async function libLoadGistRevision(docId, gistId, sha) {
   if (!(await showConfirmModal({ title: 'Charger cette version ?', message: 'Cette version remplacera le contenu de ce manuscrit.', confirmLabel: 'Charger cette version', danger: true }))) return;
   try {
-    const resp = await fetchWithTimeout(`https://api.github.com/gists/${gistId}/${sha}`, { headers: _cloudToken ? {'Authorization':`token ${_cloudToken}`} : {} });
+    const resp = await fetchWithTimeout(`https://api.github.com/gists/${gistId}/${sha}`, { headers: _cloudToken ? {'Authorization':`Bearer ${_cloudToken}`} : {} });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     const raw = data.files && data.files["plume.json"] && data.files["plume.json"].content;
@@ -1567,7 +1577,7 @@ async function openLibrarySystemPanel(preselectDocId, tab) {
   document.getElementById('lib-cloud-status').textContent = '';
   const list = await loadDocList();
   const sorted = liveDocuments(list).sort((a,b)=>b.lastModified-a.lastModified);
-  const optionsHtml = sorted.map(d => `<option value="${d.id}">${DOMPurify.sanitize(d.title || 'Sans titre')}</option>`).join('');
+  const optionsHtml = sorted.map(d => `<option value="${escapeHtml(d.id)}">${DOMPurify.sanitize(d.title || 'Sans titre')}</option>`).join('');
   const sel = document.getElementById('lib-system-doc-select');
   sel.innerHTML = optionsHtml;
   if (preselectDocId) sel.value = preselectDocId;

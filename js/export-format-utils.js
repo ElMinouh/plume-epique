@@ -408,6 +408,31 @@ function splitImportedHtml(html, firstTitle) {
   return out.length >= 2 ? out : null;
 }
 
+// ── LIMITES D'IMPORT (v9.67.0, audit AUD-06-019) ───────────────────────────────────────────────────────────────────
+// Un fichier piégé ou démesuré (bombe de décompression dans un .docx/.odt, JSON énorme) peut figer ou faire planter
+// l'onglet. Limites volontairement LARGES (3 fois les usages réels : un roman Word pèse de 0,3 à 30 Mo, un roman
+// graphique exporté de 50 à 300 Mo) : elles n'arrêtent que l'excès. Un seul nombre à changer pour les relever.
+const IMPORT_MAX_DOC_BYTES = 300 * 1024 * 1024;           // Word / OpenDocument : fichier
+const IMPORT_MAX_UNZIPPED_BYTES = 3 * 1024 * 1024 * 1024; // Word / OpenDocument : contenu une fois décompressé
+const IMPORT_MAX_JSON_BYTES = 900 * 1024 * 1024;          // export JSON de bibliothèque
+function formatMo(octets) { return (octets / 1048576 >= 10 ? Math.round(octets / 1048576) : Math.round(octets / 104857.6) / 10) + ' Mo'; }
+// Taille décompressée annoncée par l'archive (lecture de l'annuaire du ZIP seulement, sans rien décompresser).
+async function zipUnzippedSize(buf) {
+  if (typeof JSZip === 'undefined') return 0;
+  const zip = await JSZip.loadAsync(buf);
+  let total = 0;
+  zip.forEach((chemin, entree) => { const n = entree && entree._data && entree._data.uncompressedSize; if (typeof n === 'number') total += n; });
+  return total;
+}
+async function assertZipNotBomb(buf, maxBytes = IMPORT_MAX_UNZIPPED_BYTES) {
+  const n = await zipUnzippedSize(buf);
+  if (n > maxBytes) throw new Error('ce fichier se décompresserait en ' + formatMo(n) + ' (limite ' + formatMo(maxBytes) + ') : il est probablement piégé ou corrompu');
+}
+// Enveloppe chiffrée attendue dans un export de bibliothèque : { _enc:true, data:'…' }, rien d'autre d'exploitable.
+function isValidImportedEnvelope(env) {
+  return !!env && typeof env === 'object' && env._enc === true && typeof env.data === 'string' && env.data.length > 0 && env.data.length <= IMPORT_MAX_JSON_BYTES;
+}
+// ── fin des limites d'import ───────────────────────────────────────────────────────────────────────────────────────
 let _docxImportHtml = null, _docxImportTitleGuess = '', _docxImportSplit = null;
 function importManuscriptFile(input) {
   const file = input.files[0]; if (!file) return;
@@ -416,10 +441,15 @@ function importManuscriptFile(input) {
   if (!isOdt && !isDocx) { toast('Format non reconnu (.docx ou .odt attendu).', 'error'); input.value=''; return; }
   if (isDocx && typeof mammoth === 'undefined') { toast(EXPORT_LIB_MISSING, 'error'); input.value=''; return; }
   if (isOdt && (!window.odfKit || !window.odfKit.odtToHtml)) { toast(EXPORT_LIB_MISSING, 'error'); input.value=''; return; }
+  if (file.size > IMPORT_MAX_DOC_BYTES) {
+    toast('Ce fichier pèse ' + formatMo(file.size) + ' : au-delà de la limite d\'import (' + formatMo(IMPORT_MAX_DOC_BYTES) + '). Enregistrez-le sans les images ou en plusieurs parties.', 'error');
+    input.value = ''; return;
+  }
   _docxImportTitleGuess = file.name.replace(/\.(docx|odt)$/i, '').trim() || 'Chapitre importé';
-  const convert = isOdt
-    ? file.arrayBuffer().then(buf => window.odfKit.odtToHtml(new Uint8Array(buf), { fragment:true }))
-    : file.arrayBuffer().then(buf => mammoth.convertToHtml({ arrayBuffer: buf })).then(r => r.value);
+  const convert = file.arrayBuffer().then(async buf => {
+    await assertZipNotBomb(buf); // refus avant toute conversion
+    return isOdt ? window.odfKit.odtToHtml(new Uint8Array(buf), { fragment:true }) : mammoth.convertToHtml({ arrayBuffer: buf }).then(r => r.value);
+  });
   Promise.resolve(convert).then(html => {
     _docxImportHtml = sanitizeManuscriptHtml(html || '<p></p>'); // v9.27.0 : sans attributs style (l'import ODT en produit)
     openDocxImportModal(file.name);
@@ -431,7 +461,7 @@ async function openDocxImportModal(filename) {
   const list = await loadDocList();
   const sel = document.getElementById('docx-existing-select');
   sel.innerHTML = liveDocuments(list).filter(d => d.docType !== 'roman_graphique').sort((a,b)=>b.lastModified-a.lastModified)
-    .map(d => `<option value="${d.id}">${DOMPurify.sanitize(d.title || 'Sans titre')}</option>`).join('');
+    .map(d => `<option value="${escapeHtml(d.id)}">${DOMPurify.sanitize(d.title || 'Sans titre')}</option>`).join('');
   setDocxImportMode('new');
   // v9.36.0 : proposition de découpage si des titres de chapitres sont détectés.
   _docxImportSplit = splitImportedHtml(_docxImportHtml, _docxImportTitleGuess);
@@ -543,13 +573,17 @@ async function megaExportLibrary() {
 }
 function importProjectLibrary(input) {
   const file = input.files[0]; if (!file) return;
+  if (file.size > IMPORT_MAX_JSON_BYTES) {
+    toast('Ce fichier pèse ' + formatMo(file.size) + ' : au-delà de la limite d\'import (' + formatMo(IMPORT_MAX_JSON_BYTES) + '). Exportez les manuscrits un par un, ou sans leurs images.', 'error');
+    input.value = ''; return;
+  }
   const reader = new FileReader();
   reader.onload = async e => {
     try {
       const p = JSON.parse(e.target.result);
       if (!p._plumeLibraryExport || !p.documents) throw new Error('Ce fichier n\'est pas un export de bibliothèque Plume.');
       const newEntries = [];
-      let added = 0;
+      let added = 0, invalidCount = 0;
       // v9.39.0 (AUD-02-022) — manuscrits du fichier DÉJÀ présents (même identifiant, corbeille comprise) : par
       // défaut on les ignore ; sinon importés en copies. Avant, réimporter un fichier dupliquait toute la bibliothèque.
       const present = new Set(((await loadDocList()).documents || []).map(d => d.id));
@@ -576,6 +610,7 @@ function importProjectLibrary(input) {
         const oldEntry = (p.doclist && p.doclist.documents || []).find(d => d.id === oldId);
         const newId = genChapterId();
         let envelope = p.documents[oldId];
+        if (!isValidImportedEnvelope(envelope)) { invalidCount++; continue; } // v9.67.0 : forme vérifiée avant d'écrire quoi que ce soit
         const imgList = (p.images && p.images[oldId]) || [];
         // Restaure les images de ce manuscrit (Lot 7, audit #25) — avec un
         // NOUVEL id à chaque image (comme duplicateGraphicImage() pour la

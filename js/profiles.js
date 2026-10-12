@@ -353,7 +353,7 @@ function questionOptionsHtml() {
 
 // ── ÉCRAN 1 : Connexion ─────────────────────────────────────────────────
 function renderLoginScreen(idx) {
-  const opts = idx.profiles.map(p => `<option value="${p.id}">${DOMPurify.sanitize(p.name)}</option>`).join('');
+  const opts = idx.profiles.map(p => `<option value="${escapeHtml(p.id)}">${DOMPurify.sanitize(p.name)}</option>`).join('');
   gateShell(`
     <div class="gate-title" role="heading" aria-level="1">Plume</div>
     <div class="gate-sub">Choisissez votre profil</div>
@@ -411,7 +411,7 @@ function renderCreateProfile(opts) {
   gateShell(`
     <div class="gate-title" role="heading" aria-level="1"><i>${icon('user')}</i> ${opts.firstAdmin ? 'Bienvenue — créez le profil administrateur' : 'Nouveau profil'}</div>
     <label class="gate-label" for="cp-name">Nom du profil</label>
-    <input id="cp-name" type="text" class="gate-field" value="${DOMPurify.sanitize(defaultName)}" placeholder="Votre prénom ou pseudo" autocomplete="username">
+    <input id="cp-name" type="text" class="gate-field" value="${escapeHtml(defaultName)}" placeholder="Votre prénom ou pseudo" autocomplete="username">
     <label class="gate-label" for="cp-pwd">Mot de passe</label>
     <input id="cp-pwd" type="password" class="gate-field" placeholder="Choisissez un mot de passe" autocomplete="new-password">
     <div id="cp-pwd-hint" class="gate-hint"></div>
@@ -649,8 +649,8 @@ async function renderManageProfiles() {
       <div class="mp-avatar ${isAdmin ? 'mp-avatar-admin' : 'mp-avatar-user'}">${DOMPurify.sanitize(initial)}</div>
       <div class="mp-name">${DOMPurify.sanitize(p.name)}${isAdmin ? ' <span class="mp-badge">admin</span>' : ''}${isMe ? ' <span class="mp-you">vous</span>' : ''}</div>
       <div class="mp-actions">
-        <button class="action-btn btn-sm" data-rename="${p.id}">${icon('pencil')} Renommer</button>
-        ${(!isMe) ? `<button class="action-btn btn-danger btn-sm" data-del="${p.id}">${icon('trash-2')}</button>` : ''}
+        <button class="action-btn btn-sm" data-rename="${escapeHtml(p.id)}">${icon('pencil')} Renommer</button>
+        ${(!isMe) ? `<button class="action-btn btn-danger btn-sm" data-del="${escapeHtml(p.id)}">${icon('trash-2')}</button>` : ''}
       </div>
     </div>`;
   }).join('');

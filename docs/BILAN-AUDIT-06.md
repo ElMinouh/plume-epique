@@ -8,8 +8,8 @@ rapport `.docx`, liste `.csv`, preuve rejouable `poc-verification-worker.mjs`. P
 | 1 | 012, 013 | étape A livrée (v9.63.3) ; étape B : Worker sans repli KV prêt, déploiement après migration |
 | 2 | 009, 010, 011, 022, 023 | codé en v9.64.0 (voir ci-dessous) |
 | 3 | 001, 002, 017 | 3a (v9.65.0) et 3b (v9.65.1) codés |
-| 4 | 003, 004, 006, 007 | 4a (004) codé en v9.66.0, écriture p2 activée en v9.66.1 ; 003 **accepté** (question conservée) ; 007 **annulé** ; 4b (006, rotation de la clé de données) à faire |
-| 5 | 005, 018, 019, 021 | à faire |
+| 4 | 003, 004, 006, 007 | 4a (004) codé en v9.66.0, écriture p2 activée en v9.66.1 ; 003 **accepté** (question conservée) ; 007 **annulé** ; 4b (006, rotation de la clé de données) **annulé** (12/10/2026) |
+| 5 | 005, 018, 019, 021 | codé en v9.67.0 (005 **accepté**) |
 | 6 | 008, 014, 015 | à faire (dépend du lot 3) |
 | 7 | 016, 020 | à faire |
 
@@ -55,3 +55,15 @@ rapport `.docx`, liste `.csv`, preuve rejouable `poc-verification-worker.mjs`. P
 - Tests : `tests/vitest/lot-aud06-4a-mots-de-passe.test.js` (36).
 
 - **Activation (v9.66.1, 12/10/2026)** : `Crypto.writeP2 = true` sur confirmation du propriétaire ; chaque profil ré-enveloppe `wrapPwd` à 600 000 itérations à sa prochaine connexion par mot de passe.
+
+## Lot 4b — rotation de la clé de données : ANNULÉ (12/10/2026)
+
+**AUD-06-006 : risque accepté / reporté par le propriétaire.** Après présentation (probabilité faible mais gravité élevée : un défaut du rechiffrement peut faire perdre des manuscrits ; code jamais éprouvé sur de vraies données), le propriétaire a annulé le lot. Mesures retenues à la place : rotation de la clé de synchronisation (docs/EXPLOITATION.md §6, à la main du propriétaire), suppression des anciennes sauvegardes de `C:\Secrets\Plume\backups-kv\` quand elles ne servent plus, et réexamen en fin d'audit (éventuellement pour le seul profil du propriétaire, avec sauvegarde obligatoire et test de panne à chaque étape). Rappel : changer le mot de passe ne change pas la clé de données ; une copie d'enveloppe prise par le passé reste exploitable (réponse secrète faible, AUD-06-003).
+
+## Lot 5 — saisies et jeton GitHub (v9.67.0)
+
+- **005** : **risque accepté par le propriétaire (12/10/2026)**. La clé de données (session « Rester connecté », 12 h par défaut, option « Toujours ») et la clé de synchronisation restent stockées en clair dans le navigateur. Mesures proposées et non retenues : retirer « Toujours » (plafond 7 jours), chiffrer ces secrets par une clé d'appareil (gain modeste : sans effet contre un script déjà dans la page), verrouillage par inactivité. Recommandation : verrouiller la session du système d'exploitation, ne pas utiliser « Toujours » sur un appareil partagé.
+- **018** : toute valeur insérée dans un ATTRIBUT HTML passe par `escapeHtml` (jamais DOMPurify, qui assainit du HTML de contenu) ; identifiants (`d.id`, `p.id`, `l.id`…) échappés. Test qui interdit le motif (`lot-aud06-5-saisies.test.js`). Trusted Types toujours non activé (≈ 170 `innerHTML`, voir lot 2).
+- **019** : limites d'import larges (3 × les usages réels, demandé par le propriétaire) : Word/ODT 300 Mo, contenu décompressé 3 Go (anti-bombe de décompression, lecture de l'annuaire du ZIP seulement), JSON de bibliothèque 900 Mo ; forme de chaque manuscrit importé vérifiée ; messages avec la taille et un conseil. **Réserve** : au-delà d'environ 500 Mo, la lecture d'un JSON en texte peut échouer d'elle-même dans le navigateur (limite de taille d'une chaîne de caractères) ; l'erreur de lecture est alors affichée.
+- **021** : aide sous le champ du jeton (granularité fine, droit « Gists » seul, 90 jours), avertissement non bloquant si le jeton classique donne accès aux dépôts/administration (`X-OAuth-Scopes`), en-tête `Authorization: Bearer` partout.
+- Tests : `tests/vitest/lot-aud06-5-saisies.test.js` (14).

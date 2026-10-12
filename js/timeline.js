@@ -43,7 +43,7 @@ function renderTimeline() {
   });
 }
 function populateTimelineChapterSel() {
-  document.getElementById('tl-chapter-sel').innerHTML='<option value="">-- Chapitre --</option>'+db.chapters.map((c,i)=>`<option value="${c.id}">${i+1}. ${DOMPurify.sanitize(c.title)}</option>`).join('');
+  document.getElementById('tl-chapter-sel').innerHTML='<option value="">-- Chapitre --</option>'+db.chapters.map((c,i)=>`<option value="${escapeHtml(c.id)}">${i+1}. ${DOMPurify.sanitize(c.title)}</option>`).join('');
 }
 function addTimelineEvent() {
   const text=document.getElementById('tl-event-text').value.trim(), date=document.getElementById('tl-event-date').value.trim(), chSel=document.getElementById('tl-chapter-sel').value;

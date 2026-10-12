@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.66.1**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.67.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -148,6 +148,8 @@ foyer, etc.) : `docs/DECISIONS.md`.
 
 ## Limites connues
 
+- **Imports** (v9.67.0) : un .docx/.odt est refusé au-delà de 300 Mo (ou 3 Go une fois décompressé), une bibliothèque JSON au-delà de 900 Mo (au-delà de ≈ 500 Mo, le navigateur peut échouer à la lire de lui-même) ; message avec la taille et un conseil.
+- **Session en clair** : « Rester connecté » garde la clé de données dans le navigateur de l'appareil (risque assumé, `docs/DECISIONS.md` n°37).
 - **Langue d'un passage** : l'indication `lang` est conservée dans le manuscrit, le mode Lecture et l'export EPUB, **pas** dans l'export DOCX/ODT/PDF ; elle ne s'applique qu'à l'intérieur d'un seul paragraphe.
 - **Accessibilité** : audit AUD-05 traité de bout en bout (voir `docs/BILAN-AUDIT-05.md`) ; aucun test avec un lecteur d'écran réel n'a été fait (NVDA, VoiceOver, TalkBack) — à réaliser par une personne qui l'utilise au quotidien.
 

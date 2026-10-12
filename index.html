@@ -267,9 +267,10 @@
       <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
       <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-cloud"></use></svg> Sauvegarde GitHub — un seul jeton d'accès pour tout le compte</strong><br>
       <div class="u-d-flex u-gap-6px u-mt-6px">
-        <input type="password" id="lib-gh-token" aria-label="Jeton d'accès GitHub" class="field u-flex-1" placeholder="Jeton d'accès GitHub" title="Mémorisé automatiquement (chiffré)">
+        <input type="password" id="lib-gh-token" aria-label="Jeton d'accès GitHub" aria-describedby="lib-token-help" class="field u-flex-1" placeholder="Jeton d'accès GitHub" title="Mémorisé automatiquement (chiffré)">
         <button class="action-btn btn-secondary btn-sm u-fsh-0" id="lib-verify-token-btn" title="Vérifier que ce jeton d'accès est valide auprès de GitHub"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-circle-check"></use></svg> Vérifier</button>
       </div>
+      <p class="u-fs-sm u-op-_7 u-m-6px-0-0" id="lib-token-help">Créez sur GitHub un jeton <strong>à granularité fine</strong> (Paramètres, Developer settings), avec le <strong>seul droit « Gists »</strong> (lecture et écriture) et une expiration de 90 jours au plus. N'utilisez jamais un jeton qui donne accès à vos dépôts.</p>
       <p class="u-fs-sm u-m-6px-0-0" id="lib-token-status" aria-live="polite"></p>
       <div class="u-d-flex u-ai-center u-gap-8px u-mt-8px u-fs-sm u-fw-wrap">
         Sauvegarde auto (toute la bibliothèque) :

@@ -73,7 +73,7 @@ function renderPlugins() {
     card.innerHTML = `
       <h4>${plugin.name}
         <label class="plugin-toggle u-ml-auto">
-          <input type="checkbox" ${enabled?'checked':''} data-plugin="${plugin.id}">
+          <input type="checkbox" ${enabled?'checked':''} data-plugin="${escapeHtml(plugin.id)}">
           <span class="plugin-slider"></span>
         </label>
       </h4>

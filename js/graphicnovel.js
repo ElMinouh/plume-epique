@@ -703,7 +703,7 @@ function gnRenderGabaritsPanel() {
     </div>`).join('');
   const custom = (db.customGabarits || []).map(cg => `
     <div class="gn-gab${_gnPreviewGabarit==='custom:'+cg.id?' gn-active':''}" data-key="custom:${cg.id}">
-      <button class="gn-gab-del" data-id="${cg.id}" title="Supprimer ce gabarit personnalisé" aria-label="Supprimer ce gabarit personnalisé">${icon('x')}</button>
+      <button class="gn-gab-del" data-id="${escapeHtml(cg.id)}" title="Supprimer ce gabarit personnalisé" aria-label="Supprimer ce gabarit personnalisé">${icon('x')}</button>
       <div class="gn-icon">${gnMiniIconHtml(cg.elements)}</div>
       <span class="gn-gab-lbl">${DOMPurify.sanitize(cg.label)}</span>
     </div>`).join('');
@@ -909,7 +909,7 @@ function gnRenderLayers() {
   box.innerHTML = elements.map((el, i) => {
     const label = el.type === 'image' ? (el.imageId ? 'Image' : 'Image (vide)') : (el.content ? el.content.slice(0,28) : 'Bloc de texte vide');
     return `
-    <div class="gn-layer-row${el.id===_gnSelectedElId?' gn-sel':''}" data-el-id="${el.id}" role="button" tabindex="0" aria-pressed="${el.id===_gnSelectedElId}" aria-label="Sélectionner : ${DOMPurify.sanitize(label)}">
+    <div class="gn-layer-row${el.id===_gnSelectedElId?' gn-sel':''}" data-el-id="${escapeHtml(el.id)}" role="button" tabindex="0" aria-pressed="${el.id===_gnSelectedElId}" aria-label="Sélectionner : ${escapeHtml(label)}">
       <span class="gn-lg">${el.type==='image'?''+icon('image')+'':''+icon('type')+''}</span>
       <span class="gn-lname">${DOMPurify.sanitize(label)}</span>
       <span class="gn-lz">
