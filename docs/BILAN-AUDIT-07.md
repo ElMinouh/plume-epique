@@ -23,3 +23,14 @@ Base : v9.69.0 (note 64/100, niveau 3 — Production à l'échelle familiale). R
 | 008 | 🟢 alerte quotidienne à 80 % sur tout le compte (workflow + script). Mesure du 12/10 : horizon-poi 27 023 lignes écrites/24 h, Plume 277 | `lot-aud07-1-detection.test.js`, exécution réelle du script |
 | 017 | 🟢 sauvegarde chiffrée hors dépôt, RPO/RTO écrits, exercice de restauration fait le 12/10/2026. **Décision** : dépôt public ⇒ aucun artefact GitHub | `lot-aud07-1-sauvegarde.test.js`, exercice réel |
 | 018 | 🟡 partiel : essai local 1 → 19,5 Mio OK, 21 Mio refusé (413) ; plafond CPU du plan gratuit non éprouvé en production | `docs/EXPLOITATION.md` §13 |
+
+### Reste à faire côté propriétaire (lot 1)
+1. **Jeton Cloudflare de la CI** : le premier lancement du workflow `Surveillance du quota D1` (12/10/2026) a échoué avec « Authentication error [code: 10000] » : le jeton `CLOUDFLARE_API_TOKEN` n'a pas le droit de LISTER les bases D1. Dashboard → Mon profil → Jetons d'API → modifier le jeton → ajouter *Compte › D1 › Lecture* (ou Modifier), puis relancer le workflow (onglet Actions › Run workflow). Tant que ce n'est pas fait, le workflow échoue chaque jour (courriel d'échec).
+2. **Moniteur de disponibilité** : créer un moniteur HTTP gratuit (UptimeRobot) sur `https://plume-epique-sync.air7841.workers.dev/health`, mot-clé `"ok":true`, intervalle 5 min, alerte par courriel.
+3. **Phrase secrète de sauvegarde** : copier `C:\Secrets\Plume\PASSPHRASE-SAUVEGARDE.txt` dans un gestionnaire de mots de passe ; lancer `node scripts/sauvegarder-d1.cjs` chaque semaine.
+
+### Vérifications faites après le push (12/10/2026)
+- En ligne : `/health` 200 `{"ok":true}` ; `/client-error` 204 (origine de l'application) et 403 (origine étrangère) ; Worker IA 401 sans clé ; clé publique `?key=profiles` 401 ; `sw.js` = v9.70.0 ; application v9.70.0, aucune erreur console.
+- Copie locale (Worker local port 8787, application port 18811, D1 jetable) : sans clé de synchro aucune émission ; avec clé, une erreur non interceptée et un rejet de promesse arrivent au Worker (après pré-vérification CORS) et sont consignés (`client_error`, `Chrome`) ; `__security__` les compte.
+- Non couvert : tests avec un vrai profil et deux appareils (la synchro de manuscrits n'est pas modifiée par ce lot, couverte par la suite de tests) ; plafond CPU du plan gratuit en production ; navigateurs autres que Chrome.
+
