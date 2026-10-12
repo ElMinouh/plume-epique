@@ -35,7 +35,7 @@ jobs:
       # v9.69.0 (audit AUD-06-020) — le contrôle est BLOQUANT au niveau « élevé » (aucune alerte élevée aujourd'hui :
       # seules 3 alertes modérées de l'outil en ligne de commande de mammoth, absent du site). Un niveau « modéré » sans
       # correctif ne doit pas empêcher de livrer ; un niveau « élevé » ou « critique » oui.
-      - name: Audit de sécurité des dépendances de production (bloquant : élevé et critique)
+      - name: Audit de sécurité des dépendances de production (bloquant, niveau élevé et critique)
         run: npm audit --omit=dev --audit-level=high
       # Signatures et provenance des paquets installés (le registre npm signe chaque version publiée).
       - name: Signatures des paquets npm

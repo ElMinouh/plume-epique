@@ -206,3 +206,16 @@ describe('020 — chaîne de publication (CI)', () => {
     }
   });
 });
+
+describe('020 — les workflows restent du YAML valide (régression : un « : » dans un nom d\'étape a invalidé le workflow du 12/10/2026)', () => {
+  it('aucun nom d\'étape ni de job ne contient « : » (indicateur de clé YAML dans une valeur non guillemetée)', () => {
+    for (const f of ['.github/workflows/test.yml', '.github/workflows/deploy-workers.yml']) {
+      const noms = read(f).split('\n').filter(l => /^\s*(- )?name:/.test(l)).map(l => l.replace(/^\s*(- )?name:\s*/, '').replace(/\s+#.*$/, ''));
+      expect(noms.length, f).toBeGreaterThan(0);
+      for (const n of noms) {
+        if (/^["'].*["']$/.test(n)) continue; // guillemeté : permis
+        expect(n, f + ' : ' + n).not.toMatch(/:(\s|$)/);
+      }
+    }
+  });
+});
