@@ -679,10 +679,12 @@ function importProjectLibrary(input) {
       }
       if (unreadable) {
         toast('Import terminé, mais ces manuscrits semblent illisibles : ce fichier vient probablement d\'un autre profil.', 'error');
+      } else if (!added && invalidCount) {
+        toast(invalidCount + ' manuscrit(s) du fichier ignoré(s) : format invalide (fichier abîmé ou qui ne vient pas de Plume).', 'error');
       } else if (!added) {
         toast('Aucun nouveau manuscrit : tous ceux du fichier sont déjà dans votre bibliothèque.', 'info');
       } else {
-        toast(added + ' manuscrit(s) importé(s) dans la bibliothèque.' + (skipIds.size ? ' ' + skipIds.size + ' doublon(s) ignoré(s).' : ''), 'success');
+        toast(added + ' manuscrit(s) importé(s) dans la bibliothèque.' + (skipIds.size ? ' ' + skipIds.size + ' doublon(s) ignoré(s).' : '') + (invalidCount ? ' ' + invalidCount + ' manuscrit(s) ignoré(s) : format invalide.' : ''), 'success');
       }
       await renderLibraryScreen();
     } catch(err) {

@@ -143,3 +143,11 @@ describe('021 — jeton GitHub : aide, avertissement, en-tête moderne', () => {
     expect(lib).toMatch(/if \(_tokenScopesTooBroad\) \{[^}]*Recréez-en un limité au seul droit « Gists »/);
   });
 });
+
+describe('019 — l\'utilisateur est informé des manuscrits ignorés', () => {
+  it('le message d\'import mentionne les manuscrits au format invalide (jamais « déjà présents » à tort)', () => {
+    const src = read('js/export-format-utils.js');
+    expect(src).toContain('else if (!added && invalidCount)');
+    expect(src).toContain("manuscrit(s) ignoré(s) : format invalide");
+  });
+});
