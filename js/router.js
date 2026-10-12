@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.70.0';
+const APP_VERSION = '9.71.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -690,6 +690,19 @@ async function writeLocalOnly(key, payload) {
 // mieux vaut un envoi différé qu'une boucle infinie si un autre appareil écrit
 // en rafale sur la même clé.
 const SYNC_MAX_CONFLICT_RETRIES = 3;
+// v9.71.0 (audit AUD-07-001) — le serveur refuse une écriture de plus de 20 Mio (413) ; le client abandonnait alors
+// l'envoi SANS RIEN DIRE (console.warn) : la copie distante s'arrêtait en silence. On teste la taille avant d'envoyer
+// (inutile de téléverser 20 Mo pour un refus certain) et on prévient, une seule fois par manuscrit et par session.
+const SYNC_MAX_BODY_CHARS = 19 * 1024 * 1024;
+const _tooLargeWarned = {};
+function notifySyncTooLarge(key) {
+  removePendingSyncKey(key);
+  setLastSyncStatus(false);
+  console.warn('Synchro non envoyée : contenu trop volumineux pour la clé', key);
+  if (typeof key !== 'string' || !key.startsWith('doc_') || _tooLargeWarned[key]) return;
+  _tooLargeWarned[key] = true;
+  if (typeof toast === 'function') toast("Ce manuscrit est trop volumineux pour la synchronisation (limite 20 Mo) : il reste enregistré sur cet appareil mais n'est plus envoyé aux autres. Réduisez-le (anciennes versions, images) puis il repartira tout seul.", 'error', { sticky: true, kind: 'sync-size' });
+}
 
 async function syncPush(key, payload, attempt = 0) {
   const syncKey = getSyncKey();
@@ -707,6 +720,7 @@ async function syncPush(key, payload, attempt = 0) {
   if (typeof key === 'string' && key.startsWith('conflict_')) return;
   try {
     const body = JSON.stringify(payload);
+    if (body.length > SYNC_MAX_BODY_CHARS) { notifySyncTooLarge(key); return; }
     const newHash = await sha256Hex(body);
 
     // `keepalive` permet à une sauvegarde de se terminer même si l'utilisateur
@@ -837,6 +851,7 @@ async function syncPush(key, payload, attempt = 0) {
       const v = readVersionHeader(resp);
       if (v !== null) setSyncVersion(key, v);
       setKnownRemoteHash(key, newHash);
+      delete _tooLargeWarned[key]; // v9.71.0 : redevenu assez léger, un futur dépassement sera de nouveau signalé
       // v9.3.0 — Ce qui vient d'être accepté par le serveur devient la base
       // commune des deux appareils : c'est à elle qu'on comparera pour savoir,
       // au prochain refus, qui a réellement modifié quoi.
@@ -848,6 +863,7 @@ async function syncPush(key, payload, attempt = 0) {
       // dans la file de nouvelles tentatives.
       removePendingSyncKey(key);
       console.warn('Synchro refusée par le serveur (' + resp.status + ') pour la clé', key);
+      if (resp.status === 413) notifySyncTooLarge(key); // v9.71.0 : plus de refus silencieux
       // v9.65.0 : quota atteint (507) → le dire ; 403 de serrure → déjà signalé par fetchWithTimeout.
       if (resp.status === 507 && typeof toast === 'function') toast('Espace de synchronisation plein pour ce profil : vos données restent sur cet appareil mais ne sont plus envoyées. Supprimez des images ou contactez l\'administrateur.', 'error', { sticky: true });
     } else {

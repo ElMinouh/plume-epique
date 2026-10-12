@@ -37,7 +37,14 @@ function questsLabelFor(projectType) {
 // ═══════════════════════════════════════════════════════
 const HISTORY_MAX_AUTO = 20;
 const HISTORY_MAX_MANUAL = 20;
-function thinSnapshots(list, now, maxAuto) {
+// v9.71.0 (audit AUD-07-001) — PLAFOND D'OCTETS. Une copie contient le HTML complet du chapitre : 20 copies d'un
+// chapitre = ×21 sur son poids, et tout l'historique voyage dans le manuscrit (sérialisé, chiffré, haché et envoyé en
+// un seul bloc, refusé par le serveur au-delà de 20 Mio). On borne donc aussi le volume des copies AUTOMATIQUES d'un
+// même chapitre (ou d'une même page) : les plus anciennes tombent d'abord, la plus récente est toujours gardée. Les
+// copies manuelles ne comptent pas dans ce plafond et ne sont jamais retirées par lui.
+const HISTORY_MAX_AUTO_BYTES = 2000000;
+function snapshotBytes(sn) { return sn && typeof sn.content === 'string' ? sn.content.length : 0; }
+function thinSnapshots(list, now, maxAuto, maxBytes) {
   if (!Array.isArray(list) || list.length <= 1) return Array.isArray(list) ? list.slice() : [];
   const limitAuto = maxAuto || HISTORY_MAX_AUTO;
   const MIN = 60000, H = 60 * MIN, D = 24 * H;
@@ -56,7 +63,14 @@ function thinSnapshots(list, now, maxAuto) {
     seen.add(slot);
     if (autos.length < limitAuto) autos.push(sn);
   }
-  return autos.concat(manuals).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  const capBytes = maxBytes || HISTORY_MAX_AUTO_BYTES;
+  let total = 0, keep = 0;
+  for (const sn of autos) { // autos : du plus récent au plus ancien
+    total += snapshotBytes(sn);
+    if (keep > 0 && total > capBytes) break; // la copie la plus récente passe toujours
+    keep++;
+  }
+  return autos.slice(0, keep).concat(manuals).sort((a, b) => (b.ts || 0) - (a.ts || 0));
 }
 
 // v9.27.0 (audit AUD-01-020) — échappement d'un TEXTE BRUT avant insertion dans du HTML

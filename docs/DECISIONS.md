@@ -52,3 +52,7 @@ du code (dont l'historique est resté dans les commentaires et dans `docs/HISTOR
   profils ne peut pas rétrécir, purge d'image seulement après recomptage des usages.
 - **Local d'abord** : l'enregistrement local est instantané ; le réseau ne bloque jamais l'écriture.
 - **Prouver par un test** : chaque correction d'incident a un test qui échoue sur l'ancien code.
+
+## Historique des versions : borné, pas sorti du manuscrit (12/10/2026, AUD-07-001)
+Les copies automatiques restent dans le manuscrit (donc synchronisées et sauvegardées), mais plafonnées à 2 Mo par chapitre, et un manuscrit de plus de 19 Mio n'est plus envoyé en silence : message fixe. **Pourquoi** : la sortie de l'historique vers une table locale non synchronisée (variante 2) retirerait la restauration inter-appareils, exigerait une migration de chaque manuscrit et toucherait la synchronisation, zone de l'incident de juillet 2026 ; le seuil de blocage (≈ 14 Mo de texte) est 30 fois au-dessus du plus gros manuscrit réel. **À revoir** si un manuscrit dépasse 5 Mo chiffrés.
+

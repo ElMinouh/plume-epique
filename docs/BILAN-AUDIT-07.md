@@ -6,7 +6,7 @@ Base : v9.69.0 (note 64/100, niveau 3 — Production à l'échelle familiale). R
 | Lot | Constats | Statut |
 |---|---|---|
 | 1 Détection | 016, 008, 017, 018 | 🟢 v9.70.0 (voir ci-dessous) |
-| 2 Historique hors du manuscrit | 001 | à faire |
+| 2 Historique borné et refus d'envoi visible | 001 | 🟢 v9.71.0 (voir ci-dessous) |
 | 3 Réseau de synchro | 011, 012, 020 | à faire |
 | 4 Écritures évitables | 009, 010 | à faire |
 | 5 Worker D1 / IA | 007, 015 | à faire |
@@ -33,4 +33,10 @@ Base : v9.69.0 (note 64/100, niveau 3 — Production à l'échelle familiale). R
 - En ligne : `/health` 200 `{"ok":true}` ; `/client-error` 204 (origine de l'application) et 403 (origine étrangère) ; Worker IA 401 sans clé ; clé publique `?key=profiles` 401 ; `sw.js` = v9.70.0 ; application v9.70.0, aucune erreur console.
 - Copie locale (Worker local port 8787, application port 18811, D1 jetable) : sans clé de synchro aucune émission ; avec clé, une erreur non interceptée et un rejet de promesse arrivent au Worker (après pré-vérification CORS) et sont consignés (`client_error`, `Chrome`) ; `__security__` les compte.
 - Non couvert : tests avec un vrai profil et deux appareils (la synchro de manuscrits n'est pas modifiée par ce lot, couverte par la suite de tests) ; plafond CPU du plan gratuit en production ; navigateurs autres que Chrome.
+
+## Lot 2 — v9.71.0
+
+| ID | Statut | Preuve |
+|---|---|---|
+| 001 | 🟡 traité par la variante prudente validée le 12/10/2026 : plafond de 2 Mo de copies automatiques par chapitre/page (`HISTORY_MAX_AUTO_BYTES`, `thinSnapshots`), garde de 19 Mio avant envoi et message fixe sur refus 413 (`notifySyncTooLarge`). L'historique RESTE dans le manuscrit et synchronisé (la sortie vers une table locale, variante 2, est gardée en réserve : risque de migration sur la zone la plus sensible du projet, danger lointain — 457 Ko aujourd'hui pour 14 Mo de seuil). | `lot-aud07-2-historique.test.js` |
 
