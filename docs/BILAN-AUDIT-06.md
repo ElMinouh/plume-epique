@@ -11,7 +11,7 @@ rapport `.docx`, liste `.csv`, preuve rejouable `poc-verification-worker.mjs`. P
 | 4 | 003, 004, 006, 007 | 4a (004) codé en v9.66.0, écriture p2 activée en v9.66.1 ; 003 **accepté** (question conservée) ; 007 **annulé** ; 4b (006, rotation de la clé de données) **annulé** (12/10/2026) |
 | 5 | 005, 018, 019, 021 | codé en v9.67.0 (005 **accepté**) |
 | 6 | 008, 014, 015 | 014 et 015 codés en v9.68.0 ; 008 **annulé** |
-| 7 | 016, 020 | à faire |
+| 7 | 016, 020 | codé en v9.69.0 (pas d'alerte ntfy) |
 
 ## Lot 1 — secrets d'exploitation et effacement réel
 
@@ -76,3 +76,13 @@ rapport `.docx`, liste `.csv`, preuve rejouable `poc-verification-worker.mjs`. P
 - Tests : `tests/vitest/lot-aud06-6-vie-privee.test.js` (17) ; trois tests existants adaptés au nouveau consentement.
 - **v9.68.1** (corrections constatées au test réel local) : un profil supprimé ne pouvait pas être « re-verrouillé » par une simple lecture avec jeton (le Worker refuse désormais TOUTE requête d'un profil portant une pierre tombale, code `profile-deleted`) ; la politique de confidentialité s'ouvre et se ferme aussi depuis la bibliothèque (menu Aide, bureau et mobile) ; test de non-régression ajouté (18 tests dans `lot-aud06-6-vie-privee.test.js`).
 - **v9.68.2** (signalé par le propriétaire : « impossible de fermer la politique de confidentialité ») : la fenêtre n'avait AUCUNE règle CSS (`#privacy-overlay` absent de `style.css`) : elle s'affichait en permanence à la suite de la page et le bouton Fermer n'avait donc aucun effet visible. Ajoutée à toutes les règles partagées avec `#shortcuts-overlay` (masquage, affichage `.active`, animations) + test de non-régression. **Leçon** : un test qui ne regarde que l'état (`classList`) ne voit pas une fenêtre sans CSS ; les parcours qui ajoutent une fenêtre doivent être contrôlés à l'écran (capture), ce que j'ai omis à la 9.68.0.
+
+## Lot 7 — surveillance et chaîne d'approvisionnement (v9.69.0)
+
+- **016** : journal Workers Logs enrichi (`pid` = empreinte du profil qui agit, `cc` = pays), registre D1 `security_events` (30 jours, plafonné, événements : échecs de clé, frein, refus de serrure, refus de la liste des profils, quotas, suppressions, effacements de profil, verrouillages, changements de rôle), lecture `?key=__security__` et `scripts/evenements-securite.cjs`. **Alertes automatiques non retenues** (ntfy refusé par le propriétaire, 12/10/2026) : le registre se consulte à la demande.
+- **020** : `vendor/SHA256SUMS` (25 fichiers) + test + CI ; **9 bibliothèques sur 9 vérifiées identiques aux paquets npm officiels** (seule la ligne `sourceMappingURL` est retirée) ; CI à droits minimaux, audit « élevé » bloquant, `npm audit signatures` (179 paquets signés) ; protection de `main` contre le push forcé et la suppression ; liste de contrôle du propriétaire (2FA GitHub et Cloudflare, jeton Cloudflare à droits minimaux avec expiration) dans docs/EXPLOITATION.md §6 quinquies. **Non retenu** : isolation des bibliothèques dans un cadre étanche (risque assumé).
+- Tests : `tests/vitest/lot-aud06-7-surveillance.test.js` (18).
+
+## Bilan de l'audit AUD-06 (12/10/2026)
+
+23 constats : **18 traités** (001, 002, 004, 009, 010, 011, 012, 013, 014, 015, 016, 017, 018, 019, 020, 021, 022, 023 ; **012 et 013 sont à finir à la main** : rotation de la clé de synchronisation et vidage de l'ancien KV ; **022** : Trusted Types non activé, voir lot 2), **5 acceptés ou annulés par le propriétaire** (003 question secrète conservée ; 005 session en clair ; 006 rotation de la clé de données ; 007 liaison des données à leur emplacement ; 008 titres de manuscrits en clair). Les alertes automatiques (ntfy) ont aussi été refusées (volet de 016).

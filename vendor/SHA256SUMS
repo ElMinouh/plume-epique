@@ -1,0 +1,26 @@
+# Empreintes SHA-256 de vendor/ (audit AUD-06-020). Régénérer volontairement : node scripts/vendor-empreintes.cjs --ecrire
+84d0e233daba702b8f77d669d8c137cad36d441a10f200b6f2d3ab553bdfcf6b  chart-4.5.1.umd.min.js
+f2094bbf6141b359722c4fe454eb6c4b0f0e42cc10cc7af921fc158fceb86539  d3-7.9.0.min.js
+1a1c55af6242bc9bc1d89cba76f656e79e9b4b3c43228e17bee8cda0b9dffad1  docx-9.8.1.js
+c2b2880796e279f9b76bed6e67aada76e421f1540491f9ef70589d7107b3e76c  dompurify-3.4.16.min.js
+22a7a3b4896c444fcf41a0faeb3268f3070bfe49a9c70eaedb8e198c54382912  fflate-0.8.3.esm.js
+9d9c2888fb74063cbacb70334177c67f3d38a3d2145400ed96eda28edb6a1e21  file-saver-2.0.5.min.js
+bc8825fd435d4aa8e31449937826d583a7daaae15a83832c91b38375131ebf08  fonts/atkinson-hyperlegible-5.3.0-latin-400-italic.woff2
+d64ba838ef5472bba248620ec4fd8b5aa7cf0db2908e0bb230600caf279ba7bc  fonts/atkinson-hyperlegible-5.3.0-latin-400-normal.woff2
+73e0c9e1e284128dda599558f7c15bd5f3c056442c31dfae950528a16b3835cf  fonts/atkinson-hyperlegible-5.3.0-latin-700-italic.woff2
+140e2bd25a7315c8a062508391426b0d8c3297400c947b8d847be28f73a199f0  fonts/atkinson-hyperlegible-5.3.0-latin-700-normal.woff2
+3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62  fonts/inter-5.3.0-latin-wght-normal.woff2
+e137caeef2ff7c04fbf87078ad09cf3dcba8a3a58a4aa4e2f399d42c50bc4b18  fonts/LICENCE-OFL-atkinson.txt
+05f6002bf3f86f0040a2b0cec4d103346ba12f6659817838196f76a218d55724  fonts/LICENCE-OFL-inter.txt
+b4da0eb02ee5a57e5bc754214c853e1ac45104c9eafee23bdc95316b78e048d5  fonts/LICENCE-OFL-literata.txt
+ab198d6616c7cc966f26a4a5b28a3977dc47439640f09d9b3361226bd465c404  fonts/literata-5.3.0-latin-wght-italic.woff2
+9adbeac5b167fe5ad6c49d9e29aa0c76e2f1bb3b46bf4ebf12a9eca7d3525384  fonts/literata-5.3.0-latin-wght-normal.woff2
+e87e550794322e574a1fda0c1549a3c70dae5a93d9113417a429016838eab8cb  html2canvas-1.4.1.min.js
+ff4b3763d5b8e7981f606cb3d46df37ac5b7fc1d4b4eca34da129b47219edd59  idb-8.0.3.umd.js
+97cff153c9765f25b5bafb6938f33239fb98f3211759e1aa56ff9a5186c81649  jspdf-4.2.1.umd.min.js
+acc7e41455a80765b5fd9c7ee1b8078a6d160bbbca455aeae854de65c947d59e  jszip-3.10.1.min.js
+62773d3b21c7130342148e78abf7b97dbd3103463d3ffc5a68601a2a007e1cf1  mammoth-1.11.0.browser.min.js
+e04287f23eda81dd6e402f2761786273d24056854ffbed427e218c518e632777  marked-18.0.14.esm.js
+0a9518053ef52731e8562ef1303acfa640800aac0bf53251b95fdbbba9793d73  odf-kit-0.14.3.esm.js
+6fe2dfce4cfb2e0febb9f68ee5fbf24f1d6c65302d978baa3d6af8393290e3ad  odf-kit-document-0.14.3.esm.js
+9aed85dfb0f367b6959fe234a15d295deccbe2530fb187ed43ac33354df68c9f  odf-kit-reader-0.14.3.esm.js

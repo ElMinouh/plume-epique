@@ -75,7 +75,7 @@ const _authFails = new Map(); // adresse -> { count, since }
 const MAX_BODY_BYTES = 20 * 1024 * 1024;
 const ID = '[A-Za-z0-9_-]{1,80}';
 const KEY_PATTERN = new RegExp(
-  '^(profiles|main|__ping__|__usage__|profile_[A-Za-z0-9-]{1,80}' +
+  '^(profiles|main|__ping__|__usage__|__security__|profile_[A-Za-z0-9-]{1,80}' +
   '|(doclist|data|libsettings)_' + ID +
   '|(doc|aichat)_' + ID + '_' + ID +
   '|img_' + ID + '_' + ID + '_' + ID + ')$'
@@ -275,6 +275,7 @@ async function authorizeProfilesWrite(request, env, body, cors) {
     const b = before.get(id);
     if (b && a.role !== b.role && locked.has(id) && (a.role === 'admin' || a.role === 'user')) {
       await env.DB.prepare('UPDATE profile_auth SET role = ?1 WHERE pid = ?2').bind(a.role, id).run();
+      await noteEvent(env, 'role_change', id, null, a.role);
     }
   }
   return null;
@@ -338,6 +339,7 @@ async function authorizeProfile(request, env, pid, cors) {
   const role = await roleAtClaim(env, pid);
   await env.DB.prepare('INSERT OR IGNORE INTO profile_auth (pid, verifier, created_at, role) VALUES (?1, ?2, ?3, ?4)').bind(pid, verifier, Date.now(), role).run();
   const won = await env.DB.prepare('SELECT verifier FROM profile_auth WHERE pid = ?1').bind(pid).first();
+  if (won && timingSafeEqual(won.verifier, verifier)) await noteEvent(env, 'profile_lock', pid, null, role);
   return won && timingSafeEqual(won.verifier, verifier) ? null
     : refuse(403, 'profile-token', 'Ce profil vient d\'être verrouillé par un autre appareil : rechargez la page.');
 }
@@ -585,6 +587,14 @@ async function handleRequest(request, env) {
     // Clé technique réservée, utilisée uniquement par le bouton "Vérifier"
     // de l'app (ne lit ni n'écrit rien de réel — sert juste à confirmer que
     // la clé fournie est acceptée).
+    if (key === '__security__' && request.method === 'GET') {
+      if (!env.DB) return new Response(JSON.stringify({ storage: 'kv' }), { headers: { ...cors, 'Content-Type': 'application/json' } });
+      try {
+        return new Response(JSON.stringify(await securitySummary(env.DB)), { headers: { ...cors, 'Content-Type': 'application/json' } });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: { message: 'Registre indisponible.' } }), { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } });
+      }
+    }
     if (key === '__usage__' && request.method === 'GET') {
       try {
         return new Response(JSON.stringify(await store.usage()), { headers: { ...cors, 'Content-Type': 'application/json' } });
@@ -760,18 +770,96 @@ async function handleRequest(request, env) {
     });
 }
 
+// ═══════════════════════════════════════════════════════
+// v9.69.0 (audit AUD-06-016) — DÉTECTION ET TRAÇABILITÉ
+// 1. Journal enrichi : chaque ligne porte l'empreinte courte du profil qui agit (`pid`) et le pays (`cc`).
+// 2. Registre D1 `security_events` (30 jours) des événements qui comptent pour un enquêteur : échecs de clé, refus de la
+//    serrure, suppressions, effacements de profil, verrouillages, changements de rôle, quotas. Les événements
+//    « bruyants » (échecs, refus, quotas) sont PLAFONNÉS (10 par minute et par type et par instance) : une attaque ne
+//    peut pas saturer la base partagée. Jamais d'adresse IP, de clé ni de contenu.
+// 3. Lecture : GET ?key=__security__ (résumé 24 h + derniers événements) ou scripts/evenements-securite.cjs.
+// ═══════════════════════════════════════════════════════
+const EVENT_RETENTION_MS = 30 * 24 * 3600 * 1000;
+const EVENT_CAPPED = new Set(['auth_fail', 'rate_limit', 'origin_refused', 'profile_denied', 'index_denied', 'quota']);
+const EVENT_CAP_PER_MINUTE = 10;
+const _eventCaps = new Map(); // « type:minute » -> nombre déjà enregistré par cette instance
+let _eventsTableReady = null;
+function ensureEventsTable(db) {
+  if (!_eventsTableReady) {
+    _eventsTableReady = db.prepare('CREATE TABLE IF NOT EXISTS security_events (ts INTEGER NOT NULL, kind TEXT NOT NULL, pid TEXT, cc TEXT, detail TEXT)').run()
+      .then(() => db.prepare('CREATE INDEX IF NOT EXISTS security_events_ts ON security_events (ts)').run())
+      .catch(e => { _eventsTableReady = null; throw e; });
+  }
+  return _eventsTableReady;
+}
+async function pseudonym(id) {
+  return id ? (await sha256Hex('plume-evt|' + id)).slice(0, 10) : null;
+}
+async function recordEvent(env, kind, rawPid, cc, detail) {
+  if (!env.DB) return;
+  if (EVENT_CAPPED.has(kind)) {
+    if (_eventCaps.size > 200) _eventCaps.clear();
+    const k = kind + ':' + Math.floor(Date.now() / 60000);
+    const n = (_eventCaps.get(k) || 0) + 1;
+    _eventCaps.set(k, n);
+    if (n > EVENT_CAP_PER_MINUTE) return;
+  }
+  await ensureEventsTable(env.DB);
+  await env.DB.prepare('INSERT INTO security_events (ts, kind, pid, cc, detail) VALUES (?1, ?2, ?3, ?4, ?5)')
+    .bind(Date.now(), kind, await pseudonym(rawPid), cc || null, detail ? String(detail).slice(0, 80) : null).run();
+  if (Math.random() < 0.02) await env.DB.prepare('DELETE FROM security_events WHERE ts < ?1').bind(Date.now() - EVENT_RETENTION_MS).run();
+}
+// Enregistre sans jamais faire échouer ni ralentir la requête (waitUntil quand il existe).
+function noteEvent(env, kind, rawPid, cc, detail) {
+  const p = recordEvent(env, kind, rawPid, cc, detail).catch(() => { /* le registre ne doit jamais casser une requête */ });
+  if (env && env.__ctx && typeof env.__ctx.waitUntil === 'function') { env.__ctx.waitUntil(p); return Promise.resolve(); }
+  return p;
+}
+async function securitySummary(db) {
+  await ensureEventsTable(db);
+  const since = Date.now() - 24 * 3600 * 1000;
+  const counts = (await db.prepare('SELECT kind, COUNT(*) AS n FROM security_events WHERE ts >= ?1 GROUP BY kind ORDER BY n DESC').bind(since).all()).results || [];
+  const last = (await db.prepare('SELECT ts, kind, pid, cc, detail FROM security_events ORDER BY ts DESC LIMIT 50').all()).results || [];
+  return { retentionDays: 30, last24h: Object.fromEntries(counts.map(r => [r.kind, r.n])), last };
+}
+// Déduit l'événement de sécurité de la réponse (un seul point de contrôle plutôt que des appels éparpillés).
+async function classifyForEvent(request, key, res) {
+  const st = res.status, m = request.method;
+  const keyPid = profileIdOfKey(key);
+  const fam = key.split('_')[0] || 'aucune';
+  if (st === 401) return ['auth_fail', null, fam];
+  if (st === 429) return ['rate_limit', null, fam];
+  if (st === 507) return ['quota', keyPid, fam];
+  if (st === 403) {
+    let code = '';
+    try { const j = await res.clone().json(); code = (j && j.error && j.error.code) || ''; } catch (e) { /* corps non JSON */ }
+    if (code === 'profile-index') return ['index_denied', request.headers.get('X-Plume-Profile-Id'), 'profiles'];
+    if (code) return ['profile_denied', key.startsWith('profile_') ? key.slice(8) : keyPid, code];
+    return ['origin_refused', null, fam];
+  }
+  if (st === 200 && m === 'DELETE') return key.startsWith('profile_') ? ['profile_erase', key.slice(8), 'profile'] : ['delete', keyPid, fam];
+  return null;
+}
+
 // v9.29.0 (audit AUD-01-016) — UNE ligne JSON par requête dans les journaux Cloudflare (Workers Logs) :
 // méthode, famille de clé (profiles, doc, doclist, img…), code de réponse, durée, version. JAMAIS le
 // contenu, ni l'identifiant de profil ou de manuscrit, ni la clé de synchronisation.
 function logEvent(evt) { try { console.log(JSON.stringify(evt)); } catch (e) { /* le journal ne doit jamais casser une requête */ } }
 export default {
-  async fetch(request, env) {
+  async fetch(request, rawEnv, ctx) {
     const t0 = Date.now();
+    const env = { ...rawEnv, __ctx: ctx }; // le contexte sert au registre (waitUntil) ; les liaisons sont copiées par référence
     const key = new URL(request.url).searchParams.get('key') || '';
     const fam = key.split('_')[0] || 'aucune';
     try {
       const res = await handleRequest(request, env);
-      logEvent({ evt: 'sync', m: request.method, fam, st: res.status, ms: Date.now() - t0, ver: res.headers.get('X-Plume-Version'), store: env.DB ? 'd1' : 'kv' });
+      const cc = (request.cf && request.cf.country) || null;
+      const actingPid = await pseudonym(request.headers.get('X-Plume-Profile-Id'));
+      logEvent({ evt: 'sync', m: request.method, fam, st: res.status, ms: Date.now() - t0, ver: res.headers.get('X-Plume-Version'), store: env.DB ? 'd1' : 'kv', pid: actingPid, cc });
+      try {
+        const ev = await classifyForEvent(request, key, res);
+        if (ev) await noteEvent(env, ev[0], ev[1], cc, ev[2]);
+      } catch (e) { /* le registre ne doit jamais casser une requête */ }
       return res;
     } catch (e) {
       logEvent({ evt: 'sync', m: request.method, fam, st: 'exception', ms: Date.now() - t0, err: String((e && e.message) || e).slice(0, 120) });

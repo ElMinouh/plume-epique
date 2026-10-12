@@ -22,6 +22,11 @@ on:
       - 'worker/**'
   workflow_dispatch:
 
+# v9.69.0 (audit AUD-06-020) — droits minimaux du jeton GitHub : lecture seule. Le déploiement utilise les secrets Cloudflare du
+# dépôt (CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID), pas les droits d'écriture du jeton GitHub.
+permissions:
+  contents: read
+
 jobs:
   # v9.29.0 (audit AUD-01-015) — plus aucun déploiement si les tests échouent : le Worker de synchro est
   # le point le plus sensible du projet (incident du 27/07/2026), il ne part en production qu'après

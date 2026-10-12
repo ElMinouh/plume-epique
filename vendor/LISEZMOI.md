@@ -30,8 +30,12 @@ Les trois modules ODT (`odf-kit-*.esm.js`) importent `fflate` et `marked` : leur
 remplacées par des chemins relatifs vers les copies ci-dessus (c'est la seule modification apportée aux fichiers,
 avec le retrait des lignes `sourceMappingURL`).
 
+## Intégrité (v9.69.0, AUD-06-020)
+`vendor/SHA256SUMS` donne l'empreinte SHA-256 de chaque fichier ; un test (`tests/vitest/lot-aud06-7-surveillance.test.js`) et la CI échouent si un fichier change, disparaît ou s'ajoute sans mise à jour volontaire de ce fichier : `node scripts/vendor-empreintes.cjs --ecrire`. `node scripts/vendor-compare-npm.cjs` compare les 9 copies exactes aux paquets npm officiels (hors ligne finale `sourceMappingURL`).
+
 ## Mettre à jour une librairie
 1. Changer la version dans `package.json` (section `dependencies`). Depuis le 06/10/2026 Dependabot ne propose plus ces bibliothèques (voir `.github/dependabot.yml`) : vérifier à la main, une fois par trimestre ou après une alerte, avec `npm outdated`, `npm audit` et les notes de version.
+2. (puis, à la fin : `node scripts/vendor-empreintes.cjs --ecrire` et commit de `vendor/SHA256SUMS`)
 2. Télécharger le fichier de la nouvelle version (même chemin que ci-dessus sur jsDelivr/unpkg), le placer ici sous
    le nouveau nom, mettre à jour `index.html` et `sw.js` (CORE_ASSETS), puis relancer `npm test` (un test vérifie la
    cohérence index.html ↔ sw.js ↔ vendor/ ↔ package.json).

@@ -11,6 +11,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# v9.69.0 (audit AUD-06-020) — DROITS MINIMAUX du jeton GitHub de ce workflow : lecture du dépôt seulement. Ce workflow n'a
+# aucun besoin d'écrire (ni commit, ni release, ni commentaire) : un maillon compromis ne peut donc rien modifier par lui.
+permissions:
+  contents: read
+
 jobs:
   test:
     name: npm test
@@ -27,9 +32,16 @@ jobs:
         run: npm ci
       - name: Lancer les tests
         run: npm test
-      # v9.29.0 (audit AUD-01-015) — alertes de sécurité des dépendances de PRODUCTION (librairies de vendor/).
-      # Non bloquant : une alerte sans correctif disponible ne doit pas empêcher de livrer ; elle reste visible
-      # dans le journal et Dependabot propose les mises à jour.
-      - name: Audit de sécurité des dépendances de production
+      # v9.69.0 (audit AUD-06-020) — le contrôle est BLOQUANT au niveau « élevé » (aucune alerte élevée aujourd'hui :
+      # seules 3 alertes modérées de l'outil en ligne de commande de mammoth, absent du site). Un niveau « modéré » sans
+      # correctif ne doit pas empêcher de livrer ; un niveau « élevé » ou « critique » oui.
+      - name: Audit de sécurité des dépendances de production (bloquant : élevé et critique)
         run: npm audit --omit=dev --audit-level=high
-        continue-on-error: true
+      # Signatures et provenance des paquets installés (le registre npm signe chaque version publiée).
+      - name: Signatures des paquets npm
+        run: npm audit signatures
+      # Intégrité de vendor/ : empreintes enregistrées (SHA256SUMS) ET comparaison aux paquets officiels (node_modules).
+      - name: Intégrité des bibliothèques de vendor/
+        run: |
+          node scripts/vendor-empreintes.cjs
+          node scripts/vendor-compare-npm.cjs

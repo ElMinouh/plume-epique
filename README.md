@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.68.2**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.69.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -148,6 +148,7 @@ foyer, etc.) : `docs/DECISIONS.md`.
 
 ## Limites connues
 
+- **Surveillance** (v9.69.0) : le serveur de synchro tient un registre des événements de sécurité (30 jours, sans IP ni contenu) à consulter avec `node scripts/evenements-securite.cjs` ; il n'envoie **aucune alerte** automatique. Les bibliothèques de `vendor/` sont protégées par des empreintes (`vendor/SHA256SUMS`, test et CI).
 - **Vie privée** (v9.68.0) : l'IA (Google Gemini), le correcteur (LanguageTool) et la dictée vocale ne partent qu'avec l'accord du profil (écran Accepter / Refuser, réglable dans Mon profil) ; une page « Politique de confidentialité » est dans l'aide. Les titres des manuscrits, leurs nombres de mots et dates, les prénoms des profils et la question de sécurité ne sont **pas chiffrés** sur le serveur (chiffrement des titres étudié puis annulé, `docs/BILAN-AUDIT-06.md`).
 - **Imports** (v9.67.0) : un .docx/.odt est refusé au-delà de 300 Mo (ou 3 Go une fois décompressé), une bibliothèque JSON au-delà de 900 Mo (au-delà de ≈ 500 Mo, le navigateur peut échouer à la lire de lui-même) ; message avec la taille et un conseil.
 - **Session en clair** : « Rester connecté » garde la clé de données dans le navigateur de l'appareil (risque assumé, `docs/DECISIONS.md` n°37).

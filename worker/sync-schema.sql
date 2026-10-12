@@ -22,3 +22,13 @@ CREATE TABLE IF NOT EXISTS profile_auth (
   created_at INTEGER NOT NULL,
   role       TEXT NOT NULL DEFAULT 'user'  -- v9.65.1 : 'admin' fixé à la première connexion (voir sync-worker.js)
 );
+-- v9.69.0 (audit AUD-06-016) — registre des événements de sécurité (30 jours) : type, empreinte courte du profil, pays.
+-- Jamais d'adresse IP, de clé, ni de contenu. Créé aussi à la volée par le Worker (IF NOT EXISTS).
+CREATE TABLE IF NOT EXISTS security_events (
+  ts     INTEGER NOT NULL,   -- horodatage (ms)
+  kind   TEXT NOT NULL,      -- auth_fail | rate_limit | origin_refused | profile_denied | index_denied | quota | delete | profile_erase | profile_lock | role_change
+  pid    TEXT,               -- empreinte courte (10 hex) du profil concerné, non réversible sans la liste des profils
+  cc     TEXT,               -- pays (en-tête Cloudflare), si connu
+  detail TEXT                -- précision courte (famille de clé, code de refus…), jamais de contenu
+);
+CREATE INDEX IF NOT EXISTS security_events_ts ON security_events (ts);
