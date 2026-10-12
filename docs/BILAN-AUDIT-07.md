@@ -40,3 +40,5 @@ Base : v9.69.0 (note 64/100, niveau 3 — Production à l'échelle familiale). R
 |---|---|---|
 | 001 | 🟡 traité par la variante prudente validée le 12/10/2026 : plafond de 2 Mo de copies automatiques par chapitre/page (`HISTORY_MAX_AUTO_BYTES`, `thinSnapshots`), garde de 19 Mio avant envoi et message fixe sur refus 413 (`notifySyncTooLarge`). L'historique RESTE dans le manuscrit et synchronisé (la sortie vers une table locale, variante 2, est gardée en réserve : risque de migration sur la zone la plus sensible du projet, danger lointain — 457 Ko aujourd'hui pour 14 Mo de seuil). | `lot-aud07-2-historique.test.js` |
 
+
+Vérifications après le push (12/10/2026) : en ligne, v9.71.0 (titre, `sw.js`), console sans erreur, CI verte ; copie locale (Worker local 8787 + application 18821, D1 jetable) : un envoi normal de 200 Ko arrive (version 1) ; un contenu de 20 Mio n'est pas envoyé (aucune requête au Worker), un seul message fixe « trop volumineux » apparaît (deux tentatives), la clé n'est pas en file de reprise ; 20 copies de 400 Ko sont ramenées à 5 (2 Mo). Non couvert : vrai manuscrit volumineux avec historique réel, deux appareils, refus 413 réel de la production.
