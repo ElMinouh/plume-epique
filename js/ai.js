@@ -189,7 +189,7 @@ function aiShowResult(el, scopeNote, body) {
 }
 
 async function generateAISummary() {
-  await notifyThirdPartyDataUseOnce();
+  if (!(await notifyThirdPartyDataUseOnce())) return;
   flushCurrentChapter();
   const panel = document.getElementById('ai-summary-panel'), textEl = document.getElementById('ai-summary-text');
   const ch = db.chapters[cur];
@@ -224,7 +224,7 @@ function copyAISummaryToChapter() {
   if (s) { db.chapters[cur].summary=s; save(); toast('Résumé copié','success'); }
 }
 async function aiContinueSuggestions() {
-  await notifyThirdPartyDataUseOnce();
+  if (!(await notifyThirdPartyDataUseOnce())) return;
   flushCurrentChapter();
   const text = getPlainText(db.chapters[cur].content);
   if (text.length < 100) { toast('Écrivez davantage.','error'); return; }
@@ -237,7 +237,7 @@ async function aiContinueSuggestions() {
 }
 let _aiCheckToken = null;
 async function aiCheckInconsistencies() {
-  await notifyThirdPartyDataUseOnce();
+  if (!(await notifyThirdPartyDataUseOnce())) return;
   flushCurrentChapter();
   const el = document.getElementById('ai-check-result');
   const scopeSel = document.getElementById('ai-check-scope');
@@ -306,7 +306,7 @@ async function aiCheckWholeNovel(el) {
   finally { token.done = true; }
 }
 async function aiGenerateNames() {
-  await notifyThirdPartyDataUseOnce();
+  if (!(await notifyThirdPartyDataUseOnce())) return;
   const genre = document.getElementById('name-genre-sel').value;
   const sex = document.getElementById('name-sex-sel').value;
   const el = document.getElementById('ai-names-result');
@@ -437,7 +437,7 @@ async function sendAiChatMessage() {
   const input = document.getElementById('ai-chat-input');
   const userText = input.value.trim();
   if (!userText) return;
-  await notifyThirdPartyDataUseOnce();
+  if (!(await notifyThirdPartyDataUseOnce())) return;
   input.value = '';
   _aiChatSelectionText = '';
   renderAiChatChips();

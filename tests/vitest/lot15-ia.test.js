@@ -32,7 +32,7 @@ function makeContext(chapters, chars) {
   const run = code => new vm.Script(code).runInContext(ctx);
   run(`
     function getPlainText(html) { return (html||'').replace(/<br\\s*\\/?>/gi,'\\n').replace(/<\\/p>/gi,'\\n').replace(/<[^>]*>/g,'').trim(); }
-    var toast = () => {}; var showAiLoader = () => {}; var notifyThirdPartyDataUseOnce = async () => {};
+    var toast = () => {}; var showAiLoader = () => {}; var notifyThirdPartyDataUseOnce = async () => true;
     var flushCurrentChapter = () => {}; var confirmAnswer = true; var confirmMessages = [];
     var showConfirmModal = async o => { confirmMessages.push(o.message); return confirmAnswer; };
     var cur = 0; var db = { chapters: [], chars: [] };

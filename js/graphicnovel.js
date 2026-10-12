@@ -1127,7 +1127,7 @@ async function gnRephraseSelectedText(elId) {
   if (!el) return;
   const txt = (el.content || '').trim();
   if (txt.length < 10) { toast('Texte trop court pour être reformulé.', 'error'); return; }
-  if (typeof notifyThirdPartyDataUseOnce === 'function') await notifyThirdPartyDataUseOnce();
+  if (typeof notifyThirdPartyDataUseOnce === 'function' && !(await notifyThirdPartyDataUseOnce())) return;
   const box = document.getElementById('gn-ai-rephrase-box');
   if (!box || _gnSelectedElId !== elId) return;
   box.hidden = false;

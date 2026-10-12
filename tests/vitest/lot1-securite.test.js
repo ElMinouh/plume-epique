@@ -193,6 +193,6 @@ describe('Notice de confidentialité (AUD-01-012)', () => {
     const start = src.indexOf('function showAiPrivacyNotice'); const notice = src.slice(src.indexOf('showInfoModal(', start), src.indexOf('async function notifyThirdPartyDataUseOnce', start));
     expect(notice).not.toMatch(/Mistral/);
     expect(notice).toMatch(/Google/);
-    expect(src).toMatch(/seenThirdPartyNoticeV2/);
+    expect(src).toMatch(/externalServices/); // v9.68.0 : consentement refusable par profil (remplace le drapeau « notice vue »)
   });
 });

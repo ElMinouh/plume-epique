@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.67.1**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.68.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -148,6 +148,7 @@ foyer, etc.) : `docs/DECISIONS.md`.
 
 ## Limites connues
 
+- **Vie privée** (v9.68.0) : l'IA (Google Gemini), le correcteur (LanguageTool) et la dictée vocale ne partent qu'avec l'accord du profil (écran Accepter / Refuser, réglable dans Mon profil) ; une page « Politique de confidentialité » est dans l'aide. Les titres des manuscrits, leurs nombres de mots et dates, les prénoms des profils et la question de sécurité ne sont **pas chiffrés** sur le serveur (chiffrement des titres étudié puis annulé, `docs/BILAN-AUDIT-06.md`).
 - **Imports** (v9.67.0) : un .docx/.odt est refusé au-delà de 300 Mo (ou 3 Go une fois décompressé), une bibliothèque JSON au-delà de 900 Mo (au-delà de ≈ 500 Mo, le navigateur peut échouer à la lire de lui-même) ; message avec la taille et un conseil.
 - **Session en clair** : « Rester connecté » garde la clé de données dans le navigateur de l'appareil (risque assumé, `docs/DECISIONS.md` n°37).
 - **Langue d'un passage** : l'indication `lang` est conservée dans le manuscrit, le mode Lecture et l'export EPUB, **pas** dans l'export DOCX/ODT/PDF ; elle ne s'applique qu'à l'intérieur d'un seul paragraphe.
@@ -158,8 +159,7 @@ foyer, etc.) : `docs/DECISIONS.md`.
   30 jours. Voir `docs/EXPLOITATION.md`.
 - Une suppression **définitive** (fin des 30 jours ou « Définitif ») est propagée à tous les appareils et efface le
   contenu chiffré du serveur ; la seule trace récupérable est la sauvegarde de 7 jours de la base D1 (Time Travel).
-- Un **profil supprimé** disparaît de tous les appareils, mais ses données chiffrées restent sur le serveur (le Worker
-  refuse d'effacer autre chose que les manuscrits marqués) : illisibles sans le mot de passe, elles occupent de la place.
+- **Un profil supprimé** disparaît de tous les appareils et ses données sont **effacées du serveur** (v9.68.0 : opération dédiée, réservée à l'administrateur, vérifiée par le Worker) ; la sauvegarde du serveur (Time Travel) les garde 7 jours puis elles disparaissent. Hors ligne, l'effacement est retenté à la connexion suivante de l'administrateur.
 - Le contrôle d'incohérences « tout le roman » compare des faits extraits chapitre par chapitre ; sur un roman très long, la
   comparaison se fait par groupes de chapitres consécutifs et une contradiction entre deux groupes peut échapper (signalé à l'écran).
 - La date d'une chronologie est un texte libre : le tri automatique se fait selon l'ordre des chapitres, pas selon la date.

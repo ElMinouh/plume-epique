@@ -385,6 +385,14 @@
       <option value="43200">1 mois</option>
       <option value="-1">Toujours</option>
     </select>
+    <hr class="u-bdc-v-border u-m-6px-0">
+    <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-cloud"></use></svg> Services externes (IA, correcteur, dictée)</strong>
+    <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-6px">Ces fonctions envoient le texte concerné à des services tiers (Google Gemini, LanguageTool, reconnaissance vocale du navigateur). Refusées : aucun texte ne part.</p>
+    <select id="mp-external-services" aria-label="Autoriser l'envoi de texte à des services externes" class="field">
+      <option value="">Me demander à la prochaine utilisation</option>
+      <option value="yes">Autorisés</option>
+      <option value="no">Refusés (aucun texte n'est envoyé)</option>
+    </select>
   </div>
 </div>
 
@@ -515,6 +523,28 @@
   </div>
 </div>
 
+<!-- v9.68.0 (audit AUD-06-015) : POLITIQUE DE CONFIDENTIALITÉ -->
+<div id="privacy-overlay" role="dialog" aria-modal="true" aria-label="Politique de confidentialité">
+  <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-420px-92vw u-maxh-75vh u-ovy-auto u-d-flex u-fd-column u-gap-4px u-shadow-elev-4 u-bd-1px-solid-v-border">
+    <div class="u-d-flex u-jc-space-between u-ai-center u-mb-6px">
+      <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-shield"></use></svg> Politique de confidentialité</strong>
+      <button class="action-btn btn-ghost btn-sm" id="privacy-close-btn" title="Fermer cette fenêtre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg> Fermer</button>
+    </div>
+    <strong class="u-fs-base">À quoi sert Plume, et pour qui</strong>
+    <p class="u-fs-sm u-m-0-0-6px">Plume Épique est un outil d'écriture à usage <strong>personnel et familial</strong>. L'administrateur du foyer en est le responsable. Il n'est pas prévu pour des élèves, ni pour des mineurs sans un adulte responsable, ni pour un public extérieur au foyer.</p>
+    <strong class="u-fs-base">Ce qui est enregistré, et où</strong>
+    <p class="u-fs-sm u-m-0-0-6px">Vos manuscrits, fiches, images et réglages restent d'abord <strong>sur votre appareil</strong>, chiffrés. Si vous activez la synchronisation, une copie va sur le serveur Cloudflare du foyer : le <strong>contenu</strong> (textes, fiches, images, historiques) y est chiffré avec une clé que seul vous détenez. <strong>Ne sont pas chiffrés :</strong> les prénoms des profils, la question de sécurité, les titres des manuscrits, leurs nombres de mots et leurs dates.</p>
+    <strong class="u-fs-base">Services de tiers (avec votre accord)</strong>
+    <p class="u-fs-sm u-m-0-0-6px">L'IA (Google Gemini), le correcteur (LanguageTool) et la dictée vocale (service de reconnaissance du navigateur, souvent Google) reçoivent le <strong>texte concerné en clair</strong>. L'offre gratuite de Gemini permet à Google de le conserver et de le réutiliser. Vous choisissez : ces envois sont refusables et réglables à tout moment dans Mon profil. La sauvegarde GitHub (facultative) reçoit des données chiffrées.</p>
+    <strong class="u-fs-base">Combien de temps</strong>
+    <p class="u-fs-sm u-m-0-0-6px">Un manuscrit ou un chapitre supprimé reste 30 jours dans la corbeille, puis il est effacé des appareils et du serveur. Une sauvegarde du serveur est conservée 7 jours (copie chiffrée). Quand l'administrateur supprime un profil, ses données sont effacées du serveur ; les copies de sauvegarde disparaissent sous 7 jours. Les révisions d'une sauvegarde GitHub restent chez GitHub tant que vous ne supprimez pas la sauvegarde.</p>
+    <strong class="u-fs-base">Vos droits</strong>
+    <p class="u-fs-sm u-m-0-0-6px"><strong>Accès et copie :</strong> exports (JSON, Word, ODT, EPUB, PDF). <strong>Correction :</strong> vous modifiez vos textes et votre profil. <strong>Effacement :</strong> suppression d'un manuscrit (définitive depuis la corbeille) ; suppression d'un profil par l'administrateur. <strong>Opposition :</strong> refuser les services externes. Pour toute demande, adressez-vous à l'administrateur du foyer.</p>
+    <strong class="u-fs-base">Ce qu'il faut savoir</strong>
+    <p class="u-fs-sm u-m-0">Si vous choisissez « Rester connecté », la clé de vos textes est conservée sur l'appareil pendant la durée choisie : verrouillez votre session et ne l'utilisez pas sur un appareil partagé. Ne confiez votre code de récupération à personne : il donne accès à tout votre profil.</p>
+  </div>
+</div>
+
 <!-- AIDE-MÉMOIRE DES RACCOURCIS CLAVIER (nouveau v7.5.0) -->
 <div id="shortcuts-overlay" role="dialog" aria-modal="true" aria-label="Aide et raccourcis">
   <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-420px-92vw u-maxh-75vh u-ovy-auto u-d-flex u-fd-column u-gap-4px u-shadow-elev-4 u-bd-1px-solid-v-border">
@@ -527,6 +557,7 @@
       <button class="action-btn btn-sm u-flex-1 u-ta-left" id="help-onboarding-btn"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-compass"></use></svg> Revoir les premiers pas</button>
       <button class="action-btn btn-sm u-flex-1 u-ta-left" id="help-tour-btn"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-graduation-cap"></use></svg> Visite guidée complète</button>
       <button class="action-btn btn-sm u-flex-1 u-ta-left" id="help-privacy-btn"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-lock"></use></svg> Confidentialité et IA</button>
+      <button class="action-btn btn-sm u-flex-1 u-ta-left" id="help-privacy-policy-btn"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-shield"></use></svg> Politique de confidentialité</button>
     </div>
     <strong class="u-fs-base u-c-v-text-muted">Raccourcis clavier</strong>
     <div class="shortcut-row"><span>Gras</span><span class="shortcut-key">Ctrl+B</span></div>

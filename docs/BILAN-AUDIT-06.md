@@ -10,7 +10,7 @@ rapport `.docx`, liste `.csv`, preuve rejouable `poc-verification-worker.mjs`. P
 | 3 | 001, 002, 017 | 3a (v9.65.0) et 3b (v9.65.1) codés |
 | 4 | 003, 004, 006, 007 | 4a (004) codé en v9.66.0, écriture p2 activée en v9.66.1 ; 003 **accepté** (question conservée) ; 007 **annulé** ; 4b (006, rotation de la clé de données) **annulé** (12/10/2026) |
 | 5 | 005, 018, 019, 021 | codé en v9.67.0 (005 **accepté**) |
-| 6 | 008, 014, 015 | à faire (dépend du lot 3) |
+| 6 | 008, 014, 015 | 014 et 015 codés en v9.68.0 ; 008 **annulé** |
 | 7 | 016, 020 | à faire |
 
 ## Lot 1 — secrets d'exploitation et effacement réel
@@ -67,3 +67,10 @@ rapport `.docx`, liste `.csv`, preuve rejouable `poc-verification-worker.mjs`. P
 - **019** : limites d'import larges (3 × les usages réels, demandé par le propriétaire) : Word/ODT 300 Mo, contenu décompressé 3 Go (anti-bombe de décompression, lecture de l'annuaire du ZIP seulement), JSON de bibliothèque 900 Mo ; forme de chaque manuscrit importé vérifiée ; messages avec la taille et un conseil. **Réserve** : au-delà d'environ 500 Mo, la lecture d'un JSON en texte peut échouer d'elle-même dans le navigateur (limite de taille d'une chaîne de caractères) ; l'erreur de lecture est alors affichée.
 - **021** : aide sous le champ du jeton (granularité fine, droit « Gists » seul, 90 jours), avertissement non bloquant si le jeton classique donne accès aux dépôts/administration (`X-OAuth-Scopes`), en-tête `Authorization: Bearer` partout.
 - Tests : `tests/vitest/lot-aud06-5-saisies.test.js` (14).
+
+## Lot 6 — vie privée et conformité (v9.68.0)
+
+- **008** : **annulé par le propriétaire (12/10/2026)**. Les titres, nombres de mots, couvertures et dates des manuscrits, les prénoms des profils et la question de sécurité restent en clair sur le serveur ; la politique de confidentialité le dit. Solution étudiée : chiffrer `doclist_*` à la frontière réseau (identifiants des manuscrits supprimés laissés en clair pour le Worker), activation en deux temps (un appareil ancien verrait une bibliothèque vide).
+- **014** : consentement refusable (écran Accepter / Refuser, champ `externalServices` par profil, réglage dans Mon profil), appliqué à l'IA (×5), la mémoire narrative, le lexique, la reformulation du roman graphique, le correcteur LanguageTool et la dictée vocale ; notice nommant la dictée ; les profils ayant vu l'ancienne notice sont re-sollicités une fois. **Non inclus** : aperçu du texte avant envoi, changement de fournisseur IA (offre payante / européenne : coût, décision du propriétaire).
+- **015** : effacement serveur d'un profil supprimé (opération dédiée vérifiée par le Worker, reprise hors ligne), écritures refusées pour un profil supprimé, page « Politique de confidentialité » (usage personnel et familial, pas de mineurs sans adulte responsable), durées de conservation documentées (docs/EXPLOITATION.md §6 quater). Mineurs / usage scolaire : **non applicable aujourd'hui**, bloquant avant tout usage scolaire (consentement parental, hébergement UE, contrats avec les sous-traitants).
+- Tests : `tests/vitest/lot-aud06-6-vie-privee.test.js` (17) ; trois tests existants adaptés au nouveau consentement.

@@ -75,7 +75,7 @@ const _authFails = new Map(); // adresse -> { count, since }
 const MAX_BODY_BYTES = 20 * 1024 * 1024;
 const ID = '[A-Za-z0-9_-]{1,80}';
 const KEY_PATTERN = new RegExp(
-  '^(profiles|main|__ping__|__usage__' +
+  '^(profiles|main|__ping__|__usage__|profile_[A-Za-z0-9-]{1,80}' +
   '|(doclist|data|libsettings)_' + ID +
   '|(doc|aichat)_' + ID + '_' + ID +
   '|img_' + ID + '_' + ID + '_' + ID + ')$'
@@ -280,6 +280,36 @@ async function authorizeProfilesWrite(request, env, body, cors) {
   return null;
 }
 
+// ═══════════════════════════════════════════════════════
+// v9.68.0 (audit AUD-06-015) — EFFACEMENT DES DONNÉES D'UN PROFIL SUPPRIMÉ : DELETE ?key=profile_<id>.
+// Autorisé seulement si (1) l'appelant est identifié par son jeton ET administrateur, (2) le profil n'est plus dans la
+// liste et y porte une pierre tombale (donc la suppression a bien été décidée et publiée). Efface en UNE transaction
+// toutes les clés du profil (données, index, manuscrits, historiques, réglages, images) et sa serrure. Les copies de
+// sauvegarde (Time Travel, 7 jours) disparaissent d'elles-mêmes.
+// ═══════════════════════════════════════════════════════
+async function eraseProfile(request, env, pid, cors) {
+  const refuse = (status, code, message) => new Response(JSON.stringify({ error: { message, code } }), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+  if (!env.DB) return refuse(405, 'profile-erase', 'Effacement indisponible avec ce stockage.');
+  await ensureAuthTable(env);
+  const token = request.headers.get('X-Plume-Profile-Token') || '';
+  const actingId = request.headers.get('X-Plume-Profile-Id') || '';
+  if (!/^[0-9a-f]{64}$/.test(token) || !/^[A-Za-z0-9-]{1,80}$/.test(actingId) || actingId === pid) return refuse(403, 'profile-erase', 'Effacement refusé : administrateur non identifié.');
+  const row = await env.DB.prepare('SELECT verifier, role FROM profile_auth WHERE pid = ?1').bind(actingId).first();
+  if (!row || !timingSafeEqual(await sha256Hex(token), row.verifier) || row.role !== 'admin') return refuse(403, 'profile-erase', 'Effacement refusé : réservé à un administrateur.');
+  const idx = await currentIndex(d1Store(env));
+  const supprime = idx && !idx.profiles.some(p => p.id === pid) && (idx.deletedProfiles || []).some(t => t.id === pid);
+  if (!supprime) return refuse(403, 'profile-erase', 'Effacement refusé : ce profil n\'est pas marqué supprimé dans la liste.');
+  const where = "(k = ?1 OR k = ?2 OR k = ?3 OR (k >= ?4 AND k < ?5) OR (k >= ?6 AND k < ?7) OR (k >= ?8 AND k < ?9))";
+  const args = ['data_' + pid, 'doclist_' + pid, 'libsettings_' + pid, 'doc_' + pid + '_', 'doc_' + pid + '`', 'aichat_' + pid + '_', 'aichat_' + pid + '`', 'img_' + pid + '_', 'img_' + pid + '`'];
+  const n = (await env.DB.prepare('SELECT COUNT(*) AS n FROM sync_meta WHERE ' + where).bind(...args).first()).n;
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM sync_chunks WHERE ' + where).bind(...args),
+    env.DB.prepare('DELETE FROM sync_meta WHERE ' + where).bind(...args),
+    env.DB.prepare('DELETE FROM profile_auth WHERE pid = ?1').bind(pid)
+  ]);
+  return new Response(JSON.stringify({ ok: true, erased: n }), { headers: { ...cors, 'Content-Type': 'application/json' } });
+}
+
 // Renvoie null si la requête est autorisée, sinon la réponse de refus.
 async function authorizeProfile(request, env, pid, cors) {
   const refuse = (status, code, message, extra) => new Response(JSON.stringify({ error: { message, code }, ...(extra || {}) }), {
@@ -293,6 +323,12 @@ async function authorizeProfile(request, env, pid, cors) {
   if (row) {
     if (wellFormed && timingSafeEqual(await sha256Hex(token), row.verifier)) return null;
     return refuse(403, 'profile-token', 'Ce profil est protégé par un autre appareil : mettez Plume à jour (rechargez la page) puis reconnectez-vous.');
+  }
+  // v9.68.0 : un profil SUPPRIMÉ par un administrateur ne peut plus rien écrire (ni se verrouiller de nouveau) :
+  // un appareil resté en retard ne fait pas renaître ses données sur le serveur.
+  if (request.method === 'PUT' || request.method === 'POST') {
+    const idx = await currentIndex(d1Store(env));
+    if (idx && (idx.deletedProfiles || []).some(t => t.id === pid)) return refuse(403, 'profile-deleted', 'Ce profil a été supprimé par un administrateur.');
   }
   if (!wellFormed) return null; // profil pas encore verrouillé : ancien appareil toléré
   const n = (await env.DB.prepare('SELECT COUNT(*) AS n FROM profile_auth').first()).n;
@@ -557,6 +593,12 @@ async function handleRequest(request, env) {
     }
     if (key === '__ping__') {
       return new Response(JSON.stringify({ ok: true }), { headers: { ...cors, 'Content-Type': 'application/json' } });
+    }
+
+    // v9.68.0 : clé d'effacement de profil (DELETE uniquement).
+    if (key.startsWith('profile_')) {
+      if (request.method !== 'DELETE') return new Response(JSON.stringify({ error: { message: 'Méthode non supportée pour cette clé.' } }), { status: 405, headers: { ...cors, 'Content-Type': 'application/json' } });
+      return eraseProfile(request, env, key.slice('profile_'.length), cors);
     }
 
     // Serrure par profil (voir l'en-tête de ce fichier) : GET, PUT et DELETE d'une donnée de profil.

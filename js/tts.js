@@ -178,7 +178,10 @@ function toggleDictation() {
   if (!_recognition) { toast('Dictée non supportée','error'); return; }
   if (_dictating) stopDictation(); else startDictation();
 }
-function startDictation() {
+async function startDictation() {
+  // v9.68.0 (AUD-06-014) : la reconnaissance vocale du navigateur envoie l'audio à un service distant (souvent Google).
+  if (typeof notifyThirdPartyDataUseOnce === 'function' && !(await notifyThirdPartyDataUseOnce())) return;
+  if (_dictating || !_recognition) return;
   captureDictationRange();
   _dictationFinalTextSoFar = '';
   _dictationInsertedTail = '';

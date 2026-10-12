@@ -119,7 +119,7 @@ async function handleSearch() {
   const word = document.getElementById('lex-in').value.trim();
   const mode = document.getElementById('search-mode').value;
   if (!word) return;
-  await notifyThirdPartyDataUseOnce();
+  if (!(await notifyThirdPartyDataUseOnce())) return;
 
   saveCursorPosition();
 

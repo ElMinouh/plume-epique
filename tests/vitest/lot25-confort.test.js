@@ -48,7 +48,8 @@ describe('AUD-03-024 — une seule aide', () => {
   it('la notice IA est relisible (showAiPrivacyNotice) et réutilisée au premier usage', () => {
     const p = read('js/profiles.js');
     expect(p).toContain('function showAiPrivacyNotice()');
-    expect(p).toMatch(/async function notifyThirdPartyDataUseOnce\(\) \{[\s\S]*?await showAiPrivacyNotice\(\);/);
+    // v9.68.0 (AUD-06-014) : au premier usage, un consentement refusable (Accepter / Refuser) remplace la simple notice
+    expect(p).toMatch(/async function notifyThirdPartyDataUseOnce\(\) \{[\s\S]*?await showConfirmModal\(\{[\s\S]*?confirmLabel: 'Accepter', cancelLabel: 'Refuser'/);
   });
   it('⓵ seulement 5 icônes ⓘ possibles ; texte d\'aide corrigé (plus de « menu 🤖 IA » dans la barre)', () => {
     const f = read('js/fulltour.js');

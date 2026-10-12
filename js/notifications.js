@@ -165,6 +165,9 @@ function updateTrashBadge() {
 // ═══════════════════════════════════════════════════════
 function openShortcutsHelp() { document.getElementById('shortcuts-overlay').classList.add('active'); }
 function closeShortcutsHelp() { document.getElementById('shortcuts-overlay').classList.remove('active'); }
+// v9.68.0 (audit AUD-06-015) — page « Confidentialité » (texte dans index.html, #privacy-overlay).
+function openPrivacyPolicy() { closeShortcutsHelp(); document.getElementById('privacy-overlay').classList.add('active'); }
+function closePrivacyPolicy() { document.getElementById('privacy-overlay').classList.remove('active'); }
 
 // ═══════════════════════════════════════════════════════
 // PARCOURS "PREMIERS PAS" (nouveau v7.36.0, ergonomie)
@@ -238,7 +241,7 @@ async function endOnboardingTour() {
 // Usage : const ok = await showConfirmModal({ title, message, confirmLabel,
 //   danger:true, requireText:'Nom exact' }); if (!ok) return;
 // ═══════════════════════════════════════════════════════
-function showConfirmModal({ title, message, confirmLabel, danger, requireText } = {}) {
+function showConfirmModal({ title, message, confirmLabel, cancelLabel, danger, requireText } = {}) {
   return new Promise(resolve => {
     const overlay = document.getElementById('confirm-modal-overlay');
     document.getElementById('confirm-modal-title').textContent = title || 'Confirmer';
@@ -250,6 +253,7 @@ function showConfirmModal({ title, message, confirmLabel, danger, requireText } 
     const input = document.getElementById('confirm-modal-input');
     input.value = ''; input.onkeydown = null;
     document.getElementById('confirm-modal-cancel-btn').classList.remove('u-d-none');
+    document.getElementById('confirm-modal-cancel-btn').textContent = cancelLabel || 'Annuler'; // v9.68.0 : « Refuser » pour un consentement
     if (requireText) {
       inputWrap.classList.remove('u-d-none');
       document.getElementById('confirm-modal-input-label').textContent = `Tapez « ${requireText} » pour confirmer :`;
@@ -291,7 +295,7 @@ function showPromptModal({ title, message, label, value, confirmLabel } = {}) {
     input.oninput = null; input.value = value || '';
     confirmBtn.textContent = confirmLabel || 'Enregistrer';
     confirmBtn.classList.remove('btn-danger'); confirmBtn.disabled = false;
-    cancelBtn.classList.remove('u-d-none');
+    cancelBtn.classList.remove('u-d-none'); cancelBtn.textContent = 'Annuler';
     const cleanup = r => { overlay.classList.remove('active'); input.onkeydown = null; resolve(r); };
     cancelBtn.onclick = () => cleanup(null);
     confirmBtn.onclick = () => cleanup(input.value);

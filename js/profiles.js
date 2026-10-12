@@ -115,21 +115,38 @@ function readLocalSession() {
 function showAiPrivacyNotice() {
   return showInfoModal({
     title: 'Vos textes et l\'IA',
-    message: 'Les fonctions IA (résumé, continuation, incohérences, noms, synonymes, mémoire narrative, reformulation du roman graphique) envoient le texte concerné à Google (modèle Gemini) via le relais de Plume. Le correcteur LanguageTool envoie aussi le texte à LanguageTool.org.\n\nPlume ne stocke jamais ce texte en clair, mais il transite en clair chez ces services le temps du traitement. Avec l\'offre gratuite de Gemini, Google peut conserver ces échanges et s\'en servir pour améliorer ses produits : n\'envoyez pas un passage que vous voulez garder strictement confidentiel.',
+    message: 'Les fonctions IA (résumé, continuation, incohérences, noms, synonymes, mémoire narrative, reformulation du roman graphique) envoient le texte concerné à Google (modèle Gemini) via le relais de Plume. Le correcteur LanguageTool envoie aussi le texte à LanguageTool.org, et la dictée vocale utilise le service de reconnaissance de votre navigateur (souvent Google). Vous pouvez refuser ces envois ou changer d\'avis dans Mon profil → Services externes.\n\nPlume ne stocke jamais ce texte en clair, mais il transite en clair chez ces services le temps du traitement. Avec l\'offre gratuite de Gemini, Google peut conserver ces échanges et s\'en servir pour améliorer ses produits : n\'envoyez pas un passage que vous voulez garder strictement confidentiel.',
     confirmLabel: 'J\'ai compris'
   });
 }
+// v9.68.0 (audit AUD-06-014) — CONSENTEMENT RÉEL AUX SERVICES EXTERNES. Avant : une notice à un seul bouton « J'ai compris »,
+// sans moyen de refuser. Désormais, par profil (champ `externalServices` de l'index : 'yes' | 'no' | absent) :
+//   • absent  : écran « Accepter / Refuser » à la première utilisation (même pour qui avait vu l'ancienne notice) ;
+//   • 'yes'   : l'envoi a lieu ; • 'no' : AUCUN texte ne part, un message explique où changer d'avis (Mon profil).
+// Renvoie true si l'envoi est permis. Les appelants (IA, correcteur, mémoire narrative, dictée…) s'arrêtent sur false.
 async function notifyThirdPartyDataUseOnce() {
-  // v9.20.0 (audit AUD-01-012) — la notice nommait Mistral alors que le texte
-  // part chez Google (Gemini) depuis le 11/09/2026. Nouveau drapeau « V2 » :
-  // la notice corrigée est réaffichée une fois, même aux profils qui avaient
-  // vu l'ancienne (qui désignait le mauvais prestataire).
-  if (!_currentProfile || _currentProfile.seenThirdPartyNoticeV2) return;
-  await showAiPrivacyNotice();
-  _currentProfile.seenThirdPartyNoticeV2 = true;
+  if (!_currentProfile) return true; // aucun profil ouvert (tests, usage hors profil) : comportement d'avant
+  const choix = _currentProfile.externalServices;
+  if (choix === 'yes') return true;
+  if (choix === 'no') {
+    if (typeof toast === 'function') toast('Services externes refusés pour ce profil : aucun texte n\'est envoyé. Pour changer : Mon profil → Services externes.', 'info');
+    return false;
+  }
+  const accepte = await showConfirmModal({
+    title: 'Envoyer du texte à des services externes ?',
+    message: 'L\'IA (Google Gemini), le correcteur (LanguageTool) et la dictée vocale (service de votre navigateur, souvent Google) reçoivent le texte concerné EN CLAIR pour le traiter. Avec l\'offre gratuite de Gemini, Google peut le conserver et s\'en servir pour améliorer ses produits : n\'envoyez pas un passage strictement confidentiel. Votre choix est valable pour ce profil ; vous pourrez le changer à tout moment dans Mon profil.',
+    confirmLabel: 'Accepter', cancelLabel: 'Refuser'
+  });
+  await setExternalServicesChoice(accepte ? 'yes' : 'no');
+  if (!accepte && typeof toast === 'function') toast('Refusé : aucun texte n\'est envoyé. Pour changer : Mon profil → Services externes.', 'info');
+  return !!accepte;
+}
+async function setExternalServicesChoice(valeur) {
+  const v = valeur === 'yes' || valeur === 'no' ? valeur : null;
+  if (_currentProfile) { if (v) _currentProfile.externalServices = v; else delete _currentProfile.externalServices; }
   await mutateProfilesIndex(idx => {
     const profil = idx.profiles.find(p => p.id === _currentProfileId);
-    if (profil) profil.seenThirdPartyNoticeV2 = true;
+    if (profil) { if (v) profil.externalServices = v; else delete profil.externalServices; }
   });
 }
 
@@ -603,6 +620,7 @@ async function openProfile(profil, dek) {
   persistLocalSession(profil, dek);
   hideGate();
   syncPushEntireLibrary(); // arrière-plan, non bloquant — voir library.js
+  retryPendingProfileErases(); // v9.68.0 : effacement serveur d'un profil supprimé resté en attente (administrateur)
   await enterLibrary();
 }
 
@@ -692,34 +710,53 @@ async function adminDeleteProfile(pid) {
 
   const ok = await showConfirmModal({
     title: 'Supprimer ce profil ?',
-    message: `Cela effacera le profil « ${profil.name} » ET tous ses manuscrits de tous vos appareils, sans possibilité de récupération. Les données chiffrées restent sur le serveur de synchronisation, illisibles sans le mot de passe du profil.`,
+    message: `Cela effacera le profil « ${profil.name} » ET tous ses manuscrits de tous vos appareils, ainsi que ses données du serveur de synchronisation (une copie de sauvegarde du serveur disparaît sous 7 jours). Sans possibilité de récupération.`,
     confirmLabel: 'Supprimer définitivement',
     danger: true,
     requireText: profil.name
   });
   if (!ok) return;
 
-  const docList = await loadData(docListKey(pid));
-  if (docList && Array.isArray(docList.documents)) {
-    for (const d of docList.documents) {
-      await persistData(docDataKey(pid, d.id), null);
-      await cleanupDocumentSideData(pid, d.id);
-    }
-  }
-  await persistData(docListKey(pid), null);
-  await persistData('data_' + pid, null);
-  // Correction (audit) : copie rechargée à l'intérieur du verrou (même
-  // principe que deleteDocument() dans library.js) — pas celle lue avant
-  // la confirmation ci-dessus, qui a pu devenir périmée pendant l'attente
-  // de l'utilisateur (saisie du nom exact à retaper).
+  // v9.68.0 : l'administrateur n'a pas le droit d'écrire dans les données d'un autre profil (serrure, lot 3) ; l'effacement
+  // du serveur passe par une opération dédiée (eraseProfileOnServer), autorisée seulement après la pierre tombale.
+  // Copies locales éventuelles : purgées par purgeTombstonedProfiles() juste après.
   await mutateProfilesIndex(freshIdx => {
     freshIdx.profiles = freshIdx.profiles.filter(p => p.id !== pid);
     // v9.39.0 (AUD-02-015) : pierre tombale — sans elle, un autre appareil renvoyait le profil au serveur.
     freshIdx.deletedProfiles = mergeTombstones(freshIdx.deletedProfiles, [{ id: pid, at: Date.now() }], Date.now());
   });
+  try { await purgeTombstonedProfiles(await loadProfilesIndex()); } catch (e) { /* copies locales : sans effet sur la suite */ }
   if (typeof flushPendingSyncPushes === 'function') flushPendingSyncPushes(true);
+  // La liste (avec la pierre tombale) doit être arrivée sur le serveur AVANT l'effacement, qui la vérifie.
+  try { await syncPush('profiles', await readLocalOnly('profiles')); } catch (e) { /* repris par la file de nouvelles tentatives */ }
+  const etat = await eraseProfileOnServer(pid);
   renderManageProfiles();
-  toast('Profil supprimé de tous vos appareils', 'success');
+  toast(etat === 'ok' ? 'Profil supprimé de tous vos appareils et du serveur' : etat === 'local' ? 'Profil supprimé de tous vos appareils' : 'Profil supprimé de la liste ; l\'effacement des données du serveur sera retenté à votre prochaine connexion', 'success');
+}
+
+// v9.68.0 (audit AUD-06-015) — EFFACEMENT DES DONNÉES D'UN PROFIL SUPPRIMÉ SUR LE SERVEUR : une seule opération
+// (DELETE ?key=profile_<id>), que le Worker n'accepte que d'un administrateur et seulement si le profil est marqué
+// supprimé dans la liste. Renvoie 'ok' | 'local' (pas de synchro) | 'pending' (à retenter : hors ligne ou refus provisoire).
+const PENDING_ERASE_KEY = 'plume_pending_profile_erase';
+function pendingProfileErases() { try { const v = JSON.parse(localStorage.getItem(PENDING_ERASE_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+function setPendingProfileErases(list) { try { localStorage.setItem(PENDING_ERASE_KEY, JSON.stringify([...new Set(list)])); } catch (e) { /* stockage plein */ } }
+async function eraseProfileOnServer(pid) {
+  if (!getSyncKey()) return 'local';
+  let etat = 'pending';
+  for (let essai = 0; essai < 2 && etat !== 'ok'; essai++) {
+    try {
+      const r = await fetchWithTimeout(SYNC_WORKER_URL + '?key=' + encodeURIComponent('profile_' + pid), { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + getSyncKey() }, timeoutMs: 30000 });
+      if (r.ok) etat = 'ok';
+      else if (essai === 0) await new Promise(res => setTimeout(res, 1500)); // la liste vient peut-être d'arriver : une seconde tentative
+    } catch (e) { break; }
+  }
+  const restant = pendingProfileErases().filter(x => x !== pid);
+  setPendingProfileErases(etat === 'ok' ? restant : [...restant, pid]);
+  return etat;
+}
+async function retryPendingProfileErases() {
+  if (!_currentProfile || _currentProfile.role !== 'admin') return;
+  for (const pid of pendingProfileErases()) await eraseProfileOnServer(pid);
 }
 
 function adminAddProfile() {
@@ -749,6 +786,11 @@ function openMyProfile() {
   // Câblage du bouton ✕ en assignation directe (idempotent, sans dépendre
   // du câblage global de router.js) — corrige un cas où ce bouton restait
   // inopérant tant qu'aucun manuscrit n'avait encore été ouvert.
+  const ext = document.getElementById('mp-external-services');
+  if (ext) {
+    ext.value = _currentProfile.externalServices || '';
+    ext.onchange = async () => { await setExternalServicesChoice(ext.value); toast(ext.value === 'yes' ? 'Services externes autorisés' : ext.value === 'no' ? 'Services externes refusés : aucun texte ne sera envoyé' : 'Le choix vous sera redemandé', 'success'); };
+  }
   document.getElementById('my-profile-close-btn').onclick = closeMyProfile;
   document.getElementById('my-profile-overlay').classList.add('active');
 }

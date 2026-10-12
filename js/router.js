@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.67.1';
+const APP_VERSION = '9.68.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -117,6 +117,13 @@ function onProfileIndexRefused() {
   _profileIndexRefusedShown = true;
   if (typeof toast === 'function') toast('Le serveur a refusé cette modification de profil (droits insuffisants). Rechargez la page ; si le problème persiste, reconnectez-vous.', 'error', { sticky: true });
 }
+// v9.68.0 : l'administrateur a supprimé ce profil (le serveur refuse toute écriture pour lui).
+let _profileDeletedShown = false;
+function onProfileDeleted() {
+  if (_profileDeletedShown) return;
+  _profileDeletedShown = true;
+  if (typeof toast === 'function') toast('Ce profil a été supprimé par un administrateur : ses données ne sont plus synchronisées. Exportez ce dont vous avez besoin.', 'error', { sticky: true });
+}
 function onProfileLocked() {
   if (_profileLockedShown) return;
   _profileLockedShown = true;
@@ -146,7 +153,7 @@ async function fetchWithTimeout(url, opts) {
     const resp = await fetch(url, { ...fetchOpts, signal: controller.signal });
     if (toSync && resp.status === 426) onClientTooOld();
     if (toSync && resp.status === 403) {
-      try { const j = await resp.clone().json(); if (j && j.error && j.error.code === 'profile-token') onProfileLocked(); else if (j && j.error && j.error.code === 'profile-index') onProfileIndexRefused(); } catch (e) { /* corps illisible : aucun message */ }
+      try { const j = await resp.clone().json(); if (j && j.error && j.error.code === 'profile-deleted') onProfileDeleted(); else if (j && j.error && j.error.code === 'profile-token') onProfileLocked(); else if (j && j.error && j.error.code === 'profile-index') onProfileIndexRefused(); } catch (e) { /* corps illisible : aucun message */ }
     }
     return resp;
   } catch (e) {
@@ -1350,6 +1357,7 @@ function _escLayers(){
     byId('history-overlay', () => document.getElementById('history-overlay').classList.remove('active')),
     byId('search-overlay', () => closeGlobalSearch()),
     byId('shortcuts-overlay', () => closeShortcutsHelp()),
+    byId('privacy-overlay', () => closePrivacyPolicy()),
     byId('reading-overlay', () => exitReadingMode()),
     byId('focus-overlay', () => exitFocus()),
     byId('ai-chat-panel', () => closeAiChat()),
@@ -1542,6 +1550,8 @@ function wireAppEventListenersOnce(){
   document.getElementById('help-onboarding-btn').addEventListener('click',()=>{ closeShortcutsHelp(); startOnboardingTour(); });
   document.getElementById('help-tour-btn').addEventListener('click',()=>{ closeShortcutsHelp(); startFullTour(getFullTourSteps()); });
   document.getElementById('help-privacy-btn').addEventListener('click',()=>showAiPrivacyNotice());
+  document.getElementById('help-privacy-policy-btn').addEventListener('click',openPrivacyPolicy);
+  document.getElementById('privacy-close-btn').addEventListener('click',closePrivacyPolicy);
   // Menu ⋮ des chapitres — élément unique, câblé une seule fois (v7.8.1)
   document.getElementById('cctx-rename').addEventListener('click',()=>{const i=_ctxMenuChapterIdx;closeAllChapterMenus();if(i!==null)renameChapterInline(i);});
   document.getElementById('cctx-tags').addEventListener('click',()=>{const i=_ctxMenuChapterIdx;closeAllChapterMenus();if(i!==null)editChapterTags(i);});
