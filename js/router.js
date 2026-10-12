@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.65.0';
+const APP_VERSION = '9.65.1';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -108,9 +108,15 @@ const DEFAULT_FETCH_TIMEOUT_MS = 30000;
 // (X-Plume-Client-Version) ; si le serveur exige une version minimale supérieure (426), l'utilisateur est invité à
 // recharger la page pour installer la mise à jour. Un point d'entrée unique évite d'oublier l'en-tête sur un des
 // sites d'appel (synchro, images, usage, vérification de clé).
-let _clientTooOldShown = false, _profileLockedShown = false;
+let _clientTooOldShown = false, _profileLockedShown = false, _profileIndexRefusedShown = false;
 // v9.65.0 (AUD-06-001) — jeton du profil connecté (voir Crypto.authToken), posé par openProfile().
 let _profileToken = null;
+// v9.65.1 : le serveur refuse une modification de la liste des profils (droits insuffisants) : on le dit, une fois.
+function onProfileIndexRefused() {
+  if (_profileIndexRefusedShown) return;
+  _profileIndexRefusedShown = true;
+  if (typeof toast === 'function') toast('Le serveur a refusé cette modification de profil (droits insuffisants). Rechargez la page ; si le problème persiste, reconnectez-vous.', 'error', { sticky: true });
+}
 function onProfileLocked() {
   if (_profileLockedShown) return;
   _profileLockedShown = true;
@@ -140,7 +146,7 @@ async function fetchWithTimeout(url, opts) {
     const resp = await fetch(url, { ...fetchOpts, signal: controller.signal });
     if (toSync && resp.status === 426) onClientTooOld();
     if (toSync && resp.status === 403) {
-      try { const j = await resp.clone().json(); if (j && j.error && j.error.code === 'profile-token') onProfileLocked(); } catch (e) { /* corps illisible : aucun message */ }
+      try { const j = await resp.clone().json(); if (j && j.error && j.error.code === 'profile-token') onProfileLocked(); else if (j && j.error && j.error.code === 'profile-index') onProfileIndexRefused(); } catch (e) { /* corps illisible : aucun message */ }
     }
     return resp;
   } catch (e) {

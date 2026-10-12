@@ -165,19 +165,127 @@ async function sha256Hex(str) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 let _authTableReady = null;
-function ensureAuthTable(db) {
+function ensureAuthTable(env) {
+  const db = env.DB;
   if (!_authTableReady) {
-    _authTableReady = db.prepare('CREATE TABLE IF NOT EXISTS profile_auth (pid TEXT PRIMARY KEY, verifier TEXT NOT NULL, created_at INTEGER NOT NULL)').run()
+    _authTableReady = db.prepare("CREATE TABLE IF NOT EXISTS profile_auth (pid TEXT PRIMARY KEY, verifier TEXT NOT NULL, created_at INTEGER NOT NULL, role TEXT NOT NULL DEFAULT 'user')").run()
+      // v9.65.1 : la table créée en 9.65.0 n'avait pas de colonne « role » : ajout une fois (erreur « duplicate column » ignorée).
+      .then(async () => {
+        let added = true;
+        try { await db.prepare("ALTER TABLE profile_auth ADD COLUMN role TEXT NOT NULL DEFAULT 'user'").run(); } catch (e) { added = false; }
+        if (!added) return;
+        // Colonne tout juste ajoutée : les profils DÉJÀ verrouillés par la 9.65.0 (administrateur compris) ont reçu le
+        // rôle par défaut « user » ; on rend « admin » ceux que l'index désigne comme administrateurs.
+        const idx = await currentIndex(d1Store(env));
+        for (const p of (idx ? idx.profiles : [])) {
+          if (p.role === 'admin') await db.prepare("UPDATE profile_auth SET role = 'admin' WHERE pid = ?1").bind(p.id).run();
+        }
+      })
       .catch(e => { _authTableReady = null; throw e; });
   }
   return _authTableReady;
 }
+// ═══════════════════════════════════════════════════════
+// v9.65.1 (audit AUD-06-001, suite) — PROTECTION DE L'INDEX DES PROFILS (`profiles`)
+// Le rôle « admin » n'était qu'une étiquette de cet index, modifiable par tout porteur de la clé. Désormais le
+// Worker compare chaque écriture à la version courante et exige un DROIT pour chaque profil dont l'entrée (ou la
+// pierre tombale) change : le jeton de CE profil, ou celui d'un administrateur. Le rôle d'administrateur est fixé côté
+// serveur (colonne role de profile_auth) à la première connexion du profil qui l'est dans l'index, s'il n'existe pas
+// encore d'administrateur verrouillé ; il ne se modifie ensuite que par un administrateur. Créer un profil reste
+// libre (en simple utilisateur, 20 au plus). Un profil pas encore verrouillé reste modifiable (mise en place
+// progressive, comme pour ses données). Le contenu doit être un JSON conforme (taille, structure).
+// ═══════════════════════════════════════════════════════
+const MAX_INDEX_BYTES = 200 * 1024;
+const MAX_INDEX_TOMBSTONES = 500;
+function stableJson(v) {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(stableJson).join(',') + ']';
+  return '{' + Object.keys(v).sort().filter(k => v[k] !== undefined).map(k => JSON.stringify(k) + ':' + stableJson(v[k])).join(',') + '}';
+}
+function parseProfilesIndex(text) {
+  let j;
+  try { j = JSON.parse(text); } catch (e) { return null; }
+  if (!j || typeof j !== 'object' || Array.isArray(j) || !Array.isArray(j.profiles)) return null;
+  const dp = j.deletedProfiles === undefined ? [] : j.deletedProfiles;
+  if (!Array.isArray(dp)) return null;
+  const idOk = id => typeof id === 'string' && /^[A-Za-z0-9-]{1,80}$/.test(id);
+  if (!j.profiles.every(p => p && typeof p === 'object' && idOk(p.id))) return null;
+  if (!dp.every(t => t && typeof t === 'object' && idOk(t.id))) return null;
+  return j;
+}
+async function currentIndex(store) {
+  try { const cur = await store.read('profiles'); return cur && cur.value ? parseProfilesIndex(cur.value) : null; } catch (e) { return null; }
+}
+// Rôle donné à un profil au moment où il se verrouille : « admin » seulement si l'index le dit ET qu'aucun
+// administrateur n'est encore verrouillé ; sinon « user ».
+async function roleAtClaim(env, pid) {
+  const admin = await env.DB.prepare("SELECT pid FROM profile_auth WHERE role = 'admin' LIMIT 1").first();
+  if (admin) return 'user';
+  const idx = await currentIndex(d1Store(env));
+  const entry = idx && idx.profiles.find(p => p.id === pid);
+  return entry && entry.role === 'admin' ? 'admin' : 'user';
+}
+// Contrôle une écriture de l'index. Renvoie null si autorisée, sinon la réponse de refus (403/400/507).
+async function authorizeProfilesWrite(request, env, body, cors) {
+  const refuse = (status, message, extra) => new Response(JSON.stringify({ error: { message, code: 'profile-index' }, ...(extra || {}) }), {
+    status, headers: { ...cors, 'Content-Type': 'application/json' }
+  });
+  if (body.length > MAX_INDEX_BYTES) return refuse(413, 'Liste de profils trop volumineuse.');
+  const next = parseProfilesIndex(body);
+  if (!next) return refuse(400, 'Liste de profils invalide.');
+  if (next.profiles.length > MAX_CLAIMED_PROFILES) return refuse(507, 'Nombre maximal de profils atteint sur ce serveur.', { quota: 'profiles' });
+  if ((next.deletedProfiles || []).length > MAX_INDEX_TOMBSTONES) return refuse(400, 'Trop de profils supprimés dans la liste.');
+  const prev = await currentIndex(d1Store(env));
+  if (!prev) return null; // aucune liste valide sur le serveur : première création
+
+  // Qui écrit ? Un jeton bien formé vaut identification (et verrouille le profil s'il ne l'était pas).
+  await ensureAuthTable(env);
+  const token = request.headers.get('X-Plume-Profile-Token') || '';
+  const actingId = request.headers.get('X-Plume-Profile-Id') || '';
+  let acting = null, actingRole = 'user';
+  if (/^[0-9a-f]{64}$/.test(token) && /^[A-Za-z0-9-]{1,80}$/.test(actingId)) {
+    const denied = await authorizeProfile(request, env, actingId, cors);
+    if (denied) return denied; // jeton faux pour un profil verrouillé
+    acting = actingId;
+    const row = await env.DB.prepare('SELECT role FROM profile_auth WHERE pid = ?1').bind(actingId).first();
+    actingRole = row ? row.role : 'user';
+  }
+  const lockedRows = (await env.DB.prepare('SELECT pid FROM profile_auth').all()).results || [];
+  const locked = new Set(lockedRows.map(r => r.pid));
+  const hasAdmin = !!(await env.DB.prepare("SELECT pid FROM profile_auth WHERE role = 'admin' LIMIT 1").first());
+  const allowed = pid => !locked.has(pid) || (acting !== null && (acting === pid || actingRole === 'admin'));
+  const no = pid => refuse(403, "Modification du profil refusée : droits insuffisants (profil protégé).", { pid: undefined });
+
+  const before = new Map(prev.profiles.map(p => [p.id, p])), after = new Map(next.profiles.map(p => [p.id, p]));
+  for (const id of new Set([...before.keys(), ...after.keys()])) {
+    const b = before.get(id), a = after.get(id);
+    if (b && a && stableJson(b) === stableJson(a)) continue;
+    if (!allowed(id)) return no(id);
+    // Rôle : un profil NOUVEAU ne peut être « admin » que s'il n'existe aucun administrateur (installation initiale) ;
+    // le rôle d'un profil existant ne change que par un administrateur.
+    if (a && !b && a.role === 'admin' && (hasAdmin || prev.profiles.some(p => p.role === 'admin'))) return no(id);
+    if (a && b && a.role !== b.role && actingRole !== 'admin') return no(id);
+  }
+  const beforeTombs = new Set((prev.deletedProfiles || []).map(t => t.id));
+  for (const t of (next.deletedProfiles || [])) {
+    if (!beforeTombs.has(t.id) && !allowed(t.id)) return no(t.id);
+  }
+  // Rôle serveur d'un profil verrouillé dont l'entrée change de rôle (par un administrateur) : suivre l'index.
+  for (const [id, a] of after) {
+    const b = before.get(id);
+    if (b && a.role !== b.role && locked.has(id) && (a.role === 'admin' || a.role === 'user')) {
+      await env.DB.prepare('UPDATE profile_auth SET role = ?1 WHERE pid = ?2').bind(a.role, id).run();
+    }
+  }
+  return null;
+}
+
 // Renvoie null si la requête est autorisée, sinon la réponse de refus.
 async function authorizeProfile(request, env, pid, cors) {
   const refuse = (status, code, message, extra) => new Response(JSON.stringify({ error: { message, code }, ...(extra || {}) }), {
     status, headers: { ...cors, 'Content-Type': 'application/json' }
   });
-  await ensureAuthTable(env.DB);
+  await ensureAuthTable(env);
   const token = request.headers.get('X-Plume-Profile-Token') || '';
   const claimedId = request.headers.get('X-Plume-Profile-Id') || '';
   const wellFormed = /^[0-9a-f]{64}$/.test(token) && claimedId === pid;
@@ -190,7 +298,8 @@ async function authorizeProfile(request, env, pid, cors) {
   const n = (await env.DB.prepare('SELECT COUNT(*) AS n FROM profile_auth').first()).n;
   if (n >= MAX_CLAIMED_PROFILES) return refuse(507, 'profile-limit', 'Nombre maximal de profils atteint sur ce serveur.', { quota: 'profiles' });
   const verifier = await sha256Hex(token);
-  await env.DB.prepare('INSERT OR IGNORE INTO profile_auth (pid, verifier, created_at) VALUES (?1, ?2, ?3)').bind(pid, verifier, Date.now()).run();
+  const role = await roleAtClaim(env, pid);
+  await env.DB.prepare('INSERT OR IGNORE INTO profile_auth (pid, verifier, created_at, role) VALUES (?1, ?2, ?3, ?4)').bind(pid, verifier, Date.now(), role).run();
   const won = await env.DB.prepare('SELECT verifier FROM profile_auth WHERE pid = ?1').bind(pid).first();
   return won && timingSafeEqual(won.verifier, verifier) ? null
     : refuse(403, 'profile-token', 'Ce profil vient d\'être verrouillé par un autre appareil : rechargez la page.');
@@ -545,6 +654,12 @@ async function handleRequest(request, env) {
         }), {
           status: 409, headers: { ...cors, 'Content-Type': 'application/json', 'X-Plume-Version': String(current) }
         });
+      }
+
+      // v9.65.1 — écriture de l'index des profils : droits par profil (voir authorizeProfilesWrite).
+      if (key === 'profiles' && env.DB) {
+        const deniedIndex = await authorizeProfilesWrite(request, env, body, cors);
+        if (deniedIndex) return deniedIndex;
       }
 
       // v9.65.0 (AUD-06-017) — Quotas par profil et garde-fou global (D1 seulement).

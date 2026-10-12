@@ -19,5 +19,6 @@ CREATE TABLE IF NOT EXISTS sync_chunks (
 CREATE TABLE IF NOT EXISTS profile_auth (
   pid        TEXT PRIMARY KEY,   -- identifiant du profil
   verifier   TEXT NOT NULL,      -- SHA-256 (hex) du jeton du profil
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  role       TEXT NOT NULL DEFAULT 'user'  -- v9.65.1 : 'admin' fixé à la première connexion (voir sync-worker.js)
 );
