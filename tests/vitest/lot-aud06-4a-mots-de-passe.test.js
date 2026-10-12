@@ -58,12 +58,12 @@ describe('Enveloppe p2 : coût de dérivation écrit dans l\'enveloppe', () => {
       expect(performance.now() - t0).toBeLessThan(1500);
     }
   });
-  it('activation en deux temps : par défaut on ÉCRIT l\'ancien format ; writeP2 = true écrit p2', async () => {
+  it('écriture p2 ACTIVÉE (v9.66.1) : encrypt écrit p2 à 600 000 ; retour arrière possible (writeP2 = false)', async () => {
     const C = loadCrypto();
-    expect(C.writeP2).toBe(false);
-    expect(await C.encrypt('x', 'mot-de-passe-12ch')).not.toMatch(/^p2:/);
-    C.writeP2 = true;
+    expect(C.writeP2).toBe(true);
     expect(await C.encrypt('x', 'mot-de-passe-12ch')).toMatch(/^p2:600000:/);
+    C.writeP2 = false;
+    expect(await C.encrypt('x', 'mot-de-passe-12ch')).not.toMatch(/^p2:/);
   });
   it('encryptData n\'utilise JAMAIS p2 (la clé de données est déjà forte), même quand writeP2 est actif', async () => {
     const C = loadCrypto();
@@ -77,7 +77,8 @@ describe('Enveloppe p2 : coût de dérivation écrit dans l\'enveloppe', () => {
   it('envelopeNeedsUpgrade : faux tant que p2 n\'est pas activé ; vrai ensuite pour v1 et p2 à bas coût, faux pour p2 à jour', async () => {
     const C = loadCrypto();
     const v1 = await C.encryptLegacy('x', 'mot-de-passe-12ch'), bas = await C.encryptP2('x', 'mot-de-passe-12ch', 310000), plein = await C.encryptP2('x', 'mot-de-passe-12ch');
-    expect(C.envelopeNeedsUpgrade(v1)).toBe(false);
+    C.writeP2 = false;
+    expect(C.envelopeNeedsUpgrade(v1)).toBe(false); // écriture p2 désactivée : rien à ré-écrire
     C.writeP2 = true;
     expect(C.envelopeNeedsUpgrade(v1)).toBe(true);
     expect(C.envelopeNeedsUpgrade(bas)).toBe(true);

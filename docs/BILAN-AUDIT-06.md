@@ -8,7 +8,7 @@ rapport `.docx`, liste `.csv`, preuve rejouable `poc-verification-worker.mjs`. P
 | 1 | 012, 013 | étape A livrée (v9.63.3) ; étape B : Worker sans repli KV prêt, déploiement après migration |
 | 2 | 009, 010, 011, 022, 023 | codé en v9.64.0 (voir ci-dessous) |
 | 3 | 001, 002, 017 | 3a (v9.65.0) et 3b (v9.65.1) codés |
-| 4 | 003, 004, 006, 007 | 4a (004) codé en v9.66.0 ; 003 **accepté** (question conservée) ; 007 **annulé** ; 4b (006, rotation de la clé de données) à faire |
+| 4 | 003, 004, 006, 007 | 4a (004) codé en v9.66.0, écriture p2 activée en v9.66.1 ; 003 **accepté** (question conservée) ; 007 **annulé** ; 4b (006, rotation de la clé de données) à faire |
 | 5 | 005, 018, 019, 021 | à faire |
 | 6 | 008, 014, 015 | à faire (dépend du lot 3) |
 | 7 | 016, 020 | à faire |
@@ -53,3 +53,5 @@ rapport `.docx`, liste `.csv`, preuve rejouable `poc-verification-worker.mjs`. P
 - **003** : **risque accepté par le propriétaire (12/10/2026)** — la question secrète est conservée. Pistes non retenues : retirer la question, exiger une réponse plus longue. Le risque résiduel est atténué par 004 et sera refermé par la rotation de la clé de données (4b) pour les copies déjà prises.
 - **007** : **annulé par le propriétaire (12/10/2026)** ; le risque (retour arrière ou échange d'enveloppes par qui contrôle le stockage) est réduit par la serrure par profil du lot 3.
 - Tests : `tests/vitest/lot-aud06-4a-mots-de-passe.test.js` (36).
+
+- **Activation (v9.66.1, 12/10/2026)** : `Crypto.writeP2 = true` sur confirmation du propriétaire ; chaque profil ré-enveloppe `wrapPwd` à 600 000 itérations à sa prochaine connexion par mot de passe.

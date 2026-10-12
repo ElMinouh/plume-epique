@@ -30,9 +30,9 @@ const PBKDF2_ITERATIONS_MIN = 100000, PBKDF2_ITERATIONS_MAX = 2000000;
 const Crypto = {
   // ACTIVATION EN DEUX TEMPS (comme le format de texte v2, docs/EXPLOITATION.md §11) : un appareil d'avant la v9.66.0
   // ne sait pas lire « p2: » (il afficherait « Mot de passe incorrect »). Étape 1 (v9.66.0) : tous les appareils LISENT
-  // p2, on continue d'ÉCRIRE l'ancien format (writeP2 = false). Étape 2 : writeP2 = true une fois tous les appareils
-  // en ≥ 9.66.0 ; chaque profil est alors ré-enveloppé à 600 000 itérations à sa prochaine connexion.
-  writeP2: false,
+  // p2, on continue d'ÉCRIRE l'ancien format. Étape 2 (v9.66.1, ACTIVÉE) : writeP2 = true ; chaque profil est ré-enveloppé
+  // à 600 000 itérations à sa prochaine connexion par mot de passe.
+  writeP2: true, // ACTIVÉ en v9.66.1 (12/10/2026, sur confirmation du propriétaire que les appareils sont à jour) ; retour arrière : false
   PBKDF2_ITERATIONS, PBKDF2_ITERATIONS_LEGACY,
   async deriveKey(password, salt, iterations = PBKDF2_ITERATIONS_LEGACY) {
     const enc = new TextEncoder();

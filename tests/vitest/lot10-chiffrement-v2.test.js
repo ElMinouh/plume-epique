@@ -46,7 +46,7 @@ describe('Format v2 : chiffrement et lecture', () => {
     expect(await C.decrypt('v2:pas-du-base64!!', DEK)).toBeNull();
   });
   it('le format v1 reste lu à l\'identique (aucune chaîne v1 ne peut être prise pour du v2)', async () => {
-    const v1 = await C.encrypt('ancien texte', DEK);
+    const v1 = await C.encryptLegacy('ancien texte', DEK); // v9.66.1 : encrypt() écrit désormais p2 pour les enveloppes de mot de passe
     expect(v1.includes(':')).toBe(false);
     expect(await C.decrypt(v1, DEK)).toBe('ancien texte');
     expect(await C.decrypt(v1, 'mauvais')).toBeNull();
