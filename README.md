@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.71.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.72.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -149,6 +149,7 @@ foyer, etc.) : `docs/DECISIONS.md`.
 
 ## Limites connues
 
+- **Fiabilité des échanges réseau** (v9.72.0, AUD-07-011/012/020) : le rafraîchissement de fond d'un manuscrit déjà présent en local annonce la version connue et le serveur répond 304 sans corps si rien n'a changé (au lieu de renvoyer tout le manuscrit) ; le délai d'un envoi est de 30 s + 10 s par Mo (plus de 30 s fixes) ; la lecture du corps des réponses de synchro (manuscrits, images) a elle aussi un délai maximal (40 s, 120 s pour une image). Les flux de l'IA ne sont pas bornés. Pas d'envoi par morceaux reprenables : un envoi interrompu repart de zéro.
 - **Poids d'un manuscrit et synchronisation** (v9.71.0, AUD-07-001) : l'historique des versions voyage dans le manuscrit ; les copies AUTOMATIQUES d'un chapitre (ou d'une page de roman graphique) sont plafonnées à 2 Mo au total (les plus anciennes tombent d'abord, la plus récente et toutes les copies manuelles sont gardées). Le serveur refuse un envoi de plus de 20 Mio : au-delà de 19 Mio le client n'envoie plus rien et affiche un message fixe « trop volumineux pour la synchronisation » (une fois par manuscrit et par session) ; le manuscrit reste enregistré sur l'appareil. Si un manuscrit s'approchait vraiment de cette limite, la sortie de l'historique du document (table locale non synchronisée) est prévue — voir `docs/DECISIONS.md`.
 - **Détection** (v9.70.0) : une sonde `/health` publique, les erreurs JavaScript du navigateur signalées au serveur (synchronisation activée seulement, sans contenu), une alerte quotidienne de quota D1 (courriel GitHub à 80 %) et une sauvegarde chiffrée de la base à lancer à la main (`scripts/sauvegarder-d1.cjs`, dossier hors dépôt) : voir `docs/EXPLOITATION.md` §13. Aucune supervision externe n'est branchée tant que le propriétaire n'a pas créé le moniteur (UptimeRobot).
 - **Surveillance** (v9.69.0) : le serveur de synchro tient un registre des événements de sécurité (30 jours, sans IP ni contenu) à consulter avec `node scripts/evenements-securite.cjs` ; il n'envoie **aucune alerte** automatique. Les bibliothèques de `vendor/` sont protégées par des empreintes (`vendor/SHA256SUMS`, test et CI).

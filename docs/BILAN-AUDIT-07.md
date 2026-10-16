@@ -7,7 +7,7 @@ Base : v9.69.0 (note 64/100, niveau 3 — Production à l'échelle familiale). R
 |---|---|---|
 | 1 Détection | 016, 008, 017, 018 | 🟢 v9.70.0 (voir ci-dessous) |
 | 2 Historique borné et refus d'envoi visible | 001 | 🟢 v9.71.0 (voir ci-dessous) |
-| 3 Réseau de synchro | 011, 012, 020 | à faire |
+| 3 Réseau de synchro | 011, 012, 020 | 🟢 v9.72.0 (voir ci-dessous) |
 | 4 Écritures évitables | 009, 010 | à faire |
 | 5 Worker D1 / IA | 007, 015 | à faire |
 | 6 CPU à la frappe | 003, 002, 022 | à faire |
@@ -42,3 +42,12 @@ Base : v9.69.0 (note 64/100, niveau 3 — Production à l'échelle familiale). R
 
 
 Vérifications après le push (12/10/2026) : en ligne, v9.71.0 (titre, `sw.js`), console sans erreur, CI verte ; copie locale (Worker local 8787 + application 18821, D1 jetable) : un envoi normal de 200 Ko arrive (version 1) ; un contenu de 20 Mio n'est pas envoyé (aucune requête au Worker), un seul message fixe « trop volumineux » apparaît (deux tentatives), la clé n'est pas en file de reprise ; 20 copies de 400 Ko sont ramenées à 5 (2 Mo). Non couvert : vrai manuscrit volumineux avec historique réel, deux appareils, refus 413 réel de la production.
+
+## Lot 3 — v9.72.0
+
+| ID | Statut | Preuve |
+|---|---|---|
+| 011 | 🟢 `X-Plume-Known-Version` : le Worker répond 304 sans corps ; le client ne l'envoie que pour le rafraîchissement de fond (`syncPull(key, { ifVersion: true })`), jamais pour le premier accès ni l'arbitrage de conflit | `lot-aud07-3-reseau.test.js` |
+| 012 | 🟢 délai d'envoi 30 s + 10 s par Mo (`syncPushTimeoutMs`). Envoi par morceaux reprenables : non fait (décision du lot : seulement si les gros manuscrits deviennent réels) | `lot-aud07-3-reseau.test.js` |
+| 020 | 🟢 `fetchWithTimeout(..., { bodyTimeout: true })` (40 s par défaut) pour syncPull et pullGraphicImage ; flux IA inchangés | `lot-aud07-3-reseau.test.js` |
+

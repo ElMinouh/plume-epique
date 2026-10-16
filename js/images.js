@@ -375,7 +375,7 @@ async function pullGraphicImage(imageId) {
   if (!imageSyncReady() || typeof _currentDocumentId === 'undefined' || !_currentDocumentId || !imagesCanEncrypt()) return null;
   try {
     const resp = await fetchWithTimeout(imageSyncUrl(imageRemoteKey(_currentDocumentId, imageId)), {
-      timeoutMs: 120000, headers: { 'Authorization': 'Bearer ' + getSyncKey() }
+      timeoutMs: 120000, bodyTimeout: true, bodyTimeoutMs: 120000, headers: { 'Authorization': 'Bearer ' + getSyncKey() }
     });
     if (!resp.ok) return null;
     const obj = await resp.json();

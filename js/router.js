@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.71.0';
+const APP_VERSION = '9.72.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -135,7 +135,7 @@ function onClientTooOld() {
   if (typeof toast === 'function') toast('Cette version de Plume est trop ancienne pour la synchronisation : rechargez la page (Ctrl+F5) pour installer la mise à jour.', 'error', { sticky: true });
 }
 async function fetchWithTimeout(url, opts) {
-  const { timeoutMs, ...fetchOpts } = opts || {};
+  const { timeoutMs, bodyTimeout, bodyTimeoutMs, ...fetchOpts } = opts || {};
   const toSync = typeof SYNC_WORKER_URL !== 'undefined' && typeof url === 'string' && url.startsWith(SYNC_WORKER_URL);
   if (toSync) {
     fetchOpts.headers = { ...(fetchOpts.headers || {}), 'X-Plume-Client-Version': APP_VERSION };
@@ -151,6 +151,22 @@ async function fetchWithTimeout(url, opts) {
   const timer = setTimeout(() => controller.abort(), ms);
   try {
     const resp = await fetch(url, { ...fetchOpts, signal: controller.signal });
+    if (bodyTimeout) {
+      // v9.72.0 (audit AUD-07-020) — le minuteur ci-dessous s'arrête à la réception des EN-TÊTES : si la connexion
+      // se figeait ensuite, resp.json() restait en attente indéfiniment. Sur demande (bodyTimeout), un second délai
+      // (bodyTimeoutMs, 40 s par défaut) court jusqu'à la fin de la lecture du corps. Réservé aux lectures complètes :
+      // jamais pour les flux (IA en continu), dont la durée n'est pas bornée par construction.
+      const ms2 = bodyTimeoutMs || 40000;
+      const t2 = setTimeout(() => controller.abort(), ms2);
+      resp.__cancelBodyTimer = () => clearTimeout(t2);
+      for (const m of ['json', 'text', 'blob', 'arrayBuffer']) {
+        const orig = resp[m].bind(resp);
+        resp[m] = () => orig().then(
+          v => { clearTimeout(t2); return v; },
+          e => { clearTimeout(t2); throw (e && e.name === 'AbortError') ? new Error('Délai dépassé (' + Math.round(ms2 / 1000) + ' s) : la réponse du serveur ne se termine pas.') : e; }
+        );
+      }
+    }
     if (toSync && resp.status === 426) onClientTooOld();
     if (toSync && resp.status === 403) {
       try { const j = await resp.clone().json(); if (j && j.error && j.error.code === 'profile-deleted') onProfileDeleted(); else if (j && j.error && j.error.code === 'profile-token') onProfileLocked(); else if (j && j.error && j.error.code === 'profile-index') onProfileIndexRefused(); } catch (e) { /* corps illisible : aucun message */ }
@@ -694,6 +710,10 @@ const SYNC_MAX_CONFLICT_RETRIES = 3;
 // l'envoi SANS RIEN DIRE (console.warn) : la copie distante s'arrêtait en silence. On teste la taille avant d'envoyer
 // (inutile de téléverser 20 Mo pour un refus certain) et on prévient, une seule fois par manuscrit et par session.
 const SYNC_MAX_BODY_CHARS = 19 * 1024 * 1024;
+// v9.72.0 (audit AUD-07-012) — délai d'envoi PROPORTIONNEL à la taille : 30 s + 10 s par Mo. Un délai fixe de 30 s
+// interdisait à tout envoi de plus de ~1,7 Mbit/s·30 s (≈ 6 Mo sur une liaison montante de 1,7 Mbit/s) d'aboutir, avec
+// reprise éternelle depuis zéro.
+function syncPushTimeoutMs(bodyChars) { return 30000 + Math.ceil((bodyChars || 0) / 1048576) * 10000; }
 const _tooLargeWarned = {};
 function notifySyncTooLarge(key) {
   removePendingSyncKey(key);
@@ -736,7 +756,7 @@ async function syncPush(key, payload, attempt = 0) {
     // locale reste intacte et sera repoussée à la prochaine écriture).
     const opts = {
       method: 'PUT',
-      timeoutMs: 30000,
+      timeoutMs: syncPushTimeoutMs(body.length),
       headers: {
         'Content-Type':'application/json',
         'Authorization':'Bearer ' + syncKey,
@@ -903,13 +923,20 @@ async function syncPush(key, payload, attempt = 0) {
 // délai minimal entre deux rafraîchissements d'arrière-plan (voir loadData).
 const _lastPullAt = {};
 let SYNC_BACKGROUND_PULL_COOLDOWN_MS = 120000;
-async function syncPull(key) {
+async function syncPull(key, opts) {
   const syncKey = getSyncKey();
   if (!syncKey) return { data: undefined, version: null };
   try {
-    const resp = await fetchWithTimeout(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), { headers: { 'Authorization': 'Bearer ' + syncKey }, timeoutMs: 8000 });
+    const headers = { 'Authorization': 'Bearer ' + syncKey };
+    // v9.72.0 (audit AUD-07-011) — lecture conditionnelle, SEULEMENT à la demande de l'appelant (rafraîchissement de fond
+    // d'une clé déjà présente en local) : le serveur répond 304 sans corps si rien n'a changé. Les autres appelants
+    // (premier accès, arbitrage de conflit) ont besoin du contenu et reçoivent toujours la réponse complète.
+    const known = getSyncVersion(key);
+    if (opts && opts.ifVersion && known > 0) headers['X-Plume-Known-Version'] = String(known);
+    const resp = await fetchWithTimeout(SYNC_WORKER_URL + '?key=' + encodeURIComponent(key), { headers, timeoutMs: 8000, bodyTimeout: true });
     _lastPullAt[key] = Date.now();
-    if (!resp.ok) { setLastSyncStatus(false); return { data: undefined, version: null }; }
+    if (resp.status === 304) { setLastSyncStatus(true); return { data: undefined, version: readVersionHeader(resp), notModified: true }; }
+    if (!resp.ok) { if (resp.__cancelBodyTimer) resp.__cancelBodyTimer(); setLastSyncStatus(false); return { data: undefined, version: null }; }
     setLastSyncStatus(true);
     const version = readVersionHeader(resp);
     const data = await resp.json(); // peut être `null` (clé jamais synchronisée) : géré par l'appelant
@@ -1236,7 +1263,7 @@ async function loadData(key) {
     // La connexion, l'ouverture d'un manuscrit et les écritures (409) vérifient
     // de toute façon le serveur par ailleurs.
     if (Date.now() - (_lastPullAt[key] || 0) < SYNC_BACKGROUND_PULL_COOLDOWN_MS) return local;
-    syncPull(key).then(async ({ data: remote, version: remoteVersion }) => {
+    syncPull(key, { ifVersion: true }).then(async ({ data: remote, version: remoteVersion }) => {
       // v8.1.0 — la condition portait aussi sur `idbStore` : sur un navigateur
       // sans IndexedDB (mode privé restrictif, quota refusé), l'appareil
       // n'appliquait donc JAMAIS les mises à jour reçues — il restait périmé

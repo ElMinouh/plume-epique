@@ -526,7 +526,7 @@ async function handleRequest(request, env) {
       ...(requestOrigin && originOk ? { 'Access-Control-Allow-Origin': requestOrigin } : {}),
       'Vary': 'Origin',
       'Access-Control-Allow-Methods': 'GET,PUT,DELETE,POST,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Plume-Base-Version, X-Plume-Client-Version, X-Plume-Profile-Id, X-Plume-Profile-Token',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Plume-Base-Version, X-Plume-Client-Version, X-Plume-Profile-Id, X-Plume-Profile-Token, X-Plume-Known-Version',
       // Sans ceci, le navigateur cache la réponse mais REFUSE au JavaScript
       // de lire nos en-têtes de version (règle CORS) : le client croirait
       // alors toujours être en version 0 et le contrôle ne servirait à rien.
@@ -669,6 +669,18 @@ async function handleRequest(request, env) {
     }
 
     if (request.method === 'GET') {
+      // v9.72.0 (audit AUD-07-011) — LECTURE CONDITIONNELLE. Le client annonce la version qu'il détient déjà
+      // (X-Plume-Known-Version) : si c'est la version courante, 304 sans corps (une seule lecture de méta, 0,3 ms)
+      // au lieu de renvoyer tout le manuscrit pour que le client constate qu'il n'a rien de nouveau. Absent, invalide
+      // ou différent : réponse complète comme avant (l'authentification et la serrure ont déjà été contrôlées).
+      const known = request.headers.get('X-Plume-Known-Version');
+      if (known !== null && /^[1-9]\d{0,9}$/.test(known)) {
+        let current = null;
+        try { current = await store.version(key); } catch (e) { /* lecture de version impossible : réponse complète ci-dessous */ }
+        if (current !== null && current === Number(known)) {
+          return new Response(null, { status: 304, headers: { ...cors, 'X-Plume-Version': String(current) } });
+        }
+      }
       let value, version;
       try { ({ value, version } = await store.read(key)); }
       catch (e) {
