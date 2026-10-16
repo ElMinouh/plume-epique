@@ -789,6 +789,15 @@ async function migrateLegacyDocumentIfNeeded() {
   await persistData('data_' + _currentProfileId, null);
 }
 
+// v9.84.0 (AUD-08-024) : raccourci d'installation « Nouveau projet » (manifest.json, ./?action=nouveau). L'adresse est nettoyée
+// aussitôt ; la fenêtre de choix du type s'ouvre une seule fois, quand la bibliothèque est affichée (donc après la connexion).
+let _shortcutAction = (() => { try { return new URLSearchParams(location.search).get('action') === 'nouveau' ? 'nouveau' : null; } catch (e) { return null; } })();
+function runPendingShortcut() {
+  if (_shortcutAction !== 'nouveau') return;
+  _shortcutAction = null;
+  try { history.replaceState(null, '', location.pathname); } catch (e) { /* adresse laissée telle quelle */ }
+  setTimeout(() => { if (document.body.classList.contains('library-mode')) createNewDocument(); }, 300);
+}
 async function renderLibraryScreen() {
   let list = await loadDocList();
   // v9.39.0 : les manuscrits dont les 30 jours de corbeille sont écoulés sont supprimés définitivement.
@@ -865,6 +874,7 @@ async function renderLibraryScreen() {
   // v7.11.0 : garder l'étagère synchronisée si c'est la vue active (même
   // principe que la corkboard des chapitres — Lot 6, editor.js).
   if (_libraryViewMode === 'shelf') renderLibraryShelf(sorted);
+  runPendingShortcut();
 }
 
 // ═══════════════════════════════════════════════════════

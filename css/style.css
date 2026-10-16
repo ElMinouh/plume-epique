@@ -2057,3 +2057,11 @@ html[data-spacing="large"] #writer,html[data-spacing="large"] #focus-writer,html
 #toast.has-action.show{pointer-events:auto;}
 #toast .toast-action{margin-left:12px;padding:2px 10px;background:none;border:1px solid var(--border);border-radius:var(--r-1);color:var(--accent-text);font-weight:600;font-size:var(--fs-sm);cursor:pointer;}
 #toast .toast-action:hover{background:color-mix(in srgb,var(--text) 10%,transparent);}
+
+/* ═══ v9.84.0 (AUD-08-018) — les fenêtres sortent en fondu, comme elles entrent ═══
+   Avant : display:none → display:flex, donc apparition animée mais disparition instantanée. Désormais la fenêtre reste dans
+   l'arbre (display:flex) mais invisible, inerte et hors de l'ordre de tabulation (visibility:hidden) ; la visibilité n'est retirée
+   qu'après le fondu. Aucun code d'ouverture ou de fermeture ne change (classe .active). prefers-reduced-motion supprime la durée
+   (règle globale). Les modes Focus et Lecture gardent leur propre mécanisme. */
+#my-profile-overlay,#manage-profiles-overlay,#search-overlay,#gist-history-overlay,#doc-trash-overlay,#trash-overlay,#export-select-overlay,#shortcuts-overlay,#privacy-overlay,#docx-import-overlay,#library-system-overlay,#conflict-diff-overlay,#confirm-modal-overlay,#history-overlay{display:flex;visibility:hidden;opacity:0;pointer-events:none;transition:opacity var(--t-fast) var(--ease),visibility var(--t-fast) step-end;}
+#my-profile-overlay.active,#manage-profiles-overlay.active,#search-overlay.active,#gist-history-overlay.active,#doc-trash-overlay.active,#trash-overlay.active,#export-select-overlay.active,#shortcuts-overlay.active,#privacy-overlay.active,#docx-import-overlay.active,#library-system-overlay.active,#conflict-diff-overlay.active,#confirm-modal-overlay.active,#history-overlay.active{visibility:visible;opacity:1;pointer-events:auto;transition:opacity var(--t-fast) var(--ease),visibility var(--t-fast) step-start;}

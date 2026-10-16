@@ -1,7 +1,7 @@
 'use strict';
 // Changez ce numéro de version à chaque mise à jour majeure des fichiers
 // pour forcer les navigateurs à récupérer la nouvelle version.
-const CACHE = 'plume-epique-v9.83.0';
+const CACHE = 'plume-epique-v9.84.0';
 
 const CORE_ASSETS = [
   './',
@@ -108,7 +108,7 @@ self.addEventListener('fetch', event => {
   if (!isAppAsset(new URL(event.request.url))) return;
 
   event.respondWith((async () => {
-    const cached = await caches.match(event.request);
+    const cached = await caches.match(event.request, { ignoreSearch: event.request.mode === 'navigate' }); // v9.84.0 : ./?action=nouveau hors ligne
     // v9.76.0 (audit AUD-07-005) : les librairies de vendor/ portent leur version dans leur nom (d3-7.9.0…) et ne changent
     // jamais sous le même nom : servies depuis le cache SANS revalidation (avant : une requête réseau par fichier à chaque
     // ouverture, et un fichier pouvait être remplacé dans le cache avant que l'application ne passe à la nouvelle version).
