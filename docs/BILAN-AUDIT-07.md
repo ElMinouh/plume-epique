@@ -83,3 +83,5 @@ Mesures dans Chrome 152 (copie locale de l'application, textes synthétiques ; p
 | 022 | 🟢 mesuré, aucun correctif : par frappe, 0,1 ms (8 000 mots), 1,1 ms (50 000 mots), 3,6 ms (100 000 mots) | mesure navigateur |
 
 Incident évité : le nom `manuscriptWordCount` existait déjà dans `library.js` (autre signature) et masquait la nouvelle fonction ; les tests de l'index (nombre de mots à 0) l'ont révélé avant livraison. Nouveau nom : `chaptersTotalWords`.
+
+Vérifications après le push (16/10/2026) : CI verte ; en ligne v9.75.0 (titre, `sw.js`), console sans erreur, `/health` 200, Workers 401 sans clé ; copie locale à deux appareils (Worker local 8787, applications 18871 et 18872, D1 jetable) : l'appareil A enregistre un manuscrit de 905 mots (chiffrement natif) et l'envoie ; l'appareil B le lit et le déchiffre, avec le chemin natif puis avec un navigateur simulé SANS conversion native : 905 mots, accents intacts, index à 905 mots, aucune erreur 500. Non couvert : téléphone ou navigateur réellement ancien (Firefox < 133, Safari < 18.2, Chrome < 140 : repli testé par simulation seulement), manuscrits de plus de 400 000 mots.
