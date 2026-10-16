@@ -51,3 +51,5 @@ Vérifications après le push (12/10/2026) : en ligne, v9.71.0 (titre, `sw.js`),
 | 012 | 🟢 délai d'envoi 30 s + 10 s par Mo (`syncPushTimeoutMs`). Envoi par morceaux reprenables : non fait (décision du lot : seulement si les gros manuscrits deviennent réels) | `lot-aud07-3-reseau.test.js` |
 | 020 | 🟢 `fetchWithTimeout(..., { bodyTimeout: true })` (40 s par défaut) pour syncPull et pullGraphicImage ; flux IA inchangés | `lot-aud07-3-reseau.test.js` |
 
+
+Vérifications après le push (16/10/2026) : en ligne, `/health` 200, Worker de synchro et Worker IA 401 sans clé, pré-vérification CORS acceptant `X-Plume-Known-Version`, `sw.js` v9.72.0, CI et déploiement du Worker verts ; copie locale (Worker local 8787, application 18831, D1 jetable) : envoi du manuscrit (version 1), rafraîchissement de fond sans changement = GET 304, après écriture d'un autre appareil (version 2) = GET 200 complet puis 304. Non couvert : délai proportionnel sur une vraie liaison lente, coupure réseau en cours de lecture, deux appareils réels avec profil.
