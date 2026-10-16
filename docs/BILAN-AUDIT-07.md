@@ -9,7 +9,7 @@ Base : v9.69.0 (note 64/100, niveau 3 — Production à l'échelle familiale). R
 | 2 Historique borné et refus d'envoi visible | 001 | 🟢 v9.71.0 (voir ci-dessous) |
 | 3 Réseau de synchro | 011, 012, 020 | 🟢 v9.72.0 (voir ci-dessous) |
 | 4 Écritures évitables | 009, 010 | 🟢 v9.73.0 (voir ci-dessous) |
-| 5 Worker D1 / IA | 007, 015 | à faire |
+| 5 Worker D1 / IA | 007, 015 | 🟢 v9.74.0 (voir ci-dessous) |
 | 6 CPU à la frappe | 003, 002, 022 | à faire |
 | 7 Chargement et cache | 004, 005, 006 | à faire |
 | 8 Images et export | 013, 014 | à faire |
@@ -62,3 +62,10 @@ Vérifications après le push (16/10/2026) : en ligne, `/health` 200, Worker de 
 | 010 | 🟢 variante PLUS SIMPLE que celle présentée (cache local fusionné avec l'index) : l'index garde les mêmes champs mais son écriture est différée (ouverture, donnée d'auteur, 5 min, sortie) ; `mergeDocList` et le format de l'index sont INCHANGÉS, aucune fusion nouvelle. Écart assumé : un plantage brutal peut laisser date/nombre de mots en retard jusqu'à la réouverture | `lot-aud07-4-ecritures.test.js` |
 
 Vérifications après le push (16/10/2026) : en ligne v9.73.0 (titre, `sw.js`), console sans erreur, `/health` 200, Workers 401 sans clé, CI verte ; copie locale à deux appareils (Worker local 8787, applications 18841 et 18842, D1 jetable) : 10 enregistrements successifs = 1 seule écriture d'index locale (avant : 10), nombre de mots de l'index mis à jour à la sortie (6 puis 51), 1 PUT d'index et 1 PUT de manuscrit reçus par le serveur ; l'appareil B voit le manuscrit avec 51 mots. Non couvert : écriture continue de plus de 5 minutes, vraie sauvegarde GitHub (essayée seulement par la suite de tests avec un faux GitHub), roman graphique réel, plantage brutal du navigateur.
+
+## Lot 5 — v9.74.0
+
+| ID | Statut | Preuve |
+|---|---|---|
+| 007 | 🟢 colonne `sync_meta.bytes` + table `sync_totals` ('global', 'img', 'p:<profil>') mises à jour dans la transaction d'écriture (EXISTS sur le wid : un conflit 409 ne les touche pas) ; contrôle de quota = lecture de 1 à 2 lignes ; recomptage par balayage AVANT tout refus (un compteur gonflé ne bloque jamais) ; migration automatique et idempotente ; `__usage__` expose `counterBytes` à côté de `totalBytes` | `lot-aud07-5-quotas-ia.test.js` ; essai sur une copie de la vraie base (sauvegarde du 16/10) : 43 clés, 5 888 633 octets, compteur = balayage, écart 0 |
+| 015 | 🟢 plafond quotidien par profil (200, `AI_DAILY_LIMIT`), délai de réponse de 25 s (504), une nouvelle tentative après 2 s sur 429/503, appel refusé = compteur rendu ; Worker IA lié à D1 (`wrangler-ai.toml`), en-tête `X-Plume-Profile-Id` envoyé par `ai.js` | `lot-aud07-5-quotas-ia.test.js` |

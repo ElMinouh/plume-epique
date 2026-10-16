@@ -30,7 +30,7 @@ async function callClaude(prompt, maxTokens=1000, onChunk) {
   const syncKey = (typeof getSyncKey === 'function') ? getSyncKey() : '';
   if (!syncKey) throw new Error("L'IA nécessite la clé de synchronisation (Système → Synchronisation). Elle n'est pas configurée sur cet appareil.");
   const resp = await fetchWithTimeout('https://plume-epique-ai.air7841.workers.dev', {
-    timeoutMs: 60000, method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + await aiAuthToken(syncKey)},
+    timeoutMs: 60000, method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + await aiAuthToken(syncKey), ...((typeof _currentProfileId !== 'undefined' && _currentProfileId) ? { 'X-Plume-Profile-Id': _currentProfileId } : {})}, // v9.74.0 : plafond quotidien par profil (worker.js)
     body:JSON.stringify({ prompt, maxTokens })
   });
   if (!resp.ok) {

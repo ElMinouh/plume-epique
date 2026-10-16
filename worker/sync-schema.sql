@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS sync_meta (
   version    INTEGER NOT NULL,   -- numéro de version croissant (arbitrage 409)
   wid        TEXT NOT NULL,      -- identifiant de l'écriture courante (ses morceaux)
   chunks     INTEGER NOT NULL,   -- nombre de morceaux de la version courante
-  updated_at INTEGER NOT NULL
+  updated_at INTEGER NOT NULL,
+  bytes      INTEGER NOT NULL DEFAULT 0  -- v9.74.0 : taille de la version courante (caractères), tenue par le Worker
 );
 CREATE TABLE IF NOT EXISTS sync_chunks (
   k    TEXT NOT NULL,
@@ -32,3 +33,18 @@ CREATE TABLE IF NOT EXISTS security_events (
   detail TEXT                -- précision courte (famille de clé, code de refus…), jamais de contenu
 );
 CREATE INDEX IF NOT EXISTS security_events_ts ON security_events (ts);
+-- v9.74.0 (audit AUD-07-007) — compteurs d'occupation (octets et nombre de clés) : 'global', 'img' et 'p:<profil>'. Tenus
+-- à jour par le Worker dans la transaction de chaque écriture ; migration et recomptage automatiques (voir sync-worker.js).
+CREATE TABLE IF NOT EXISTS sync_totals (
+  scope TEXT PRIMARY KEY,
+  bytes INTEGER NOT NULL,
+  keys  INTEGER NOT NULL
+);
+-- v9.74.0 (audit AUD-07-015) — appels IA par jour et par profil (plafond quotidien du relais IA, plume-epique-ai). Créée
+-- aussi à la volée par le Worker IA.
+CREATE TABLE IF NOT EXISTS ai_usage (
+  day TEXT NOT NULL,       -- AAAA-MM-JJ (UTC)
+  pid TEXT NOT NULL,       -- identifiant du profil, ou 'anon'
+  n   INTEGER NOT NULL,
+  PRIMARY KEY (day, pid)
+);

@@ -17,6 +17,49 @@ const MAX_BODY_BYTES = 120000;    // 30 000 caractères UTF-8 = au plus ~120 Ko
 const MAX_OUTPUT_TOKENS = 4000;   // les appels de l'app demandent au plus 3 000
 const DEFAULT_OUTPUT_TOKENS = 1000;
 const ALLOWED_ORIGIN = 'https://plume-epique.pages.dev';
+// v9.74.0 (audit AUD-07-015) — le quota gratuit de Gemini est UNIQUE et partagé par tous les profils : un seul profil
+// (analyse « tout le roman » = jusqu'à 40 appels) pouvait le vider pour les autres, et un appel amont qui ne répondait
+// pas retenait la requête. Désormais : plafond d'appels par profil et par jour (AI_DAILY_LIMIT, 200 par défaut), délai
+// de 25 s pour obtenir la RÉPONSE de Gemini (le flux, lui, n'est pas borné), une seule nouvelle tentative après 2 s sur
+// 429/503. Le compteur vit dans D1 (binding DB, même base que la synchro) ; sans binding ou en cas d'erreur de la base,
+// le plafond est simplement ignoré (l'IA ne doit pas tomber à cause de son compteur).
+const DEFAULT_DAILY_LIMIT = 200;
+const UPSTREAM_TIMEOUT_MS = 25000;
+const UPSTREAM_RETRY_DELAY_MS = 2000;
+let _aiUsageReady = null;
+function aiDay() { return new Date().toISOString().slice(0, 10); }
+async function takeDailyCall(env, pid, limit) {
+  if (!env.DB) return { ok: true, counted: false };
+  try {
+    if (!_aiUsageReady) _aiUsageReady = env.DB.prepare('CREATE TABLE IF NOT EXISTS ai_usage (day TEXT NOT NULL, pid TEXT NOT NULL, n INTEGER NOT NULL, PRIMARY KEY (day, pid))').run().catch(e => { _aiUsageReady = null; throw e; });
+    await _aiUsageReady;
+    const row = await env.DB.prepare('INSERT INTO ai_usage (day, pid, n) VALUES (?1, ?2, 1) ON CONFLICT(day, pid) DO UPDATE SET n = n + 1 RETURNING n').bind(aiDay(), pid).first();
+    if (Math.random() < 0.02) await env.DB.prepare('DELETE FROM ai_usage WHERE day < ?1').bind(new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10)).run();
+    return row && row.n > limit ? { ok: false, counted: true, n: row.n } : { ok: true, counted: true };
+  } catch (e) { return { ok: true, counted: false }; }
+}
+async function refundDailyCall(env, pid) {
+  try { await env.DB.prepare('UPDATE ai_usage SET n = MAX(n - 1, 0) WHERE day = ?1 AND pid = ?2').bind(aiDay(), pid).run(); } catch (e) { /* sans effet */ }
+}
+// Appel de Gemini : délai sur l'obtention de la réponse (annulé dès les en-têtes reçus, pour ne pas couper un long flux)
+// et une seule nouvelle tentative sur 429/503. Renvoie la Response, ou null si le fournisseur ne répond pas à temps.
+async function callUpstream(url, init) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
+    let resp;
+    try { resp = await fetch(url, { ...init, signal: controller.signal }); }
+    catch (e) { if (e && e.name === 'AbortError') return null; throw e; } // délai dépassé → null (504) ; autre erreur → relancée (500 générique)
+    finally { clearTimeout(timer); }
+    if ((resp.status === 429 || resp.status === 503) && attempt === 0) {
+      try { await resp.body?.cancel(); } catch (e) { /* corps déjà fermé */ }
+      await new Promise(r => setTimeout(r, UPSTREAM_RETRY_DELAY_MS));
+      continue;
+    }
+    return resp;
+  }
+  return null;
+}
 
 function isAllowedOrigin(origin) {
   if (!origin) return true; // appel hors navigateur : l'authentification fait foi
@@ -55,7 +98,7 @@ async function handleRequest(request, env) {
     const corsHeaders = {
       'Access-Control-Allow-Origin': isAllowedOrigin(requestOrigin) && requestOrigin ? requestOrigin : ALLOWED_ORIGIN,
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Plume-Profile-Id',
       'Vary': 'Origin',
     };
 
@@ -113,7 +156,18 @@ async function handleRequest(request, env) {
       // aux nouvelles clés API ("no longer available to new users") —
       // gemini-3.6-flash est le modèle recommandé en remplacement.
       const model = 'gemini-3.6-flash';
-      const resp = await fetch(
+      // Plafond quotidien par profil (voir l'en-tête de ce fichier) : le compteur est pris AVANT l'appel, rendu si l'appel échoue.
+      const rawPid = request.headers.get('X-Plume-Profile-Id') || '';
+      const pid = /^[A-Za-z0-9-]{1,80}$/.test(rawPid) ? rawPid : 'anon';
+      const limit = Number(env.AI_DAILY_LIMIT) > 0 ? Number(env.AI_DAILY_LIMIT) : DEFAULT_DAILY_LIMIT;
+      const quota = await takeDailyCall(env, pid, limit);
+      if (!quota.ok) {
+        await refundDailyCall(env, pid);
+        return new Response(JSON.stringify({ error: { message: `Limite quotidienne d'appels IA atteinte pour ce profil (${limit}). Elle se renouvelle demain.`, code: 'daily-limit' } }), {
+          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '3600' }
+        });
+      }
+      const resp = await callUpstream(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`,
         {
           method: 'POST',
@@ -139,7 +193,12 @@ async function handleRequest(request, env) {
         }
       );
 
+      if (!resp) {
+        if (quota.counted) await refundDailyCall(env, pid);
+        return jsonError(504, "Le service IA ne répond pas (délai dépassé). Réessayez dans un instant.", corsHeaders);
+      }
       if (!resp.ok) {
+        if (quota.counted) await refundDailyCall(env, pid); // un appel refusé par le fournisseur ne compte pas dans le plafond
         // AUD-06-010 : le détail du fournisseur (quota, projet, configuration) n'est PLUS renvoyé au navigateur ;
         // il reste dans le journal (code seulement, voir logEvent). Message générique, 429 distingué pour l'utilisateur.
         const message = resp.status === 429

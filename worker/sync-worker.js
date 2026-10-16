@@ -324,6 +324,7 @@ async function eraseProfile(request, env, pid, cors) {
     env.DB.prepare('DELETE FROM sync_meta WHERE ' + where).bind(...args),
     env.DB.prepare('DELETE FROM profile_auth WHERE pid = ?1').bind(pid)
   ]);
+  try { await ensureTotals(env.DB); await rebuildTotals(env.DB); } catch (e) { /* les compteurs se corrigeront au prochain recomptage */ }
   return new Response(JSON.stringify({ ok: true, erased: n }), { headers: { ...cors, 'Content-Type': 'application/json' } });
 }
 
@@ -425,9 +426,64 @@ function kvStore(env) {
   };
 }
 
+// ═══════════════════════════════════════════════════════
+// v9.74.0 (audit AUD-07-007) — COMPTEURS D'OCCUPATION
+// Pour appliquer les quotas, chaque écriture relisait la colonne `data` de TOUS les morceaux (taille globale, puis
+// taille du profil) : un coût proportionnel au volume stocké, images comprises, alors que D1 facture les lignes lues.
+// Désormais l'occupation est tenue par des COMPTEURS (table sync_totals : 'global', 'img' et 'p:<profil>', octets et
+// nombre de clés) mis à jour dans la MÊME transaction que l'écriture, et par une colonne `bytes` dans sync_meta. Le
+// contrôle d'un quota devient la lecture d'une ou deux lignes.
+// Sûreté : un compteur ne bloque jamais seul. Avant tout refus (507), le Worker RECOMPTE par balayage et corrige les
+// compteurs (recount) : une dérive éventuelle ne peut donc produire qu'un recomptage, jamais un refus injustifié.
+// Migration : automatique et idempotente à la première requête après le déploiement (table créée, colonne ajoutée,
+// compteurs reconstruits depuis les données) ; worker/sync-schema.sql porte le même schéma pour une base neuve.
+// ═══════════════════════════════════════════════════════
+let _totalsReady = null;
+function totalsScopes(key) {
+  const scopes = ['global'];
+  const pid = profileIdOfKey(key);
+  if (pid) scopes.push('p:' + pid);
+  if (key.startsWith('img_')) scopes.push('img');
+  return scopes;
+}
+// Reconstruit les compteurs ET la colonne bytes par balayage complet (migration, recomptage de sûreté, effacement d'un profil).
+async function rebuildTotals(db) {
+  const rows = ((await db.prepare('SELECT m.k AS k, COALESCE(SUM(LENGTH(c.data)), 0) AS b FROM sync_meta m LEFT JOIN sync_chunks c ON c.k = m.k AND c.wid = m.wid GROUP BY m.k').all()).results) || [];
+  const totals = new Map([['global', { bytes: 0, keys: 0 }], ['img', { bytes: 0, keys: 0 }]]);
+  for (const r of rows) {
+    for (const scope of totalsScopes(r.k)) {
+      const t = totals.get(scope) || { bytes: 0, keys: 0 };
+      t.bytes += r.b; t.keys++;
+      totals.set(scope, t);
+    }
+  }
+  for (let i = 0; i < rows.length; i += 40) {
+    await db.batch(rows.slice(i, i + 40).map(r => db.prepare('UPDATE sync_meta SET bytes = ?1 WHERE k = ?2').bind(r.b, r.k)));
+  }
+  if (!rows.length) { // base vide (première installation) : deux insertions simples suffisent, pas de transaction
+    for (const [scope, t] of totals) await db.prepare('INSERT OR REPLACE INTO sync_totals (scope, bytes, keys) VALUES (?1, ?2, ?3)').bind(scope, t.bytes, t.keys).run();
+    return;
+  }
+  await db.batch([db.prepare('DELETE FROM sync_totals')].concat(
+    Array.from(totals, ([scope, t]) => db.prepare('INSERT OR REPLACE INTO sync_totals (scope, bytes, keys) VALUES (?1, ?2, ?3)').bind(scope, t.bytes, t.keys))
+  ));
+}
+function ensureTotals(db) {
+  if (!_totalsReady) {
+    _totalsReady = (async () => {
+      await db.prepare('CREATE TABLE IF NOT EXISTS sync_totals (scope TEXT PRIMARY KEY, bytes INTEGER NOT NULL, keys INTEGER NOT NULL)').run();
+      try { await db.prepare('ALTER TABLE sync_meta ADD COLUMN bytes INTEGER NOT NULL DEFAULT 0').run(); } catch (e) { /* colonne déjà présente */ }
+      const has = await db.prepare("SELECT 1 AS x FROM sync_totals WHERE scope = 'global'").first();
+      if (!has) await rebuildTotals(db);
+    })().catch(e => { _totalsReady = null; throw e; });
+  }
+  return _totalsReady;
+}
+
 function d1Store(env) {
   const db = env.DB;
-  const readMeta = key => db.prepare('SELECT version, wid, chunks FROM sync_meta WHERE k = ?1').bind(key).first();
+  // ensureTotals d'abord : sur une base ancienne la colonne `bytes` n'existe pas encore (migration à la première requête).
+  const readMeta = async key => { await ensureTotals(db); return db.prepare('SELECT version, wid, chunks, bytes FROM sync_meta WHERE k = ?1').bind(key).first(); };
   const dropChunks = (key, wid) => db.prepare('DELETE FROM sync_chunks WHERE k = ?1 AND wid = ?2').bind(key, wid).run();
   return {
     name: 'd1',
@@ -446,22 +502,33 @@ function d1Store(env) {
       const meta = await readMeta(key);
       return meta ? meta.version : 0;
     },
-    // Octets et nombre de clés d'un profil (hors la clé `excludeKey`, celle qu'on s'apprête à réécrire).
+    // Octets et nombre de clés d'un profil (hors la clé `excludeKey`, celle qu'on s'apprête à réécrire) : lecture des
+    // compteurs (v9.74.0), plus de balayage des morceaux.
     async profileUsage(pid, excludeKey) {
-      const where = "(k = ?1 OR k = ?2 OR k = ?3 OR (k >= ?4 AND k < ?5) OR (k >= ?6 AND k < ?7) OR (k >= ?8 AND k < ?9)) AND k != ?10";
-      const args = ['data_' + pid, 'doclist_' + pid, 'libsettings_' + pid, 'doc_' + pid + '_', 'doc_' + pid + '`', 'aichat_' + pid + '_', 'aichat_' + pid + '`', 'img_' + pid + '_', 'img_' + pid + '`', excludeKey || ''];
-      const b = await db.prepare('SELECT COALESCE(SUM(LENGTH(data)), 0) AS n FROM sync_chunks WHERE ' + where).bind(...args).first();
-      const c = await db.prepare('SELECT COUNT(*) AS n FROM sync_meta WHERE ' + where).bind(...args).first();
-      return { bytes: b ? b.n : 0, keys: c ? c.n : 0 };
+      await ensureTotals(db);
+      const t = await db.prepare('SELECT bytes, keys FROM sync_totals WHERE scope = ?1').bind('p:' + pid).first();
+      let bytes = t ? t.bytes : 0, keys = t ? t.keys : 0;
+      if (excludeKey && profileIdOfKey(excludeKey) === pid) {
+        const own = await readMeta(excludeKey);
+        if (own) { bytes -= own.bytes || 0; keys -= 1; }
+      }
+      return { bytes: Math.max(0, bytes), keys: Math.max(0, keys) };
     },
     async totalBytes() {
-      const r = await db.prepare('SELECT COALESCE(SUM(LENGTH(data)), 0) AS n FROM sync_chunks').first();
-      return r ? r.n : 0;
+      await ensureTotals(db);
+      const r = await db.prepare("SELECT bytes FROM sync_totals WHERE scope = 'global'").first();
+      return r ? r.bytes : 0;
     },
-    // Octets déjà occupés par les images (préfixe de clé « img_ » : parcours par intervalle sur la clé primaire).
+    // Octets déjà occupés par les images (compteur 'img').
     async imagesBytes() {
-      const r = await db.prepare("SELECT COALESCE(SUM(LENGTH(data)), 0) AS n FROM sync_chunks WHERE k >= 'img_' AND k < 'img`'").first();
-      return r ? r.n : 0;
+      await ensureTotals(db);
+      const r = await db.prepare("SELECT bytes FROM sync_totals WHERE scope = 'img'").first();
+      return r ? r.bytes : 0;
+    },
+    // Recomptage de sûreté par balayage (voir l'en-tête des compteurs) : appelé avant tout refus de quota.
+    async recount() {
+      await ensureTotals(db);
+      await rebuildTotals(db);
     },
     // Occupation du stockage (panneau « Système » de l'application) : nombres et octets, jamais de contenu.
     async usage() {
@@ -474,16 +541,22 @@ function d1Store(env) {
         imagesBytes: await this.imagesBytes(),
         imagesBudget: IMG_BUDGET_BYTES,
         totalBytes: await n('SELECT COALESCE(SUM(LENGTH(data)), 0) FROM sync_chunks'),
+        counterBytes: await this.totalBytes(), // v9.74.0 : compteur tenu à jour ; un écart avec totalBytes = dérive (corrigée au prochain recomptage)
         dbLimit: D1_DB_LIMIT_BYTES
       };
     },
     async remove(key) {
-      await db.batch([
+      await ensureTotals(db);
+      const prev = await readMeta(key);
+      const stmts = [
         db.prepare('DELETE FROM sync_chunks WHERE k = ?1').bind(key),
         db.prepare('DELETE FROM sync_meta WHERE k = ?1').bind(key)
-      ]);
+      ];
+      if (prev) for (const scope of totalsScopes(key)) stmts.push(db.prepare('UPDATE sync_totals SET bytes = bytes - ?1, keys = keys - 1 WHERE scope = ?2').bind(prev.bytes || 0, scope));
+      await db.batch(stmts);
     },
     async write(key, body, current) {
+      await ensureTotals(db);
       const next = current + 1;
       const wid = crypto.randomUUID();
       const chunks = [];
@@ -493,8 +566,15 @@ function d1Store(env) {
       const now = Date.now();
       const stmts = chunks.map((c, i) => db.prepare('INSERT INTO sync_chunks (k, wid, idx, data) VALUES (?1, ?2, ?3, ?4)').bind(key, wid, i, c));
       stmts.push(prev
-        ? db.prepare('UPDATE sync_meta SET version = ?1, wid = ?2, chunks = ?3, updated_at = ?4 WHERE k = ?5 AND version = ?6').bind(next, wid, chunks.length, now, key, current)
-        : db.prepare('INSERT INTO sync_meta (k, version, wid, chunks, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)').bind(key, next, wid, chunks.length, now));
+        ? db.prepare('UPDATE sync_meta SET version = ?1, wid = ?2, chunks = ?3, updated_at = ?4, bytes = ?7 WHERE k = ?5 AND version = ?6').bind(next, wid, chunks.length, now, key, current, body.length)
+        : db.prepare('INSERT INTO sync_meta (k, version, wid, chunks, updated_at, bytes) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(key, next, wid, chunks.length, now, body.length));
+      // v9.74.0 : compteurs mis à jour dans la même transaction, et SEULEMENT si cette écriture est bien devenue la
+      // version courante (EXISTS sur notre wid) : un refus par conflit ne laisse aucune trace dans les compteurs.
+      const dBytes = body.length - ((prev && prev.bytes) || 0), dKeys = prev ? 0 : 1;
+      for (const scope of totalsScopes(key)) {
+        stmts.push(db.prepare('INSERT INTO sync_totals (scope, bytes, keys) SELECT ?1, ?2, ?3 WHERE EXISTS (SELECT 1 FROM sync_meta WHERE k = ?4 AND wid = ?5) ON CONFLICT(scope) DO UPDATE SET bytes = bytes + excluded.bytes, keys = keys + excluded.keys')
+          .bind(scope, dBytes, dKeys, key, wid));
+      }
       let results;
       try {
         results = await db.batch(stmts);
@@ -504,7 +584,7 @@ function d1Store(env) {
         if (/UNIQUE|constraint/i.test(String((e && e.message) || e))) return { conflict: true };
         throw e;
       }
-      const last = results[results.length - 1];
+      const last = results[chunks.length]; // résultat de la bascule de sync_meta (juste après les morceaux)
       if (!last || !last.meta || last.meta.changes !== 1) {
         await dropChunks(key, wid); // la version attendue n'était plus la bonne : on retire nos morceaux orphelins
         return { conflict: true };
@@ -735,7 +815,8 @@ async function handleRequest(request, env) {
 
       // v9.28.0 — Budget des images : refus (507) quand la place réservée est consommée.
       if (key.startsWith('img_') && current === 0) {
-        const used = await store.imagesBytes();
+        let used = await store.imagesBytes();
+        if (used + body.length > IMG_BUDGET_BYTES && store.recount) { await store.recount(); used = await store.imagesBytes(); } // v9.74.0 : jamais de refus sur un compteur seul
         if (used + body.length > IMG_BUDGET_BYTES) {
           return new Response(JSON.stringify({ error: { message: 'Espace de synchronisation des images plein.' }, used, budget: IMG_BUDGET_BYTES }), {
             status: 507, headers: { ...cors, 'Content-Type': 'application/json' }
@@ -779,12 +860,20 @@ async function handleRequest(request, env) {
       // v9.65.0 (AUD-06-017) — Quotas par profil et garde-fou global (D1 seulement).
       if (store.profileUsage) {
         const over = (quota, message) => new Response(JSON.stringify({ error: { message }, quota }), { status: 507, headers: { ...cors, 'Content-Type': 'application/json' } });
-        if ((await store.totalBytes()) + body.length > GLOBAL_GUARD_BYTES) return over('global', 'Le stockage du serveur de synchronisation est presque plein : écriture refusée.');
-        if (keyPid) {
-          const u = await store.profileUsage(keyPid, key);
-          if (u.bytes + body.length > PROFILE_QUOTA_BYTES) return over('profile', 'Espace de synchronisation de ce profil plein (150 Mo).');
-          if (current === 0 && u.keys >= PROFILE_QUOTA_KEYS) return over('keys', 'Nombre maximal d\'éléments synchronisés pour ce profil atteint.');
-        }
+        // v9.74.0 (AUD-07-007) : contrôles sur les compteurs ; un éventuel dépassement est CONFIRMÉ par un recomptage
+        // avant tout refus (les compteurs se corrigent, ils ne bloquent jamais seuls).
+        const verifier = async () => {
+          if ((await store.totalBytes()) + body.length > GLOBAL_GUARD_BYTES) return ['global', 'Le stockage du serveur de synchronisation est presque plein : écriture refusée.'];
+          if (keyPid) {
+            const u = await store.profileUsage(keyPid, key);
+            if (u.bytes + body.length > PROFILE_QUOTA_BYTES) return ['profile', 'Espace de synchronisation de ce profil plein (150 Mo).'];
+            if (current === 0 && u.keys >= PROFILE_QUOTA_KEYS) return ['keys', "Nombre maximal d'éléments synchronisés pour ce profil atteint."];
+          }
+          return null;
+        };
+        let refus = await verifier();
+        if (refus && store.recount) { await store.recount(); refus = await verifier(); }
+        if (refus) return over(refus[0], refus[1]);
       }
 
       // v9.3.3 — Sans ce filet, une écriture refusée par Cloudflare (quota

@@ -20,3 +20,11 @@ compatibility_date = "2026-07-28"
 # aucun contenu de texte (voir logEvent dans le Worker). Consultation : dashboard > Workers > Logs.
 [observability]
 enabled = true
+
+# v9.74.0 (audit AUD-07-015) — plafond quotidien d'appels IA par profil : le compteur (table ai_usage) vit dans la base D1
+# de la synchronisation (même base, binding « DB »). Sans cette liaison le plafond est ignoré. AI_DAILY_LIMIT (variable,
+# facultative) change le plafond (200 par défaut).
+[[d1_databases]]
+binding = "DB"
+database_name = "plume-sync"
+database_id = "f6c1beed-fcc1-4bed-9a59-e06d603a0e93"
