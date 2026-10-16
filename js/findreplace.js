@@ -193,13 +193,13 @@ async function frReplaceAllManuscript(query, replacement, opts) {
   if (!total) { toast('Aucune occurrence trouvée dans le manuscrit.', 'error'); return; }
   const ok = await showConfirmModal({
     title: 'Remplacer dans tout le manuscrit ?',
-    message: `${total} occurrence(s) de « ${query} » dans ${plan.length} chapitre(s) seront remplacées par « ${replacement} ». Une copie « Avant remplacement global » est gardée dans les versions de chaque chapitre modifié.`,
+    message: `${total} ${plur(total,'occurrence','occurrences')} de « ${query} » dans ${plan.length} ${plur(plan.length,'chapitre','chapitres')} ${plur(total,'sera remplacée','seront remplacées')} par « ${replacement} ». Une copie « Avant remplacement global » est gardée dans les versions de chaque chapitre modifié.`,
     confirmLabel: 'Remplacer'
   });
   if (!ok) return;
   const done = applyGlobalReplace(plan, query, replacement, opts);
   _frMatches = []; _frIndex = -1;
-  toast(`${done} remplacement(s) dans ${plan.length} chapitre(s).`, 'success');
+  toast(`${done} ${plur(done,'remplacement','remplacements')} dans ${plan.length} ${plur(plan.length,'chapitre','chapitres')}.`, 'success');
   updateFrStatus();
 }
 
@@ -213,7 +213,7 @@ function frReplaceAll() {
   const count = replaceAllInRoot(writer, query, replacement, opts);
   liveCounter();
   _frMatches = []; _frIndex = -1;
-  toast(count ? `${count} remplacement(s) effectué(s).` : 'Aucune occurrence trouvée.', count ? 'success' : 'error');
+  toast(count ? `${count} ${plur(count,'remplacement effectué','remplacements effectués')}.` : 'Aucune occurrence trouvée.', count ? 'success' : 'error');
   updateFrStatus();
 }
 

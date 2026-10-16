@@ -381,7 +381,7 @@ function formatRelativeDate(ts) {
   if (diffDays <= 0) return "Modifié aujourd'hui";
   if (diffDays === 1) return 'Modifié hier';
   if (diffDays < 7) return `Modifié il y a ${diffDays} jours`;
-  if (diffDays < 30) return `Modifié il y a ${Math.floor(diffDays/7)} semaine(s)`;
+  if (diffDays < 30) { const sem = Math.floor(diffDays/7); return `Modifié il y a ${sem} ${plur(sem,'semaine','semaines')}`; }
   return `Modifié il y a ${Math.floor(diffDays/30)} mois`;
 }
 
@@ -790,10 +790,10 @@ async function renderLibraryScreen() {
       // largeur restante, abrégé en "X ch · Y mots" en dessous de 480px.
       const isGraphic = d.docType === 'roman_graphique';
       const metaText = isGraphic
-        ? `${d.chapterCount||0} page(s) · ${d.wordCount||0} mots`
+        ? `${d.chapterCount||0} ${plur(d.chapterCount||0,'page','pages')} · ${d.wordCount||0} ${plur(d.wordCount||0,'mot','mots')}`
         : (window.innerWidth <= 480
-          ? `${d.chapterCount||0} ch · ${d.wordCount||0} mots`
-          : `${d.chapterCount||0} chapitre(s) · ${d.wordCount||0} mots`);
+          ? `${d.chapterCount||0} ch · ${d.wordCount||0} ${plur(d.wordCount||0,'mot','mots')}`
+          : `${d.chapterCount||0} ${plur(d.chapterCount||0,'chapitre','chapitres')} · ${d.wordCount||0} ${plur(d.wordCount||0,'mot','mots')}`);
       // Vignette schématique (Lot 6, audit #23) : géométrie de la page 1
       // (voir saveGraphicNovel, graphicnovel.js) plutôt qu'une icône
       // générique — reprend gnMiniIconHtml telle quelle (même rendu que les
@@ -1152,7 +1152,7 @@ async function restoreDocumentFromTrash(docId) {
 async function purgeExpiredDocTrash(list) {
   const expired = expiredTrashedDocuments(list || await loadDocList());
   for (const d of expired) await performDocumentDeletion(d.id);
-  if (expired.length) toast(expired.length + ' manuscrit(s) supprimé(s) définitivement (30 jours écoulés)', 'info');
+  if (expired.length) toast(expired.length + ' ' + plur(expired.length, 'manuscrit supprimé', 'manuscrits supprimés') + ' définitivement (30 jours écoulés)', 'info');
   return expired.length;
 }
 function closeDocTrash() { document.getElementById('doc-trash-overlay').classList.remove('active'); }
@@ -1165,7 +1165,7 @@ async function renderDocTrash() {
   const trashed = trashedDocuments(await loadDocList()).sort((a, b) => b.trashedAt - a.trashedAt);
   if (!trashed.length) { listEl.innerHTML = emptyState('trash-2', 'La corbeille est vide', 'Les manuscrits supprimés y restent récupérables.'); return; }
   listEl.innerHTML = trashed.map(d => `<div class="history-item u-cur-default">
-      <span>${escapeHtml(d.title || 'Sans titre')}<br><span class="u-op-72 u-fs-xs">${d.docType === 'roman_graphique' ? (d.chapterCount || 0) + ' page(s)' : (d.chapterCount || 0) + ' chapitre(s)'} · ${d.wordCount || 0} mots — supprimé définitivement dans ${docTrashDaysLeft(d)} j</span></span>
+      <span>${escapeHtml(d.title || 'Sans titre')}<br><span class="u-op-72 u-fs-xs">${d.docType === 'roman_graphique' ? (d.chapterCount || 0) + ' ' + plur(d.chapterCount || 0, 'page', 'pages') : (d.chapterCount || 0) + ' ' + plur(d.chapterCount || 0, 'chapitre', 'chapitres')} · ${d.wordCount || 0} mots — supprimé définitivement dans ${docTrashDaysLeft(d)} j</span></span>
       <span class="u-d-flex u-gap-4px u-fsh-0">
         <button class="action-btn btn-sm" data-doc-restore="${escapeHtml(d.id)}">${icon('undo-2')} Restaurer</button>
         <button class="action-btn btn-danger btn-sm" data-doc-purge="${escapeHtml(d.id)}">${icon('x')} Définitif</button>
@@ -1361,7 +1361,7 @@ async function persistGistProgress(docId, gistId, imageIds) {
 }
 // Empreinte du manuscrit pour la sauvegarde GitHub : tout ce qui est écrit PAR L'AUTEUR, sans les champs que la
 // sauvegarde modifie elle-même (gistId, images déjà envoyées) ni les compteurs régénérables.
-const GIST_FP_EXCLUDED = ['gistId', 'gistSyncedImageIds', 'sessionStats', 'lastPosition', 'hourlyActivity'];
+const GIST_FP_EXCLUDED = ['gistId', 'gistSyncedImageIds', 'sessionStats', 'dayStart', 'lastPosition', 'hourlyActivity'];
 async function gistFingerprint(mData) {
   const copy = { ...mData };
   for (const f of GIST_FP_EXCLUDED) delete copy[f];
@@ -1594,7 +1594,7 @@ async function syncAllLibraryManuscripts(reason) {
     const list = await loadDocList();
     let failures = 0;
     for (const entry of list.documents) { if (!(await libSyncManuscript(entry.id, { silent:true }))) failures++; }
-    if (failures > 0 && !_libBackupWarned) { _libBackupWarned = true; toast('Sauvegarde GitHub auto : '+failures+' manuscrit(s) en échec (jeton expiré ?).', 'error'); }
+    if (failures > 0 && !_libBackupWarned) { _libBackupWarned = true; toast('Sauvegarde GitHub auto : '+failures+' '+plur(failures,'manuscrit en échec','manuscrits en échec')+' (jeton expiré ?).', 'error'); }
     else if (failures === 0) _libBackupWarned = false;
     if (document.body.classList.contains('library-mode')) await renderLibraryScreen();
   } finally { _libSyncing = false; }
@@ -1871,7 +1871,7 @@ async function deleteAllConflictBackups() {
   if (!backups.length) return;
   const ok = await showConfirmModal({
     title: 'Supprimer toutes les sauvegardes de conflit ?',
-    message: `${backups.length} sauvegarde(s) seront supprimées définitivement, sans possibilité de récupération.`,
+    message: `${backups.length} ${plur(backups.length,'sauvegarde sera supprimée','sauvegardes seront supprimées')} définitivement, sans possibilité de récupération.`,
     confirmLabel: 'Tout supprimer',
     danger: true
   });
@@ -1921,7 +1921,7 @@ async function renderSyncUsage() {
     if (!resp.ok) return;
     const u = await resp.json();
     if (u.storage !== 'd1') { el.textContent = 'Stockage de synchronisation : ancien mode (KV).'; return; }
-    el.textContent = `Serveur : ${u.manuscripts} manuscrit(s), images ${formatMo(u.imagesBytes)} sur ${formatMo(u.imagesBudget)} de budget, ${formatMo(u.totalBytes)} au total (limite gratuite de la base : ${formatMo(u.dbLimit)}).`;
+    el.textContent = `Serveur : ${u.manuscripts} ${plur(u.manuscripts,'manuscrit','manuscrits')}, images ${formatMo(u.imagesBytes)} sur ${formatMo(u.imagesBudget)} de budget, ${formatMo(u.totalBytes)} au total (limite gratuite de la base : ${formatMo(u.dbLimit)}).`;
   } catch (e) { /* mesure purement informative */ }
 }
 function closeLibrarySystemPanel() {

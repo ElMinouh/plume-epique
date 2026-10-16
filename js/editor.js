@@ -214,6 +214,17 @@ function updateChapterWordGoalProgress() {
   if (!ch || !ch.wordGoal) { el.textContent = ''; return; }
   el.textContent = `(${chapterWordCount(ch)} / ${ch.wordGoal} mots)`;
 }
+// v9.80.0 (AUD-08-002) : le nombre de mots de la ligne du chapitre courant suit la frappe (avant, il restait figé
+// jusqu'au prochain rendu complet de la liste, et contredisait le pied de page). Un seul <span> est mis à jour.
+let _chCountTimer = null;
+function scheduleChapterCountRefresh() {
+  clearTimeout(_chCountTimer);
+  _chCountTimer = setTimeout(() => {
+    const ch = db.chapters && db.chapters[cur]; if (!ch) return;
+    const el = document.querySelector('#chapter-list .chapter-item.active .ch-wordcount');
+    if (el) el.textContent = chapterWordCount(ch);
+  }, 300);
+}
 function liveCounter() {
   if (_switching) return;
   updateWriterEmpty();
@@ -224,6 +235,7 @@ function liveCounter() {
   // enregistré à partir de cette frappe (incident rapporté le 14/08/2026).
   try { saveCursorForResume(); } catch(e) { console.warn('saveCursorForResume a échoué (sans conséquence sur la sauvegarde) :', e); }
   updateDailyStats(); debouncedSave();
+  scheduleChapterCountRefresh();
   updateChapterWordGoalProgress();
   scheduleUndoSnapshot();
 }

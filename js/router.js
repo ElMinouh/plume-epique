@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.79.0';
+const APP_VERSION = '9.80.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -317,7 +317,7 @@ async function makeEncryptedEnvelope(plaintext) {
 // manuscrit à chaque ouverture par syncDbAppearanceFromPrefs() (notifications.js). Deux appareils aux
 // préférences différentes se renvoyaient donc un « changement de cœur » à chaque ouverture, sans que personne
 // ait écrit : faux conflit « modifié sur les deux appareils ». Régénérable depuis les préférences locales.
-const SYNC_DERIVED_FIELDS = ['history', 'lastPosition', 'sessionStats', 'hourlyActivity',
+const SYNC_DERIVED_FIELDS = ['history', 'lastPosition', 'sessionStats', 'dayStart', 'hourlyActivity',
   'darkMode', 'paperMode', 'accentPalette', 'editorFont'];
 function stableStringify(v) {
   if (v === null || typeof v !== 'object') return JSON.stringify(v);
@@ -1471,6 +1471,7 @@ function initApp(){
   applyEditorFont(db.editorFont);
   const dt = document.getElementById('document-title'); if (dt) dt.innerText = db.title || '';
   sessionWordsStart=chaptersTotalWords(db.chapters);
+  dayStartWords(sessionWordsStart); // v9.80.0 (AUD-08-003) : base du jour fixée à la première ouverture du jour
   sessionStartTime=Date.now();
   // v7.6.0 : piles Annuler/Rétablir remises à zéro à chaque manuscrit ouvert
   // (elles sont propres à un document, pas à partager entre deux romans).

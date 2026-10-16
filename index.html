@@ -95,6 +95,7 @@
 <symbol id="i-log-out" viewBox="0 0 24 24"><path d="m16 17 5-5-5-5" /><path d="M21 12H9" /><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /></symbol>
 <symbol id="i-maximize" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M21 8V5a2 2 0 0 0-2-2h-3" /><path d="M3 16v3a2 2 0 0 0 2 2h3" /><path d="M16 21h3a2 2 0 0 0 2-2v-3" /></symbol>
 <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 5h16" /><path d="M4 12h16" /><path d="M4 19h16" /></symbol>
+<symbol id="i-merge" viewBox="0 0 24 24"><path d="m8 6 4-4 4 4" /><path d="M12 2v10.3a4 4 0 0 1-1.172 2.872L4 22" /><path d="m20 22-5-5" /></symbol>
 <symbol id="i-message-square" viewBox="0 0 24 24"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z" /></symbol>
 <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 19v3" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><rect x="9" y="2" width="6" height="13" rx="3" /></symbol>
 <symbol id="i-minimize" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3" /><path d="M21 8h-3a2 2 0 0 1-2-2V3" /><path d="M3 16h3a2 2 0 0 1 2 2v3" /><path d="M16 21v-3a2 2 0 0 1 2-2h3" /></symbol>
@@ -468,7 +469,7 @@
   <strong class="u-fs-base" id="full-tour-title"></strong>
   <p class="u-fs-base u-m-8px-0-0" id="full-tour-text"></p>
   <div class="full-tour-nav">
-    <button class="action-btn btn-secondary btn-sm" id="full-tour-prev-btn">← Précédent</button>
+    <button class="action-btn btn-secondary btn-sm" id="full-tour-prev-btn"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-arrow-left"></use></svg> Précédent</button>
     <button class="action-btn btn-ghost btn-sm" id="full-tour-quit-btn">Quitter</button>
     <button class="action-btn btn-sm" id="full-tour-next-btn">Suivant</button>
   </div>
@@ -616,7 +617,7 @@
   <div class="tts-row">
     <button class="voice-btn u-bg-v-success u-c-hfff" id="tts-play-btn" aria-label="Lire" title="Lire le chapitre à voix haute"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-play"></use></svg></button>
     <button class="voice-btn u-bg-v-warn u-c-hfff" id="tts-pause-btn" aria-label="Pause" title="Mettre la lecture en pause"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-pause"></use></svg></button>
-    <button class="voice-btn u-bg-v-danger u-c-hfff" id="tts-stop-btn" aria-label="Arrêter" title="Arrêter la lecture">⏹</button>
+    <button class="voice-btn u-bg-v-danger u-c-hfff" id="tts-stop-btn" aria-label="Arrêter" title="Arrêter la lecture"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-square"></use></svg></button>
     <div class="u-fg-1">
       <select id="tts-voice-sel" class="field u-fs-xs u-p-4px" aria-label="Voix"></select>
     </div>
@@ -796,8 +797,8 @@
           <select id="search-mode" class="field u-w-auto" aria-label="Mode dictionnaire" title="Choisir entre synonymes et antonymes">
             <option value="syn">Synonymes</option><option value="ant">Antonymes</option>
           </select>
-          <input id="lex-in" class="field u-w-85px" placeholder="mot…" aria-label="Mot à chercher" title="Tapez un mot puis cliquez sur GO">
-          <button class="action-btn" id="search-btn" aria-label="Rechercher" title="Chercher les synonymes ou antonymes de ce mot">GO</button>
+          <input id="lex-in" class="field u-w-85px" placeholder="mot…" aria-label="Mot à chercher" title="Tapez un mot puis cliquez sur Chercher">
+          <button class="action-btn" id="search-btn" aria-label="Rechercher" title="Chercher les synonymes ou antonymes de ce mot">Chercher</button>
         </div>
       </div>
     </div>
@@ -936,7 +937,7 @@
           <div class="uni-cards-view" id="char-cards-view" role="list"></div>
           <button class="action-btn u-w-100pc u-mt-8px" id="add-char-btn" title="Ajouter un nouveau personnage">+ Personnage</button>
         </div>
-        <div class="edit-box" id="char-edit">...</div>
+        <div class="edit-box" id="char-edit"></div>
       </div>
     </div>
 
@@ -954,7 +955,7 @@
           <div class="uni-cards-view" id="place-cards-view" role="list"></div>
           <button class="action-btn u-w-100pc u-mt-8px" id="add-place-btn" title="Ajouter un nouveau lieu">+ Lieu</button>
         </div>
-        <div class="edit-box" id="place-edit">...</div>
+        <div class="edit-box" id="place-edit"></div>
       </div>
     </div>
 
@@ -968,7 +969,7 @@
             <button class="action-btn" id="add-quest-btn" title="Ajouter une nouvelle quête">+</button>
           </div>
         </div>
-        <div class="edit-box" id="quest-edit">...</div>
+        <div class="edit-box" id="quest-edit"></div>
       </div>
     </div>
 
@@ -1067,12 +1068,12 @@
 
     <div id="tab-memory" class="subtab-content" role="tabpanel">
       <div class="u-d-flex u-gap-8px u-ai-center u-fw-wrap u-mb-6px">
-        <strong>&#129504; Memoire Narrative</strong>
+        <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-brain"></use></svg> Mémoire narrative</strong>
         <button class="action-btn btn-secondary btn-sm" id="memory-index-btn" title="Analyser tout le roman pour permettre les recherches ci-dessous"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh-cw"></use></svg> Indexer le roman</button>
         <span class="u-fs-sm u-c-v-text-muted" id="memory-index-status"></span>
       </div>
       <div class="u-d-flex u-gap-8px u-mb-10px">
-        <input id="memory-query-input" aria-label="Question sur le manuscrit" class="field u-flex-1" placeholder="Que portait Lea au ch.3 ? Ou est mentionne le chateau ?">
+        <input id="memory-query-input" aria-label="Question sur le manuscrit" class="field u-flex-1" placeholder="Que portait Léa au chapitre 3 ?">
         <button class="action-btn" id="memory-query-btn" title="Poser une question sur le contenu du roman"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg> Interroger</button>
       </div>
       <div class="u-fg-1 u-ovy-auto u-d-flex u-fd-column u-gap-8px" id="memory-results">
@@ -1285,7 +1286,7 @@
         <div class="u-fs-3xl u-fwt-600 u-ls-2px" id="sprint-timer" aria-live="polite">25:00</div>
         <div class="u-d-flex u-gap-8px u-jc-center u-m-12px-0">
           <button class="action-btn" id="sprint-start-btn" title="Démarrer un sprint d'écriture chronométré"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-play"></use></svg> Démarrer</button>
-          <button class="action-btn btn-secondary" id="sprint-reset-btn" title="Remettre le chronomètre à zéro">↺ Reset</button>
+          <button class="action-btn btn-secondary" id="sprint-reset-btn" title="Remettre le chronomètre à zéro"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-rotate-ccw"></use></svg> Réinitialiser</button>
         </div>
         Progression : <strong><span id="sprint-progress" aria-live="polite">0</span></strong> mots
       </div>
@@ -1312,7 +1313,7 @@
 <!-- Sélecteur de couverture de manuscrit (🎨) — élément unique, hors des
      cartes bibliothèque pour ne pas être rogné par leur overflow (v7.9.0) -->
 <div id="cover-picker-menu" class="toolbar-menu" role="menu">
-  <button class="cover-swatch u-bg-linear-gradient-135deg-v-acc-1qh64" data-cover="auto" title="Automatique (couleurs de l'interface)">↺</button>
+  <button class="cover-swatch u-bg-linear-gradient-135deg-v-acc-1qh64" data-cover="auto" title="Automatique (couleurs de l'interface)" aria-label="Automatique"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-rotate-ccw"></use></svg></button>
   <button class="cover-swatch u-bg-linear-gradient-135deg-hc039-cnzbn" data-cover="rouge-violet" title="Rouge &amp; Violet" aria-label="Rouge &amp; Violet"></button>
   <button class="cover-swatch u-bg-linear-gradient-135deg-h2980-oxi60" data-cover="bleu-ocean" title="Bleu Océan" aria-label="Bleu Océan"></button>
   <button class="cover-swatch u-bg-linear-gradient-135deg-h27ae-1dgf3" data-cover="emeraude" title="Émeraude" aria-label="Émeraude"></button>
@@ -1340,8 +1341,8 @@
 <div id="chapter-ctx-menu" class="toolbar-menu" role="menu">
   <button id="cctx-rename" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-pencil"></use></svg> Renommer</button>
   <button id="cctx-tags" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-tag"></use></svg> Tags</button>
-  <button id="cctx-dup" role="menuitem">⧉ Dupliquer</button>
-  <button id="cctx-merge" role="menuitem" title="Ajouter le chapitre suivant à la fin de celui-ci (le suivant va à la corbeille)">⤵ Fusionner avec le suivant</button>
+  <button id="cctx-dup" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-copy"></use></svg> Dupliquer</button>
+  <button id="cctx-merge" role="menuitem" title="Ajouter le chapitre suivant à la fin de celui-ci (le suivant va à la corbeille)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-merge"></use></svg> Fusionner avec le suivant</button>
   <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
   <button id="cctx-del" role="menuitem" class="ch-menu-danger"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg> Supprimer</button>
 </div>

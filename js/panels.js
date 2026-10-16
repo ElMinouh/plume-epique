@@ -77,7 +77,7 @@ function doGlobalSearch(query) {
     });
   });
 
-  countEl.textContent = total ? `${total} occurrence(s)` : 'Aucun résultat.';
+  countEl.textContent = total ? `${total} ${plur(total,'occurrence','occurrences')}` : 'Aucun résultat.';
 }
 const debouncedSearch = debounce(doGlobalSearch, 250);
 
@@ -146,7 +146,7 @@ async function handleSearch() {
       return;
     }
 
-    wordEl.textContent = '« ' + word + ' » — ' + words.length + ' résultat(s)';
+    wordEl.textContent = '« ' + word + ' » — ' + words.length + ' ' + plur(words.length, 'résultat', 'résultats');
     wordsEl.innerHTML = '';
     words.forEach(w => {
       const chip = document.createElement('span');

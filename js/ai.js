@@ -273,7 +273,7 @@ async function aiCheckWholeNovel(el) {
   const minutes = Math.max(1, Math.round(est.seconds / 60));
   const ok = await showConfirmModal({
     title: 'Analyser tout le roman ?',
-    message: `${db.chapters.length} chapitres, ${est.words} mots : environ ${est.calls} appels à l'IA, soit ${minutes} minute(s) environ. Le texte est envoyé en clair au service d'IA (Google). Vous pouvez annuler à tout moment.`,
+    message: `${db.chapters.length} ${plur(db.chapters.length,'chapitre','chapitres')}, ${est.words} ${plur(est.words,'mot','mots')} : environ ${est.calls} ${plur(est.calls,'appel','appels')} à l'IA, soit ${minutes} ${plur(minutes,'minute','minutes')} environ. Le texte est envoyé en clair au service d'IA (Google). Vous pouvez annuler à tout moment.`,
     confirmLabel: 'Analyser'
   });
   if (!ok) return;

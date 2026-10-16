@@ -5,6 +5,28 @@ function readGoalInput(el) {
   const n = parseInt(el.value, 10);
   return n >= 1 ? n : null;
 }
+// v9.80.0 (AUD-08-003) : « aujourd'hui » = total actuel − total à la PREMIÈRE ouverture du jour (db.dayStart).
+// Avant, la base était le total à l'ouverture du manuscrit (sessionWordsStart) : fermer puis rouvrir
+// remettait « aujourd'hui » et l'objectif journalier à 0. sessionWordsStart reste la base de « Cette séance ».
+function dayStartWords(totalW) {
+  const today = getTodayKey();
+  if (!db.dayStart || db.dayStart.k !== today) db.dayStart = { k: today, w: totalW };
+  return db.dayStart.w;
+}
+function wordsToday(totalW) { return Math.max(0, totalW - dayStartWords(totalW)); }
+// v9.80.0 (AUD-08-004) : db.sessionStats[jour] est un TOTAL cumulé ; le graphique « mots par jour » doit tracer
+// l'écart avec le dernier total connu avant ce jour (0 si le jour n'a pas d'entrée), et « aujourd'hui » via dayStart.
+function dailyWordsSeries(n, totalW) {
+  const stats = db.sessionStats || {}, keys = Object.keys(stats).sort(), out = [], today = getTodayKey();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i); const key = dateKey(d);
+    if (key === today && db.dayStart && db.dayStart.k === today && typeof totalW === 'number') { out.push(Math.max(0, totalW - db.dayStart.w)); continue; }
+    if (typeof stats[key] !== 'number') { out.push(0); continue; }
+    const prev = keys.filter(k => k < key).pop();
+    out.push(Math.max(0, stats[key] - (prev !== undefined ? stats[prev] : 0)));
+  }
+  return out;
+}
 function updateDailyStats() {
   // Garde db.chapters (v9.15.0) : undefined pour un roman graphique — cette
   // fonction est spécifique aux manuscrits texte, gnUpdateDailyStats()
@@ -20,7 +42,7 @@ function updateDailyStats() {
   // précédente) pour ne jamais attribuer les mots déjà écrits avant à
   // l'heure actuelle — voir trackHourlyActivity() ci-dessous.
   trackHourlyActivity(totalW);
-  const todayW = Math.max(0, totalW - sessionWordsStart);
+  const todayW = wordsToday(totalW);
   const el_total = document.getElementById('total-words'), el_today = document.getElementById('today-words');
   if (el_total) el_total.innerText = totalW;
   if (el_today) el_today.innerText = todayW;
@@ -160,19 +182,19 @@ function renderStats() {
   // Garde db.chapters (v9.15.0) : ce panneau est spécifique aux manuscrits texte.
   if (!db.chapters) return;
   const totalW=chaptersTotalWords(db.chapters);
-  const todayW=Math.max(0,totalW-sessionWordsStart), elapsed=Math.round((Date.now()-sessionStartTime)/60000);
-  const wpm=elapsed>0?Math.round(todayW/elapsed):0;
+  const todayW=wordsToday(totalW), sessionW=Math.max(0,totalW-sessionWordsStart), elapsed=Math.round((Date.now()-sessionStartTime)/60000);
+  const wpm=elapsed>0?Math.round(sessionW/elapsed):0;
   const pct=Math.min(100,Math.round(todayW/(db.dailyGoal||500)*100));
   const streak = computeWritingStreak();
   const bestHour = computeBestWritingHour();
   const bestHourLabel = bestHour === null ? '—' : (bestHour.toString().padStart(2,'0') + 'h');
   document.getElementById('stats-grid').innerHTML=[
     {v:totalW,l:'Mots total'},{v:todayW,l:"Aujourd'hui"},{v:wpm,l:'Mots/min'},
-    {v:elapsed+' min',l:'Session'},{v:pct+'%',l:'Objectif'},{v:db.chapters.length,l:'Chapitres'},
+    {v:sessionW+' · '+elapsed+' min',l:'Cette séance'},{v:pct+'%',l:'Objectif'},{v:db.chapters.length,l:'Chapitres'},
     {v:streak+(streak>1?' jours':' jour'),l:'Série en cours'},{v:bestHourLabel,l:'Meilleur moment'}
   ].map(s=>`<div class="stat-card"><div class="stat-val">${s.v}</div><div class="stat-label">${s.l}</div></div>`).join('');
-  const days=[],counts=[];
-  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const key=dateKey(d);days.push(d.toLocaleDateString('fr',{weekday:'short'}));counts.push(db.sessionStats?.[key]||0);}
+  const days=[],counts=dailyWordsSeries(7,totalW);
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d.toLocaleDateString('fr',{weekday:'short'}));}
   setChartAlt('sessionChart','Mots écrits par jour sur les 7 derniers jours',['Jour','Mots'],days.map((d,i)=>[d,counts[i]])); // AUD-05-008
   // v9.76.0 (AUD-07-004) : Chart.js est chargé à la demande.
   ensureLib('chart').then(ok=>{ if(!ok) return;

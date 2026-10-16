@@ -319,7 +319,7 @@
   };
   document.body.insertAdjacentHTML('beforeend', '<div id="search-results"></div><div id="search-count"></div>');
   doGlobalSearch('marie');
-  assert(document.getElementById('search-count').textContent === '3 occurrence(s)', 'trouve les occurrences dans les chapitres, personnages et quêtes');
+  assert(document.getElementById('search-count').textContent === '3 occurrences', 'trouve les occurrences dans les chapitres, personnages et quêtes');
   assert(document.getElementById('search-results').querySelectorAll('.search-result-item').length === 3, 'un résultat par occurrence trouvée');
   doGlobalSearch('x');
   assert(document.getElementById('search-count').textContent === '', 'une requête de moins de 2 caractères ne lance pas de recherche');

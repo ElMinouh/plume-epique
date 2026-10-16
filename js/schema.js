@@ -205,6 +205,8 @@ function dateKey(d) {
   d = d || new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
+// v9.80.0 (AUD-08-013) : accord en nombre à la française (0 et 1 au singulier) — remplace les « manuscrit(s) ».
+function plur(n, singulier, pluriel) { return Math.abs(n) >= 2 ? pluriel : singulier; }
 function getTodayKey() { return dateKey(new Date()); }
 // Le nouveau comptage change les totaux : sans recalage, les objectifs hebdomadaire et mensuel
 // (total d'aujourd'hui moins total d'avant la période) seraient faux pendant 7 à 30 jours. Une seule

@@ -639,7 +639,7 @@ function gnRenderPagesSidebar() {
     <div class="gn-pg-thumb${i===_gnActivePage?' gn-active':''}" data-idx="${i}" title="Page ${i+1}"${gnIsDesktop()?' draggable="true"':''}>
       ${gnMiniIconHtml(p.elements)}
       <button class="gn-pg-num gn-pg-select" data-idx="${i}" aria-label="Page ${i+1} sur ${db.pages.length}${i===_gnActivePage?' (page affichée)':''}" aria-current="${i===_gnActivePage?'page':'false'}" title="Alt+↑ / Alt+↓ pour déplacer la page">${i+1}</button>
-      <button class="gn-pg-dup" data-idx="${i}" title="Dupliquer la page ${i+1}" aria-label="Dupliquer la page ${i+1}">⧉</button>
+      <button class="gn-pg-dup" data-idx="${i}" title="Dupliquer la page ${i+1}" aria-label="Dupliquer la page ${i+1}">${icon('copy')}</button>
       <button class="gn-pg-del" data-idx="${i}" title="Supprimer la page ${i+1}" aria-label="Supprimer la page ${i+1}">${icon('x')}</button>
       <span class="gn-pg-move">
         <button class="gn-pg-up" data-idx="${i}" title="Monter la page ${i+1}" aria-label="Monter la page ${i+1}"${i===0?' disabled':''}>${icon('chevron-up')}</button>

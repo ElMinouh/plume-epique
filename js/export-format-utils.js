@@ -591,15 +591,15 @@ function importProjectLibrary(input) {
       let skipIds = new Set();
       if (dupIds.length) {
         const ignore = await showConfirmModal({
-          title: dupIds.length + ' manuscrit(s) déjà présent(s)',
-          message: 'Ce fichier contient ' + dupIds.length + ' manuscrit(s) qui existent déjà dans votre bibliothèque. Les ignorer et n\'importer que les autres (recommandé) ? Annuler vous permettra de les importer en copies.',
+          title: dupIds.length + ' ' + plur(dupIds.length, 'manuscrit déjà présent', 'manuscrits déjà présents'),
+          message: 'Ce fichier contient ' + dupIds.length + ' ' + plur(dupIds.length, 'manuscrit qui existe déjà', 'manuscrits qui existent déjà') + ' dans votre bibliothèque. Les ignorer et n\'importer que les autres (recommandé) ? Annuler vous permettra de les importer en copies.',
           confirmLabel: 'Ignorer les doublons'
         });
         if (ignore) skipIds = new Set(dupIds);
         else {
           const copies = await showConfirmModal({
             title: 'Importer les doublons en copies ?',
-            message: dupIds.length + ' manuscrit(s) seront ajoutés une seconde fois, sous un nouvel identifiant.',
+            message: dupIds.length + ' ' + plur(dupIds.length, 'manuscrit sera ajouté', 'manuscrits seront ajoutés') + ' une seconde fois, sous un nouvel identifiant.',
             confirmLabel: 'Importer en copies'
           });
           if (!copies) { toast('Import annulé.', 'info'); return; }
@@ -680,11 +680,11 @@ function importProjectLibrary(input) {
       if (unreadable) {
         toast('Import terminé, mais ces manuscrits semblent illisibles : ce fichier vient probablement d\'un autre profil.', 'error');
       } else if (!added && invalidCount) {
-        toast(invalidCount + ' manuscrit(s) du fichier ignoré(s) : format invalide (fichier abîmé ou qui ne vient pas de Plume).', 'error');
+        toast(invalidCount + ' ' + plur(invalidCount, 'manuscrit du fichier ignoré', 'manuscrits du fichier ignorés') + ' : format invalide (fichier abîmé ou qui ne vient pas de Plume).', 'error');
       } else if (!added) {
         toast('Aucun nouveau manuscrit : tous ceux du fichier sont déjà dans votre bibliothèque.', 'info');
       } else {
-        toast(added + ' manuscrit(s) importé(s) dans la bibliothèque.' + (skipIds.size ? ' ' + skipIds.size + ' doublon(s) ignoré(s).' : '') + (invalidCount ? ' ' + invalidCount + ' manuscrit(s) ignoré(s) : format invalide.' : ''), 'success');
+        toast(added + ' ' + plur(added, 'manuscrit importé', 'manuscrits importés') + ' dans la bibliothèque.' + (skipIds.size ? ' ' + skipIds.size + ' ' + plur(skipIds.size, 'doublon ignoré', 'doublons ignorés') + '.' : '') + (invalidCount ? ' ' + invalidCount + ' ' + plur(invalidCount, 'manuscrit ignoré', 'manuscrits ignorés') + ' : format invalide.' : ''), 'success');
       }
       await renderLibraryScreen();
     } catch(err) {

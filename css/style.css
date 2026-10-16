@@ -279,6 +279,7 @@ mark{background-color:color-mix(in srgb,var(--accent) 22%,transparent);color:var
 .card .ch-kebab-btn:hover{background:rgba(0,0,0,.08);color:#2d3436;}
 .db-grid{display:grid;grid-template-columns:210px 1fr;gap:14px;height:100%;overflow:hidden;}
 .list-box{background:var(--item-bg);border-radius:var(--r-2);padding:10px;overflow-y:auto;}
+.edit-box:empty{display:none;}
 .edit-box{background:rgba(255,255,255,.04);border-radius:var(--r-2);padding:14px;
   border:1px solid var(--border);display:flex;flex-direction:column;gap:8px;overflow-y:auto;}
 .edit-box textarea,.edit-box input,.edit-box select{background:var(--item-bg);color:inherit;
