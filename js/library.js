@@ -1646,6 +1646,7 @@ async function openLibrarySystemPanel(preselectDocId, tab) {
   document.getElementById('lib-sync-key-status').textContent = '';
   renderLastSyncStatus();
     renderSyncUsage();
+  if (typeof renderOfflineStatus === 'function') renderOfflineStatus(); // v9.76.0 (AUD-07-006)
   await renderConflictBackups();
 
   showSystemTab(tab || (_setupTourActive ? 'github' : 'files'));

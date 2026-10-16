@@ -64,11 +64,14 @@ function renderAnalytics() {
   let totalDialog=0, totalNarration=0;
   db.chapters.forEach(c=>{ const r=countDialogLines(getPlainText(c.content)); totalDialog+=r.dialog; totalNarration+=r.narration; });
   { const tot = totalDialog + totalNarration || 1; setChartAlt('dialogChart', 'Densité dialogue et narration (lignes)', ['Type', 'Lignes', 'Part'], [['Dialogue', totalDialog, Math.round(100*totalDialog/tot)+' %'], ['Narration', totalNarration, Math.round(100*totalNarration/tot)+' %']]); } // AUD-05-008
+  // v9.76.0 (AUD-07-004) : Chart.js est chargé à la demande.
+  ensureLib('chart').then(ok => { if (!ok) return;
   if (dialogChart) { dialogChart.destroy(); dialogChart=null; }
   const ctx2 = document.getElementById('dialogChart').getContext('2d');
   dialogChart = new Chart(ctx2,{
     type:'doughnut',
     data:{labels:['Dialogue','Narration'],datasets:[{data:[totalDialog,totalNarration],backgroundColor:['#8e44ad','#2980b9'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}
+  });
   });
 }

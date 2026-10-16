@@ -141,7 +141,7 @@ describe('DOMPurify réel (AUD-01-002) — la suite principale le remplace par u
     expect(DOMPurify.version).toBe(fromHtml);
   });
   it('jsPDF : même version dans index.html et sw.js', () => {
-    expect(read('index.html').match(/vendor\/jspdf-([\d.]+)\.umd/)[1]).toBe(read('sw.js').match(/vendor\/jspdf-([\d.]+)\.umd/)[1]);
+    expect(read('js/schema.js').match(/vendor\/jspdf-([\d.]+)\.umd/)[1]).toBe(read('sw.js').match(/vendor\/jspdf-([\d.]+)\.umd/)[1]); // v9.76.0 : chargée à la demande (VENDOR_LIBS), plus dans index.html
   });
   it.each([
     ['<img src=x onerror=alert(1)>', 'onerror'],

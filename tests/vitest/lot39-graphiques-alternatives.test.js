@@ -52,7 +52,7 @@ describe('AUD-05-009 — graphe des relations', () => {
     expect(rel).toContain('renderGraphList(nodes, links);');
   });
   it('renderGraphList décrit chaque élément avec ses relations (jsdom)', () => {
-    const src = rel.slice(rel.indexOf('const GRAPH_TYPE_LABEL'), rel.indexOf('function renderGraph() {'));
+    const src = rel.slice(rel.indexOf('const GRAPH_TYPE_LABEL'), rel.indexOf('async function renderGraph() {'));
     const dom = new JSDOM('<body><ul id="graph-list"></ul></body>', { runScripts: 'outside-only' });
     const w = dom.window; w.eval(src);
     const nodes = [{ id: 'chars-1', label: 'Léa', type: 'chars' }, { id: 'places-1', label: 'Le port', type: 'places' }, { id: 'chars-2', label: 'Solo', type: 'chars' }];

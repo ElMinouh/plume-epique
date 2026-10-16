@@ -32,8 +32,10 @@ function renderGraphList(nodes, links) {
     ul.appendChild(li);
   });
 }
-function renderGraph() {
+async function renderGraph() {
   const container = document.getElementById('graph-container');
+  // v9.76.0 (AUD-07-004) : d3 est chargé à la première ouverture du graphe, pas au démarrage de l'application.
+  if (!(await ensureLib('d3'))) { toast('La bibliothèque du graphe n\'a pas pu se charger (connexion hors-ligne ?).', 'error'); return; }
   const svg = d3.select('#graph-svg');
   svg.selectAll('*').remove();
   const { nodes, links } = buildGraphData();

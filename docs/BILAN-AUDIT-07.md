@@ -11,7 +11,7 @@ Base : v9.69.0 (note 64/100, niveau 3 — Production à l'échelle familiale). R
 | 4 Écritures évitables | 009, 010 | 🟢 v9.73.0 (voir ci-dessous) |
 | 5 Worker D1 / IA | 007, 015 | 🟢 v9.74.0 (voir ci-dessous) |
 | 6 CPU à la frappe | 003, 002, 022 | 🟢 v9.75.0 (voir ci-dessous) |
-| 7 Chargement et cache | 004, 005, 006 | à faire |
+| 7 Chargement et cache | 004, 005, 006 | 🟢 v9.76.0 (voir ci-dessous) |
 | 8 Images et export | 013, 014 | à faire |
 | 9 Budgets CI et décisions | 019, 021 | à faire |
 
@@ -85,3 +85,11 @@ Mesures dans Chrome 152 (copie locale de l'application, textes synthétiques ; p
 Incident évité : le nom `manuscriptWordCount` existait déjà dans `library.js` (autre signature) et masquait la nouvelle fonction ; les tests de l'index (nombre de mots à 0) l'ont révélé avant livraison. Nouveau nom : `chaptersTotalWords`.
 
 Vérifications après le push (16/10/2026) : CI verte ; en ligne v9.75.0 (titre, `sw.js`), console sans erreur, `/health` 200, Workers 401 sans clé ; copie locale à deux appareils (Worker local 8787, applications 18871 et 18872, D1 jetable) : l'appareil A enregistre un manuscrit de 905 mots (chiffrement natif) et l'envoie ; l'appareil B le lit et le déchiffre, avec le chemin natif puis avec un navigateur simulé SANS conversion native : 905 mots, accents intacts, index à 905 mots, aucune erreur 500. Non couvert : téléphone ou navigateur réellement ancien (Firefox < 133, Safari < 18.2, Chrome < 140 : repli testé par simulation seulement), manuscrits de plus de 400 000 mots.
+
+## Lot 7 — v9.76.0
+
+| ID | Statut | Preuve |
+|---|---|---|
+| 004 | 🟢 six librairies chargées à la demande (`ensureLib`, `VENDOR_LIBS`) : au démarrage ne restent que DOMPurify, idb et file-saver (+ les modules ODF) ; mesuré dans Chrome avec la CSP réelle : aucune des six au chargement, chacune se charge en 8 à 62 ms au premier usage et fonctionne (ZIP, PDF, d3, Chart, mammoth, html2canvas). Le refus d'un fichier Word trop gros reste AVANT tout chargement | `lot-aud07-7-chargement.test.js` ; mesure navigateur |
+| 005 | 🟢 `/vendor/*` : `Cache-Control: public, max-age=31536000, immutable` ; le service worker sert `vendor/` depuis le cache sans revalidation. `js/` et `css/` inchangés (pas de build, donc pas d'empreinte dans le nom) | `lot-aud07-7-chargement.test.js` |
+| 006 | 🟢 précache fichier par fichier (`Promise.allSettled`), liste des manquants dans `precache-status.json` (même cache), nouvelle tentative par message `RETRY_PRECACHE` (au chargement et au retour du réseau), état affiché dans Système | `lot-aud07-7-chargement.test.js` |

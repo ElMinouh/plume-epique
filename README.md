@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.75.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.76.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -102,7 +102,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 
 ```bash
 npm install
-npm test            # Vitest : ~970 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
+npm test            # Vitest : ~1000 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
 ```
 
 Pas de build, pas de linter. Les tests partagent un contexte applicatif global : `fileParallelism: false`.
@@ -149,6 +149,7 @@ foyer, etc.) : `docs/DECISIONS.md`.
 
 ## Limites connues
 
+- **Chargement et hors ligne** (v9.76.0, AUD-07-004/005/006) : d3, Chart.js, JSZip, jsPDF, html2canvas et mammoth ne sont plus chargés au démarrage (64 % des octets du premier chargement) mais à la première utilisation (`ensureLib`, table `VENDOR_LIBS` dans `schema.js`) ; ils restent précachés, donc disponibles hors ligne ; le graphique de tension apparaît quelques dizaines de millisecondes après l'ouverture d'un manuscrit, le temps de charger Chart.js. Les fichiers de `vendor/` sont servis avec `Cache-Control: immutable` et par le service worker sans revalidation (leur nom porte la version). Le précache du service worker est tolérant : un fichier en échec n'empêche plus les autres, la liste des manquants est affichée dans Système (« Hors ligne : prêt / incomplet ») et retentée au retour du réseau.
 - **Coût de la frappe et de l'enregistrement** (v9.75.0, AUD-07-002/003) : le nombre de mots est mis en cache par chapitre (`chapterWordCount`, `chaptersTotalWords`, `schema.js`) : une frappe ne recompte que le chapitre modifié (0,1 ms au lieu de 7 à 18 ms pour 150 000 à 400 000 mots, mesuré dans Chrome 152) ; la conversion base64 de l'enveloppe chiffrée utilise `Uint8Array.toBase64` / `fromBase64` quand le navigateur les offre (chaîne produite identique à l'ancien chemin, qui reste en repli) : enveloppe de 150 000 mots en 10 ms au lieu de 24 ms, de 400 000 mots en 26 ms au lieu de 67 ms. Un chapitre de 50 000 mots coûte environ 1 ms par frappe : aucun correctif nécessaire.
 - **Quotas du serveur et relais IA** (v9.74.0, AUD-07-007/015) : l'occupation (octets, nombre de clés par profil, images) est tenue par des compteurs mis à jour dans la transaction de chaque écriture (table `sync_totals`) au lieu d'un balayage de tous les morceaux ; un compteur ne peut jamais refuser seul (recomptage avant tout 507) ; la migration est automatique à la première requête après le déploiement. Le relais IA plafonne les appels à 200 par profil et par jour (variable `AI_DAILY_LIMIT`, compteur dans D1, ignoré s'il est indisponible), coupe un fournisseur qui ne répond pas en 25 s (504) et retente UNE fois après 2 s sur 429/503 ; un appel refusé par le fournisseur ne compte pas.
 - **Écritures évitées** (v9.73.0, AUD-07-009/010) : l'index de la bibliothèque (date de modification, nombre de mots et de chapitres) n'est plus réécrit à chaque enregistrement du texte : il l'est à l'ouverture, tout de suite si le titre/l'objectif/la vignette changent, au plus toutes les 5 minutes d'écriture et à la sortie (retour à la bibliothèque, déconnexion, masquage ou fermeture de la page) ; un plantage brutal peut laisser la date ou le nombre de mots en retard jusqu'à la prochaine ouverture. La sauvegarde GitHub automatique n'envoie plus un manuscrit identique à celui de la dernière sauvegarde réussie (le bouton manuel envoie toujours) et la date de dernière sauvegarde est propre à l'appareil (plus dans l'index synchronisé).

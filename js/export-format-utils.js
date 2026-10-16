@@ -133,7 +133,7 @@ function toXhtmlSafe(html) {
   return Array.from(wrapper.childNodes).map(node => serializer.serializeToString(node)).join('');
 }
 async function exportEpub(chapters, title) {
-  if (typeof JSZip === 'undefined') { toast(EXPORT_LIB_MISSING, 'error'); return; }
+  if (!(await ensureLib('jszip'))) { toast(EXPORT_LIB_MISSING, 'error'); return; }
   if (!chapters || !chapters.length) { toast('Aucun chapitre sélectionné.', 'error'); return; }
 
   const zip = new JSZip();
@@ -291,7 +291,7 @@ function pdfWriteBlocks(doc, blocks, y, L) {
   return y;
 }
 async function exportPdf(chapters, title) {
-  if (!window.jspdf || !window.jspdf.jsPDF) { toast(EXPORT_LIB_MISSING, 'error'); return; }
+  if (!(await ensureLib('jspdf'))) { toast(EXPORT_LIB_MISSING, 'error'); return; }
   if (!chapters || !chapters.length) { toast('Aucun chapitre sélectionné.', 'error'); return; }
   try {
     const { jsPDF } = window.jspdf;
@@ -418,7 +418,7 @@ const IMPORT_MAX_JSON_BYTES = 900 * 1024 * 1024;          // export JSON de bibl
 function formatMo(octets) { return (octets / 1048576 >= 10 ? Math.round(octets / 1048576) : Math.round(octets / 104857.6) / 10) + ' Mo'; }
 // Taille décompressée annoncée par l'archive (lecture de l'annuaire du ZIP seulement, sans rien décompresser).
 async function zipUnzippedSize(buf) {
-  if (typeof JSZip === 'undefined') return 0;
+  if (!(await ensureLib('jszip'))) return 0;
   const zip = await JSZip.loadAsync(buf);
   let total = 0;
   zip.forEach((chemin, entree) => { const n = entree && entree._data && entree._data.uncompressedSize; if (typeof n === 'number') total += n; });
@@ -434,17 +434,17 @@ function isValidImportedEnvelope(env) {
 }
 // ── fin des limites d'import ───────────────────────────────────────────────────────────────────────────────────────
 let _docxImportHtml = null, _docxImportTitleGuess = '', _docxImportSplit = null;
-function importManuscriptFile(input) {
+async function importManuscriptFile(input) {
   const file = input.files[0]; if (!file) return;
   const isOdt = /\.odt$/i.test(file.name);
   const isDocx = /\.docx$/i.test(file.name);
   if (!isOdt && !isDocx) { toast('Format non reconnu (.docx ou .odt attendu).', 'error'); input.value=''; return; }
-  if (isDocx && typeof mammoth === 'undefined') { toast(EXPORT_LIB_MISSING, 'error'); input.value=''; return; }
-  if (isOdt && (!window.odfKit || !window.odfKit.odtToHtml)) { toast(EXPORT_LIB_MISSING, 'error'); input.value=''; return; }
   if (file.size > IMPORT_MAX_DOC_BYTES) {
     toast('Ce fichier pèse ' + formatMo(file.size) + ' : au-delà de la limite d\'import (' + formatMo(IMPORT_MAX_DOC_BYTES) + '). Enregistrez-le sans les images ou en plusieurs parties.', 'error');
     input.value = ''; return;
   }
+  if (isDocx && !(await ensureLib('mammoth'))) { toast(EXPORT_LIB_MISSING, 'error'); input.value=''; return; }
+  if (isOdt && (!window.odfKit || !window.odfKit.odtToHtml)) { toast(EXPORT_LIB_MISSING, 'error'); input.value=''; return; }
   _docxImportTitleGuess = file.name.replace(/\.(docx|odt)$/i, '').trim() || 'Chapitre importé';
   const convert = file.arrayBuffer().then(async buf => {
     await assertZipNotBomb(buf); // refus avant toute conversion

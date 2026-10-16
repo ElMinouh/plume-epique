@@ -102,6 +102,41 @@ function getWordCount(t) {
   for (const w of plain.split(/\s+/)) if (/[\p{L}\p{N}]/u.test(w)) n++;
   return n;
 }
+// v9.76.0 (audit AUD-07-004) — LIBRAIRIES CHARGÉES À LA DEMANDE. d3, Chart.js, JSZip, jsPDF, html2canvas et mammoth (64 %
+// des octets transférés au démarrage, ≈ 526 Ko sur 822 Ko compressés) étaient des <script> synchrones de l'<head> :
+// téléchargés, analysés et exécutés avant la première peinture par TOUT le monde, alors qu'elles ne servent qu'au graphe
+// des relations, aux graphiques, aux exports et à l'import DOCX. Elles sont maintenant chargées à la première
+// utilisation (même mécanisme que docx, ensureDocx dans export-format-utils.js). Les fichiers restent dans CORE_ASSETS
+// (sw.js) : le service worker les a déjà en cache, donc le hors ligne est inchangé.
+// ⚠️ Une version de librairie se change ici, dans index.html (plus pour celles-ci), sw.js et package.json : un test vérifie
+// la cohérence (lot-aud07-7-chargement.test.js).
+const VENDOR_LIBS = {
+  d3:          { src: 'vendor/d3-7.9.0.min.js',                    ready: () => typeof d3 !== 'undefined' },
+  chart:       { src: 'vendor/chart-4.5.1.umd.min.js',             ready: () => typeof Chart !== 'undefined' },
+  jszip:       { src: 'vendor/jszip-3.10.1.min.js',                ready: () => typeof JSZip !== 'undefined' },
+  jspdf:       { src: 'vendor/jspdf-4.2.1.umd.min.js',             ready: () => typeof jspdf !== 'undefined' && !!jspdf.jsPDF },
+  html2canvas: { src: 'vendor/html2canvas-1.4.1.min.js',           ready: () => typeof html2canvas === 'function' },
+  mammoth:     { src: 'vendor/mammoth-1.11.0.browser.min.js',      ready: () => typeof mammoth !== 'undefined' }
+};
+const _libLoading = {};
+// Renvoie une promesse : true si la librairie est disponible (déjà chargée ou chargée maintenant), false sinon (échec du
+// chargement : hors ligne sans cache, fichier absent). Les appels simultanés partagent le même chargement ; après un échec,
+// le prochain appel réessaie.
+function ensureLib(id) {
+  const lib = VENDOR_LIBS[id];
+  if (!lib) return Promise.resolve(false);
+  if (lib.ready()) return Promise.resolve(true);
+  if (_libLoading[id]) return _libLoading[id];
+  _libLoading[id] = new Promise(resolve => {
+    const el = document.createElement('script');
+    el.src = lib.src;
+    el.onload = () => { const ok = lib.ready(); if (!ok) delete _libLoading[id]; resolve(ok); };
+    el.onerror = () => { delete _libLoading[id]; resolve(false); };
+    document.head.appendChild(el);
+  });
+  return _libLoading[id];
+}
+
 // v9.75.0 (audit AUD-07-003) — COMPTAGE MIS EN CACHE PAR CHAPITRE. La somme des mots du manuscrit était recalculée en
 // entier (deux remplacements d'expression régulière et un découpage sur le HTML de CHAQUE chapitre) à chaque frappe —
 // deux fois quand un objectif de mots est défini — puis une troisième fois à chaque enregistrement : 4 ms pour 80 000

@@ -168,3 +168,41 @@ window.addEventListener('unhandledrejection', e => {
   const r = e && e.reason;
   reportClientError((r && r.message) || String(r), 'promesse');
 });
+
+// ═══════════════════════════════════════════════════════
+// ÉTAT « HORS LIGNE » (v9.76.0, audit AUD-07-006)
+// Le service worker mémorise les fichiers qu'il n'a pas pu mettre en cache à l'installation (precache-status.json) : on
+// l'affiche dans Système, et on lui demande de réessayer dès que la connexion est là (au chargement et au retour du réseau).
+// ═══════════════════════════════════════════════════════
+const PRECACHE_STATUS_PATH = 'precache-status.json';
+async function readPrecacheStatus() {
+  try {
+    if (typeof caches === 'undefined') return null;
+    const hit = await caches.match(PRECACHE_STATUS_PATH);
+    return hit ? await hit.json() : null;
+  } catch (e) { return null; }
+}
+async function renderOfflineStatus() {
+  const el = document.getElementById('lib-offline-status');
+  if (!el) return;
+  const st = await readPrecacheStatus();
+  if (!st) { el.textContent = ''; return; }
+  const n = (st.missing || []).length;
+  el.textContent = n === 0
+    ? 'Hors ligne : prêt (' + st.total + ' fichiers en cache).'
+    : 'Hors ligne : incomplet — ' + n + ' fichier' + (n > 1 ? 's' : '') + ' manquant' + (n > 1 ? 's' : '') + ' sur ' + st.total + ' ; nouvelle tentative automatique dès que la connexion le permet.';
+}
+async function retryPrecacheIfNeeded() {
+  try {
+    const st = await readPrecacheStatus();
+    if (!st || !(st.missing || []).length) return false;
+    const sw = navigator.serviceWorker && navigator.serviceWorker.controller;
+    if (!sw) return false;
+    sw.postMessage({ type: 'RETRY_PRECACHE' });
+    return true;
+  } catch (e) { return false; }
+}
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('load', () => { setTimeout(retryPrecacheIfNeeded, 4000); });
+  window.addEventListener('online', () => { retryPrecacheIfNeeded(); });
+}

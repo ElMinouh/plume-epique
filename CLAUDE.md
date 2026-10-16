@@ -54,7 +54,7 @@ export-format-utils.js, database.js, memory.js
 
 ### vendor/ (librairies tierces)
 
-Toutes les librairies (DOMPurify, Chart.js, jsPDF, docx, mammoth, odf-kit…) sont **servies localement** depuis `vendor/` (versions exactes, voir `vendor/LISEZMOI.md`) : aucun CDN, CSP `script-src 'self'`. Ajouter/mettre à jour une librairie = fichier dans `vendor/` + `index.html` + `CORE_ASSETS` (`sw.js`) + `package.json` (dependencies) + **`node scripts/vendor-empreintes.cjs --ecrire`** (régénère `vendor/SHA256SUMS`, sinon test et CI échouent) ; un test vérifie la cohérence.
+Toutes les librairies (DOMPurify, Chart.js, jsPDF, docx, mammoth, odf-kit…) sont **servies localement** depuis `vendor/` (versions exactes, voir `vendor/LISEZMOI.md`) : aucun CDN, CSP `script-src 'self'`. Ajouter/mettre à jour une librairie = fichier dans `vendor/` + `index.html` (**sauf d3, Chart.js, JSZip, jsPDF, html2canvas, mammoth : chargées à la demande, table `VENDOR_LIBS` dans `schema.js` + `await ensureLib('id')` au point d'usage, depuis la v9.76.0**) + `CORE_ASSETS` (`sw.js`) + `package.json` (dependencies) + **`node scripts/vendor-empreintes.cjs --ecrire`** (régénère `vendor/SHA256SUMS`, sinon test et CI échouent) ; un test vérifie la cohérence.
 
 ### worker/ (Cloudflare Workers)
 

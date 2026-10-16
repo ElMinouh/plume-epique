@@ -522,8 +522,8 @@ function showRecoveryCode(code, name, onContinue) {
   document.getElementById('rc-continue').addEventListener('click', onContinue);
 }
 
-function downloadRecoveryPdf(code, name) {
-  if (!window.jspdf || !window.jspdf.jsPDF) { toast('Bibliothèque PDF non chargée.', 'error'); return; }
+async function downloadRecoveryPdf(code, name) {
+  if (!(await ensureLib('jspdf'))) { toast('Bibliothèque PDF non chargée.', 'error'); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   doc.setFontSize(18); doc.text('Plume — Code de récupération', 20, 25);

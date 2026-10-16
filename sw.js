@@ -1,7 +1,7 @@
 'use strict';
 // Changez ce numéro de version à chaque mise à jour majeure des fichiers
 // pour forcer les navigateurs à récupérer la nouvelle version.
-const CACHE = 'plume-epique-v9.75.0';
+const CACHE = 'plume-epique-v9.76.0';
 
 const CORE_ASSETS = [
   './',
@@ -21,11 +21,35 @@ const CORE_ASSETS = [
 
 // v9.27.0 : plus aucune librairie externe — elles sont toutes dans vendor/ (CORE_ASSETS).
 
+// v9.76.0 (audit AUD-07-006) — PRÉCACHE TOLÉRANT. cache.addAll() est tout-ou-rien : un seul fichier en échec (coupure,
+// 404 passager, stockage plein) annulait l'ajout de TOUS les autres, l'erreur était avalée et l'installation « réussissait »
+// : l'application se croyait disponible hors ligne sans l'être. Chaque fichier est maintenant ajouté séparément ; la liste
+// de ceux qui manquent est mémorisée (precache-status.json, dans ce même cache), lue par la page (Système → « Hors ligne »)
+// et retentée dès que la connexion revient (message RETRY_PRECACHE, voir pwa.js). Un fichier manquant est de toute façon
+// mis en cache dès qu'il est demandé une fois (gestionnaire fetch ci-dessous).
+const PRECACHE_STATUS_URL = new URL('./precache-status.json', self.location).href;
+async function writePrecacheStatus(cache, missing) {
+  await cache.put(PRECACHE_STATUS_URL, new Response(JSON.stringify({ cache: CACHE, total: CORE_ASSETS.length, missing, ts: Date.now() }), { headers: { 'Content-Type': 'application/json' } }));
+}
+async function precacheAll() {
+  const cache = await caches.open(CACHE);
+  const results = await Promise.allSettled(CORE_ASSETS.map(u => cache.add(u)));
+  const missing = CORE_ASSETS.filter((u, i) => results[i].status === 'rejected');
+  await writePrecacheStatus(cache, missing);
+  return missing;
+}
+async function retryPrecache() {
+  const cache = await caches.open(CACHE);
+  const hit = await cache.match(PRECACHE_STATUS_URL);
+  const status = hit ? await hit.json() : null;
+  if (!status || !status.missing || !status.missing.length) return;
+  const results = await Promise.allSettled(status.missing.map(u => cache.add(u)));
+  const still = status.missing.filter((u, i) => results[i].status === 'rejected');
+  await writePrecacheStatus(cache, still);
+}
+
 self.addEventListener('install', event => {
-  event.waitUntil((async () => {
-    const cache = await caches.open(CACHE);
-    await cache.addAll(CORE_ASSETS).catch(() => {});
-  })());
+  event.waitUntil(precacheAll().catch(() => {}));
   // Correction v6.0.0 : on ne saute plus l'attente automatiquement.
   // Le nouveau Service Worker reste "waiting" tant que l'utilisateur n'a
   // pas cliqué sur "Mettre à jour" dans la bannière (voir pwa.js) — ça
@@ -35,6 +59,7 @@ self.addEventListener('install', event => {
 
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data && event.data.type === 'RETRY_PRECACHE') event.waitUntil(retryPrecache().catch(() => {}));
 });
 
 self.addEventListener('activate', event => {
@@ -84,6 +109,10 @@ self.addEventListener('fetch', event => {
 
   event.respondWith((async () => {
     const cached = await caches.match(event.request);
+    // v9.76.0 (audit AUD-07-005) : les librairies de vendor/ portent leur version dans leur nom (d3-7.9.0…) et ne changent
+    // jamais sous le même nom : servies depuis le cache SANS revalidation (avant : une requête réseau par fichier à chaque
+    // ouverture, et un fichier pouvait être remplacé dans le cache avant que l'application ne passe à la nouvelle version).
+    if (cached && new URL(event.request.url).pathname.indexOf('/vendor/') !== -1) return cached;
     if (cached) {
       event.waitUntil(
         fetch(event.request).then(res => cacheableResponse(res)).then(toCache => {

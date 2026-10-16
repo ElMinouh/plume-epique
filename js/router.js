@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.75.0';
+const APP_VERSION = '9.76.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1507,9 +1507,13 @@ function initApp(){
   maybeStartOnboardingTour();
 
   setTensionAlt();
-  const ctx=document.getElementById('tensionChart').getContext('2d');
-  if (tensionChart) { tensionChart.destroy(); tensionChart = null; }
-  tensionChart=new Chart(ctx,{type:'line',data:{labels:db.chapters.map((_,i)=>i+1),datasets:[{label:'Tension',data:db.chapters.map(c=>c.tension),borderColor:'#c0392b',backgroundColor:'rgba(192,57,43,.08)',tension:.3,fill:true}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  // v9.76.0 (AUD-07-004) : Chart.js est chargé à la demande ; le graphique de tension apparaît dès qu'il est prêt.
+  ensureLib('chart').then(ok => {
+    if (!ok) return;
+    const ctx=document.getElementById('tensionChart').getContext('2d');
+    if (tensionChart) { tensionChart.destroy(); tensionChart = null; }
+    tensionChart=new Chart(ctx,{type:'line',data:{labels:db.chapters.map((_,i)=>i+1),datasets:[{label:'Tension',data:db.chapters.map(c=>c.tension),borderColor:'#c0392b',backgroundColor:'rgba(192,57,43,.08)',tension:.3,fill:true}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  });
 
   const mgi=document.getElementById('manuscript-goal-input');if(mgi)mgi.value=db.wordGoal||'';
 

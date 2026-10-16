@@ -29,7 +29,7 @@ describe('018 — valeurs d\'attribut échappées (escapeHtml), jamais DOMPurify
   });
   it('escapeHtml neutralise guillemets, chevrons et esperluette : un nom piégé ne crée plus d\'attribut', () => {
     const { window } = new JSDOM('<body></body>');
-    const ctx = vm.createContext({});
+    const ctx = vm.createContext({ ensureLib: () => Promise.resolve(true), });
     vm.runInContext(read('js/schema.js').slice(read('js/schema.js').indexOf('function escapeHtml'), read('js/schema.js').indexOf('function escapeHtml') + 260) + '\nthis.escapeHtml = escapeHtml;', ctx);
     const piege = 'x" autofocus onfocus="alert(1)" data-y="';
     const div = window.document.createElement('div');
@@ -43,7 +43,7 @@ describe('019 — limites d\'import (3 fois les usages réels)', () => {
   const src = read('js/export-format-utils.js');
   const bloc = src.slice(src.indexOf('// ── LIMITES D\'IMPORT'), src.indexOf('// ── fin des limites d\'import'));
   function charger() {
-    const ctx = vm.createContext({ JSZip: require('jszip'), Promise, Math, Number, String, console });
+    const ctx = vm.createContext({ ensureLib: () => Promise.resolve(true),  JSZip: require('jszip'), Promise, Math, Number, String, console });
     vm.runInContext(bloc + '\nthis.api = { IMPORT_MAX_DOC_BYTES, IMPORT_MAX_UNZIPPED_BYTES, IMPORT_MAX_JSON_BYTES, formatMo, zipUnzippedSize, assertZipNotBomb, isValidImportedEnvelope };', ctx);
     return ctx.api;
   }
@@ -80,7 +80,7 @@ describe('019 — limites d\'import (3 fois les usages réels)', () => {
 
   function chargerImport(fichier) {
     const msgs = [];
-    const ctx = vm.createContext({ Promise, Math, Number, String, console, JSZip: require('jszip'), mammoth: { convertToHtml: vi.fn() }, window: { odfKit: { odtToHtml: vi.fn() } }, EXPORT_LIB_MISSING: 'lib', toast: (m, t) => msgs.push([m, t]), sanitizeManuscriptHtml: h => h, openDocxImportModal: vi.fn() });
+    const ctx = vm.createContext({ ensureLib: () => Promise.resolve(true),  Promise, Math, Number, String, console, JSZip: require('jszip'), mammoth: { convertToHtml: vi.fn() }, window: { odfKit: { odtToHtml: vi.fn() } }, EXPORT_LIB_MISSING: 'lib', toast: (m, t) => msgs.push([m, t]), sanitizeManuscriptHtml: h => h, openDocxImportModal: vi.fn() });
     const debut = src.indexOf('// ── LIMITES D\'IMPORT'), fin = src.indexOf('async function openDocxImportModal');
     vm.runInContext(src.slice(debut, fin).replace('function splitImportedHtml', 'function splitImportedHtml_') + '\nthis.importManuscriptFile = importManuscriptFile;', ctx);
     const input = { files: [fichier], value: 'x' };
@@ -117,7 +117,7 @@ describe('021 — jeton GitHub : aide, avertissement, en-tête moderne', () => {
   const lib = read('js/library.js');
   function chargerScopes() {
     const a = lib.indexOf('function tokenScopesTooBroad');
-    const ctx = vm.createContext({ String });
+    const ctx = vm.createContext({ ensureLib: () => Promise.resolve(true),  String });
     vm.runInContext(lib.slice(a, lib.indexOf('async function libVerifyToken')) + '\nthis.f = tokenScopesTooBroad;', ctx);
     return ctx.f;
   }

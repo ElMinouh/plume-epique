@@ -1721,7 +1721,8 @@ let _gnExportCancelled = false;
 // gnOpenExportOptionsModal(). Retombe sur les constantes par défaut
 // (format standard 20×25cm/300 DPI/3mm) si appelée sans argument.
 async function gnExportGraphicNovelPDF(opts) {
-  if (typeof html2canvas !== 'function' || !window.jspdf) {
+  const [h2cOk, pdfOk] = await Promise.all([ensureLib('html2canvas'), ensureLib('jspdf')]); // v9.76.0 : chargées à la demande
+  if (!h2cOk || !pdfOk) {
     toast('Les librairies d\'export PDF n\'ont pas pu se charger (connexion hors-ligne ?).', 'error');
     return;
   }
@@ -1864,7 +1865,7 @@ function gnExportFilename() {
 // Renvoie false (et laisse le fichier non généré par l'appelant) si l'export
 // a été annulé ou si les pages/librairies nécessaires manquent.
 async function gnExportPagesToCanvases(onPage) {
-  if (typeof html2canvas !== 'function') { toast('La bibliothèque de capture n\'a pas pu se charger (connexion hors-ligne ?).', 'error'); return false; }
+  if (!(await ensureLib('html2canvas'))) { toast('La bibliothèque de capture n\'a pas pu se charger (connexion hors-ligne ?).', 'error'); return false; }
   const pages = db.pages || [];
   if (!pages.length) { toast('Aucune page à exporter.', 'error'); return false; }
   const pageEl = document.getElementById('gn-canvas');
@@ -1902,7 +1903,7 @@ async function gnExportPagesToCanvases(onPage) {
 }
 
 async function gnExportZip() {
-  if (typeof JSZip === 'undefined') { toast(EXPORT_LIB_MISSING, 'error'); return; }
+  if (!(await ensureLib('jszip'))) { toast(EXPORT_LIB_MISSING, 'error'); return; }
   const zip = new JSZip();
   const ok = await gnExportPagesToCanvases(async (canvas, i) => {
     const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
@@ -1947,7 +1948,7 @@ function gnPageAltText(page, num) {
   return ('Page ' + num + (parts.length ? ' : ' + parts.join(' — ') : '')).slice(0, 1000);
 }
 async function gnExportBookEpub() {
-  if (typeof JSZip === 'undefined') { toast(EXPORT_LIB_MISSING, 'error'); return; }
+  if (!(await ensureLib('jszip'))) { toast(EXPORT_LIB_MISSING, 'error'); return; }
   const zip = new JSZip();
   zip.file('mimetype', 'application/epub+zip', { compression:'STORE' });
   zip.folder('META-INF').file('container.xml',

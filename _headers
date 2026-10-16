@@ -7,3 +7,6 @@
   Strict-Transport-Security: max-age=31536000
   Reporting-Endpoints: csp="https://plume-epique-sync.air7841.workers.dev/csp-report"
   Cross-Origin-Resource-Policy: same-origin
+
+/vendor/*
+  Cache-Control: public, max-age=31536000, immutable
