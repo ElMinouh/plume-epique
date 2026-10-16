@@ -322,12 +322,22 @@ function renderAppearanceUI() {
 // v9.62.0 (AUD-05-008) : équivalent textuel de la courbe de tension (nom du canvas + tableau), mis à jour avec elle.
 function setTensionAlt(){setChartAlt('tensionChart','Tension narrative par chapitre (échelle du curseur)',['Chapitre','Tension'],db.chapters.map((c,i)=>[(i+1)+' — '+(c.title||'sans titre'),c.tension]));}
 function updateChart(){if(!tensionChart)return;setTensionAlt();tensionChart.data.labels=db.chapters.map((_,i)=>i+1);tensionChart.data.datasets[0].data=db.chapters.map(c=>c.tension);tensionChart.update();}
+// v9.81.0 (AUD-08-011) : le bouton annonce la CIBLE du clic (Clair en thème sombre, Sombre sinon).
+function updateThemeToggleLabel() {
+  const b = document.getElementById('toggle-dark-btn'); if (!b) return;
+  const sombre = document.body.classList.contains('dark-mode');
+  const lbl = b.querySelector('.mb-label'), use = b.querySelector('use');
+  if (lbl) lbl.textContent = sombre ? ' Clair' : ' Sombre';
+  if (use) use.setAttribute('href', sombre ? '#i-sun' : '#i-moon');
+  b.title = sombre ? 'Passer au thème clair' : 'Passer au thème sombre';
+}
 function toggleMode(){
   db.darkMode=!db.darkMode;
   // Le thème papier est exclusif du mode sombre (voir selectTheme ci-dessus).
   if (db.darkMode && db.paperMode) { db.paperMode=false; document.body.classList.remove('paper-mode'); renderAppearanceUI(); }
   (typeof runThemeSwitch === 'function' ? runThemeSwitch : f => f())(() => document.body.classList.toggle('dark-mode',db.darkMode));
   rememberAppearance({ theme: db.paperMode ? 'paper' : (db.darkMode ? 'dark' : 'light') });
+  updateThemeToggleLabel();
   save();
 }
 function addItem(k){

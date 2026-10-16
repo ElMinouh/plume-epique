@@ -371,6 +371,7 @@ function runThemeSwitch(fn) {
   b.classList.add('theme-switching');
   try { fn(); }
   finally {
+    if (typeof updateThemeToggleLabel === 'function') updateThemeToggleLabel(); // v9.81.0 (AUD-08-011)
     void b.offsetWidth;
     const done = () => b.classList.remove('theme-switching');
     // deux images (les changements de style sont alors appliqués), avec un filet de sécurité si l'onglet est en arrière-plan (rAF suspendu)

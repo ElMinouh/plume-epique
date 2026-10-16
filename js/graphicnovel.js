@@ -93,6 +93,7 @@ function openGraphicNovelScreen() {
   if (typeof sessionWordsStart !== 'undefined') { sessionWordsStart = gnCountWords(); sessionStartTime = Date.now(); }
   renderGraphicNovelScreen();
   gnRenderTrashBadge();
+  if (typeof refreshPageTitle === 'function') refreshPageTitle();
 }
 
 async function backToLibraryFromGraphicNovel() {
@@ -246,7 +247,7 @@ function updateGraphicNovelTitle(t) {
 async function createNewGraphicNovel() {
   const docId = genChapterId();
   const dbData = DEFAULT_DB_GRAPHIC();
-  dbData.title = 'Nouveau roman graphique';
+  dbData.title = uniqueDefaultTitle('Nouveau roman graphique', (await loadDocList()).documents.map(d => d.title));
   // v9.48.0 (AUD-03-022) : un nouveau manuscrit prend l'apparence en cours (préférences du profil, sinon le système) ;
   // avant, il restait sombre par défaut même sur un système clair.
   dbData.darkMode = document.body.classList.contains('dark-mode'); dbData.paperMode = document.body.classList.contains('paper-mode');

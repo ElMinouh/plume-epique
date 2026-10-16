@@ -326,6 +326,7 @@ function refreshEditorFromDb() {
   if (db.docType === 'roman_graphique') return;
   const call = (name, ...a) => { try { if (typeof globalThis[name] === 'function') globalThis[name](...a); } catch(e) { /* affichage seulement */ } };
   const dt = document.getElementById('document-title'); if (dt) dt.innerText = db.title || '';
+  refreshPageTitle();
   try { _undoStacks = {}; _pendingUndoFlush = false; } catch(e) { /* pas d'éditeur chargé */ }
   call('renderChapterList'); call('loadChapter', cur);
   call('renderLibrary', 'chars'); call('renderLibrary', 'places'); call('renderQuests');
@@ -372,8 +373,24 @@ async function mutateDocList(mutator) {
 }
 
 function libraryScreenEl() { return document.getElementById('library-screen'); }
-function showLibraryScreen() { document.body.classList.add('library-mode'); }
-function hideLibraryScreen() { document.body.classList.remove('library-mode'); }
+// v9.81.0 (AUD-08-009) : un titre par défaut déjà pris est numéroté (« Nouveau manuscrit 2 »).
+function uniqueDefaultTitle(base, titles) {
+  const pris = new Set((titles || []).map(t => String(t || '').trim()));
+  if (!pris.has(base)) return base;
+  let n = 2; while (pris.has(base + ' ' + n)) n++;
+  return base + ' ' + n;
+}
+// v9.81.0 (AUD-08-019) : le titre de l'onglet suit l'écran (bibliothèque / manuscrit ouvert), sans numéro de version.
+function pageTitleFor(libraryMode, docTitle) {
+  if (libraryMode) return 'Ma bibliothèque — Plume';
+  const t = String(docTitle || '').trim();
+  return t ? t + ' — Plume' : 'Plume';
+}
+function refreshPageTitle() {
+  try { document.title = pageTitleFor(document.body.classList.contains('library-mode') || !_currentDocumentId, typeof db !== 'undefined' && db ? db.title : ''); } catch (e) { /* titre d'onglet : purement cosmétique */ }
+}
+function showLibraryScreen() { document.body.classList.add('library-mode'); refreshPageTitle(); }
+function hideLibraryScreen() { document.body.classList.remove('library-mode'); refreshPageTitle(); }
 
 function formatRelativeDate(ts) {
   if (!ts) return '';
@@ -886,7 +903,7 @@ async function renderLibraryShelf(sorted) {
   let html = '';
   for (let i = 0; i < items.length; i += PER_ROW) {
     html += `<div class="lib-shelf-row"><div class="lib-shelf-plank"></div>` + items.slice(i, i + PER_ROW).map(it => {
-      if (it.isNew) return `<div class="lib-book lib-book-new u-h-110px" id="library-new-btn-shelf" role="button" tabindex="0" aria-label="Nouveau projet" title="Créer un nouveau manuscrit vierge"><span>+</span><span class="lib-book-new-label">Nouveau<br>manuscrit</span></div>`;
+      if (it.isNew) return `<div class="lib-book lib-book-new u-h-110px" id="library-new-btn-shelf" role="button" tabindex="0" aria-label="Nouveau projet" title="Créer un nouveau manuscrit vierge"><span>+</span><span class="lib-book-new-label">Nouveau<br>projet</span></div>`;
       const d = it.d;
       const cover = d.cover && d.cover !== 'auto' ? COVER_PALETTES[d.cover] : null;
       const shelfCoverClass = cover ? ` shelf-cover-${d.cover}` : '';
@@ -1007,7 +1024,7 @@ function createNewDocument() { openNewDocumentTypeModal(); }
 async function createNewTextDocument() {
   const docId = genChapterId();
   const dbData = DEFAULT_DB();
-  dbData.title = 'Nouveau manuscrit';
+  dbData.title = uniqueDefaultTitle('Nouveau manuscrit', (await loadDocList()).documents.map(d => d.title));
   // v9.48.0 (AUD-03-022) : un nouveau manuscrit prend l'apparence en cours (préférences du profil, sinon le système) ;
   // avant, il restait sombre par défaut même sur un système clair.
   dbData.darkMode = document.body.classList.contains('dark-mode'); dbData.paperMode = document.body.classList.contains('paper-mode');
@@ -1238,6 +1255,7 @@ function updateDocumentTitle(t) {
   db.title = t.trim();
   const dt = document.getElementById('document-title');
   if (dt && dt.innerText !== db.title) dt.innerText = db.title;
+  refreshPageTitle();
   debouncedSave();
 }
 

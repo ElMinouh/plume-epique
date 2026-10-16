@@ -117,6 +117,7 @@
 <symbol id="i-replace" viewBox="0 0 24 24"><path d="M14 4a1 1 0 0 1 1-1" /><path d="M15 10a1 1 0 0 1-1-1" /><path d="M21 4a1 1 0 0 0-1-1" /><path d="M21 9a1 1 0 0 1-1 1" /><path d="m3 7 3 3 3-3" /><path d="M6 10V5a2 2 0 0 1 2-2h2" /><rect x="3" y="14" width="7" height="7" rx="1" /></symbol>
 <symbol id="i-rotate-ccw" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></symbol>
 <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="3" /><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" /><circle cx="18" cy="5" r="3" /></symbol>
+<symbol id="i-rows-3" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M21 9H3" /><path d="M21 15H3" /></symbol>
 <symbol id="i-save" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /></symbol>
 <symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3" /><path d="M8.12 8.12 12 12" /><path d="M20 4 8.12 15.88" /><circle cx="6" cy="18" r="3" /><path d="M14.8 14.8 20 20" /></symbol>
 <symbol id="i-scroll-text" viewBox="0 0 24 24"><path d="M15 12h-5" /><path d="M15 8h-5" /><path d="M19 17V5a2 2 0 0 0-2-2H4" /><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3" /></symbol>
@@ -190,7 +191,7 @@
         <button class="mode-indicator" id="library-help-btn" aria-haspopup="menu" aria-expanded="false" title="Visites guidées"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-circle-help"></use></svg> Aide <svg class="icon icon-caret" aria-hidden="true" focusable="false"><use href="#i-chevron-down"></use></svg></button>
         <div class="toolbar-menu" role="menu">
           <button role="menuitem" id="library-tour-btn" title="Revoir la visite guidée de cet écran"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-graduation-cap"></use></svg> Visite de la bibliothèque</button>
-          <button role="menuitem" id="library-full-tour-btn" title="Visite guidée complète de toutes les fonctions de l'éditeur"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-graduation-cap"></use></svg> Visite complète</button>
+          <button role="menuitem" id="library-full-tour-btn" title="Visite guidée complète de toutes les fonctions de l'éditeur"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-compass"></use></svg> Visite complète</button>
           <button role="menuitem" id="library-privacy-policy-btn" title="Ce qui est enregistré, où, combien de temps, vos droits"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-shield"></use></svg> Politique de confidentialité</button>
         </div>
       </div>
@@ -209,7 +210,7 @@
     <button class="action-btn btn-secondary btn-sm u-d-none" id="library-trash-btn" title="Manuscrits supprimés, récupérables 30 jours"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-trash-2"></use></svg> Corbeille (0)</button>
     <div class="ch-view-toggle u-w-170px" role="group" aria-label="Vue de la bibliothèque">
       <button class="mode-indicator active" id="view-grid-btn" title="Vue grille"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-layout-grid"></use></svg> Grille</button>
-      <button class="mode-indicator" id="view-shelf-btn" title="Vue en étagère"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-library"></use></svg> Étagère</button>
+      <button class="mode-indicator" id="view-shelf-btn" title="Vue en étagère"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-rows-3"></use></svg> Étagère</button>
     </div>
   </div>
   <div id="library-grid"></div>
@@ -894,7 +895,7 @@
         <span id="sync-status-dot" aria-hidden="true"></span>
         <span class="u-fs-xs u-c-v-text-muted" id="sync-status-label" role="status"></span>
       </span>
-      <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre"><span aria-hidden="true"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-moon"></use></svg></span><span class="mb-label"> Nuit</span></button>
+      <button class="mode-indicator" id="toggle-dark-btn" title="Basculer entre thème clair et sombre"><span aria-hidden="true"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-moon"></use></svg></span><span class="mb-label"> Sombre</span></button>
       <button class="mode-indicator" id="dictate-btn" aria-label="Démarrer la dictée" title="Écrire à la voix grâce au micro"><span aria-hidden="true"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-mic"></use></svg></span><span class="mb-label"> Dictée</span></button>
       <button class="mode-indicator" id="ai-chat-btn" title="Discuter avec l'assistant IA"><span aria-hidden="true"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-bot"></use></svg></span><span class="mb-label"> IA</span></button>
       <span class="u-fs-xs u-c-v-text-muted" id="dictate-status"></span>
@@ -1135,8 +1136,8 @@
   </div>
 
   <!-- CATÉGORIE : Système (nouveau v7.4.0 — regroupe 3 anciens onglets) -->
-  <div id="tab-systeme" class="tab-content" role="region" aria-label="Système">
-    <div class="subtab-nav" role="tablist" aria-label="Système">
+  <div id="tab-systeme" class="tab-content" role="region" aria-label="Versions">
+    <div class="subtab-nav" role="tablist" aria-label="Versions et plugins">
       <button class="subtab-btn active" data-subtab="tab-history" title="Anciennes versions de chaque chapitre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-bookmark"></use></svg> Versions</button>
       <button class="subtab-btn" data-subtab="tab-plugins" title="Modules complémentaires activables"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-plug"></use></svg> Plugins</button>
     </div>
@@ -1365,7 +1366,7 @@
   <button id="ltop-manage-profiles" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-shield"></use></svg> Gérer les profils</button>
   <button id="ltop-system" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-save"></use></svg> Système</button>
   <button id="ltop-tour" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-graduation-cap"></use></svg> Visite de la bibliothèque</button>
-  <button id="ltop-full-tour" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-graduation-cap"></use></svg> Visite complète</button>
+  <button id="ltop-full-tour" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-compass"></use></svg> Visite complète</button>
   <button id="ltop-privacy-policy" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-shield"></use></svg> Politique de confidentialité</button>
   <hr class="u-bd-none u-bdt-1px-solid-v-border u-m-4px-2px">
   <button id="ltop-logout" role="menuitem"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-log-out"></use></svg> Déconnexion</button>

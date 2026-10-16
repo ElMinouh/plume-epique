@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.80.1';
+const APP_VERSION = '9.81.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1350,7 +1350,7 @@ let _unsavedChanges = false;
 // v9.52.0 (AUD-04-002/023) : icône (sprite) + libellé séparés, plus de chevron ▾ dans le texte (l'onglet ouvre un volet, pas un menu).
 const tabLabels = {
   'tab-univers':{ icon:'globe', label:'Univers' }, 'tab-ia-memoire':{ icon:'bot', label:'IA & Mémoire' },
-  'tab-analysegroup':{ icon:'chart-column', label:'Analyse' }, 'tab-systeme':{ icon:'archive', label:'Système' },
+  'tab-analysegroup':{ icon:'chart-column', label:'Analyse' }, 'tab-systeme':{ icon:'archive', label:'Versions' },
   'tab-config':{ icon:'settings', label:'Config' }
 };
 // Descriptifs affichés en infobulle sur chaque onglet (neophytes).
@@ -1358,7 +1358,7 @@ const tabDescriptions = {
   'tab-univers':'Personnages, lieux, quêtes, chronologie et relations',
   'tab-ia-memoire':'Assistance IA et mémoire narrative du roman',
   'tab-analysegroup':'Statistiques, mots-clés, structure et analyse détaillée du texte',
-  'tab-systeme':'Versions et plugins',
+  'tab-systeme':'Versions du chapitre et plugins',
   'tab-config':'Apparence, sprint, objectifs d\'écriture, profil'
 };
 
@@ -1470,6 +1470,7 @@ function initApp(){
   applyAccentPalette(db.accentPalette);
   applyEditorFont(db.editorFont);
   const dt = document.getElementById('document-title'); if (dt) dt.innerText = db.title || '';
+  refreshPageTitle();
   sessionWordsStart=chaptersTotalWords(db.chapters);
   dayStartWords(sessionWordsStart); // v9.80.0 (AUD-08-003) : base du jour fixée à la première ouverture du jour
   sessionStartTime=Date.now();
@@ -1986,7 +1987,7 @@ window.addEventListener('pagehide', () => { onPageLeaving(); });
 // renderSyncKeyGate() dans profiles.js — avant même l'écran de connexion.
 // ═══════════════════════════════════════════════════════
 window.onload = async () => {
-  document.title = 'Plume · v' + APP_VERSION;
+  document.title = 'Plume'; // v9.81.0 (AUD-08-019) : plus de numéro de version dans le titre ; refreshPageTitle() suit l'écran
   const verEl = document.getElementById('app-version-label');
   if (verEl) verEl.textContent = 'Plume · v' + APP_VERSION;
   const libVerEl = document.getElementById('library-version-label');
