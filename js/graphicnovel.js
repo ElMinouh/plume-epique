@@ -1749,10 +1749,16 @@ async function gnExportGraphicNovelPDF(opts) {
     const fullWmm = trimMmW + bleedMm * 2, fullHmm = trimMmH + bleedMm * 2;
     const scale = trimWpx / GN_EDITOR_REF_PX;
     const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ unit:'mm', format:[fullWmm, fullHmm], orientation:'portrait', compress:true });
+    const newPdf = () => new jsPDF({ unit:'mm', format:[fullWmm, fullHmm], orientation:'portrait', compress:true });
+    const perPart = gnPdfPagesPerPart(fullWpx, fullHpx);
+    const parts = Math.ceil(pages.length / perPart);
+    const baseName = (db.title || 'roman-graphique').trim().replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80) || 'roman-graphique';
+    let pdf = newPdf(), inPart = 0, part = 1, savedParts = 0;
+    const savePart = () => { pdf.save(baseName + gnPartSuffix(part, parts) + '.pdf'); savedParts++; };
     let cancelled = false;
     for (let i = 0; i < pages.length; i++) {
       if (_gnExportCancelled) { cancelled = true; break; }
+      if (inPart === perPart) { savePart(); part++; pdf = newPdf(); inPart = 0; } // partie pleine : enregistrée puis libérée
       gnExportProgress(true, `Page ${i + 1} / ${pages.length}…`, cancelHandler);
       _gnActivePage = i;
       await gnRenderCanvas(true);
@@ -1773,15 +1779,16 @@ async function gnExportGraphicNovelPDF(opts) {
       const dw = trimCanvas.width * bScale, dh = trimCanvas.height * bScale;
       ctx.drawImage(trimCanvas, (fullWpx - dw) / 2, (fullHpx - dh) / 2, dw, dh);
       const jpeg = bleedCanvas.toDataURL('image/jpeg', 0.92);
-      if (i > 0) pdf.addPage([fullWmm, fullHmm], 'portrait');
+      gnFreeCanvas(trimCanvas); gnFreeCanvas(bleedCanvas); // v9.77.0 : plus aucun canvas de page gardé en mémoire
+      if (inPart > 0) pdf.addPage([fullWmm, fullHmm], 'portrait');
       pdf.addImage(jpeg, 'JPEG', 0, 0, fullWmm, fullHmm, undefined, 'FAST');
+      inPart++;
     }
     if (cancelled) {
-      toast('Export annulé.');
+      toast(savedParts ? 'Export annulé : ' + savedParts + ' fichier' + (savedParts > 1 ? 's' : '') + ' déjà enregistré' + (savedParts > 1 ? 's' : '') + '.' : 'Export annulé.');
     } else {
-      const filename = (db.title || 'roman-graphique').trim().replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80) || 'roman-graphique';
-      pdf.save(filename + '.pdf');
-      toast('PDF qualité impression généré (' + pages.length + ' page' + (pages.length > 1 ? 's' : '') + ').', 'success');
+      if (inPart > 0) savePart();
+      toast('PDF qualité impression généré (' + pages.length + ' page' + (pages.length > 1 ? 's' : '') + (parts > 1 ? ', en ' + parts + ' fichiers : ' + perPart + ' pages au plus par fichier pour ménager la mémoire de l\'appareil' : '') + ').', 'success');
     }
   } catch (e) {
     console.error('Échec export PDF (roman graphique) :', e);
@@ -1856,6 +1863,21 @@ function gnCloseExportOptionsModal() {
 // progression/annulation) — le PDF, déjà testé et livré, n'est pas touché.
 // ─────────────────────────────────────────────────────────
 const GN_BOOK_EXPORT_WIDTH_PX = 1800;
+// v9.77.0 (audit AUD-07-013) — EXPORTS EN PARTIES. Le PDF accumulait TOUTES les pages (JPEG en base64 dans jsPDF) et le ZIP
+// tous les fichiers avant d'écrire quoi que ce soit : un album de 100 pages en 300 dpi demandait plusieurs centaines de Mo
+// au pic, ce qu'un téléphone ou une tablette ne tolère pas (onglet rechargé en pleine génération, sans message). Au-delà
+// d'un budget de mémoire, l'export est découpé en plusieurs fichiers (« …-partie-2-sur-4.pdf »), chacun enregistré dès
+// qu'il est prêt puis libéré. Un album court reste un seul fichier, comme avant. Les canvas de chaque page sont aussi
+// libérés (taille ramenée à zéro) dès qu'ils ont servi.
+const GN_PDF_PART_BUDGET_BYTES = 120 * 1000 * 1000; // mémoire visée par fichier PDF
+const GN_PDF_BYTES_PER_PX = 0.5;                    // estimation prudente d'un JPEG qualité 0,92 d'une page illustrée
+const GN_ZIP_PAGES_PER_PART = 40;                   // pages JPEG (1 800 px, qualité 0,9 : ≈ 1 Mo chacune) par archive
+function gnPdfPagesPerPart(fullWpx, fullHpx) {
+  const par = Math.floor(GN_PDF_PART_BUDGET_BYTES / Math.max(1, fullWpx * fullHpx * GN_PDF_BYTES_PER_PX));
+  return Math.max(5, Math.min(200, par));
+}
+function gnPartSuffix(part, parts) { return parts > 1 ? '-partie-' + part + '-sur-' + parts : ''; }
+function gnFreeCanvas(c) { if (c) { c.width = 0; c.height = 0; } }
 
 function gnExportFilename() {
   return (db.title || 'roman-graphique').trim().replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80) || 'roman-graphique';
@@ -1889,6 +1911,7 @@ async function gnExportPagesToCanvases(onPage) {
       const scale = GN_BOOK_EXPORT_WIDTH_PX / GN_EDITOR_REF_PX;
       const canvas = await html2canvas(pageEl, { scale, backgroundColor: getComputedStyle(pageEl).backgroundColor || '#f4ecd8', useCORS:true, logging:false });
       const cont = await onPage(canvas, i, pages.length);
+      gnFreeCanvas(canvas); // v9.77.0 : la page a servi, on rend sa mémoire
       if (cont === false) { ok = false; break; }
     }
   } finally {
@@ -1904,16 +1927,25 @@ async function gnExportPagesToCanvases(onPage) {
 
 async function gnExportZip() {
   if (!(await ensureLib('jszip'))) { toast(EXPORT_LIB_MISSING, 'error'); return; }
-  const zip = new JSZip();
-  const ok = await gnExportPagesToCanvases(async (canvas, i) => {
-    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
-    zip.file(`page-${String(i + 1).padStart(2, '0')}.jpg`, blob);
-  });
-  if (!ok) { toast('Export annulé.'); return; }
-  try {
+  // v9.77.0 (AUD-07-013) : archives de GN_ZIP_PAGES_PER_PART pages au plus, chacune enregistrée dès qu'elle est prête.
+  const total = (db.pages || []).length;
+  const parts = Math.max(1, Math.ceil(total / GN_ZIP_PAGES_PER_PART));
+  let zip = new JSZip(), inPart = 0, part = 1, savedParts = 0;
+  const savePart = async () => {
     const zipBlob = await zip.generateAsync({ type:'blob' });
-    saveAs(zipBlob, gnExportFilename() + '-images.zip');
-    toast('Export ZIP généré.', 'success');
+    saveAs(zipBlob, gnExportFilename() + '-images' + gnPartSuffix(part, parts) + '.zip');
+    savedParts++;
+  };
+  try {
+    const ok = await gnExportPagesToCanvases(async (canvas, i) => {
+      if (inPart === GN_ZIP_PAGES_PER_PART) { await savePart(); part++; zip = new JSZip(); inPart = 0; }
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
+      zip.file(`page-${String(i + 1).padStart(2, '0')}.jpg`, blob);
+      inPart++;
+    });
+    if (!ok) { toast(savedParts ? 'Export annulé : ' + savedParts + ' archive' + (savedParts > 1 ? 's' : '') + ' déjà enregistrée' + (savedParts > 1 ? 's' : '') + '.' : 'Export annulé.'); return; }
+    if (inPart > 0) await savePart();
+    toast('Export ZIP généré' + (parts > 1 ? ' (' + parts + ' archives de ' + GN_ZIP_PAGES_PER_PART + ' pages au plus)' : '') + '.', 'success');
   } catch(e) {
     toast('Échec de l\'export ZIP : ' + (e && e.message ? e.message : e), 'error');
   }

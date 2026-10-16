@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.76.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.77.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -102,7 +102,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 
 ```bash
 npm install
-npm test            # Vitest : ~1000 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
+npm test            # Vitest : ~1010 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
 ```
 
 Pas de build, pas de linter. Les tests partagent un contexte applicatif global : `fileParallelism: false`.
@@ -149,6 +149,7 @@ foyer, etc.) : `docs/DECISIONS.md`.
 
 ## Limites connues
 
+- **Mémoire du roman graphique** (v9.77.0, AUD-07-013) : le cache d'images déchiffrées est borné à 80 Mo (les moins récemment utilisées sont libérées, rechargées à la demande) ; les canvas de chaque page exportée sont libérés ; un export PDF est découpé en plusieurs fichiers (`…-partie-2-sur-4.pdf`, environ 30 pages au plus par fichier en 300 dpi, davantage à résolution plus basse) et un export ZIP en archives de 40 pages au plus, chacune enregistrée dès qu'elle est prête : un album court reste un seul fichier. Le navigateur peut demander l'autorisation de télécharger plusieurs fichiers. L'export EPUB et l'export DOCX du roman graphique ne sont pas découpés (un livre = un fichier) : leur mémoire reste proportionnelle au nombre de pages.
 - **Chargement et hors ligne** (v9.76.0, AUD-07-004/005/006) : d3, Chart.js, JSZip, jsPDF, html2canvas et mammoth ne sont plus chargés au démarrage (64 % des octets du premier chargement) mais à la première utilisation (`ensureLib`, table `VENDOR_LIBS` dans `schema.js`) ; ils restent précachés, donc disponibles hors ligne ; le graphique de tension apparaît quelques dizaines de millisecondes après l'ouverture d'un manuscrit, le temps de charger Chart.js. Les fichiers de `vendor/` sont servis avec `Cache-Control: immutable` et par le service worker sans revalidation (leur nom porte la version). Le précache du service worker est tolérant : un fichier en échec n'empêche plus les autres, la liste des manquants est affichée dans Système (« Hors ligne : prêt / incomplet ») et retentée au retour du réseau.
 - **Coût de la frappe et de l'enregistrement** (v9.75.0, AUD-07-002/003) : le nombre de mots est mis en cache par chapitre (`chapterWordCount`, `chaptersTotalWords`, `schema.js`) : une frappe ne recompte que le chapitre modifié (0,1 ms au lieu de 7 à 18 ms pour 150 000 à 400 000 mots, mesuré dans Chrome 152) ; la conversion base64 de l'enveloppe chiffrée utilise `Uint8Array.toBase64` / `fromBase64` quand le navigateur les offre (chaîne produite identique à l'ancien chemin, qui reste en repli) : enveloppe de 150 000 mots en 10 ms au lieu de 24 ms, de 400 000 mots en 26 ms au lieu de 67 ms. Un chapitre de 50 000 mots coûte environ 1 ms par frappe : aucun correctif nécessaire.
 - **Quotas du serveur et relais IA** (v9.74.0, AUD-07-007/015) : l'occupation (octets, nombre de clés par profil, images) est tenue par des compteurs mis à jour dans la transaction de chaque écriture (table `sync_totals`) au lieu d'un balayage de tous les morceaux ; un compteur ne peut jamais refuser seul (recomptage avant tout 507) ; la migration est automatique à la première requête après le déploiement. Le relais IA plafonne les appels à 200 par profil et par jour (variable `AI_DAILY_LIMIT`, compteur dans D1, ignoré s'il est indisponible), coupe un fournisseur qui ne répond pas en 25 s (504) et retente UNE fois après 2 s sur 429/503 ; un appel refusé par le fournisseur ne compte pas.

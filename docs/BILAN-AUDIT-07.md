@@ -12,7 +12,7 @@ Base : v9.69.0 (note 64/100, niveau 3 — Production à l'échelle familiale). R
 | 5 Worker D1 / IA | 007, 015 | 🟢 v9.74.0 (voir ci-dessous) |
 | 6 CPU à la frappe | 003, 002, 022 | 🟢 v9.75.0 (voir ci-dessous) |
 | 7 Chargement et cache | 004, 005, 006 | 🟢 v9.76.0 (voir ci-dessous) |
-| 8 Images et export | 013, 014 | à faire |
+| 8 Images et export | 013, 014 | 013 🟢 v9.77.0 · 014 en cours (R2) |
 | 9 Budgets CI et décisions | 019, 021 | à faire |
 
 ## Lot 1 — v9.70.0
@@ -95,3 +95,9 @@ Vérifications après le push (16/10/2026) : CI verte ; en ligne v9.75.0 (titre,
 | 006 | 🟢 précache fichier par fichier (`Promise.allSettled`), liste des manquants dans `precache-status.json` (même cache), nouvelle tentative par message `RETRY_PRECACHE` (au chargement et au retour du réseau), état affiché dans Système | `lot-aud07-7-chargement.test.js` |
 
 Vérifications après le push (16/10/2026) : CI verte ; en production, mise à jour complète du service worker observée de bout en bout dans le navigateur intégré (ancienne version → v9.76.0, rechargement automatique) : un seul cache `plume-epique-v9.76.0` (l'ancien supprimé), état du précache 61 fichiers sur 61, aucun fichier manquant, aucune des six librairies lourdes au démarrage, 37 scripts et 1,09 Mo de JavaScript décodé (avant : 42 scripts, 2,96 Mo), DOMContentLoaded 1 213 ms (avant 1 349 ms, chargement chaud), console sans erreur ; `Cache-Control: immutable` sur `/vendor/*` et `max-age=0, must-revalidate` ailleurs ; `/health` 200, Workers 401 sans clé. Copie locale (serveur de test avec la CSP réelle, Chrome) : les six librairies se chargent à la demande en 8 à 62 ms et fonctionnent (ZIP, PDF, d3, Chart, mammoth, html2canvas), un second appel ne recharge rien. Non couvert : le service worker ne peut pas s'enregistrer depuis un serveur local dans le navigateur intégré (sa mise à jour a donc été vérifiée en production, plus la suite de tests avec un faux cache) ; export réel PDF/ZIP/EPUB et import DOCX de bout en bout avec un profil ; téléphone ; échec réel du précache (simulé en tests).
+
+## Lot 8 — 013 en v9.77.0 (014 : voir plus bas quand il sera livré)
+
+| ID | Statut | Preuve |
+|---|---|---|
+| 013 | 🟢 cache d'URL d'images LRU borné à 80 Mo (révocation des URL libérées) ; canvas de page ramenés à zéro dès qu'ils ont servi ; PDF découpé en parties (budget de 120 Mo estimés par fichier : ≈ 32 pages en 300 dpi, 20 × 25 cm + 3 mm), ZIP en archives de 40 pages ; message clair après une annulation (« N fichiers déjà enregistrés »). EPUB et DOCX du roman graphique non découpés | `lot-aud07-8a-memoire.test.js` ; essai navigateur (voir ci-dessous) |

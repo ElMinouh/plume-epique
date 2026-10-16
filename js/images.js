@@ -153,10 +153,35 @@ async function storeGraphicImage(file, docId) {
 }
 
 // Cache mémoire des URL objet déjà créées (le canvas redessine souvent).
-const _plumeImageUrlCache = new Map();
+// v9.77.0 (audit AUD-07-013) — BORNÉ EN OCTETS (LRU). Chaque image déchiffrée était gardée sous forme de Blob + URL objet
+// pour toute la session, sans jamais rien libérer : un album de 100 pages occupait de plus en plus de mémoire à mesure
+// qu'on le feuilletait ou l'exportait (et un onglet de téléphone ou de tablette est tué bien avant). Désormais le cache
+// garde au plus PLUME_IMAGE_CACHE_MAX_BYTES (80 Mo de blobs compressés ≈ une centaine d'images) : au-delà, les images
+// les moins récemment utilisées sont libérées (URL révoquée) ; une image libérée se recharge depuis IndexedDB à la
+// demande (déchiffrement : quelques millisecondes).
+const PLUME_IMAGE_CACHE_MAX_BYTES = 80 * 1024 * 1024;
+const _plumeImageUrlCache = new Map(); // imageId -> { url, size } ; ordre d'insertion = ordre d'usage (le plus ancien en tête)
+let _plumeImageCacheBytes = 0;
+function _plumeImageCacheDrop(imageId) {
+  const e = _plumeImageUrlCache.get(imageId);
+  if (!e) return;
+  try { URL.revokeObjectURL(e.url); } catch (err) { /* sans effet */ }
+  _plumeImageUrlCache.delete(imageId);
+  _plumeImageCacheBytes -= e.size;
+}
+function _plumeImageCachePut(imageId, url, size) {
+  _plumeImageCacheDrop(imageId);
+  _plumeImageUrlCache.set(imageId, { url, size });
+  _plumeImageCacheBytes += size;
+  // On garde toujours l'image qu'on vient d'ajouter, même si elle dépasse seule le plafond.
+  while (_plumeImageCacheBytes > PLUME_IMAGE_CACHE_MAX_BYTES && _plumeImageUrlCache.size > 1) {
+    _plumeImageCacheDrop(_plumeImageUrlCache.keys().next().value);
+  }
+}
 async function graphicImageUrl(imageId) {
   if (!imageId) return null;
-  if (_plumeImageUrlCache.has(imageId)) return _plumeImageUrlCache.get(imageId);
+  const hit = _plumeImageUrlCache.get(imageId);
+  if (hit) { _plumeImageUrlCache.delete(imageId); _plumeImageUrlCache.set(imageId, hit); return hit.url; } // marque comme récemment utilisée
   const db = await plumeImagesDb();
   let rec = await db.get('images', imageId);
   // Image inconnue sur cet appareil (créée ailleurs) : on la récupère auprès du serveur de synchro.
@@ -170,7 +195,7 @@ async function graphicImageUrl(imageId) {
   }
   if (!blob) return null;
   const url = URL.createObjectURL(blob);
-  _plumeImageUrlCache.set(imageId, url);
+  _plumeImageCachePut(imageId, url, blob.size || 0);
   return url;
 }
 
@@ -186,8 +211,7 @@ async function duplicateGraphicImage(imageId, docId) {
 }
 
 function forgetImageUrl(imageId) {
-  const cached = _plumeImageUrlCache.get(imageId);
-  if (cached) { URL.revokeObjectURL(cached); _plumeImageUrlCache.delete(imageId); }
+  _plumeImageCacheDrop(imageId);
 }
 
 // Décrémente le compteur de références d'une image — ne la supprime pour de vrai que lorsque
