@@ -84,6 +84,17 @@ const KEY_PATTERN = new RegExp(
 // tous les textes) : au-delà, les nouvelles images sont refusées (507) ; les textes restent acceptés.
 const IMG_BUDGET_BYTES = 350 * 1024 * 1024;
 const D1_DB_LIMIT_BYTES = 500 * 1024 * 1024; // limite de la base D1 du plan gratuit (information affichée)
+// v9.78.0 (audit AUD-07-014) — IMAGES DANS R2. Les images chiffrées (≈ 1,27 Mo chacune une fois en base64) occupaient des
+// lignes de D1 : un budget de 350 Mo, soit ≈ 275 images pour toute la famille, et un coût de lecture proportionnel. Quand
+// le Worker a la liaison R2 « IMAGES » (bucket privé plume-images), les NOUVELLES images y sont stockées ; D1 ne garde que
+// la fiche (sync_meta : version, taille, wid « r2:… ») et les compteurs. Budgets R2 : 5 Go au total (la moitié du palier
+// gratuit de 10 Go) et 2 Go par profil (variables IMG_R2_BUDGET_BYTES et IMG_R2_PROFILE_BYTES pour les changer). Les images
+// déjà dans D1 y restent (lisibles, comptées comme avant) jusqu'à leur suppression.
+const IMG_R2_BUDGET_BYTES = 5 * 1000 * 1000 * 1000;
+const IMG_R2_PROFILE_BYTES = 2 * 1000 * 1000 * 1000;
+const r2Budget = env => (Number(env.IMG_R2_BUDGET_BYTES) > 0 ? Number(env.IMG_R2_BUDGET_BYTES) : IMG_R2_BUDGET_BYTES);
+const r2ProfileQuota = env => (Number(env.IMG_R2_PROFILE_BYTES) > 0 ? Number(env.IMG_R2_PROFILE_BYTES) : IMG_R2_PROFILE_BYTES);
+const isR2Meta = meta => !!meta && typeof meta.wid === 'string' && meta.wid.startsWith('r2:');
 
 // ═══════════════════════════════════════════════════════
 // v9.64.0 (audit AUD-06-010, 023, 022) — DURCISSEMENT, LOT 2
@@ -319,6 +330,10 @@ async function eraseProfile(request, env, pid, cors) {
   const where = "(k = ?1 OR k = ?2 OR k = ?3 OR (k >= ?4 AND k < ?5) OR (k >= ?6 AND k < ?7) OR (k >= ?8 AND k < ?9))";
   const args = ['data_' + pid, 'doclist_' + pid, 'libsettings_' + pid, 'doc_' + pid + '_', 'doc_' + pid + '`', 'aichat_' + pid + '_', 'aichat_' + pid + '`', 'img_' + pid + '_', 'img_' + pid + '`'];
   const n = (await env.DB.prepare('SELECT COUNT(*) AS n FROM sync_meta WHERE ' + where).bind(...args).first()).n;
+  if (env.IMAGES) { // v9.78.0 : les images du profil stockées dans R2 sont effacées avec lui
+    const r2rows = ((await env.DB.prepare("SELECT k FROM sync_meta WHERE " + where + " AND wid LIKE 'r2:%'").bind(...args).all()).results) || [];
+    for (let i = 0; i < r2rows.length; i += 1000) await env.IMAGES.delete(r2rows.slice(i, i + 1000).map(r => r.k));
+  }
   await env.DB.batch([
     env.DB.prepare('DELETE FROM sync_chunks WHERE ' + where).bind(...args),
     env.DB.prepare('DELETE FROM sync_meta WHERE ' + where).bind(...args),
@@ -439,26 +454,41 @@ function kvStore(env) {
 // compteurs reconstruits depuis les données) ; worker/sync-schema.sql porte le même schéma pour une base neuve.
 // ═══════════════════════════════════════════════════════
 let _totalsReady = null;
-function totalsScopes(key) {
-  const scopes = ['global'];
+function totalsScopes(key, inR2) {
   const pid = profileIdOfKey(key);
+  if (inR2) { // image dans R2 : hors de la base D1 (ni 'global' ni 'p:'), compteurs propres 'img' et 'pimg:<profil>'
+    const scopes = ['img'];
+    if (pid) scopes.push('pimg:' + pid);
+    return scopes;
+  }
+  const scopes = ['global'];
   if (pid) scopes.push('p:' + pid);
   if (key.startsWith('img_')) scopes.push('img');
   return scopes;
 }
+// Variation de chaque compteur quand `key` passe de l'état `prev` (fiche sync_meta ou null) à `newBytes` octets, en R2 ou non.
+function scopeDeltas(key, prev, newInR2, newBytes) {
+  const out = new Map();
+  if (prev) for (const sc of totalsScopes(key, isR2Meta(prev))) out.set(sc, [-(prev.bytes || 0), -1]);
+  for (const sc of totalsScopes(key, newInR2)) { const o = out.get(sc) || [0, 0]; out.set(sc, [o[0] + newBytes, o[1] + 1]); }
+  return out;
+}
 // Reconstruit les compteurs ET la colonne bytes par balayage complet (migration, recomptage de sûreté, effacement d'un profil).
 async function rebuildTotals(db) {
-  const rows = ((await db.prepare('SELECT m.k AS k, COALESCE(SUM(LENGTH(c.data)), 0) AS b FROM sync_meta m LEFT JOIN sync_chunks c ON c.k = m.k AND c.wid = m.wid GROUP BY m.k').all()).results) || [];
+  // Images en R2 (wid « r2:… ») : pas de morceaux à mesurer, on garde la taille enregistrée dans la fiche.
+  const rows = (((await db.prepare('SELECT m.k AS k, m.wid AS wid, m.bytes AS mb, COALESCE(SUM(LENGTH(c.data)), 0) AS b FROM sync_meta m LEFT JOIN sync_chunks c ON c.k = m.k AND c.wid = m.wid GROUP BY m.k').all()).results) || [])
+    .map(r => ({ k: r.k, r2: isR2Meta(r), b: isR2Meta(r) ? (r.mb || 0) : r.b }));
   const totals = new Map([['global', { bytes: 0, keys: 0 }], ['img', { bytes: 0, keys: 0 }]]);
   for (const r of rows) {
-    for (const scope of totalsScopes(r.k)) {
+    for (const scope of totalsScopes(r.k, r.r2)) {
       const t = totals.get(scope) || { bytes: 0, keys: 0 };
       t.bytes += r.b; t.keys++;
       totals.set(scope, t);
     }
   }
   for (let i = 0; i < rows.length; i += 40) {
-    await db.batch(rows.slice(i, i + 40).map(r => db.prepare('UPDATE sync_meta SET bytes = ?1 WHERE k = ?2').bind(r.b, r.k)));
+    const lot = rows.slice(i, i + 40).filter(r => !r.r2);
+    if (lot.length) await db.batch(lot.map(r => db.prepare('UPDATE sync_meta SET bytes = ?1 WHERE k = ?2').bind(r.b, r.k)));
   }
   if (!rows.length) { // base vide (première installation) : deux insertions simples suffisent, pas de transaction
     for (const [scope, t] of totals) await db.prepare('INSERT OR REPLACE INTO sync_totals (scope, bytes, keys) VALUES (?1, ?2, ?3)').bind(scope, t.bytes, t.keys).run();
@@ -482,6 +512,7 @@ function ensureTotals(db) {
 
 function d1Store(env) {
   const db = env.DB;
+  const r2 = env.IMAGES; // liaison R2 (images) : facultative
   // ensureTotals d'abord : sur une base ancienne la colonne `bytes` n'existe pas encore (migration à la première requête).
   const readMeta = async key => { await ensureTotals(db); return db.prepare('SELECT version, wid, chunks, bytes FROM sync_meta WHERE k = ?1').bind(key).first(); };
   const dropChunks = (key, wid) => db.prepare('DELETE FROM sync_chunks WHERE k = ?1 AND wid = ?2').bind(key, wid).run();
@@ -491,6 +522,12 @@ function d1Store(env) {
       for (let attempt = 0; attempt < 3; attempt++) {
         const meta = await readMeta(key);
         if (!meta) return { value: null, version: 0 }; // AUD-06-013 : plus de repli sur KV (une donnée supprimée ne réapparaît plus)
+        if (isR2Meta(meta)) { // v9.78.0 : image stockée dans R2
+          if (!r2) throw new Error('Stockage des images indisponible.');
+          const obj = await r2.get(key);
+          if (!obj) { try { await this.remove(key); } catch (e) { /* ignoré */ } return { value: null, version: 0 }; } // fiche sans objet : on la retire (auto-guérison)
+          return { value: await obj.text(), version: meta.version };
+        }
         const { results } = await db.prepare('SELECT data FROM sync_chunks WHERE k = ?1 AND wid = ?2 ORDER BY idx').bind(key, meta.wid).all();
         if (results.length === meta.chunks) return { value: results.map(r => r.data).join(''), version: meta.version };
         // Une écriture concurrente vient de remplacer cette version (ses anciens
@@ -513,6 +550,14 @@ function d1Store(env) {
         if (own) { bytes -= own.bytes || 0; keys -= 1; }
       }
       return { bytes: Math.max(0, bytes), keys: Math.max(0, keys) };
+    },
+    // Octets et nombre d'images en R2 d'un profil (compteur 'pimg:'), hors la clé `excludeKey`.
+    async profileImageUsage(pid, excludeKey) {
+      await ensureTotals(db);
+      const t = await db.prepare('SELECT bytes, keys FROM sync_totals WHERE scope = ?1').bind('pimg:' + pid).first();
+      let bytes = t ? t.bytes : 0;
+      if (excludeKey && profileIdOfKey(excludeKey) === pid) { const own = await readMeta(excludeKey); if (own && isR2Meta(own)) bytes -= own.bytes || 0; }
+      return { bytes: Math.max(0, bytes) };
     },
     async totalBytes() {
       await ensureTotals(db);
@@ -539,7 +584,10 @@ function d1Store(env) {
         manuscripts: await n("SELECT COUNT(*) FROM sync_meta WHERE k >= 'doc_' AND k < 'doc`'"),
         images: await n("SELECT COUNT(*) FROM sync_meta WHERE k >= 'img_' AND k < 'img`'"),
         imagesBytes: await this.imagesBytes(),
-        imagesBudget: IMG_BUDGET_BYTES,
+        imagesBudget: r2 ? r2Budget(env) : IMG_BUDGET_BYTES,
+        r2: !!r2,
+        imagesR2: await n("SELECT COUNT(*) FROM sync_meta WHERE wid LIKE 'r2:%'"),
+        imagesR2Bytes: await n("SELECT COALESCE(SUM(bytes), 0) FROM sync_meta WHERE wid LIKE 'r2:%'"),
         totalBytes: await n('SELECT COALESCE(SUM(LENGTH(data)), 0) FROM sync_chunks'),
         counterBytes: await this.totalBytes(), // v9.74.0 : compteur tenu à jour ; un écart avec totalBytes = dérive (corrigée au prochain recomptage)
         dbLimit: D1_DB_LIMIT_BYTES
@@ -552,11 +600,13 @@ function d1Store(env) {
         db.prepare('DELETE FROM sync_chunks WHERE k = ?1').bind(key),
         db.prepare('DELETE FROM sync_meta WHERE k = ?1').bind(key)
       ];
-      if (prev) for (const scope of totalsScopes(key)) stmts.push(db.prepare('UPDATE sync_totals SET bytes = bytes - ?1, keys = keys - 1 WHERE scope = ?2').bind(prev.bytes || 0, scope));
+      if (prev) for (const scope of totalsScopes(key, isR2Meta(prev))) stmts.push(db.prepare('UPDATE sync_totals SET bytes = bytes - ?1, keys = keys - 1 WHERE scope = ?2').bind(prev.bytes || 0, scope));
       await db.batch(stmts);
+      if (prev && isR2Meta(prev) && r2) { try { await r2.delete(key); } catch (e) { /* objet orphelin : sans effet sur les données */ } }
     },
     async write(key, body, current) {
       await ensureTotals(db);
+      if (r2 && key.startsWith('img_')) return this.writeImage(key, body, current);
       const next = current + 1;
       const wid = crypto.randomUUID();
       const chunks = [];
@@ -570,8 +620,7 @@ function d1Store(env) {
         : db.prepare('INSERT INTO sync_meta (k, version, wid, chunks, updated_at, bytes) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(key, next, wid, chunks.length, now, body.length));
       // v9.74.0 : compteurs mis à jour dans la même transaction, et SEULEMENT si cette écriture est bien devenue la
       // version courante (EXISTS sur notre wid) : un refus par conflit ne laisse aucune trace dans les compteurs.
-      const dBytes = body.length - ((prev && prev.bytes) || 0), dKeys = prev ? 0 : 1;
-      for (const scope of totalsScopes(key)) {
+      for (const [scope, [dBytes, dKeys]] of scopeDeltas(key, prev, false, body.length)) {
         stmts.push(db.prepare('INSERT INTO sync_totals (scope, bytes, keys) SELECT ?1, ?2, ?3 WHERE EXISTS (SELECT 1 FROM sync_meta WHERE k = ?4 AND wid = ?5) ON CONFLICT(scope) DO UPDATE SET bytes = bytes + excluded.bytes, keys = keys + excluded.keys')
           .bind(scope, dBytes, dKeys, key, wid));
       }
@@ -589,7 +638,34 @@ function d1Store(env) {
         await dropChunks(key, wid); // la version attendue n'était plus la bonne : on retire nos morceaux orphelins
         return { conflict: true };
       }
-      if (prev) { try { await dropChunks(key, prev.wid); } catch (e) { /* nettoyage différé : sans effet sur les données */ } }
+      if (prev && !isR2Meta(prev)) { try { await dropChunks(key, prev.wid); } catch (e) { /* nettoyage différé : sans effet sur les données */ } }
+      return { ok: true, version: next };
+    },
+    // v9.78.0 : écriture d'une image dans R2 ; D1 garde la fiche (chunks = 0, wid « r2:… ») et les compteurs, dans la même
+    // transaction conditionnelle que pour le reste. L'objet est écrit AVANT la fiche : un échec de la fiche laisse au pire un
+    // objet orphelin (écrasé à la prochaine écriture de la même clé), jamais une fiche sans objet.
+    async writeImage(key, body, current) {
+      const next = current + 1;
+      const wid = 'r2:' + crypto.randomUUID();
+      const prev = await readMeta(key);
+      const now = Date.now();
+      await r2.put(key, body);
+      const stmts = [prev
+        ? db.prepare('UPDATE sync_meta SET version = ?1, wid = ?2, chunks = 0, updated_at = ?4, bytes = ?7 WHERE k = ?5 AND version = ?6').bind(next, wid, null, now, key, current, body.length)
+        : db.prepare('INSERT INTO sync_meta (k, version, wid, chunks, updated_at, bytes) VALUES (?1, ?2, ?3, 0, ?4, ?5)').bind(key, next, wid, now, body.length)];
+      for (const [scope, [dBytes, dKeys]] of scopeDeltas(key, prev, true, body.length)) {
+        stmts.push(db.prepare('INSERT INTO sync_totals (scope, bytes, keys) SELECT ?1, ?2, ?3 WHERE EXISTS (SELECT 1 FROM sync_meta WHERE k = ?4 AND wid = ?5) ON CONFLICT(scope) DO UPDATE SET bytes = bytes + excluded.bytes, keys = keys + excluded.keys')
+          .bind(scope, dBytes, dKeys, key, wid));
+      }
+      let results;
+      try { results = await db.batch(stmts); }
+      catch (e) {
+        if (/UNIQUE|constraint/i.test(String((e && e.message) || e))) return { conflict: true };
+        throw e;
+      }
+      const meta = results[0];
+      if (!meta || !meta.meta || meta.meta.changes !== 1) return { conflict: true };
+      if (prev && !isR2Meta(prev)) { try { await dropChunks(key, prev.wid); } catch (e) { /* nettoyage différé */ } } // ancienne image D1 remplacée
       return { ok: true, version: next };
     }
   };
@@ -815,10 +891,11 @@ async function handleRequest(request, env) {
 
       // v9.28.0 — Budget des images : refus (507) quand la place réservée est consommée.
       if (key.startsWith('img_') && current === 0) {
+        const budget = env.IMAGES && store.name === 'd1' ? r2Budget(env) : IMG_BUDGET_BYTES; // v9.78.0 : budget R2 quand la liaison existe
         let used = await store.imagesBytes();
-        if (used + body.length > IMG_BUDGET_BYTES && store.recount) { await store.recount(); used = await store.imagesBytes(); } // v9.74.0 : jamais de refus sur un compteur seul
-        if (used + body.length > IMG_BUDGET_BYTES) {
-          return new Response(JSON.stringify({ error: { message: 'Espace de synchronisation des images plein.' }, used, budget: IMG_BUDGET_BYTES }), {
+        if (used + body.length > budget && store.recount) { await store.recount(); used = await store.imagesBytes(); } // v9.74.0 : jamais de refus sur un compteur seul
+        if (used + body.length > budget) {
+          return new Response(JSON.stringify({ error: { message: 'Espace de synchronisation des images plein.' }, used, budget }), {
             status: 507, headers: { ...cors, 'Content-Type': 'application/json' }
           });
         }
@@ -857,8 +934,18 @@ async function handleRequest(request, env) {
         if (deniedIndex) return deniedIndex;
       }
 
+      // v9.78.0 : une image stockée dans R2 n'occupe pas la base D1 : elle échappe aux quotas D1 (global, profil) ; son quota
+      // propre (par profil, en R2) est vérifié ici.
+      const imgR2 = !!env.IMAGES && store.name === 'd1' && key.startsWith('img_');
+      if (imgR2 && keyPid && store.profileImageUsage) {
+        let pu = await store.profileImageUsage(keyPid, key);
+        if (pu.bytes + body.length > r2ProfileQuota(env) && store.recount) { await store.recount(); pu = await store.profileImageUsage(keyPid, key); }
+        if (pu.bytes + body.length > r2ProfileQuota(env)) {
+          return new Response(JSON.stringify({ error: { message: "Espace de synchronisation des images de ce profil plein." }, quota: 'profile-images' }), { status: 507, headers: { ...cors, 'Content-Type': 'application/json' } });
+        }
+      }
       // v9.65.0 (AUD-06-017) — Quotas par profil et garde-fou global (D1 seulement).
-      if (store.profileUsage) {
+      if (store.profileUsage && !imgR2) {
         const over = (quota, message) => new Response(JSON.stringify({ error: { message }, quota }), { status: 507, headers: { ...cors, 'Content-Type': 'application/json' } });
         // v9.74.0 (AUD-07-007) : contrôles sur les compteurs ; un éventuel dépassement est CONFIRMÉ par un recomptage
         // avant tout refus (les compteurs se corrigent, ils ne bloquent jamais seuls).

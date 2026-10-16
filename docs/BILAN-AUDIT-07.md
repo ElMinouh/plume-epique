@@ -12,7 +12,7 @@ Base : v9.69.0 (note 64/100, niveau 3 — Production à l'échelle familiale). R
 | 5 Worker D1 / IA | 007, 015 | 🟢 v9.74.0 (voir ci-dessous) |
 | 6 CPU à la frappe | 003, 002, 022 | 🟢 v9.75.0 (voir ci-dessous) |
 | 7 Chargement et cache | 004, 005, 006 | 🟢 v9.76.0 (voir ci-dessous) |
-| 8 Images et export | 013, 014 | 013 🟢 v9.77.0 · 014 en cours (R2) |
+| 8 Images et export | 013, 014 | 🟢 013 v9.77.0 · 014 v9.78.0 |
 | 9 Budgets CI et décisions | 019, 021 | à faire |
 
 ## Lot 1 — v9.70.0
@@ -103,3 +103,9 @@ Vérifications après le push (16/10/2026) : CI verte ; en production, mise à j
 | 013 | 🟢 cache d'URL d'images LRU borné à 80 Mo (révocation des URL libérées) ; canvas de page ramenés à zéro dès qu'ils ont servi ; PDF découpé en parties (budget de 120 Mo estimés par fichier : ≈ 32 pages en 300 dpi, 20 × 25 cm + 3 mm), ZIP en archives de 40 pages ; message clair après une annulation (« N fichiers déjà enregistrés »). EPUB et DOCX du roman graphique non découpés | `lot-aud07-8a-memoire.test.js` ; essai navigateur (voir ci-dessous) |
 
 Vérifications après le push du 013 (16/10/2026) : CI verte ; en production v9.77.0, un seul cache `plume-epique-v9.77.0`, précache 61/61, console sans erreur, plafond d'images de 80 Mo et découpage des exports présents. Copie locale (Chrome, CSP réelle, rendu des pages simulé pour la logique des parties) : un album de 5 pages passe de « 1 fichier » à « 3 fichiers » quand la taille de partie est forcée à 2 pages (message explicite) ; export ZIP de 45 pages → 2 archives (`…-partie-1-sur-2.zip`, `…-partie-2-sur-2.zip`), de 12 pages → 1 archive au nom inchangé, de 85 pages annulé après 44 pages → « 1 archive déjà enregistrée ». Non couvert : mesure du pic de mémoire sur une vraie tablette avec 100 pages illustrées, noms de fichiers PDF des parties dans le navigateur (vérifiés par la suite de tests, pas par un téléchargement réel), EPUB/DOCX du roman graphique (non découpés).
+
+## Lot 8 — 014 en v9.78.0
+
+| ID | Statut | Preuve |
+|---|---|---|
+| 014 | 🟢 images chiffrées dans R2 (bucket privé `plume-images`, liaison `IMAGES`) ; D1 : fiche (`chunks = 0`, `wid` « r2:… », taille) et compteurs propres `img` et `pimg:<profil>` (hors `global` et `p:`, donc hors quotas D1) ; budgets 5 Go / 2 Go par profil, refus 507 après confirmation par recomptage ; anciennes images D1 lisibles et déplaçables ; fiche sans objet = auto-guérison ; effacement d'un profil = objets R2 supprimés ; sans liaison : comportement d'avant. **Décision** : les 4 images existantes (5 Mo) restent en D1, aucune migration | `lot-aud07-8b-r2.test.js` (16 tests, faux R2) ; essai dans workerd (R2 local simulé) : image de 1,6 Mo écrite, relue à l'identique, 409 sur une seconde écriture, supprimée ; D1 n'en garde que 20 octets |

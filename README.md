@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.77.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.78.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -102,7 +102,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 
 ```bash
 npm install
-npm test            # Vitest : ~1010 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
+npm test            # Vitest : ~1025 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
 ```
 
 Pas de build, pas de linter. Les tests partagent un contexte applicatif global : `fileParallelism: false`.
@@ -149,6 +149,7 @@ foyer, etc.) : `docs/DECISIONS.md`.
 
 ## Limites connues
 
+- **Images dans R2** (v9.78.0, AUD-07-014) : les nouvelles images chiffrées du roman graphique sont stockées dans un bucket R2 PRIVÉ (`plume-images`, liaison `IMAGES` du Worker de synchro) ; D1 ne garde que la fiche et les compteurs. Budgets : 5 Go au total (la moitié du palier gratuit de R2) et 2 Go par profil, indépendants des quotas du texte (qui restent en D1). Les images déjà en D1 y restent (lisibles, comptées comme avant) jusqu'à leur suppression. Effacer un profil efface aussi ses images dans R2. Le Worker garde le comportement d'avant (images dans D1, budget de 350 Mo) s'il n'a pas la liaison R2. Le chiffrement est inchangé : R2 ne reçoit que du contenu déjà chiffré.
 - **Mémoire du roman graphique** (v9.77.0, AUD-07-013) : le cache d'images déchiffrées est borné à 80 Mo (les moins récemment utilisées sont libérées, rechargées à la demande) ; les canvas de chaque page exportée sont libérés ; un export PDF est découpé en plusieurs fichiers (`…-partie-2-sur-4.pdf`, environ 30 pages au plus par fichier en 300 dpi, davantage à résolution plus basse) et un export ZIP en archives de 40 pages au plus, chacune enregistrée dès qu'elle est prête : un album court reste un seul fichier. Le navigateur peut demander l'autorisation de télécharger plusieurs fichiers. L'export EPUB et l'export DOCX du roman graphique ne sont pas découpés (un livre = un fichier) : leur mémoire reste proportionnelle au nombre de pages.
 - **Chargement et hors ligne** (v9.76.0, AUD-07-004/005/006) : d3, Chart.js, JSZip, jsPDF, html2canvas et mammoth ne sont plus chargés au démarrage (64 % des octets du premier chargement) mais à la première utilisation (`ensureLib`, table `VENDOR_LIBS` dans `schema.js`) ; ils restent précachés, donc disponibles hors ligne ; le graphique de tension apparaît quelques dizaines de millisecondes après l'ouverture d'un manuscrit, le temps de charger Chart.js. Les fichiers de `vendor/` sont servis avec `Cache-Control: immutable` et par le service worker sans revalidation (leur nom porte la version). Le précache du service worker est tolérant : un fichier en échec n'empêche plus les autres, la liste des manquants est affichée dans Système (« Hors ligne : prêt / incomplet ») et retentée au retour du réseau.
 - **Coût de la frappe et de l'enregistrement** (v9.75.0, AUD-07-002/003) : le nombre de mots est mis en cache par chapitre (`chapterWordCount`, `chaptersTotalWords`, `schema.js`) : une frappe ne recompte que le chapitre modifié (0,1 ms au lieu de 7 à 18 ms pour 150 000 à 400 000 mots, mesuré dans Chrome 152) ; la conversion base64 de l'enveloppe chiffrée utilise `Uint8Array.toBase64` / `fromBase64` quand le navigateur les offre (chaîne produite identique à l'ancien chemin, qui reste en repli) : enveloppe de 150 000 mots en 10 ms au lieu de 24 ms, de 400 000 mots en 26 ms au lieu de 67 ms. Un chapitre de 50 000 mots coûte environ 1 ms par frappe : aucun correctif nécessaire.

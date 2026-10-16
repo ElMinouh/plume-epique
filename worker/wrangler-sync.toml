@@ -26,3 +26,10 @@ database_id = "f6c1beed-fcc1-4bed-9a59-e06d603a0e93"
 # aucun contenu de texte (voir logEvent dans le Worker). Consultation : dashboard > Workers > Logs.
 [observability]
 enabled = true
+
+# v9.78.0 (audit AUD-07-014) — images dans R2 : bucket PRIVÉ « plume-images » (jamais de domaine public ni de r2.dev), lu et
+# écrit uniquement par ce Worker, derrière la clé de synchronisation et la serrure de profil. Sans cette liaison le Worker
+# garde les images dans D1 (comportement d'avant). Budgets : IMG_R2_BUDGET_BYTES (5 Go) et IMG_R2_PROFILE_BYTES (2 Go).
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "plume-images"
