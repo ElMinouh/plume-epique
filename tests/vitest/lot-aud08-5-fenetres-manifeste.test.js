@@ -85,3 +85,23 @@ describe('AUD-08-024 — manifeste PWA', () => {
     expect(src).toMatch(/renderLibraryShelf\(sorted\);\s*runPendingShortcut\(\);\s*\}/);
   });
 });
+
+// ───────── v9.84.1 — régression : fenêtres fermées (display:flex + visibility:hidden) prises pour des fenêtres ouvertes ─────────
+describe('v9.84.1 — la page ne reste plus inerte derrière des fenêtres fermées', () => {
+  const src = read('js/notifications.js');
+  const i = src.indexOf('function _modalVisible'), body = src.slice(i, src.indexOf('\nfunction _modalApplyInert'));
+  const visible = (rects, visibility) => {
+    const ctx = vm.createContext({ getComputedStyle: () => ({ visibility }) });
+    new vm.Script(body).runInContext(ctx);
+    return vm.runInContext('_modalVisible({ getClientRects: () => ' + JSON.stringify(rects) + ' })', ctx);
+  };
+  it('une fenêtre sans boîte, ou en visibility:hidden, n\'est pas ouverte ; une fenêtre visible l\'est', () => {
+    expect(visible([], 'visible')).toBe(false);
+    expect(visible([1], 'hidden')).toBe(false);   // le cas de la v9.84.0 : fermée mais encore en display:flex
+    expect(visible([1], 'visible')).toBe(true);
+  });
+  it('un second passage de synchronisation suit la fin du fondu de sortie (la visibilité ne change qu\'à ce moment)', () => {
+    expect(src).toContain('_modalSync(); setTimeout(_modalSync, 240);');
+    expect(src).toContain("document.addEventListener('transitionend'");
+  });
+});

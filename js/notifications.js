@@ -506,7 +506,12 @@ function _modalMark(e) {
   if (!t || t.nodeType !== 1) return;
   _modalTrigger = t.closest(_MODAL_TRIGGER_SEL) || t; _modalTriggerAt = Date.now();
 }
-function _modalVisible(d) { return d.getClientRects().length > 0; }
+// v9.84.1 : depuis la v9.84.0 une fenêtre fermée reste en display:flex (fondu de sortie) mais en visibility:hidden ;
+// getClientRects() seul la croyait donc ouverte et rendait toute la page inerte (page figée à l'ouverture d'un document).
+function _modalVisible(d) {
+  if (d.getClientRects().length === 0) return false;
+  try { return getComputedStyle(d).visibility !== 'hidden'; } catch (e) { return true; }
+}
 function _modalApplyInert() {
   document.querySelectorAll('[data-modal-inert]').forEach(el => { el.inert = false; el.removeAttribute('data-modal-inert'); });
   const top = _modalStack[_modalStack.length - 1];
@@ -545,12 +550,14 @@ function _modalSync() {
 function _initModalWatch() {
   if (typeof MutationObserver === 'undefined' || !document.body) return;
   ['keydown', 'mousedown'].forEach(n => document.addEventListener(n, _modalMark, true));
+  // v9.84.1 : la fin du fondu de sortie (visibility) est le moment fiable où une fenêtre est réellement fermée.
+  document.addEventListener('transitionend', e => { if (e.target && e.target.matches && e.target.matches('[role="dialog"][aria-modal="true"]')) _modalSync(); }, true);
   let queued = false;
   new MutationObserver(muts => {
     // seules les fenêtres modales comptent : on ignore le reste (frappe, classes de la page…)
     if (queued || !muts.some(m => m.target.matches && m.target.matches('[role="dialog"][aria-modal="true"]'))) return;
     queued = true;
-    Promise.resolve().then(() => { queued = false; _modalSync(); });
+    Promise.resolve().then(() => { queued = false; _modalSync(); setTimeout(_modalSync, 240); }); // 2e passage : la visibilité ne change qu'à la fin du fondu de sortie
   }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
   _modalSync();
 }
