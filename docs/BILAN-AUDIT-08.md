@@ -4,7 +4,7 @@ Base : v9.79.0. Document d'origine : `Audit-08` (rapport `.docx` + `.csv`, hors 
 
 | Lot | Version | Constats | Contenu | Statut |
 |---|---|---|---|---|
-| 1 | 9.80.0 | 002, 003, 004, 005, 006, 013, 023 | « Aujourd'hui » depuis la première ouverture du jour (`db.dayStart`), « Cette séance » conservé ; graphique « mots par jour » en écarts ; compteur de la ligne du chapitre en direct ; plus de « ... » dans Univers ; onglet Mémoire corrigé (icône, accents) ; pluriels `plur()` ; glyphes Unicode et anglicismes remplacés (icônes `merge`, `copy`, `rotate-ccw`…) | livré |
+| 1 | 9.80.0 → 9.80.1 | 002, 003, 004, 005, 006, 013, 023 | « Aujourd'hui » depuis la première ouverture du jour (`db.dayStart`), « Cette séance » conservé ; graphique « mots par jour » en écarts ; compteur de la ligne du chapitre en direct ; plus de « ... » dans Univers ; onglet Mémoire corrigé (icône, accents) ; pluriels `plur()` ; glyphes Unicode et anglicismes remplacés (icônes `merge`, `copy`, `rotate-ccw`…) | livré (9.80.1 : la tuile « Cette séance » tenait sur trois lignes, corrigée) |
 | 2 | 9.81.0 | 008, 009, 010, 011, 012, 019 | à venir | à valider |
 | 3 | 9.82.0 | 007, 020, 021, 022 | à venir | à valider |
 | 4 | 9.83.0 | 014, 015, 016, 017 | à venir | à valider |

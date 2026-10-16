@@ -190,7 +190,7 @@ function renderStats() {
   const bestHourLabel = bestHour === null ? '—' : (bestHour.toString().padStart(2,'0') + 'h');
   document.getElementById('stats-grid').innerHTML=[
     {v:totalW,l:'Mots total'},{v:todayW,l:"Aujourd'hui"},{v:wpm,l:'Mots/min'},
-    {v:sessionW+' · '+elapsed+' min',l:'Cette séance'},{v:pct+'%',l:'Objectif'},{v:db.chapters.length,l:'Chapitres'},
+    {v:sessionW,l:'Cette séance ('+elapsed+' min)'},{v:pct+'%',l:'Objectif'},{v:db.chapters.length,l:'Chapitres'},
     {v:streak+(streak>1?' jours':' jour'),l:'Série en cours'},{v:bestHourLabel,l:'Meilleur moment'}
   ].map(s=>`<div class="stat-card"><div class="stat-val">${s.v}</div><div class="stat-label">${s.l}</div></div>`).join('');
   const days=[],counts=dailyWordsSeries(7,totalW);

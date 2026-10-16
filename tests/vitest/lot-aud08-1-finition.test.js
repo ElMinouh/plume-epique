@@ -57,7 +57,7 @@ describe('AUD-08-003 — « aujourd\'hui » depuis la première ouverture du jou
   });
   it('la base du jour est posée à l\'ouverture du manuscrit, et « Cette séance » garde l\'ancien décompte', () => {
     expect(read('js/router.js')).toContain('dayStartWords(sessionWordsStart)');
-    expect(read('js/stats.js')).toContain("l:'Cette séance'");
+    expect(read('js/stats.js')).toContain("{v:sessionW,l:'Cette séance ('+elapsed+' min)'}");
   });
 });
 
