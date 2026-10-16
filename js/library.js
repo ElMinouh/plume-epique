@@ -809,7 +809,7 @@ async function renderLibraryScreen() {
         <p class="library-card-title">${DOMPurify.sanitize(d.title || 'Sans titre')}</p>
         <p class="library-card-meta">${metaText}</p>
         ${goal>0 ? `<div class="library-progress" title="${d.wordCount||0} / ${goal} mots"><div class="library-progress-bar" data-pct="${pct}"></div></div><p class="library-progress-label">${d.wordCount||0} / ${goal} mots · ${pct}%</p>` : ''}
-        <p class="library-card-date">${formatRelativeDate(d.lastModified)}${d.lastGistSync ? ' · '+icon('cloud')+' '+formatRelativeDate(d.lastGistSync).replace('Modifié ','') : ''}</p>
+        <p class="library-card-date">${formatRelativeDate(d.lastModified)}${gistSyncStamp(d.id, d) ? ' · '+icon('cloud')+' '+formatRelativeDate(gistSyncStamp(d.id, d)).replace('Modifié ','') : ''}</p>
       </div>
     </div>`;
     }).join('');
@@ -1178,6 +1178,7 @@ async function renderDocTrash() {
 async function backToLibrary() {
   flushCurrentChapter();
   await save();
+  await flushDocumentMeta(); // v9.73.0 : l'index est écrit en différé pendant l'écriture, on le met à jour en sortant
   // v9.3.1 — Ne pas attendre le prochain espacement (SYNC_PUSH_MIN_INTERVAL_MS,
   // router.js) pour ce manuscrit qu'on quitte : on force l'envoi tout de suite.
   if (typeof flushPendingSyncPushes === 'function') flushPendingSyncPushes();
@@ -1190,10 +1191,40 @@ async function backToLibrary() {
 
 // Tient à jour titre / dates / compteurs dans l'index de la bibliothèque —
 // appelé depuis save() à chaque sauvegarde du manuscrit ouvert.
-async function touchDocumentMeta() {
+//
+// v9.73.0 (audit AUD-07-010) — ÉCRITURE DIFFÉRÉE. Chaque enregistrement du texte (600 ms après la dernière frappe)
+// relisait l'index, recalculait le nombre de mots de tout le livre, réécrivait l'index complet et replanifiait son
+// envoi : deux écritures distantes (manuscrit + index) pour une même frappe, et des conflits d'index entre deux
+// appareils ouverts. Désormais l'index n'est écrit que : (1) au premier enregistrement après l'ouverture d'un
+// manuscrit, (2) tout de suite quand une donnée d'AUTEUR change (titre, objectif — et la vignette d'un roman
+// graphique), (3) au plus toutes les 5 minutes pendant l'écriture, (4) à la sortie (retour à la bibliothèque,
+// masquage ou fermeture de la page, déconnexion) via flushDocumentMeta().
+// Seuls date, nombre de mots et de chapitres sont différés : ils n'avaient aucune raison d'être écrits à chaque lettre.
+const DOCMETA_FLUSH_MS = 5 * 60 * 1000;
+const _docMeta = { id: null, sig: '', lastFlush: 0, pending: null };
+// Vrai si l'index doit être écrit maintenant ; mémorise alors l'état écrit. Sinon renvoie faux (l'appelant enregistre
+// son écriture en attente avec deferDocMeta).
+function docMetaDue(id, sig, force) {
+  const s = _docMeta;
+  const due = !!force || s.id !== id || s.sig !== sig || Date.now() - s.lastFlush >= DOCMETA_FLUSH_MS;
+  if (due) { s.id = id; s.sig = sig; s.lastFlush = Date.now(); s.pending = null; }
+  return due;
+}
+function deferDocMeta(id, fn) { _docMeta.pending = { id, fn }; }
+// À appeler avant de quitter un manuscrit (la mémoire contient encore le bon `db`) : écrit l'index s'il est en retard.
+async function flushDocumentMeta() {
+  const p = _docMeta.pending;
+  _docMeta.pending = null;
+  if (!p || p.id !== _currentDocumentId) return;
+  try { await p.fn(); } catch (e) { /* l'index se mettra à jour à la prochaine occasion */ }
+}
+async function touchDocumentMeta(force) {
   if (!_currentDocumentId) return;
+  const id = _currentDocumentId;
+  const sig = (db.title || 'Sans titre') + '\u0000' + (db.wordGoal || 0);
+  if (!docMetaDue(id, sig, force === true)) { deferDocMeta(id, () => touchDocumentMeta(true)); return; }
   await mutateDocList(list => {
-    const entry = list.documents.find(d => d.id === _currentDocumentId);
+    const entry = list.documents.find(d => d.id === id);
     if (!entry) return;
     entry.title = db.title || 'Sans titre';
     entry.lastModified = Date.now();
@@ -1328,11 +1359,31 @@ async function persistGistProgress(docId, gistId, imageIds) {
     await persistManuscriptData(docId, fresh);
   } catch (e) { /* meilleur effort */ }
 }
+// Empreinte du manuscrit pour la sauvegarde GitHub : tout ce qui est écrit PAR L'AUTEUR, sans les champs que la
+// sauvegarde modifie elle-même (gistId, images déjà envoyées) ni les compteurs régénérables.
+const GIST_FP_EXCLUDED = ['gistId', 'gistSyncedImageIds', 'sessionStats', 'lastPosition', 'hourlyActivity'];
+async function gistFingerprint(mData) {
+  const copy = { ...mData };
+  for (const f of GIST_FP_EXCLUDED) delete copy[f];
+  return await sha256Hex((_dataKey || '') + '\u0000' + stableStringify(copy));
+}
+function lastGistFp(docId) { try { return localStorage.getItem('plume_gistfp_' + docId); } catch (e) { return null; } }
+// Date de la dernière sauvegarde GitHub de ce manuscrit : valeur locale, sinon ancienne valeur de l'index.
+function gistSyncStamp(docId, entry) {
+  let v = 0;
+  try { v = Number(localStorage.getItem('plume_gistsync_' + docId)) || 0; } catch (e) { /* ignoré */ }
+  return Math.max(v, (entry && entry.lastGistSync) || 0);
+}
 async function libSyncManuscript(docId, opts) {
   opts = opts || {};
   if (!_cloudToken) { if (!opts.silent) toast('Token GitHub requis.', 'error'); return false; }
   try {
     const mData = await loadManuscriptData(docId);
+    // v9.73.0 (audit AUD-07-009) — sauvegarde automatique : rien à envoyer si le manuscrit est identique à celui de la
+    // dernière sauvegarde réussie (avant : tous les manuscrits repartaient toutes les 15 min, re-chiffrés — donc une
+    // nouvelle révision de Gist à chaque fois — même sans une lettre modifiée). Le bouton manuel envoie toujours.
+    const gfp = await gistFingerprint(mData);
+    if (opts.silent && mData.gistId && lastGistFp(docId) === gfp) return true;
     const files = {};
     // Images du roman graphique (Lot 7, audit #25) : chaque image devient un
     // fichier séparé DANS LE MÊME Gist (chiffré comme le reste), jamais un
@@ -1416,10 +1467,9 @@ async function libSyncManuscript(docId, opts) {
       if (newImageIds.length) db.gistSyncedImageIds = fresh.gistSyncedImageIds;
     }
     await persistManuscriptData(docId, fresh);
-    await mutateDocList(list => {
-      const entry = list.documents.find(d => d.id === docId);
-      if (entry) entry.lastGistSync = Date.now();
-    });
+    // v9.73.0 : la date de la dernière sauvegarde est propre à CET appareil (localStorage) : l'écrire dans l'index
+    // synchronisé (comme avant) déclenchait une écriture d'index par manuscrit et par cycle.
+    try { localStorage.setItem('plume_gistsync_' + docId, String(Date.now())); localStorage.setItem('plume_gistfp_' + docId, gfp); } catch (e) { /* stockage plein : la prochaine sauvegarde repartira */ }
     return true;
   } catch(e) {
     if (!opts.silent) toast('Erreur de sauvegarde GitHub : ' + e.message, 'error');
@@ -1887,7 +1937,7 @@ async function refreshLibSystemDocStatus(docId) {
     const list = await loadDocList();
     const entry = list.documents.find(d => d.id === docId);
     statusEl.textContent = mData.gistId
-      ? `Gist : ${mData.gistId}${entry && entry.lastGistSync ? ' · dernière sauvegarde ' + formatRelativeDate(entry.lastGistSync).replace('Modifié ','') : ''}`
+      ? `Gist : ${mData.gistId}${gistSyncStamp(docId, entry) ? ' · dernière sauvegarde ' + formatRelativeDate(gistSyncStamp(docId, entry)).replace('Modifié ','') : ''}`
       : 'Pas encore de sauvegarde GitHub pour ce manuscrit (créée au premier « Sauver »).';
   } catch(e) { statusEl.textContent = ''; }
 }

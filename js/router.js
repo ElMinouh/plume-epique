@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.72.0';
+const APP_VERSION = '9.73.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1960,6 +1960,9 @@ async function onPageLeaving() {
       }
     }
   } catch (e) { /* le masquage ne doit jamais lever d'erreur */ }
+  // v9.73.0 (AUD-07-010) : l'index de la bibliothèque est écrit en différé pendant l'écriture ; on le met à jour avant
+  // que la page ne disparaisse, juste avant l'envoi urgent.
+  try { if (typeof flushDocumentMeta === 'function') await flushDocumentMeta(); } catch (e) { /* idem */ }
   flushPendingSyncPushes(true);
   _leaving = false;
 }

@@ -139,24 +139,33 @@ async function saveGraphicNovel(immediate) {
       const payload = { ...db };
       delete payload.cloudToken; // comme save() (router.js) : jamais de jeton dans le manuscrit
       await persistData(docDataKey(_currentProfileId, _currentDocumentId), await makeEncryptedEnvelope(JSON.stringify(payload)));
-      await mutateDocList(list => {
-        const entry = list.documents.find(d => d.id === _currentDocumentId);
-        if (!entry) return;
-        entry.title = db.title || 'Sans titre';
-        entry.docType = 'roman_graphique';
-        entry.lastModified = Date.now();
-        entry.chapterCount = (db.pages || []).length;
-        entry.wordCount = gnCountWords();
-        entry.wordGoal = 0;
-        // Vignette bibliothèque (Lot 6, audit #23) : uniquement la géométrie
-        // des éléments de la page 1 (positions/tailles/types), jamais leur
-        // contenu (texte) ni les images elles-mêmes — l'index de la
-        // bibliothèque est stocké en clair (voir library.js), il ne doit
-        // jamais recevoir de vrai contenu de manuscrit.
-        const cover = (db.pages && db.pages[0]) || null;
-        entry.gnCoverShapes = cover ? cover.elements.map(e => ({ type: e.type, x: e.x, y: e.y, w: e.w, h: e.h })) : [];
-        entry.gnCoverBg = cover ? (cover.background || '') : '';
-      });
+      // v9.73.0 (audit AUD-07-010) — index de la bibliothèque écrit en différé (voir touchDocumentMeta, library.js) :
+      // tout de suite si le titre ou la vignette changent, à la sortie (immediate), sinon au plus toutes les 5 min.
+      const gnId = _currentDocumentId;
+      const writeGnMeta = async () => {
+        await mutateDocList(list => {
+          const entry = list.documents.find(d => d.id === gnId);
+          if (!entry) return;
+          entry.title = db.title || 'Sans titre';
+          entry.docType = 'roman_graphique';
+          entry.lastModified = Date.now();
+          entry.chapterCount = (db.pages || []).length;
+          entry.wordCount = gnCountWords();
+          entry.wordGoal = 0;
+          // Vignette bibliothèque (Lot 6, audit #23) : uniquement la géométrie
+          // des éléments de la page 1 (positions/tailles/types), jamais leur
+          // contenu (texte) ni les images elles-mêmes — l'index de la
+          // bibliothèque est stocké en clair (voir library.js), il ne doit
+          // jamais recevoir de vrai contenu de manuscrit.
+          const cover = (db.pages && db.pages[0]) || null;
+          entry.gnCoverShapes = cover ? cover.elements.map(e => ({ type: e.type, x: e.x, y: e.y, w: e.w, h: e.h })) : [];
+          entry.gnCoverBg = cover ? (cover.background || '') : '';
+        });
+      };
+      const gnCover0 = (db.pages && db.pages[0]) || null;
+      const gnSig = (db.title || 'Sans titre') + '\u0000' + (gnCover0 ? JSON.stringify(gnCover0.elements.map(e => [e.type, e.x, e.y, e.w, e.h])) + (gnCover0.background || '') : '');
+      if (typeof docMetaDue !== 'function' || docMetaDue(gnId, gnSig, immediate === true)) await writeGnMeta();
+      else deferDocMeta(gnId, writeGnMeta);
       // Annuler/Rétablir (Lot 4) : point d'accroche unique — n'importe quelle
       // mutation (glisser, propriétés, ajout/suppression, corbeille…) passe
       // par ici une fois réellement sauvegardée.

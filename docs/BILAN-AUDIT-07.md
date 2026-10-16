@@ -8,7 +8,7 @@ Base : v9.69.0 (note 64/100, niveau 3 — Production à l'échelle familiale). R
 | 1 Détection | 016, 008, 017, 018 | 🟢 v9.70.0 (voir ci-dessous) |
 | 2 Historique borné et refus d'envoi visible | 001 | 🟢 v9.71.0 (voir ci-dessous) |
 | 3 Réseau de synchro | 011, 012, 020 | 🟢 v9.72.0 (voir ci-dessous) |
-| 4 Écritures évitables | 009, 010 | à faire |
+| 4 Écritures évitables | 009, 010 | 🟢 v9.73.0 (voir ci-dessous) |
 | 5 Worker D1 / IA | 007, 015 | à faire |
 | 6 CPU à la frappe | 003, 002, 022 | à faire |
 | 7 Chargement et cache | 004, 005, 006 | à faire |
@@ -53,3 +53,10 @@ Vérifications après le push (12/10/2026) : en ligne, v9.71.0 (titre, `sw.js`),
 
 
 Vérifications après le push (16/10/2026) : en ligne, `/health` 200, Worker de synchro et Worker IA 401 sans clé, pré-vérification CORS acceptant `X-Plume-Known-Version`, `sw.js` v9.72.0, CI et déploiement du Worker verts ; copie locale (Worker local 8787, application 18831, D1 jetable) : envoi du manuscrit (version 1), rafraîchissement de fond sans changement = GET 304, après écriture d'un autre appareil (version 2) = GET 200 complet puis 304. Non couvert : délai proportionnel sur une vraie liaison lente, coupure réseau en cours de lecture, deux appareils réels avec profil.
+
+## Lot 4 — v9.73.0
+
+| ID | Statut | Preuve |
+|---|---|---|
+| 009 | 🟢 empreinte du manuscrit (`gistFingerprint`, sans gistId / images déjà envoyées / compteurs) mémorisée localement après un envoi RÉUSSI ; la sauvegarde automatique saute un manuscrit inchangé, le bouton manuel envoie toujours ; `lastGistSync` hors de l'index (valeur locale `plume_gistsync_<id>`, l'ancienne valeur de l'index reste lue) | `lot-aud07-4-ecritures.test.js` |
+| 010 | 🟢 variante PLUS SIMPLE que celle présentée (cache local fusionné avec l'index) : l'index garde les mêmes champs mais son écriture est différée (ouverture, donnée d'auteur, 5 min, sortie) ; `mergeDocList` et le format de l'index sont INCHANGÉS, aucune fusion nouvelle. Écart assumé : un plantage brutal peut laisser date/nombre de mots en retard jusqu'à la réouverture | `lot-aud07-4-ecritures.test.js` |

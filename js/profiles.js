@@ -634,7 +634,7 @@ async function logout() {
   try {
     if (!document.body.classList.contains('library-mode') && _currentDocumentId) {
       if (db.docType === 'roman_graphique') await saveGraphicNovel(true);
-      else { flushCurrentChapter(); await save(); }
+      else { flushCurrentChapter(); await save(); if (typeof flushDocumentMeta === 'function') await flushDocumentMeta(); }
       if (typeof _saveFailedSince !== 'undefined' && _saveFailedSince) incomplete = true;
     }
     if (typeof flushPendingSyncPushes === 'function') flushPendingSyncPushes(true);
