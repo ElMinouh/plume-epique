@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.82.1';
+const APP_VERSION = '9.83.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1514,7 +1514,7 @@ function initApp(){
     if (!ok) return;
     const ctx=document.getElementById('tensionChart').getContext('2d');
     if (tensionChart) { tensionChart.destroy(); tensionChart = null; }
-    tensionChart=new Chart(ctx,{type:'line',data:{labels:db.chapters.map((_,i)=>i+1),datasets:[{label:'Tension',data:db.chapters.map(c=>c.tension),borderColor:'#c0392b',backgroundColor:'rgba(192,57,43,.08)',tension:.3,fill:true}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+    tensionChart=new Chart(ctx,{type:'line',data:{labels:db.chapters.map((_,i)=>i+1),datasets:[{label:'Tension',data:db.chapters.map(c=>c.tension),borderColor:chartPalette()[0],backgroundColor:withAlpha(chartPalette()[0],.08),tension:.3,fill:true}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}}}});
   });
 
   const mgi=document.getElementById('manuscript-goal-input');if(mgi)mgi.value=db.wordGoal||'';

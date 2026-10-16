@@ -39,7 +39,7 @@ describe('AUD-03-019 — messages temporaires', () => {
     run("toast('Bonjour', 'info')");
     expect(win.timers.at(-1).ms).toBe(4000);
     expect(el.querySelector('.toast-close')).toBeNull();
-    run("toast('Fait', 'success')");
+    run("_toastShownAt = 0; toast('Fait', 'success')"); // v9.83.0 : sans cela, un message arrivé < 1,2 s après un autre est mis en file
     expect(win.timers.at(-1).ms).toBe(3000);
     expect(win.timers[0].on).toBe(false); // le minuteur du 1er message ne coupe plus le 2e
     run("toast('Oups', 'error')");

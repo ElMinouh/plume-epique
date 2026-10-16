@@ -331,7 +331,7 @@ mark{background-color:color-mix(in srgb,var(--accent) 22%,transparent);color:var
 #goal-bar-wrap{flex-grow:1;background:var(--item-bg);border-radius:var(--r-2);height:8px;overflow:hidden;}
 #goal-bar{height:100%;background:linear-gradient(90deg,var(--success),color-mix(in srgb,var(--success) 70%,#fff));border-radius:var(--r-2);transition:width var(--t-slow);width:0;}
 .export-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-#toast{position:fixed;bottom:24px;right:24px;z-index:20000;background:#1a1a2e;color:#e8e0d0;
+#toast{position:fixed;bottom:24px;right:24px;z-index:20000;background:var(--surface-2);color:var(--text);border:1px solid var(--border);
   padding:12px 20px;border-radius:var(--r-2);font-size:var(--fs-base);font-family:inherit;
   box-shadow:var(--elev-3);border-left:4px solid var(--accent);
   transform:translateY(20px);opacity:0;transition:transform var(--t-base) ease,opacity var(--t-base) ease;pointer-events:none;}
@@ -607,7 +607,7 @@ body:has(.gn-modal-overlay, #my-profile-overlay.active, #manage-profiles-overlay
   display:flex;align-items:center;justify-content:center;font-size:var(--fs-md);transition:all var(--t-base);}
 .voice-btn:hover{filter:brightness(1.15);transform:scale(1.05);}
 .record-pulse{animation:pulse 1.2s ease-in-out infinite;}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 40%,transparent)}50%{box-shadow:0 0 0 8px rgba(192,57,43,0)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 40%,transparent)}50%{box-shadow:0 0 0 8px transparent}}
 .analytics-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:12px;}
 .analytics-card{background:var(--item-bg);border-radius:var(--r-2);padding:12px;border:1px solid var(--border);text-align:center;}
 .analytics-card .av{font-size:var(--fs-xl);font-weight:600;color:var(--title);}
@@ -2052,3 +2052,8 @@ html[data-spacing="large"] #writer,html[data-spacing="large"] #focus-writer,html
   body:not(.cork-view) #chapter-quick-library-btn{display:none;}
   .toolbar.toolbar-more{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);}
 }
+
+/* v9.83.0 (AUD-08-015) : bouton d'action dans un message (« Annuler », « Copier le détail ») */
+#toast.has-action.show{pointer-events:auto;}
+#toast .toast-action{margin-left:12px;padding:2px 10px;background:none;border:1px solid var(--border);border-radius:var(--r-1);color:var(--accent-text);font-weight:600;font-size:var(--fs-sm);cursor:pointer;}
+#toast .toast-action:hover{background:color-mix(in srgb,var(--text) 10%,transparent);}

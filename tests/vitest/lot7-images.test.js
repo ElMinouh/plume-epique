@@ -43,6 +43,8 @@ function makeDevice({ dek = 'cle-donnees-A', serverFetch, github, profile = 'p1'
   ctx.toast = vi.fn(); ctx.DOMPurify = { sanitize: x => x };
   ctx.URL.createObjectURL = () => 'blob:test-' + (++seq); ctx.URL.revokeObjectURL = () => {};
   for (const f of ['schema.js', 'crypto.js']) vm.runInContext(JS(f), ctx, { filename: f });
+  // v9.83.0 (AUD-08-014) : toastError / messageErreurLisible viennent du vrai notifications.js ; seul toast() reste simulé
+  vm.runInContext(JS('icons.js'), ctx, { filename: 'icons.js' }); vm.runInContext(JS('notifications.js'), ctx, { filename: 'notifications.js' }); ctx.toast = vi.fn();
   vm.runInContext(JS('images.js').replace("'plume_epique_images'", `'plume_epique_images_lot7_${++seq}'`), ctx, { filename: 'images.js' });
   vm.runInContext(JS('router.js'), ctx, { filename: 'router.js' });
   vm.runInContext(JS('library.js'), ctx, { filename: 'library.js' });
@@ -161,7 +163,7 @@ describe('B. Sauvegarde Gist : octets chiffrés, paquets, erreurs précises (AUD
     vm.runInContext("_cloudToken = 'ghp_x'; getSyncKey = () => '';", dev);
     await livre(dev, 3, 2_000_000);
     expect(await dev.libSyncManuscript('doc1', { silent: false })).toBe(false);
-    expect(dev.toast).toHaveBeenCalledWith(expect.stringMatching(/HTTP 422.*Payload too large/), 'error');
+    expect(dev.toast).toHaveBeenCalledWith(expect.stringMatching(/HTTP 422.*Payload too large/), 'error', expect.anything()); // 3e argument : bouton « Copier le détail » (v9.83.0)
     const m = await dev.loadManuscriptData('doc1');
     expect(m.gistId).toBe('gist-2');                       // le Gist créé est mémorisé (pas de doublon au prochain essai)
     expect(m.gistSyncedImageIds.length).toBeGreaterThanOrEqual(1);

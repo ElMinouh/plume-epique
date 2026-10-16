@@ -215,7 +215,7 @@ async function exportOdt(chapters, title) {
     saveAs(blob, exportFileName(title, 'odt'));
     toast('Export ODT réussi !', 'success');
   } catch(e) {
-    toast('Erreur export ODT : ' + e.message, 'error');
+    toastError("L'export ODT", e);
   }
 }
 
@@ -318,7 +318,7 @@ async function exportPdf(chapters, title) {
     doc.save(exportFileName(title, 'pdf'));
     toast('Export PDF réussi !', 'success');
   } catch(e) {
-    toast('Erreur export PDF : ' + e.message, 'error');
+    toastError("L'export PDF", e);
   }
 }
 
@@ -524,7 +524,7 @@ async function confirmDocxImport() {
     toast(newChapters.length > 1 ? `${newChapters.length} chapitres ajoutés à « ${DOMPurify.sanitize(otherDb.title||'ce manuscrit')} ».` : `Chapitre ajouté à « ${DOMPurify.sanitize(otherDb.title||'ce manuscrit')} ».`, 'success');
     await renderLibraryScreen();
   } catch(e) {
-    toast('Erreur : ' + e.message, 'error');
+    toastError("L'ajout des chapitres", e);
   }
 }
 
@@ -568,7 +568,7 @@ async function megaExportLibrary() {
     saveAs(new Blob([payload], {type:'application/json'}), 'bibliotheque_plume.json');
     toast('Export de toute la bibliothèque réussi.', 'success');
   } catch(e) {
-    toast('Erreur export : ' + e.message, 'error');
+    toastError("L'export de la bibliothèque", e);
   }
 }
 function importProjectLibrary(input) {

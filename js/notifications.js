@@ -53,23 +53,53 @@ function selectComfort(name, v) {
 }
 Object.keys(COMFORT).forEach(name => applyComfort(name, loadComfort(name)));
 
-let _toastTimer = null;
+let _toastTimer = null, _toastQueue = [], _toastShownAt = 0, _toastNextTimer = null;
+const TOAST_MIN_MS = 1200, TOAST_GAP_MS = 250, TOAST_QUEUE_MAX = 5;
 function hideToast() {
   const el = document.getElementById('toast');
   clearTimeout(_toastTimer); _toastTimer = null;
-  el.classList.remove('show', 'has-close'); delete el.dataset.kind;
+  el.classList.remove('show', 'has-close', 'has-action'); delete el.dataset.kind;
+  scheduleNextToast();
+}
+// v9.83.0 (AUD-08-015) : file d'attente — un message non prioritaire qui arrive pendant qu'un autre vient d'apparaître
+// (moins de 1,2 s) attend son tour au lieu de l'effacer ; les erreurs, messages « sticky » et d'état s'affichent tout de suite.
+function scheduleNextToast() {
+  clearTimeout(_toastNextTimer);
+  if (!_toastQueue.length) return;
+  _toastNextTimer = setTimeout(() => { const n = _toastQueue.shift(); if (n) showToastNow(n.msg, n.type, n.opts); }, TOAST_GAP_MS);
 }
 function toast(msg, type='info', opts={}) {
   const el = document.getElementById('toast');
+  const prioritaire = type === 'error' || !!opts.sticky || !!opts.kind;
+  if (!prioritaire && el.classList.contains('show')) {
+    if (el.dataset.msg === msg || _toastQueue.some(q => q.msg === msg)) return;
+    if (Date.now() - _toastShownAt < TOAST_MIN_MS) {
+      _toastQueue.push({ msg, type, opts }); if (_toastQueue.length > TOAST_QUEUE_MAX) _toastQueue.shift();
+      return;
+    }
+  }
+  showToastNow(msg, type, opts);
+}
+function showToastNow(msg, type, opts) {
+  const el = document.getElementById('toast');
   clearTimeout(_toastTimer); _toastTimer = null;
-  el.textContent = msg;
+  el.textContent = msg; el.dataset.msg = msg; _toastShownAt = Date.now();
   // v9.52.0 : une icône par type de message (succès / erreur / information) — le texte (textContent) reste celui du message.
   el.insertAdjacentHTML('afterbegin', icon(type === 'success' ? 'circle-check' : type === 'error' ? 'circle-alert' : 'info', 'toast-icon'));
   // v9.56.0 (AUD-04-025) : la couleur du liseré vient du CSS (#toast[data-type]) — jetons, plus de teinte figée.
   el.dataset.type = type;
-  const closable = type === 'error' || !!opts.sticky;
+  const hasAction = !!(opts.action && opts.action.label && typeof opts.action.onClick === 'function');
+  const closable = type === 'error' || !!opts.sticky || hasAction;
   el.classList.toggle('has-close', closable);
+  el.classList.toggle('has-action', hasAction);
   if (opts.kind) el.dataset.kind = opts.kind; else delete el.dataset.kind;
+  // v9.83.0 (AUD-08-015) : action « Annuler » (ou « Copier le détail ») dans le message.
+  if (hasAction) {
+    const a = document.createElement('button');
+    a.type = 'button'; a.className = 'toast-action'; a.textContent = opts.action.label;
+    a.addEventListener('click', () => { hideToast(); try { opts.action.onClick(); } catch (e) { /* action facultative */ } });
+    el.appendChild(a);
+  }
   if (closable) {
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'toast-close'; btn.innerHTML = icon('x');
@@ -79,7 +109,7 @@ function toast(msg, type='info', opts={}) {
   }
   el.classList.add('show');
   if (opts.sticky) { el.onmouseenter = el.onmouseleave = el.onfocusin = el.onfocusout = null; return; }
-  const ms = type === 'error' ? 8000 : type === 'success' ? 3000 : 4000;
+  const ms = (type === 'error' || hasAction) ? 8000 : type === 'success' ? 3000 : 4000;
   const arm = () => { clearTimeout(_toastTimer); _toastTimer = setTimeout(hideToast, ms); };
   // v9.58.0 (AUD-05-016) : pause aussi quand le focus clavier est dans le message (le temps de le lire).
   el.onmouseenter = () => { clearTimeout(_toastTimer); };
@@ -87,6 +117,45 @@ function toast(msg, type='info', opts={}) {
   el.onfocusin = () => { clearTimeout(_toastTimer); };
   el.onfocusout = arm;
   arm();
+}
+// v9.83.0 (AUD-08-014) : plus jamais le message brut du navigateur. On dit ce qui s'est passé, en français, et on garde le
+// détail technique à portée (bouton « Copier le détail »). `contexte` = ce qui n'a pas abouti (« L'export PDF »).
+function messageErreurLisible(e, contexte) {
+  const brut = String((e && e.message) || e || '');
+  const hors = typeof navigator !== 'undefined' && navigator.onLine === false;
+  let cause;
+  if ((e && e.name === 'QuotaExceededError') || /quota|storage is full|espace/i.test(brut)) cause = "l'espace de stockage est plein";
+  else if (hors || /failed to fetch|networkerror|load failed|network request failed|timeout|timed out|abort/i.test(brut)) cause = 'la connexion a échoué (hors ligne ou service injoignable)';
+  else if (/\b(401|403)\b|unauthori[sz]ed|forbidden|bad credentials|invalid token|token (expired|revoked)|jeton/i.test(brut)) cause = "l'accès a été refusé (clé ou jeton à vérifier)";
+  else if (/\b404\b|not found|introuvable/i.test(brut)) cause = "l'élément demandé est introuvable";
+  else if (/\b5\d\d\b|server error|service unavailable/i.test(brut)) cause = 'le service a rencontré un problème ; réessayez plus tard';
+  else if (/\bHTTP \d{3}\b/.test(brut)) cause = "le service a refusé ou n'a pas pu traiter la demande (" + brut + ')'; // précision voulue par AUD-01-026 (code HTTP + détail)
+  else if (/json|unexpected token|unexpected end|invalid|corrupt|format|illisible/i.test(brut)) cause = "le fichier est illisible ou n'a pas le bon format";
+  else cause = "une erreur inattendue s'est produite";
+  return { message: (contexte || "L'opération") + " n'a pas abouti : " + cause + '.', detail: brut };
+}
+function toastError(contexte, e, rassurance) {
+  const r = messageErreurLisible(e, contexte);
+  const opts = {};
+  if (r.detail && typeof navigator !== 'undefined' && navigator.clipboard) {
+    opts.action = { label: 'Copier le détail', onClick: () => { navigator.clipboard.writeText(r.detail).then(() => toast('Détail copié.', 'info'), () => {}); } };
+  }
+  toast(r.message + (rassurance ? ' ' + rassurance : ''), 'error', opts);
+  return r;
+}
+// v9.83.0 (AUD-08-017) : couleurs des graphiques lues dans le thème (plus de rouge en dur).
+function themeColor(name, fallback) {
+  try { const v = getComputedStyle(document.body).getPropertyValue(name).trim(); return v || fallback; } catch (e) { return fallback; }
+}
+function withAlpha(c, a) {
+  let m = /^#([0-9a-f]{6})$/i.exec(c || '');
+  if (m) { const n = parseInt(m[1], 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; }
+  m = /^rgb\(\s*(\d+)[ ,]+(\d+)[ ,]+(\d+)\s*\)$/i.exec(c || '');
+  return m ? 'rgba(' + m[1] + ',' + m[2] + ',' + m[3] + ',' + a + ')' : c;
+}
+function chartPalette() {
+  return [themeColor('--title', '#8a6414'), themeColor('--accent', '#1d3a5c'), themeColor('--success-solid', '#2e7d4f'),
+    themeColor('--warn-solid', '#b7791f'), themeColor('--accent2', '#8a6414'), themeColor('--danger-solid', '#b3261e')];
 }
 // v9.42.0 (AUD-03-019) : état d'échec d'enregistrement PERMANENT dans le pied de page, jusqu'au
 // prochain enregistrement réussi (avant : « Enregistré à 10:18 » restait affiché après l'échec).
@@ -372,6 +441,7 @@ function runThemeSwitch(fn) {
   try { fn(); }
   finally {
     if (typeof updateThemeToggleLabel === 'function') updateThemeToggleLabel(); // v9.81.0 (AUD-08-011)
+    if (typeof refreshThemedCharts === 'function') refreshThemedCharts(); // v9.83.0 (AUD-08-017)
     void b.offsetWidth;
     const done = () => b.classList.remove('theme-switching');
     // deux images (les changements de style sont alors appliqués), avec un filet de sécurité si l'onglet est en arrière-plan (rAF suspendu)

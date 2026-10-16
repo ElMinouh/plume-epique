@@ -27,6 +27,14 @@ function dailyWordsSeries(n, totalW) {
   }
   return out;
 }
+// v9.83.0 (AUD-08-017) : au changement de thème, les graphiques déjà tracés reprennent les couleurs du thème.
+function refreshThemedCharts() {
+  const c = chartPalette()[0];
+  try {
+    if (typeof sessionChart !== 'undefined' && sessionChart) { const d = sessionChart.data.datasets[0]; d.borderColor = c; d.backgroundColor = withAlpha(c, .5); sessionChart.update('none'); }
+    if (typeof tensionChart !== 'undefined' && tensionChart) { const d = tensionChart.data.datasets[0]; d.borderColor = c; d.backgroundColor = withAlpha(c, .08); tensionChart.update('none'); }
+  } catch (e) { /* purement cosmétique */ }
+}
 function updateDailyStats() {
   // Garde db.chapters (v9.15.0) : undefined pour un roman graphique — cette
   // fonction est spécifique aux manuscrits texte, gnUpdateDailyStats()
@@ -199,7 +207,7 @@ function renderStats() {
   // v9.76.0 (AUD-07-004) : Chart.js est chargé à la demande.
   ensureLib('chart').then(ok=>{ if(!ok) return;
   if(sessionChart){sessionChart.data.labels=days;sessionChart.data.datasets[0].data=counts;sessionChart.update();}
-  else{const ctx=document.getElementById('sessionChart').getContext('2d');sessionChart=new Chart(ctx,{type:'bar',data:{labels:days,datasets:[{label:'Mots',data:counts,backgroundColor:'rgba(192,57,43,.5)',borderColor:'#c0392b',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});}
+  else{const ctx=document.getElementById('sessionChart').getContext('2d');sessionChart=new Chart(ctx,{type:'bar',data:{labels:days,datasets:[{label:'Mots',data:counts,backgroundColor:withAlpha(chartPalette()[0],.5),borderColor:chartPalette()[0],borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});}
   });
 }
 

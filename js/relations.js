@@ -1,7 +1,8 @@
 'use strict';
 function buildGraphData() {
   const nodes = [], links = [];
-  const colorMap = { chars:'#c0392b', places:'#2980b9', quests:'#27ae60', chapters:'#f39c12' };
+  const pal = typeof chartPalette === 'function' ? chartPalette() : ['#8a6414', '#1d3a5c', '#2e7d4f', '#b7791f']; // v9.83.0 (AUD-08-017) : couleurs du thème
+  const colorMap = { chars:pal[0], places:pal[1], quests:pal[2], chapters:pal[3] };
   ['chars','places','quests'].forEach(type => {
     db[type].forEach((item) => {
       nodes.push({ id:`${type}-${item.id}`, label: item.name||item.text||'?', type, color: colorMap[type] });

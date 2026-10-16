@@ -1162,7 +1162,7 @@ async function trashDocument(docId) {
   });
   if (typeof flushPendingSyncPushes === 'function') flushPendingSyncPushes(true);
   await renderLibraryScreen();
-  toast('Manuscrit mis à la corbeille (30 jours)', 'success');
+  toast('Manuscrit mis à la corbeille (30 jours)', 'success', { action: { label: 'Annuler', onClick: () => restoreDocumentFromTrash(docId) } });
 }
 async function restoreDocumentFromTrash(docId) {
   await mutateDocList(l => {
@@ -1499,7 +1499,7 @@ async function libSyncManuscript(docId, opts) {
     try { localStorage.setItem('plume_gistsync_' + docId, String(Date.now())); localStorage.setItem('plume_gistfp_' + docId, gfp); } catch (e) { /* stockage plein : la prochaine sauvegarde repartira */ }
     return true;
   } catch(e) {
-    if (!opts.silent) toast('Erreur de sauvegarde GitHub : ' + e.message, 'error');
+    if (!opts.silent) toastError('La sauvegarde GitHub', e, 'Vos textes restent enregistrés sur cet appareil.');
     return false;
   }
 }
@@ -1558,7 +1558,7 @@ async function libLoadManuscript(docId) {
     toast('Manuscrit restauré depuis la sauvegarde GitHub.', 'success');
     await renderLibraryScreen();
     refreshLibSystemDocStatus(docId);
-  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
+  } catch(e) { toastError('La restauration depuis GitHub', e); }
 }
 function closeGistHistory() { document.getElementById('gist-history-overlay').classList.remove('active'); }
 async function libOpenGistHistory(docId) {
@@ -1600,7 +1600,7 @@ async function libLoadGistRevision(docId, gistId, sha) {
     toast('Version restaurée.', 'success');
     await renderLibraryScreen();
     refreshLibSystemDocStatus(docId);
-  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
+  } catch(e) { toastError('Le chargement de cette version', e); }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1978,5 +1978,5 @@ async function libExportDoc(docId) {
     // v9.35.0 (AUD-02-016) : un roman graphique n'a pas de chapitres, son export est dans son propre écran.
     if (mData.docType === 'roman_graphique' || !Array.isArray(mData.chapters)) { toast("Ce manuscrit est un roman graphique : utilisez l'export de son écran (bouton Exporter).", 'info'); return; }
     openExportSelect(mData.chapters, mData.title);
-  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
+  } catch(e) { toastError("L'export du manuscrit", e); }
 }

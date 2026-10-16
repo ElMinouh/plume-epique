@@ -529,7 +529,8 @@ async function deleteChapter(i) {
   else if (i < cur) cur--;
   renderChapterList(); loadChapter(cur); updateDailyStats(); updateTrashBadge();
   _switching = false; save();
-  toast('Chapitre déplacé vers la corbeille','success');
+  const _stamp = db.trash[db.trash.length - 1].deletedAt;
+  toast('Chapitre déplacé vers la corbeille','success', { action: { label: 'Annuler', onClick: () => { const k = (db.trash || []).findIndex(t => t.deletedAt === _stamp); if (k >= 0) restoreFromTrash(k); } } });
 }
 
 // ═══════════════════════════════════════════════════════

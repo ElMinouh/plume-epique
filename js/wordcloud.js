@@ -21,7 +21,7 @@ function renderWordCloud() {
   canvas.setAttribute('aria-label', freq.length ? 'Nuage des mots les plus fréquents : ' + freq.slice(0, 10).map(([w, c]) => w + ' ' + c).join(', ') + ' ; la liste des 15 premiers est affichée au-dessus' : 'Nuage de mots vide : aucun texte');
   if (!freq.length) { ctx.fillStyle='rgba(150,150,150,.5)'; ctx.font='14px Georgia'; ctx.textAlign='center'; ctx.fillText('Aucun texte.',canvas.width/2,canvas.height/2); return; }
   const top40=freq.slice(0,40), max=top40[0][1];
-  const colors=['#c0392b','#8e44ad','#27ae60','#d4ac0d','#2980b9','#e67e22'];
+  const colors=chartPalette(); // v9.83.0 (AUD-08-017)
   const placed=[];
   top40.forEach(([word,count],idx)=>{
     const r=count/max, fs=Math.max(10,Math.round(11+r*42));
