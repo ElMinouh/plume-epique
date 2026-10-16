@@ -122,3 +122,5 @@ Vérifications après le push du 014 (16/10/2026) : sauvegarde chiffrée de la b
 
 ### Bilan de l'audit AUD-07 (22 constats)
 Tous traités : 001 à 022. Restent hors code : moniteur externe UptimeRobot sur `/health`, copie de la phrase secrète de sauvegarde dans un gestionnaire de mots de passe, lancement hebdomadaire de `scripts/sauvegarder-d1.cjs` ; à mesurer un jour sur un vrai téléphone : pic mémoire d'un export de 100 pages, durée de la chaîne de sauvegarde. Constats 021 et 022 : observations (pas de correctif nécessaire).
+
+Vérifications après le push du lot 9 (16/10/2026) : CI verte ; en production v9.79.0 (cache unique, précache 61/61, console sans erreur), `/health` 200, Worker 401 sans clé ; essai dans Chrome avec le code de production : 60 chapitres de 2 500 mots × 20 copies = 16,2 Mo en clair (≈ 22,7 Mio chiffrés, au-dessus de la limite d'envoi) → après `trimHistoryTotal` 8,4 Mo en clair (≈ 11,8 Mio chiffrés), 9 à 10 copies par chapitre conservées, opération en 0,8 ms. Non couvert : manuscrit réel d'un auteur à l'historique alourdi (le plafond s'applique à son ouverture et lui retirera ses plus anciennes copies automatiques), mesures sur téléphone.
