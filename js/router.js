@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.81.0';
+const APP_VERSION = '9.82.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1349,7 +1349,7 @@ let _unsavedChanges = false;
 
 // v9.52.0 (AUD-04-002/023) : icône (sprite) + libellé séparés, plus de chevron ▾ dans le texte (l'onglet ouvre un volet, pas un menu).
 const tabLabels = {
-  'tab-univers':{ icon:'globe', label:'Univers' }, 'tab-ia-memoire':{ icon:'bot', label:'IA & Mémoire' },
+  'tab-univers':{ icon:'globe', label:'Univers' }, 'tab-ia-memoire':{ icon:'bot', label:'IA & Mémoire', short:'IA' },
   'tab-analysegroup':{ icon:'chart-column', label:'Analyse' }, 'tab-systeme':{ icon:'archive', label:'Versions' },
   'tab-config':{ icon:'settings', label:'Config' }
 };
@@ -1815,6 +1815,7 @@ function wireAppEventListenersOnce(){
 
   // Menus déroulants de la toolbar + sous-navigation des onglets groupés (v7.4.0)
   relocateLexToolsForMobile();
+  { const tb = document.querySelector('#editor-wrapper .toolbar'); if (tb) tb.addEventListener('scroll', updateToolbarScrollHint, { passive: true }); window.addEventListener('resize', updateToolbarScrollHint); setTimeout(updateToolbarScrollHint, 300); }
   initToolbarDropdowns();
   initToolbarPin();
   initSubtabNavs();
@@ -1827,6 +1828,11 @@ function wireAppEventListenersOnce(){
 // Fait une seule fois au chargement (comme le reste de l'app, qui ne réagit
 // pas à un redimensionnement en direct) — rouvrir/recharger l'app suffit si
 // l'appareil change.
+// v9.82.0 (AUD-08-021) : indice de défilement (dégradé à droite) quand la barre d'outils mobile déborde.
+function updateToolbarScrollHint() {
+  const t = document.querySelector('#editor-wrapper .toolbar'); if (!t) return;
+  t.classList.toggle('toolbar-more', t.scrollWidth - t.scrollLeft - t.clientWidth > 4);
+}
 function relocateLexToolsForMobile() {
   const wrapper = document.getElementById('lex-tools-wrapper');
   const mount = document.getElementById('ia-lex-tools-mount');

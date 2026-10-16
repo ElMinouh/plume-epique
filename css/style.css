@@ -961,6 +961,7 @@ body.library-mode #library-screen{display:block;}
 }
 @media(max-width:480px){
   .tab-btn{padding:3px 6px;font-size:var(--fs-xs);}
+  .tab-label-long{display:none;} /* v9.82.0 (AUD-08-021) : « IA & Mémoire » → « IA » pour tenir sur une ligne comme les autres onglets */
   .stats-grid,.analytics-grid{grid-template-columns:1fr;}
   /* Écran de connexion (gate) : chantier Responsive Mobile, écran 1/N.
      Cibles tactiles agrandies (36-40px → 46px, recommandation Android)
@@ -983,17 +984,19 @@ body.library-mode #library-screen{display:block;}
      conserve une zone tactile de 44×44 malgré la carte étroite (padding
      autour d'une icône plus petite, pas un agrandissement visuel réel).
      Texte des métadonnées abrégé sur mobile, voir library.js. */
-  #library-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
-  .library-cover{height:44px;font-size:var(--fs-lg);}
+  #library-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;} /* v9.82.0 (AUD-08-020) : 2 colonnes (titres lisibles), plus 3 */
+  .library-cover{height:64px;font-size:var(--fs-xl);}
   .library-card-body{padding:5px 6px;}
-  .library-card-title{font-size:var(--fs-xs);}
+  .library-card-title{font-size:var(--fs-sm);white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .library-card-meta{font-size:var(--fs-xs);}
   .library-card-date{display:none;}
   .library-new{min-height:0;padding:10px 4px;gap:3px;}
   .library-new-icon{font-size:var(--fs-lg);}
-  .library-kebab-btn{top:0;right:0;width:44px;height:44px;
+  /* v9.82.0 (AUD-08-020) : zone tactile de 44 px conservée, mais le disque visible ne fait que 28 px (plus de bloc sombre sur la couverture). */
+  .library-kebab-btn{top:0;right:0;width:44px;height:44px;background:none;
     display:flex;align-items:center;justify-content:center;
-    border-radius:0 var(--r-3) 0 var(--r-2);padding:0;font-size:var(--fs-sm);}
+    border-radius:0;padding:0;font-size:var(--fs-sm);}
+  .library-kebab-btn::before{content:'';position:absolute;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.45);z-index:-1;}
   .library-progress-label{font-size:var(--fs-xs);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* Page d'écriture : chantier Responsive Mobile, écran 3/N.
      Même bug que ci-dessus, sur le menu ⋮ de chaque chapitre (renommer,
@@ -2029,3 +2032,20 @@ html[data-lineheight="large"]{--lh-write:var(--lh-write-wide);}
 html[data-spacing="large"] #writer,html[data-spacing="large"] #focus-writer,html[data-spacing="large"] #reading-content{letter-spacing:.05em;word-spacing:.16em;}
 .u-ff-atkinson{font-family:'Atkinson Hyperlegible',Verdana,sans-serif}
 #writer span[lang],#focus-writer span[lang]{border-bottom:1px dotted var(--text-muted);}
+
+/* v9.82.0 (AUD-08-007) — barre d'outils de l'éditeur sur UNE rangée aux largeurs courantes : « Rechercher » et « Mots »
+   deviennent des boutons à icône seule (nom accessible et infobulle conservés) ; l'alignement de colonne (AUD-04-017) est gardé.
+   Volet latéral ouvert, les boutons du pied de page passent aussi en icône seule : le pied tient sur une ligne. */
+@media (min-width:769px){
+  #tb-search-btn .tb-label,#lex-tools-toggle-btn .tb-label{display:none;}
+  body:has(main.has-panel) #mode-bar .mb-label{display:none;}
+}
+
+/* v9.82.0 (AUD-08-021) */
+.tab-label-short{display:none;}
+@media(max-width:480px){.tab-label-short{display:inline;}}
+@media(max-width:768px){
+  /* le bouton « bibliothèque » de la barre d'outils (collante) suffit ; celui de l'en-tête ne sert qu'en vue Fiches, où la barre est masquée */
+  body:not(.cork-view) #chapter-quick-library-btn{display:none;}
+  .toolbar.toolbar-more{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);}
+}

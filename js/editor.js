@@ -440,6 +440,7 @@ function renderChapterList() {
 function setChapterViewMode(mode) {
   _chapterViewMode = mode;
   const isCork = mode === 'cork';
+  document.body.classList.toggle('cork-view', isCork); // v9.82.0 (AUD-08-021)
   document.getElementById('view-list-btn').classList.toggle('active', !isCork);
   document.getElementById('view-cork-btn').classList.toggle('active', isCork);
   document.querySelector('#editor-wrapper .toolbar').style.display = isCork ? 'none' : 'flex';

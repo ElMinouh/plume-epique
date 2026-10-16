@@ -389,6 +389,15 @@ function pageTitleFor(libraryMode, docTitle) {
 function refreshPageTitle() {
   try { document.title = pageTitleFor(document.body.classList.contains('library-mode') || !_currentDocumentId, typeof db !== 'undefined' && db ? db.title : ''); } catch (e) { /* titre d'onglet : purement cosmétique */ }
 }
+// v9.82.0 (AUD-08-022) : une couverture « Automatique » prend une teinte stable parmi six palettes sobres, tirée de l'identifiant
+// du manuscrit (rien n'est écrit dans les données : le choix « Automatique » reste « auto »). Un choix manuel l'emporte.
+const AUTO_COVER_KEYS = ['or-et-nuit', 'bleu-ocean', 'ardoise', 'emeraude', 'sepia', 'nuit-etoilee'];
+function coverKeyOf(d) {
+  if (d && d.cover && d.cover !== 'auto' && COVER_PALETTES[d.cover]) return d.cover;
+  const id = String((d && d.id) || (d && d.title) || ''); let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return AUTO_COVER_KEYS[h % AUTO_COVER_KEYS.length];
+}
 function showLibraryScreen() { document.body.classList.add('library-mode'); refreshPageTitle(); }
 function hideLibraryScreen() { document.body.classList.remove('library-mode'); refreshPageTitle(); }
 
@@ -798,8 +807,8 @@ async function renderLibraryScreen() {
   container.innerHTML = `<div class="library-card library-new" id="library-new-btn" role="button" tabindex="0" aria-label="Nouveau projet" title="Créer un nouveau manuscrit vierge">
       <span class="library-new-icon">+</span><span>Nouveau projet</span>
     </div>` + sorted.map(d => {
-      const cover = d.cover && d.cover !== 'auto' ? COVER_PALETTES[d.cover] : null;
-      const coverClass = cover ? ` cover-${d.cover}` : '';
+      const ck = coverKeyOf(d);
+      const coverClass = ` cover-${ck}`;
       const goal = d.wordGoal || 0;
       const pct = goal > 0 ? Math.min(100, Math.round((d.wordCount||0) / goal * 100)) : 0;
       // v9.1.0 — Cartes compactées en 3 colonnes sur mobile (voir style.css) :
@@ -905,8 +914,8 @@ async function renderLibraryShelf(sorted) {
     html += `<div class="lib-shelf-row"><div class="lib-shelf-plank"></div>` + items.slice(i, i + PER_ROW).map(it => {
       if (it.isNew) return `<div class="lib-book lib-book-new u-h-110px" id="library-new-btn-shelf" role="button" tabindex="0" aria-label="Nouveau projet" title="Créer un nouveau manuscrit vierge"><span>+</span><span class="lib-book-new-label">Nouveau<br>projet</span></div>`;
       const d = it.d;
-      const cover = d.cover && d.cover !== 'auto' ? COVER_PALETTES[d.cover] : null;
-      const shelfCoverClass = cover ? ` shelf-cover-${d.cover}` : '';
+      const ck = coverKeyOf(d);
+      const shelfCoverClass = ` shelf-cover-${ck}`;
       // v9.55.0 (AUD-04-011) : la hauteur tient aussi compte de la longueur du titre (2 colonnes de ~7,5 px par caractère), plafonnée à 190 px.
       const h = Math.min(190, Math.max(110 + Math.round((d.wordCount||0) / 700), 56 + Math.ceil(String(d.title || 'Sans titre').length * 4.2)));
       const safeTitle = DOMPurify.sanitize(d.title || 'Sans titre');

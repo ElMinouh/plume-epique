@@ -4,7 +4,7 @@ function renderTabs(){
   db.tabOrder.forEach(id=>{
     if(!document.getElementById(id))return;
     const btn=document.createElement('button');
-    btn.className='tab-btn';{const tl=tabLabels[id];if(tl)btn.innerHTML=icon(tl.icon)+' '+escapeHtml(tl.label);else btn.textContent=id;}
+    btn.className='tab-btn';{const tl=tabLabels[id];if(tl)btn.innerHTML=icon(tl.icon)+' '+(tl.short?'<span class="tab-label-long">'+escapeHtml(tl.label)+'</span><span class="tab-label-short">'+escapeHtml(tl.short)+'</span>':escapeHtml(tl.label));else btn.textContent=id;}
     btn.dataset.tabId=id;
     // v9.42.0 (AUD-03-021) : ces boutons ouvrent/ferment un panneau (reclic = fermer) : motif « accordéon »
     // (aria-expanded + aria-controls), pas « onglets » (role=tab sans tablist ni aria-selected).
