@@ -2038,6 +2038,9 @@ html[data-spacing="large"] #writer,html[data-spacing="large"] #focus-writer,html
    Volet latéral ouvert, les boutons du pied de page passent aussi en icône seule : le pied tient sur une ligne. */
 @media (min-width:769px){
   #tb-search-btn .tb-label,#lex-tools-toggle-btn .tb-label{display:none;}
+  /* v9.82.1 : mesuré à 1280 px, il manquait 11 px pour que « Mots » tienne sur la rangée 1 : espaces resserrés et chevron de « Mots » retiré */
+  #editor-wrapper > .toolbar{gap:4px;}
+  #lex-tools-toggle-btn .icon-caret{display:none;}
   body:has(main.has-panel) #mode-bar .mb-label{display:none;}
 }
 

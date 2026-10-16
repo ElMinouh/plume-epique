@@ -24,6 +24,10 @@ describe('AUD-08-007 — barre d\'outils sur une rangée, pied de page compact v
     expect(html).toMatch(/id="tb-search-btn"[^>]*aria-label="Rechercher du texte"/);
     expect(html).toMatch(/id="lex-tools-toggle-btn"[^>]*aria-label="Synonymes et antonymes"/);
   });
+  it('espaces resserrés et chevron de « Mots » retiré pour que la barre tienne sur une rangée (mesuré à 1280 px)', () => {
+    expect(css).toContain('#editor-wrapper > .toolbar{gap:4px;}');
+    expect(css).toContain('#lex-tools-toggle-btn .icon-caret{display:none;}');
+  });
   it('volet ouvert, les boutons du pied de page n\'affichent plus que leur icône', () => {
     expect(css).toContain('body:has(main.has-panel) #mode-bar .mb-label{display:none;}');
   });
