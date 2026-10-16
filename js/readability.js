@@ -26,7 +26,7 @@ function renderAnalytics() {
   // Garde db.chapters (v9.15.0) : undefined pour un roman graphique.
   if (!db.chapters) return;
   const allText = db.chapters.map(c=>getPlainText(c.content)).join('\n');
-  const totalW = db.chapters.reduce((s,c)=>s+getWordCount(c.content),0);
+  const totalW = chaptersTotalWords(db.chapters);
   const avgWC = db.chapters.length ? Math.round(totalW/db.chapters.length) : 0;
   const flesch = fleschKincaid(allText);
   const [flLabel, flColor] = fleschLabel(flesch);
@@ -40,9 +40,9 @@ function renderAnalytics() {
     { v:flesch, l:'Score Flesch' },
     { v:sentences, l:'Phrases total' },
   ].map(s=>`<div class="analytics-card"><div class="av">${s.v}</div><div class="al">${s.l}</div></div>`).join('');
-  const maxCh = Math.max(...db.chapters.map(c=>getWordCount(c.content)), 1);
+  const maxCh = Math.max(...db.chapters.map(c=>chapterWordCount(c)), 1);
   document.getElementById('analytics-bars').innerHTML = db.chapters.map((ch,i) => {
-    const wc=getWordCount(ch.content), pct=Math.round(wc/maxCh*100);
+    const wc=chapterWordCount(ch), pct=Math.round(wc/maxCh*100);
     return `<div class="chapter-bar-row"><span class="u-minw-70px u-ovf-hidden u-tovf-ellipsis u-ws-nowrap" title="${escapeHtml(ch.title)}">Ch.${i+1}</span>
       <div class="u-fg-1 u-bg-v-item-bg u-br-1 u-h-8px u-ovf-hidden">
         <div class="chapter-bar-fill" data-pct="${pct}"></div></div>

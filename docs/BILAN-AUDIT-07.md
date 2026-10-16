@@ -10,7 +10,7 @@ Base : v9.69.0 (note 64/100, niveau 3 — Production à l'échelle familiale). R
 | 3 Réseau de synchro | 011, 012, 020 | 🟢 v9.72.0 (voir ci-dessous) |
 | 4 Écritures évitables | 009, 010 | 🟢 v9.73.0 (voir ci-dessous) |
 | 5 Worker D1 / IA | 007, 015 | 🟢 v9.74.0 (voir ci-dessous) |
-| 6 CPU à la frappe | 003, 002, 022 | à faire |
+| 6 CPU à la frappe | 003, 002, 022 | 🟢 v9.75.0 (voir ci-dessous) |
 | 7 Chargement et cache | 004, 005, 006 | à faire |
 | 8 Images et export | 013, 014 | à faire |
 | 9 Budgets CI et décisions | 019, 021 | à faire |
@@ -71,3 +71,15 @@ Vérifications après le push (16/10/2026) : en ligne v9.73.0 (titre, `sw.js`), 
 | 015 | 🟢 plafond quotidien par profil (200, `AI_DAILY_LIMIT`), délai de réponse de 25 s (504), une nouvelle tentative après 2 s sur 429/503, appel refusé = compteur rendu ; Worker IA lié à D1 (`wrangler-ai.toml`), en-tête `X-Plume-Profile-Id` envoyé par `ai.js` | `lot-aud07-5-quotas-ia.test.js` |
 
 Vérifications après le push (16/10/2026) : sauvegarde chiffrée de la base faite avant le push (`plume-sync-2026-10-16.sql.enc`) ; déploiement CI des deux Workers vert ; en ligne : `/health` 200, Workers 401 sans clé, pré-vérification CORS du Worker IA acceptant `X-Plume-Profile-Id`, `sw.js` v9.74.0 ; **base de production migrée seule à la première requête** : `sync_totals` créée, compteur global 5 888 633 octets / 43 clés = balayage = somme des `bytes` (écart nul) ; copie locale sur une base ANCIENNE (Worker local 8787, application 18851) : migration au premier PUT, compteurs égaux au balayage (804 puis 302 après suppression d'une image), 409 sans effet sur les compteurs, aucune erreur 500. Non couvert : relais IA réel avec la clé Gemini (le plafond et les délais sont couverts par la suite de tests avec un faux fournisseur), plafond atteint en conditions réelles (200 appels), deux appareils avec profils.
+
+## Lot 6 — v9.75.0
+
+Mesures dans Chrome 152 (copie locale de l'application, textes synthétiques ; poste de développement, pas un téléphone).
+
+| ID | Statut | Preuve |
+|---|---|---|
+| 003 | 🟢 cache du décompte par chapitre (WeakMap, rien n'est ajouté à l'objet enregistré) : somme sur 150 000 mots 6,8 ms → 0,1 ms ; sur 400 000 mots 18,1 ms → 0,1 ms (un chapitre modifié) | `lot-aud07-6-cpu.test.js` ; mesure navigateur |
+| 002 | 🟢 PARTIEL, SUFFISANT : la conversion base64 était 97 % du coût de chiffrement ; chemin natif (`toBase64`/`fromBase64`, repli identique à l'ancien code) : enveloppe de 150 000 mots 23,6 → 10 ms, de 400 000 mots 66,8 → 25,8 ms ; chiffrements croisés ancien/natif vérifiés (mêmes chaînes, mêmes empreintes). Web Worker NON fait : la chaîne complète reste sous 50 ms (critère fixé) | `lot-aud07-6-cpu.test.js` ; mesure navigateur |
+| 022 | 🟢 mesuré, aucun correctif : par frappe, 0,1 ms (8 000 mots), 1,1 ms (50 000 mots), 3,6 ms (100 000 mots) | mesure navigateur |
+
+Incident évité : le nom `manuscriptWordCount` existait déjà dans `library.js` (autre signature) et masquait la nouvelle fonction ; les tests de l'index (nombre de mots à 0) l'ont révélé avant livraison. Nouveau nom : `chaptersTotalWords`.

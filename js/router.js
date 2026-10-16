@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.74.0';
+const APP_VERSION = '9.75.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1470,7 +1470,7 @@ function initApp(){
   applyAccentPalette(db.accentPalette);
   applyEditorFont(db.editorFont);
   const dt = document.getElementById('document-title'); if (dt) dt.innerText = db.title || '';
-  sessionWordsStart=db.chapters.reduce((s,c)=>s+getWordCount(c.content),0);
+  sessionWordsStart=chaptersTotalWords(db.chapters);
   sessionStartTime=Date.now();
   // v7.6.0 : piles Annuler/Rétablir remises à zéro à chaque manuscrit ouvert
   // (elles sont propres à un document, pas à partager entre deux romans).

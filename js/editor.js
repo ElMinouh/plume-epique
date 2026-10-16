@@ -212,7 +212,7 @@ function updateChapterWordGoalProgress() {
   if (!el) return;
   const ch = db.chapters[cur];
   if (!ch || !ch.wordGoal) { el.textContent = ''; return; }
-  el.textContent = `(${getWordCount(ch.content)} / ${ch.wordGoal} mots)`;
+  el.textContent = `(${chapterWordCount(ch)} / ${ch.wordGoal} mots)`;
 }
 function liveCounter() {
   if (_switching) return;
@@ -372,7 +372,7 @@ function renderChapterList() {
         <span class="ch-status-dot ch-status-${ch.status||'draft'}" title="${sm.label}"></span>
         <span class="ch-num">${i+1}.</span>
         <span class="ch-title-text u-fg-1 u-ov-hidden u-tovf-ellipsis u-ws-nowrap">${DOMPurify.sanitize(ch.title||'')}</span>
-        <span class="ch-wordcount" title="Nombre de mots">${getWordCount(ch.content)}</span>
+        <span class="ch-wordcount" title="Nombre de mots">${chapterWordCount(ch)}</span>
         <button class="ch-kebab-btn" data-idx="${i}" title="Actions du chapitre" aria-label="Actions du chapitre">${icon('ellipsis-vertical')}</button>
       </div>
       ${tags.length ? `<div class="ch-tags">${tags.map(t=>`<span class="ch-tag">#${DOMPurify.sanitize(t)}</span>`).join('')}</div>` : ''}
@@ -448,7 +448,7 @@ function renderCorkboard() {
       <div class="card-title">${DOMPurify.sanitize(ch.title||'')}</div>
       <div class="card-excerpt">${DOMPurify.sanitize(excerpt)}</div>
       ${tags.length ? `<div class="ch-tags">${tags.map(t=>`<span class="ch-tag">#${DOMPurify.sanitize(t)}</span>`).join('')}</div>` : ''}
-      <div class="card-foot"><span>${getWordCount(ch.content)} mots</span><button class="ch-kebab-btn" data-idx="${i}" title="Actions du chapitre" aria-label="Actions du chapitre">${icon('ellipsis-vertical')}</button></div>
+      <div class="card-foot"><span>${chapterWordCount(ch)} mots</span><button class="ch-kebab-btn" data-idx="${i}" title="Actions du chapitre" aria-label="Actions du chapitre">${icon('ellipsis-vertical')}</button></div>
     </div>`;
   }).join('');
   cont.querySelectorAll('.card').forEach(el => {
@@ -978,7 +978,7 @@ function enterReadingMode() {
   // v7.36.0 (ergonomie) — temps de lecture estimé (~200 mots/min en
   // moyenne), affiché en tête ; même donnée que le plugin "Temps de lecture",
   // ici affichée là où elle est le plus utile (avant de commencer à lire).
-  const totalW = db.chapters.reduce((s,c)=>s+getWordCount(c.content),0);
+  const totalW = chaptersTotalWords(db.chapters);
   const minutes = Math.ceil(totalW/200);
   const readingTimeHtml = `<p class="u-fs-sm u-c-v-text-muted u-ta-center u-m-0-0-14px">≈ ${minutes} min de lecture (${totalW} mots)</p>`;
   container.innerHTML = readingTimeHtml + db.chapters.map((ch,i) =>

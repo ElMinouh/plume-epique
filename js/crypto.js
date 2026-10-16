@@ -8,7 +8,18 @@
 // sauvegarde échouait alors silencieusement, quelle que soit la taille du
 // reste de l'app. bytesToBase64() traite désormais les octets par blocs de
 // 32 768, bien en dessous de la limite, quelle que soit la taille du texte.
+// v9.75.0 (audit AUD-07-002) — conversion natives quand le navigateur les offre (Chrome 140, Firefox 133, Safari 18.2) :
+// l'ancienne boucle (String.fromCharCode par paquets puis btoa) coûtait 9,6 ms pour 0,4 Mo, soit 97 % du temps de
+// chiffrement d'un manuscrit (AES-GCM : 0,25 ms) ; toBase64 : 0,08 ms. Même alphabet, même remplissage : les chaînes
+// produites sont identiques à celles de l'ancien chemin (conservé tel quel en repli).
+function base64ToBytes(b64) {
+  if (typeof Uint8Array.fromBase64 === 'function') {
+    try { return Uint8Array.fromBase64(b64); } catch (e) { /* repli ci-dessous : même comportement qu'avant sur une entrée invalide */ }
+  }
+  return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+}
 function bytesToBase64(bytes) {
+  if (typeof bytes.toBase64 === 'function') return bytes.toBase64();
   let binary = '';
   const chunkSize = 0x8000; // 32768
   for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -61,7 +72,7 @@ const Crypto = {
       const sep = rest.indexOf(':');
       const iterations = parseInt(rest.slice(0, sep), 10);
       if (!(iterations >= PBKDF2_ITERATIONS_MIN && iterations <= PBKDF2_ITERATIONS_MAX)) return null;
-      const buf = Uint8Array.from(atob(rest.slice(sep + 1)), c => c.charCodeAt(0));
+      const buf = base64ToBytes(rest.slice(sep + 1));
       const key = await this.deriveKey(password, buf.slice(0, 16), iterations);
       const dec = await crypto.subtle.decrypt({ name:'AES-GCM', iv:buf.slice(16, 28) }, key, buf.slice(28));
       return new TextDecoder().decode(dec);
@@ -82,7 +93,7 @@ const Crypto = {
     if (typeof b64 === 'string' && b64.startsWith('v2:')) return this.decryptV2(b64.slice(3), password); // v9.31.0 : format v2 (clé de données)
     if (typeof b64 === 'string' && b64.startsWith('p2:')) return this.decryptP2(b64.slice(3), password); // v9.66.0 : coût de dérivation écrit dans l'enveloppe
     try {
-      const buf = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const buf = base64ToBytes(b64);
       const key = await this.deriveKey(password, buf.slice(0,16));
       const dec = await crypto.subtle.decrypt({ name:'AES-GCM', iv:buf.slice(16,28) }, key, buf.slice(28));
       return new TextDecoder().decode(dec);
@@ -118,7 +129,7 @@ const Crypto = {
   },
   async decryptV2(b64, dek) {
     try {
-      const buf = Uint8Array.from(atob(b64), ch => ch.charCodeAt(0));
+      const buf = base64ToBytes(b64);
       const key = await this.derive(dek, 'plume-text-v2');
       return new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(0, 12) }, key, buf.slice(12)));
     } catch (e) { return null; }

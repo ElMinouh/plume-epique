@@ -62,3 +62,6 @@ Proposition initiale : sortir date/nombre de mots/chapitres de l'index synchroni
 ## Compteurs de quota auto-migrés, jamais bloquants seuls (16/10/2026, AUD-07-007)
 Les quotas du Worker de synchro lisent des compteurs (`sync_totals`) au lieu de balayer les morceaux. **Écarts avec la proposition** : (1) pas de script de migration à lancer : le Worker migre seul et de façon idempotente à la première requête (essayé sur une copie de la vraie base : écart nul) ; (2) un compteur ne refuse jamais seul : tout dépassement apparent est confirmé par un recomptage par balayage avant le 507 (une dérive coûte un balayage, jamais un refus injustifié). **À revoir** si `__usage__` montre un écart `totalBytes` / `counterBytes` persistant.
 
+## Web Worker de sauvegarde non retenu (16/10/2026, AUD-07-002)
+Le coût de la chaîne de sauvegarde venait surtout de la conversion base64 (97 % du temps de chiffrement) : le chemin natif la ramène à ~10 ms pour 150 000 mots (~26 ms pour 400 000) dans Chrome, sous le critère de 50 ms fixé. Un Web Worker aurait ajouté un fichier, un transfert de chaînes et un risque dans la chaîne de sauvegarde pour un gain nul. **À revoir** si une mesure sur téléphone montre une tâche de plus de 50 ms ou si les manuscrits dépassent 1 million de mots.
+

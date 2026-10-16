@@ -11,7 +11,7 @@ function updateDailyStats() {
   // (graphicnovel.js) est son équivalent pour l'autre docType.
   if (!db.chapters) return;
   const today = getTodayKey();
-  const totalW = db.chapters.reduce((s,c) => s + getWordCount(c.content), 0);
+  const totalW = chaptersTotalWords(db.chapters);
   if (!db.sessionStats) db.sessionStats = {};
   db.sessionStats[today] = totalW;
   // v7.12.0 (Lot 9) : accumulation de l'activité par heure de la journée,
@@ -64,7 +64,7 @@ function updateGoalsUI(totalW) {
   // Garde db.chapters (v9.15.0) : appelée sans argument (tabs.js), le repli
   // ci-dessous lisait db.chapters sans condition — undefined pour un roman
   // graphique.
-  totalW = totalW ?? (db.chapters ? db.chapters.reduce((s,c) => s + getWordCount(c.content), 0) : 0);
+  totalW = totalW ?? (db.chapters ? chaptersTotalWords(db.chapters) : 0);
   const weekW = getWordsInLastNDays(7, totalW), monthW = getWordsInLastNDays(30, totalW);
   const wGoal = db.weeklyGoal || 3000, mGoal = db.monthlyGoal || 12000;  const wPct = Math.min(100, Math.round(weekW/wGoal*100)), mPct = Math.min(100, Math.round(monthW/mGoal*100));
   const wBar = document.getElementById('week-goal-bar'); if (wBar) wBar.style.width = wPct+'%';
@@ -82,7 +82,7 @@ function updateEstimatedFinishDate() {
   if (!el) return;
   const goal = db.wordGoal || 0;
   if (!goal) { el.textContent = ''; return; }
-  const totalW = db.chapters.reduce((s,c) => s + getWordCount(c.content), 0);
+  const totalW = chaptersTotalWords(db.chapters);
   const remaining = goal - totalW;
   if (remaining <= 0) { el.textContent = 'Objectif de mots déjà atteint !'; return; }
   const pace = getWordsInLastNDays(7, totalW) / 7;
@@ -159,7 +159,7 @@ function computeBestWritingHour() {
 function renderStats() {
   // Garde db.chapters (v9.15.0) : ce panneau est spécifique aux manuscrits texte.
   if (!db.chapters) return;
-  const totalW=db.chapters.reduce((s,c)=>s+getWordCount(c.content),0);
+  const totalW=chaptersTotalWords(db.chapters);
   const todayW=Math.max(0,totalW-sessionWordsStart), elapsed=Math.round((Date.now()-sessionStartTime)/60000);
   const wpm=elapsed>0?Math.round(todayW/elapsed):0;
   const pct=Math.min(100,Math.round(todayW/(db.dailyGoal||500)*100));

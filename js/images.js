@@ -53,12 +53,16 @@ async function plumeImagesDb() {
 
 // ── Outils octets ↔ base64 (indépendants de crypto.js, chargé après ce fichier) ──
 function imgBytesToBase64(bytes) {
+  if (typeof bytes.toBase64 === 'function') return bytes.toBase64(); // v9.75.0 (AUD-07-002) : conversion native, voir crypto.js
   let binary = '';
   const chunk = 0x8000;
   for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
   return btoa(binary);
 }
-function imgBase64ToBytes(b64) { return Uint8Array.from(atob(b64), c => c.charCodeAt(0)); }
+function imgBase64ToBytes(b64) {
+  if (typeof Uint8Array.fromBase64 === 'function') { try { return Uint8Array.fromBase64(b64); } catch (e) { /* repli */ } }
+  return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+}
 function imgToBytes(data) { return data instanceof Uint8Array ? data : new Uint8Array(data); }
 
 // ── Chiffrement des images ──

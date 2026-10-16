@@ -142,7 +142,7 @@ function aiNovelEstimate(chapters) {
   const batches = aiNovelBatches(chapters);
   const groups = Math.max(1, Math.ceil(batches.length * AI_FACTS_EST_PER_BATCH / AI_FACTS_GROUP_CHARS));
   const calls = batches.length + groups;
-  const words = chapters.reduce((t, c) => t + getWordCount(c.content), 0);
+  const words = chaptersTotalWords(chapters);
   return { batches, groups, calls, words, seconds: calls * AI_SECONDS_PER_CALL };
 }
 // Regroupe les listes de faits (une par paquet) en groupes d'au plus AI_FACTS_GROUP_CHARS.
@@ -197,7 +197,7 @@ async function generateAISummary() {
   if (txt.length < 50) { toast('Chapitre trop court.','error'); return; }
   panel.classList.add('active'); showAiLoader('ai-summary-text');
   const chunks = aiChunkText(txt, AI_CHUNK_CHARS);
-  const words = getWordCount(ch.content);
+  const words = chapterWordCount(ch);
   try {
     let s, note;
     if (chunks.length === 1) {
@@ -257,7 +257,7 @@ async function aiCheckInconsistencies() {
       const r = await aiCall(`Personnages: ${bible || '(vide)'}\n\nTexte${chunks.length > 1 ? ` (partie ${i + 1} sur ${chunks.length} du chapitre « ${ch.title} »)` : ` du chapitre « ${ch.title} »`}: ${chunks[i]}\n\nListe les incohérences potentielles avec les fiches des personnages, en français (max 5 points).`, 600, token);
       results.push(chunks.length > 1 ? `Partie ${i + 1} :\n${r}` : r);
     }
-    const words = getWordCount(ch.content);
+    const words = chapterWordCount(ch);
     aiShowResult(el, `Analysé : chapitre « ${ch.title || cur + 1} » lu en entier (${words} mots), comparé aux fiches des personnages. Les autres chapitres n'ont pas été comparés : choisissez « Tout le roman » pour cela.`, results.join('\n\n'));
   } catch(e) { el.innerHTML = `<span class="u-c-v-danger">${icon('circle-alert')} ${escapeHtml(e.message)}</span>`; }
   finally { token.done = true; }

@@ -24,7 +24,7 @@ const PLUGINS_REGISTRY = [
     name: 'Temps de lecture',
     description: 'Estime le temps de lecture du roman entier.',
     run: async () => {
-      const totalW = db.chapters.reduce((s,c)=>s+getWordCount(c.content),0);
+      const totalW = chaptersTotalWords(db.chapters);
       const minSlow=Math.ceil(totalW/150), minFast=Math.ceil(totalW/250);
       return `${icon('book-open')} <strong>${totalW} mots</strong><br>Lecture lente (~150 mpm) : <strong>${Math.floor(minSlow/60)}h${minSlow%60}min</strong><br>Lecture rapide (~250 mpm) : <strong>${Math.floor(minFast/60)}h${minFast%60}min</strong>`;
     }

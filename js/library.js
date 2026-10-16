@@ -746,7 +746,7 @@ async function migrateLegacyDocumentIfNeeded() {
     if (dec) {
       const parsed = JSON.parse(dec);
       chapterCount = (parsed.chapters||[]).length;
-      wordCount = (parsed.chapters||[]).reduce((s,c) => s + getWordCount(c.content), 0);
+      wordCount = chaptersTotalWords((parsed.chapters||[]));
       if (parsed.title) {
         title = parsed.title;
       } else {
@@ -1229,7 +1229,7 @@ async function touchDocumentMeta(force) {
     entry.title = db.title || 'Sans titre';
     entry.lastModified = Date.now();
     entry.chapterCount = db.chapters.length;
-    entry.wordCount = db.chapters.reduce((s,c) => s + getWordCount(c.content), 0);
+    entry.wordCount = chaptersTotalWords(db.chapters);
     entry.wordGoal = db.wordGoal || 0;
   });
 }
@@ -1311,7 +1311,7 @@ async function touchDocListEntry(docId, mData) {
     if (!entry) return;
     entry.title = mData.title || entry.title;
     entry.chapterCount = mData.chapters.length;
-    entry.wordCount = mData.chapters.reduce((s,c) => s + getWordCount(c.content), 0);
+    entry.wordCount = chaptersTotalWords(mData.chapters);
     entry.wordGoal = mData.wordGoal || 0;
     entry.lastModified = Date.now();
   });
@@ -1780,7 +1780,7 @@ function manuscriptPlainText(data) {
   return ((data && data.chapters) || []).map(c => getPlainText(c.content)).join('\n');
 }
 function manuscriptWordCount(data) {
-  return ((data && data.chapters) || []).reduce((s, c) => s + getWordCount(c.content), 0);
+  return ((data && data.chapters) || []).reduce((s, c) => s + chapterWordCount(c), 0);
 }
 
 async function compareConflictBackup(key, docId) {

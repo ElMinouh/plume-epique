@@ -102,6 +102,28 @@ function getWordCount(t) {
   for (const w of plain.split(/\s+/)) if (/[\p{L}\p{N}]/u.test(w)) n++;
   return n;
 }
+// v9.75.0 (audit AUD-07-003) — COMPTAGE MIS EN CACHE PAR CHAPITRE. La somme des mots du manuscrit était recalculée en
+// entier (deux remplacements d'expression régulière et un découpage sur le HTML de CHAQUE chapitre) à chaque frappe —
+// deux fois quand un objectif de mots est défini — puis une troisième fois à chaque enregistrement : 4 ms pour 80 000
+// mots, 21 ms pour 400 000, par passe (mesuré), davantage sur un téléphone. Désormais le décompte d'un chapitre est
+// retenu avec le texte qui l'a produit : un chapitre dont le contenu n'a pas changé n'est jamais recompté (comparaison
+// de chaîne : immédiate quand c'est la même chaîne). Le cache est une WeakMap : rien n'est ajouté à l'objet chapitre,
+// donc rien ne part dans le manuscrit enregistré, synchronisé ou exporté.
+const _wordCountCache = new WeakMap();
+function chapterWordCount(ch) {
+  if (!ch) return 0;
+  const content = ch.content;
+  const hit = _wordCountCache.get(ch);
+  if (hit && hit.src === content) return hit.n;
+  const n = getWordCount(content);
+  _wordCountCache.set(ch, { src: content, n });
+  return n;
+}
+function chaptersTotalWords(chapters) {
+  let total = 0;
+  for (const ch of (chapters || [])) total += chapterWordCount(ch);
+  return total;
+}
 // Ancien comptage, conservé UNIQUEMENT pour recaler l'historique des statistiques (rebaseWordStats).
 function legacyWordCount(t) {
   const m = (t || '').replace(/<[^>]*>/g, ' ').match(/[a-zA-Z0-9À-ÿ]+/g);

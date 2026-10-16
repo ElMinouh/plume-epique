@@ -935,7 +935,7 @@ async function submitMigration(legacy, encrypted) {
   await persistData(docListKey(profil.id), { version:1, documents:[{
     id: docId, title: dbData.title, lastModified: Date.now(),
     chapterCount: (dbData.chapters||[]).length,
-    wordCount: (dbData.chapters||[]).reduce((s,c) => s + getWordCount(c.content), 0)
+    wordCount: chaptersTotalWords((dbData.chapters||[]))
   }] });
 
   showRecoveryCode(code, name, async () => { await openProfile(profil, dek); });
