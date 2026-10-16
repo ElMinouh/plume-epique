@@ -15,6 +15,7 @@ function takeSnapshot(chIdx, label) {
     title: ch.title
   });
   db.history[key] = thinSnapshots(db.history[key], Date.now(), MAX_SNAPSHOTS);
+  trimHistoryTotal(db.history); // v9.79.0 : plafond total du manuscrit (AUD-07-001)
   return true;
 }
 // v9.33.0 (AUD-02-008) — instantané du chapitre courant seulement si son texte a changé depuis son
@@ -42,6 +43,7 @@ function thinAllHistory() {
     const after = thinSnapshots(before, now, MAX_SNAPSHOTS);
     if (after.length !== before.length) { db.history[k] = after; changed = true; }
   }
+  if (trimHistoryTotal(db.history)) changed = true; // v9.79.0 : un manuscrit déjà alourdi retrouve un poids raisonnable à l'ouverture
   return changed;
 }
 // v9.21.0 (audit AUD-01-005) — ce minuteur sauvegardait le manuscrit toutes les

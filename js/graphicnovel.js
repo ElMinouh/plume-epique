@@ -2272,6 +2272,7 @@ function gnTakeSnapshot(pageIdx, label) {
   if (last && last.content === content) return false; // rien changé depuis le dernier instantané
   db.history[page.id].unshift({ ts: Date.now(), label: label || new Date().toLocaleString('fr'), content });
   db.history[page.id] = thinSnapshots(db.history[page.id], Date.now(), GN_MAX_SNAPSHOTS);
+  trimHistoryTotal(db.history); // v9.79.0 : plafond total du manuscrit (AUD-07-001)
   return true;
 }
 

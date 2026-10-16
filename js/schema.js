@@ -44,6 +44,41 @@ const HISTORY_MAX_MANUAL = 20;
 // copies manuelles ne comptent pas dans ce plafond et ne sont jamais retirées par lui.
 const HISTORY_MAX_AUTO_BYTES = 2000000;
 function snapshotBytes(sn) { return sn && typeof sn.content === 'string' ? sn.content.length : 0; }
+// v9.79.0 (audit AUD-07-001, correction du lot 2) — PLAFOND TOTAL. Le plafond par chapitre ci-dessus ne protège pas un roman
+// dont TOUS les chapitres ont leurs 20 copies : 60 chapitres de 2 500 mots × 20 copies = 15,4 Mo d'historique pour 0,8 Mo de
+// texte, soit ≈ 22,6 Mo une fois chiffré (mesuré sur le vrai code), au-dessus de la limite d'envoi de 20 Mio du serveur.
+// On borne donc aussi l'ENSEMBLE des copies automatiques d'un manuscrit (8 Mo de texte clair ≈ 11 Mo chiffrés) : les plus
+// anciennes tombent d'abord, tous chapitres confondus, mais la copie automatique la plus récente de chaque chapitre est
+// toujours gardée et les copies MANUELLES ne sont jamais retirées. Renvoie true si quelque chose a été retiré.
+const HISTORY_MAX_TOTAL_BYTES = 8 * 1000 * 1000;
+function trimHistoryTotal(history, maxBytes) {
+  if (!history || typeof history !== 'object') return false;
+  const cap = maxBytes || HISTORY_MAX_TOTAL_BYTES;
+  let total = 0;
+  const candidates = [];
+  for (const k of Object.keys(history)) {
+    const list = history[k];
+    if (!Array.isArray(list)) continue;
+    let protegee = false; // la plus récente copie automatique de ce chapitre
+    const tries = list.filter(sn => !/^Manuel/.test((sn && sn.label) || '')).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    for (const sn of tries) {
+      total += snapshotBytes(sn);
+      if (!protegee) { protegee = true; continue; }
+      candidates.push({ k, sn });
+    }
+  }
+  if (total <= cap) return false;
+  candidates.sort((a, b) => (a.sn.ts || 0) - (b.sn.ts || 0)); // les plus anciennes d'abord
+  const retirees = new Map();
+  for (const c of candidates) {
+    if (total <= cap) break;
+    total -= snapshotBytes(c.sn);
+    if (!retirees.has(c.k)) retirees.set(c.k, new Set());
+    retirees.get(c.k).add(c.sn);
+  }
+  for (const [k, set] of retirees) history[k] = history[k].filter(sn => !set.has(sn));
+  return retirees.size > 0;
+}
 function thinSnapshots(list, now, maxAuto, maxBytes) {
   if (!Array.isArray(list) || list.length <= 1) return Array.isArray(list) ? list.slice() : [];
   const limitAuto = maxAuto || HISTORY_MAX_AUTO;

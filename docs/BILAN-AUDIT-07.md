@@ -13,7 +13,7 @@ Base : v9.69.0 (note 64/100, niveau 3 — Production à l'échelle familiale). R
 | 6 CPU à la frappe | 003, 002, 022 | 🟢 v9.75.0 (voir ci-dessous) |
 | 7 Chargement et cache | 004, 005, 006 | 🟢 v9.76.0 (voir ci-dessous) |
 | 8 Images et export | 013, 014 | 🟢 013 v9.77.0 · 014 v9.78.0 |
-| 9 Budgets CI et décisions | 019, 021 | à faire |
+| 9 Budgets CI et décisions | 019, 021 | 🟢 v9.79.0 (voir ci-dessous) |
 
 ## Lot 1 — v9.70.0
 
@@ -111,3 +111,14 @@ Vérifications après le push du 013 (16/10/2026) : CI verte ; en production v9.
 | 014 | 🟢 images chiffrées dans R2 (bucket privé `plume-images`, liaison `IMAGES`) ; D1 : fiche (`chunks = 0`, `wid` « r2:… », taille) et compteurs propres `img` et `pimg:<profil>` (hors `global` et `p:`, donc hors quotas D1) ; budgets 5 Go / 2 Go par profil, refus 507 après confirmation par recomptage ; anciennes images D1 lisibles et déplaçables ; fiche sans objet = auto-guérison ; effacement d'un profil = objets R2 supprimés ; sans liaison : comportement d'avant. **Décision** : les 4 images existantes (5 Mo) restent en D1, aucune migration | `lot-aud07-8b-r2.test.js` (16 tests, faux R2) ; essai dans workerd (R2 local simulé) : image de 1,6 Mo écrite, relue à l'identique, 409 sur une seconde écriture, supprimée ; D1 n'en garde que 20 octets |
 
 Vérifications après le push du 014 (16/10/2026) : sauvegarde chiffrée de la base faite avant ; CI et déploiement du Worker de synchro verts, journal de déploiement : liaisons `env.DB (plume-sync)` et `env.IMAGES (plume-images) R2 Bucket` ; en ligne `/health` 200, Workers 401 sans clé, application v9.78.0 (cache unique, précache 61/61, console sans erreur) ; D1 inchangée (43 clés, 5 888 633 octets, 0 image en R2 : aucune image n'a encore été envoyée depuis le déploiement). Copie locale dans workerd avec R2 simulé : image de 1,6 Mo écrite dans R2 (D1 : 20 octets), relue à l'identique, 409 sur une seconde écriture, supprimée, compteurs remis à zéro, aucune erreur 500. Non couvert : envoi d'une vraie image depuis l'application vers le vrai R2 (exige une session connectée avec un roman graphique : à faire par le propriétaire, voir le compte rendu), plafonds de 5 Go / 2 Go atteints en réel.
+
+## Lot 9 — v9.79.0 : audit AUD-07 terminé (22 constats traités)
+
+| ID | Statut | Preuve |
+|---|---|---|
+| 019 | 🟢 quatre budgets dans `npm test` : premier chargement (34 fichiers, 1 148 Ko décodés / 294 Ko Brotli mesurés ; budgets 1 330 / 340 Ko, JS ≤ 1 000 Ko, ≤ 40 fichiers, aucune librairie > 100 Ko), enveloppe d'un manuscrit avec historique, requêtes D1 par écriture (≤ 12, indépendantes du volume), durée de la chaîne de sauvegarde (< 400 ms pour 150 000 mots) | `lot-aud07-9-budgets.test.js` |
+| 021 | 🟢 décision d'architecture écrite (mono-foyer par conception, conditions de réouverture, trajectoire) dans `docs/DECISIONS.md` ; aucune alerte de nombre de profils (non demandée) | `docs/DECISIONS.md` |
+| 001 (correction) | 🟢 **défaut du lot 2 trouvé par ce lot** : le plafond de 2 Mo par chapitre ne protégeait pas un roman de 150 000 mots avec 20 copies sur chacun de ses 60 chapitres (15,4 Mo d'historique, ≈ 22,6 Mo chiffrés > 20 Mio, mesuré sur le vrai code). Plafond TOTAL de 8 Mo de copies automatiques par manuscrit (`trimHistoryTotal`, choix du propriétaire parmi 4 / 8 Mo / rien) : même scénario ≈ 12 Mio chiffrés ; plus récente copie de chaque chapitre et copies manuelles jamais retirées ; appliqué à chaque copie et à l'ouverture | `lot-aud07-9-budgets.test.js` |
+
+### Bilan de l'audit AUD-07 (22 constats)
+Tous traités : 001 à 022. Restent hors code : moniteur externe UptimeRobot sur `/health`, copie de la phrase secrète de sauvegarde dans un gestionnaire de mots de passe, lancement hebdomadaire de `scripts/sauvegarder-d1.cjs` ; à mesurer un jour sur un vrai téléphone : pic mémoire d'un export de 100 pages, durée de la chaîne de sauvegarde. Constats 021 et 022 : observations (pas de correctif nécessaire).

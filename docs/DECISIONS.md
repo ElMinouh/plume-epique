@@ -68,3 +68,19 @@ Le coût de la chaîne de sauvegarde venait surtout de la conversion base64 (97 
 ## Images dans R2, par le Worker de synchro (16/10/2026, AUD-07-014)
 Les images chiffrées vont dans un bucket R2 privé via le Worker (pas de lien public), avec le même protocole côté application (JSON en base64, clés `img_*`) : aucune modification du client, aucune nouvelle surface d'accès. **Pourquoi R2** : stockage d'objets fait pour cela (10 Go gratuits, sortie gratuite) au lieu de lignes SQL (≈ 275 images pour toute la famille, base 64 +33 %). **Choix assumés** : (1) carte bancaire enregistrée chez Cloudflare (obligatoire pour activer R2), neutralisée par un plafond de 5 Go dans le Worker ; (2) les 4 images existantes (5 Mo) restent en D1, pas de migration ; (3) compteurs séparés pour que les images n'entament ni les quotas D1 ni ceux du texte. **À revoir** si la consommation R2 du mois approche 5 Go ou si le coût apparaît sur une facture.
 
+## Budgets de performance contrôlés par la CI (16/10/2026, AUD-07-019)
+`npm test` (donc la CI de chaque push) échoue quand une dérive lente dépasse un budget. **Relever un budget est une décision, pas un réglage** : modifier la valeur dans `tests/vitest/lot-aud07-9-budgets.test.js` ET ce tableau, avec la raison dans le message de commit.
+
+| Budget | Valeur | Mesuré (16/10/2026) | Pourquoi |
+|---|---|---|---|
+| Premier chargement (HTML + CSS + scripts) | ≤ 1 330 Ko décodés, ≤ 340 Ko Brotli | 1 148 Ko, 294 Ko | temps d'affichage sur mobile (AUD-07-004) |
+| JavaScript au démarrage | ≤ 1 000 Ko décodés, ≤ 40 fichiers | 869 Ko, 34 fichiers | idem |
+| Librairie dans le chargement initial | aucune > 100 Ko (passer par `ensureLib`) | 0 | idem |
+| Manuscrit de 150 000 mots avec 20 copies par chapitre | ≤ 15 Mio chiffrés (limite serveur : 20 Mio) | ≈ 12 Mio | la synchro ne doit pas s'arrêter (AUD-07-001) |
+| Historique automatique d'un manuscrit | ≤ 8 Mo de texte | 8 Mo | idem |
+| Requêtes D1 pour une écriture | ≤ 12, indépendantes du volume | 12 maximum | quota de lignes lues (AUD-07-007) |
+| Chaîne de sauvegarde (150 000 mots) | < 400 ms (Node) | 10 à 25 ms | fluidité de l'écriture (AUD-07-002) |
+
+## Mono-foyer par conception : conditions de réouverture (16/10/2026, AUD-07-021)
+Plume est conçue pour un foyer : 20 profils au plus (`MAX_CLAIMED_PROFILES`, refus 507 au 21e), une clé de synchronisation partagée, un limiteur d'essais propre à chaque instance du Worker, une base D1 gratuite partagée avec d'autres projets. À l'échelle réelle (4 profils, 5,9 Mo de texte, ≈ 280 écritures serveur par jour) c'est un choix cohérent, pas un défaut. **Ouvrir l'application au-delà du cercle familial doit être une décision explicite**, à prendre quand l'un de ces seuils est franchi : plus de 15 profils, ou plus de 3 foyers, ou un budget d'infrastructure payant. **Trajectoire recommandée alors** : comptes individuels avec authentification (fin de la clé partagée, voir AUD-01-001), une base par profil (D1 par utilisateur ou Durable Object qui sérialise aussi les écritures), synchronisation par chapitre avec opérations différentielles (fin du document monolithique), limitation de débit par les règles Cloudflare plutôt qu'en mémoire, observabilité complète. Tant que le périmètre reste familial : aucune action.
+
