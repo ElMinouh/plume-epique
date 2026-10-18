@@ -151,6 +151,47 @@ test.describe('Parcours navigateur', () => {
     });
   }
 
+  // AUD-09-004 : thème et aide restent accessibles dans le roman graphique, et l'aide décrit CE type de document.
+  test('roman graphique : le thème bascule et l\'aide liste les raccourcis du livre illustré', async ({ page }) => {
+    const erreurs = surveillerErreurs(page);
+    await ouvrirBibliotheque(page);
+    await creerProjet(page, 'Roman graphique');
+    await expect(page.locator('#gn-theme-btn')).toBeVisible();
+    await stabiliser(page);
+    const sombreAvant = await page.evaluate(() => document.body.classList.contains('dark-mode'));
+    await page.click('#gn-theme-btn');
+    await page.waitForTimeout(600);
+    expect(await page.evaluate(() => document.body.classList.contains('dark-mode'))).toBe(!sombreAvant);
+    await page.click('#gn-theme-btn');
+    await page.waitForTimeout(600);
+    expect(await page.evaluate(() => document.body.classList.contains('dark-mode'))).toBe(sombreAvant);
+    await page.click('#gn-help-btn');
+    await expect(page.locator('#shortcuts-overlay.active')).toBeVisible();
+    await expect(page.locator('#shortcuts-rows')).toContainText('Supprimer le bloc sélectionné');
+    await expect(page.locator('#shortcuts-rows')).not.toContainText('Gras');
+    await expect(page.locator('#help-tour-btn')).toBeHidden();
+    await expect(page.locator('#shortcuts-note')).toContainText('grand écran');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#shortcuts-overlay.active')).toHaveCount(0);
+    await stabiliser(page);
+    expect(await nbInert(page)).toBe(0);
+    expect(erreurs).toEqual([]);
+  });
+
+  test('texte : l\'aide liste les raccourcis de l\'éditeur et propose les visites', async ({ page }) => {
+    const erreurs = surveillerErreurs(page);
+    await ouvrirBibliotheque(page);
+    await creerProjet(page, 'Texte seul');
+    await expect(page.locator('#shortcuts-hint-btn')).toBeVisible();
+    await stabiliser(page);
+    await page.click('#shortcuts-hint-btn');
+    await expect(page.locator('#shortcuts-overlay.active')).toBeVisible();
+    await expect(page.locator('#shortcuts-rows')).toContainText('Gras');
+    await expect(page.locator('#help-tour-btn')).toBeVisible();
+    await page.keyboard.press('Escape');
+    expect(erreurs).toEqual([]);
+  });
+
   test.describe('téléphone (375 px)', () => {
     test.use({ viewport: { width: 375, height: 812 } });
     test('bibliothèque et éditeur sans défilement horizontal', async ({ page }) => {

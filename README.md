@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.85.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.86.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -49,6 +49,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
   profils multiples (suppression de profil propagée à tous les appareils).
 - **Premiers pas** (v9.41.0) : le premier écran propose « clé de la famille » ou « écrire sur cet appareil seulement » ; la configuration de la sauvegarde GitHub est **facultative** (bulle « Plus tard », panneau Système toujours fermable, rappel discret dans la bibliothèque) ; une seule bulle d'aide à la fois ; un clic sur un type de projet le crée.
 - **Types de document** (v9.85.0) : un registre (`DOC_TYPES`, `schema.js`) dit ce que sait faire chaque type (texte, roman graphique) ; Ctrl+S, Z, Y, E et F l'interrogent. Ctrl+F cherche aussi dans le texte des pages d'un roman graphique.
+- **Roman graphique et aide** (v9.86.0) : thème et aide accessibles depuis l'écran du livre illustré ; la fenêtre « Aide et raccourcis » liste les raccourcis du type de document ouvert (flèches, Suppr, Alt+↑/↓ des pages pour le roman graphique) et masque les visites qui décrivent l'éditeur de texte. Limite connue : le placement libre des blocs est réservé aux écrans de plus de 900 px.
 - **Retours et clavier** (v9.42.0) : messages temporaires de 3 à 8 s avec ✕ pour les erreurs (pause au survol) ; un échec d'enregistrement reste affiché (message fixe + « ⚠ Non enregistré depuis hh:mm » dans le pied de page) jusqu'au prochain enregistrement réussi ; Échap ferme **une seule couche** à la fois ; Tab n'est piégé que dans les vraies fenêtres modales ; les confirmations de suppression mettent le focus sur « Annuler ».
 - **Lisibilité** (v9.43.0) : textes d'interface relevés (≥ 12,5 px) et réglage **Taille de l'interface** (Normale / Grande / Très grande, par appareil) dans Config ; contrastes des boutons ≥ 4,5:1 ; cibles de clic ≥ 24 px (44 px au toucher) ; plus de débordement horizontal de l'éditeur sur téléphone ; animations coupées si le système le demande.
 - **Cohérence** (v9.44.0) : plus aucune boîte native du navigateur (confirmations, saisie des tags/du nom de profil et notices passent par les fenêtres de l'application) ; « Accueil » supprimé (c'était une déconnexion) : la déconnexion enregistre d'abord, sans message inexact ; vocabulaire unifié (« version », « jeton d'accès GitHub », « sauvegarde GitHub ») ; formulaires d'accueil : Entrée valide, règle du mot de passe visible, erreur liée au champ.
@@ -106,7 +107,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 ```bash
 npm install
 npm test            # Vitest : ~1120 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
-npm run e2e         # 9 parcours dans un vrai Chromium (ouverture d'un manuscrit, fenêtres, téléphone 375 px, roman graphique, axe-core) ; première fois : npx playwright install chromium
+npm run e2e         # 11 parcours dans un vrai Chromium (ouverture d'un manuscrit, fenêtres, téléphone 375 px, roman graphique, axe-core) ; première fois : npx playwright install chromium
 ```
 
 Pas de build, pas de linter. Les tests partagent un contexte applicatif global : `fileParallelism: false`.

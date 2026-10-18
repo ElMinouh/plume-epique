@@ -274,6 +274,7 @@ function genChapterId() {
 // `db.docType === 'roman_graphique'` — 18 endroits dans 6 fichiers. Oublier un endroit plantait (v9.13.0 : Ctrl+S, Ctrl+Z ;
 // v9.84.1 : Ctrl+F sur `db.chapters` inexistant). Désormais le type DIT ce qu'il sait faire et les gestionnaires l'interrogent :
 // ajouter un type (bande dessinée…) = ajouter une entrée ici, sans retoucher les gestionnaires.
+// Aide et raccourcis (fenêtre « ? ») : chaque type liste SES raccourcis (shortcuts), une note éventuelle, et dit s'il a des visites.
 // Les actions sont des fonctions paresseuses : graphicnovel.js, editor.js… sont chargés après ce fichier.
 // Un test (lot-aud09-3) interdit de comparer `docType` à 'roman_graphique' hors de ce fichier et de graphicnovel.js.
 // ═══════════════════════════════════════════════════════
@@ -291,6 +292,10 @@ function _docFindInText(text, q) {
 const DOC_TYPES = {
   texte: {
     label: 'Texte',
+    shortcuts: [['Gras', 'Ctrl+B'], ['Italique', 'Ctrl+I'], ['Souligné', 'Ctrl+U'], ['Annuler', 'Ctrl+Z'], ['Rétablir', 'Ctrl+Y'],
+      ['Réordonner un chapitre (focus dessus)', 'Alt+↑/↓'], ['Rechercher dans tout le projet', 'Ctrl+F'], ['Sauvegarder immédiatement', 'Ctrl+S'], ['Exporter le manuscrit', 'Ctrl+E']],
+    shortcutsNote: '',
+    tours: true,                // premiers pas et visite complète décrivent l'éditeur de texte
     saveNow() { flushCurrentChapter(); save(); },
     async saveForClose() { flushCurrentChapter(); await save(); if (typeof flushDocumentMeta === 'function') await flushDocumentMeta(); },
     undo() { undoEdit(); },
@@ -311,6 +316,11 @@ const DOC_TYPES = {
   },
   roman_graphique: {
     label: 'Roman graphique',
+    shortcuts: [['Déplacer le bloc sélectionné de 1 %', 'Flèches'], ['Déplacer de 5 %', 'Maj+Flèches'], ['Supprimer le bloc sélectionné', 'Suppr'],
+      ['Déplacer une page (focus sur son numéro)', 'Alt+↑/↓'], ['Annuler', 'Ctrl+Z'], ['Rétablir', 'Ctrl+Y'],
+      ['Rechercher dans le texte des pages', 'Ctrl+F'], ['Sauvegarder immédiatement', 'Ctrl+S'], ['Exporter le livre', 'Ctrl+E']],
+    shortcutsNote: 'Le placement libre des images et des textes se fait sur grand écran (plus de 900 px de large). Sur tablette ou téléphone, vous choisissez un gabarit et remplacez les images.',
+    tours: false,               // premiers pas et visite complète ne décrivent pas cet écran
     saveNow() { saveGraphicNovel(true); },
     async saveForClose() { await saveGraphicNovel(true); },
     undo() { gnUndo(); },

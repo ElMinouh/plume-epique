@@ -232,7 +232,25 @@ function updateTrashBadge() {
 // Ouverture via la touche "?" (voir router.js) ou le petit bouton ❔ du
 // bandeau du bas.
 // ═══════════════════════════════════════════════════════
-function openShortcutsHelp() { document.getElementById('shortcuts-overlay').classList.add('active'); }
+// v9.86.0 (AUD-09-004) : les raccourcis listés sont ceux du type de document ouvert (DOC_TYPES.shortcuts, schema.js) ; la
+// bibliothèque, qui n'a pas de document ouvert, affiche ceux du texte. Premiers pas et visite : seulement si le type en a.
+function renderShortcutsHelp() {
+  const type = (document.body.classList.contains('library-mode') || typeof db === 'undefined' || !db) ? DOC_TYPES.texte : docTypeOf(db);
+  const rows = document.getElementById('shortcuts-rows');
+  if (rows) {
+    rows.textContent = '';
+    [...type.shortcuts, ['Fermer la fenêtre active', 'Échap'], ['Afficher cette aide', '?']].forEach(([label, key]) => {
+      const row = document.createElement('div'); row.className = 'shortcut-row';
+      const l = document.createElement('span'); l.textContent = label;
+      const k = document.createElement('span'); k.className = 'shortcut-key'; k.textContent = key;
+      row.append(l, k); rows.appendChild(row);
+    });
+  }
+  const note = document.getElementById('shortcuts-note');
+  if (note) { note.textContent = type.shortcutsNote || ''; note.hidden = !type.shortcutsNote; }
+  ['help-onboarding-btn', 'help-tour-btn'].forEach(id => { const b = document.getElementById(id); if (b) b.hidden = !type.tours; });
+}
+function openShortcutsHelp() { renderShortcutsHelp(); document.getElementById('shortcuts-overlay').classList.add('active'); }
 function closeShortcutsHelp() { document.getElementById('shortcuts-overlay').classList.remove('active'); }
 // v9.68.0 (audit AUD-06-015) — page « Confidentialité » (texte dans index.html, #privacy-overlay).
 function openPrivacyPolicy() { closeShortcutsHelp(); document.getElementById('privacy-overlay').classList.add('active'); }

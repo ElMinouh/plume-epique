@@ -53,7 +53,7 @@ const REGISTRE = _schema.slice(_schema.indexOf('function _docPlainText'), _schem
   it('ouvertures : entrées du menu Outils, raccourci, aide des raccourcis, carte de la bibliothèque', () => {
     expect(html).toContain('id="export-chapter-btn"');
     expect(html).toContain('id="export-doc-btn"');
-    expect(html).toMatch(/<span>Exporter le manuscrit<\/span><span class="shortcut-key">Ctrl\+E<\/span>/);
+    expect(read('js/schema.js')).toContain("['Exporter le manuscrit', 'Ctrl+E']"); // v9.86.0 : l'aide est générée depuis DOC_TYPES.shortcuts
     const r = read('js/router.js');
     expect(r).toContain("e.key.toLowerCase()==='e'");
     expect(r).toContain("exportFromEditor('chapter')");

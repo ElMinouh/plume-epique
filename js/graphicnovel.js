@@ -382,6 +382,9 @@ function ensureGraphicNovelScreen() {
         <button class="gn-icon-btn gn-labeled" id="gn-add-text-btn" title="Ajouter un bloc de texte libre sur la page" aria-label="Ajouter un bloc de texte">${icon('type')}<span class="gn-btn-label">Texte</span></button>
         <button class="gn-icon-btn gn-labeled gn-active" id="gn-grid-toggle" title="Grille magnétique (alignement précis)" aria-label="Grille magnétique" aria-pressed="true">${icon('layout-grid')}<span class="gn-btn-label">Grille</span></button>
         <button class="gn-icon-btn gn-trash-btn" id="gn-trash-btn" title="Corbeille (pages et éléments supprimés, récupérables 30 jours)" aria-label="Corbeille">${icon('trash-2')}<span class="trash-badge" id="gn-trash-badge"></span></button>
+        <!-- v9.86.0 (AUD-09-004) : thème et aide restent accessibles depuis cet écran (l'en-tête de l'application est masqué ici). -->
+        <button class="gn-icon-btn" id="gn-theme-btn" title="Passer au thème sombre" aria-label="Passer au thème sombre">${icon('moon')}</button>
+        <button class="gn-icon-btn" id="gn-help-btn" title="Aide et raccourcis (?)" aria-label="Aide et raccourcis">${icon('circle-help')}</button>
       </div>
       <!-- v9.48.0 (AUD-03-029) : un seul bouton principal « Exporter » (avant : deux boutons rouges aux noms proches). -->
       <div class="gn-dd">
@@ -439,6 +442,9 @@ function gnWireEvents() {
   document.getElementById('gn-page-add').addEventListener('click', gnAddPage);
   document.getElementById('gn-undo-btn').addEventListener('click', gnUndo);
   document.getElementById('gn-redo-btn').addEventListener('click', gnRedo);
+  document.getElementById('gn-theme-btn').addEventListener('click', () => toggleMode());
+  document.getElementById('gn-help-btn').addEventListener('click', () => openShortcutsHelp());
+  updateThemeToggleLabel();
   document.getElementById('gn-grid-toggle').addEventListener('click', e => {
     _gnSnapGrid = !_gnSnapGrid;
     e.currentTarget.classList.toggle('gn-active', _gnSnapGrid);

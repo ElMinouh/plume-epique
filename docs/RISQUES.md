@@ -32,6 +32,7 @@ l'appareil). Ce n'est pas nul, mais c'est cohérent avec un usage familial (`doc
 | Purger les anciennes versions OneDrive du fichier de clé | AUD-06-012 | Non fait, lié à la décision ci-dessus (rotation refusée) |
 | Tests avec 3 à 5 vraies personnes, appareils réels, lecteurs d'écran | AUD-03-035, AUD-05, AUD-08-025 | Non fait (hors code) |
 | Trusted Types (rapport) : repoussé « une fois les `innerHTML` assainis » | AUD-06-022 | Non vérifié : à contrôler au lot 7 de l'AUD-09 |
+| Roman graphique sur tablette : le placement libre des blocs est réservé aux écrans de plus de 900 px (AUD-09-015) ; l'aide du livre illustré l'annonce. À tester sur tablette réelle avant de coder un glisser tactile | AUD-09-015, AUD-08-025 | Non fait (hors code) |
 
 ## Comment tenir ce registre
 

@@ -324,8 +324,15 @@ function setTensionAlt(){setChartAlt('tensionChart','Tension narrative par chapi
 function updateChart(){if(!tensionChart)return;setTensionAlt();tensionChart.data.labels=db.chapters.map((_,i)=>i+1);tensionChart.data.datasets[0].data=db.chapters.map(c=>c.tension);tensionChart.update();}
 // v9.81.0 (AUD-08-011) : le bouton annonce la CIBLE du clic (Clair en thème sombre, Sombre sinon).
 function updateThemeToggleLabel() {
-  const b = document.getElementById('toggle-dark-btn'); if (!b) return;
   const sombre = document.body.classList.contains('dark-mode');
+  // Bouton du roman graphique (v9.86.0) : icône seule, même règle (il annonce la cible du clic).
+  const g = document.getElementById('gn-theme-btn');
+  if (g) {
+    const gu = g.querySelector('use'); if (gu) gu.setAttribute('href', sombre ? '#i-sun' : '#i-moon');
+    g.title = sombre ? 'Passer au thème clair' : 'Passer au thème sombre';
+    g.setAttribute('aria-label', g.title);
+  }
+  const b = document.getElementById('toggle-dark-btn'); if (!b) return;
   const lbl = b.querySelector('.mb-label'), use = b.querySelector('use');
   if (lbl) lbl.textContent = sombre ? ' Clair' : ' Sombre';
   if (use) use.setAttribute('href', sombre ? '#i-sun' : '#i-moon');
@@ -338,7 +345,7 @@ function toggleMode(){
   (typeof runThemeSwitch === 'function' ? runThemeSwitch : f => f())(() => document.body.classList.toggle('dark-mode',db.darkMode));
   rememberAppearance({ theme: db.paperMode ? 'paper' : (db.darkMode ? 'dark' : 'light') });
   updateThemeToggleLabel();
-  save();
+  docTypeOf(db).saveNow();
 }
 function addItem(k){
   // Correction (audit ergonomie v7.36.0) : auparavant prompt('Nom :') puis
