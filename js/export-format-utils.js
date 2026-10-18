@@ -349,8 +349,7 @@ function exportFromEditor(scope) {
 }
 function exportShortcut() {
   if (document.body.classList.contains('library-mode') || typeof _currentDocumentId === 'undefined' || !_currentDocumentId) return;
-  if (db.docType === 'roman_graphique') { if (typeof gnOpenBookExportModal === 'function') gnOpenBookExportModal(); return; }
-  exportFromEditor('doc');
+  docTypeOf(db).exportShortcut();
 }
 function closeExportSelect() { document.getElementById('export-select-overlay').classList.remove('active'); }
 function getSelectedExportChapters() {
@@ -460,7 +459,7 @@ async function openDocxImportModal(filename) {
   document.getElementById('docx-new-title').value = _docxImportTitleGuess;
   const list = await loadDocList();
   const sel = document.getElementById('docx-existing-select');
-  sel.innerHTML = liveDocuments(list).filter(d => d.docType !== 'roman_graphique').sort((a,b)=>b.lastModified-a.lastModified)
+  sel.innerHTML = liveDocuments(list).filter(d => !isGraphicDoc(d)).sort((a,b)=>b.lastModified-a.lastModified)
     .map(d => `<option value="${escapeHtml(d.id)}">${DOMPurify.sanitize(d.title || 'Sans titre')}</option>`).join('');
   setDocxImportMode('new');
   // v9.36.0 : proposition de découpage si des titres de chapitres sont détectés.
@@ -549,7 +548,7 @@ async function megaExportLibrary() {
     const images = {};
     for (const entry of list.documents) {
       documents[entry.id] = await loadData(docDataKey(_currentProfileId, entry.id));
-      if (entry.docType === 'roman_graphique' && typeof getAllGraphicImagesForDocument === 'function') {
+      if (isGraphicDoc(entry) && typeof getAllGraphicImagesForDocument === 'function') {
         const recs = await getAllGraphicImagesForDocument(entry.id);
         if (recs.length) {
           // v9.28.0 (AUD-01-011) : octets CHIFFRÉS avec la clé du profil (comme les manuscrits du même

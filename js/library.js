@@ -323,7 +323,7 @@ async function reloadOpenDocumentFromLocal(key) {
 // instantané d'ouverture, câblages…). Roman graphique : jamais adopté en arrière-plan (voir
 // isOpenDocumentProtected), donc rien à faire ici.
 function refreshEditorFromDb() {
-  if (db.docType === 'roman_graphique') return;
+  if (!docTypeOf(db).refreshView) return;
   const call = (name, ...a) => { try { if (typeof globalThis[name] === 'function') globalThis[name](...a); } catch(e) { /* affichage seulement */ } };
   const dt = document.getElementById('document-title'); if (dt) dt.innerText = db.title || '';
   refreshPageTitle();
@@ -823,7 +823,7 @@ async function renderLibraryScreen() {
       // v9.1.0 — Cartes compactées en 3 colonnes sur mobile (voir style.css) :
       // le texte complet "X chapitre(s) · Y mots" ne tient plus dans la
       // largeur restante, abrégé en "X ch · Y mots" en dessous de 480px.
-      const isGraphic = d.docType === 'roman_graphique';
+      const isGraphic = isGraphicDoc(d);
       const metaText = isGraphic
         ? `${d.chapterCount||0} ${plur(d.chapterCount||0,'page','pages')} · ${d.wordCount||0} ${plur(d.wordCount||0,'mot','mots')}`
         : (window.innerWidth <= 480
@@ -1029,8 +1029,8 @@ async function openDocument(docId) {
   hideLibraryScreen();
   // Module Roman graphique (nouveau) : éditeur dédié, distinct de l'éditeur
   // chapitre par chapitre (db.pages au lieu de db.chapters — voir schema.js).
-  if (db.docType === 'roman_graphique') { openGraphicNovelScreen(); return; }
-  initApp();
+  docTypeOf(db).open(); // texte : initApp() ; roman graphique : openGraphicNovelScreen()
+  if (isGraphicDoc(db)) return;
   // v9.53.1 — référence « rien tapé depuis ce chargement » (voir isOpenDocumentProtected, router.js).
   if (typeof markOpenDocumentBaseline === 'function') markOpenDocumentBaseline();
 }
@@ -1201,7 +1201,7 @@ async function renderDocTrash() {
   const trashed = trashedDocuments(await loadDocList()).sort((a, b) => b.trashedAt - a.trashedAt);
   if (!trashed.length) { listEl.innerHTML = emptyState('trash-2', 'La corbeille est vide', 'Les manuscrits supprimés y restent récupérables.'); return; }
   listEl.innerHTML = trashed.map(d => `<div class="history-item u-cur-default">
-      <span>${escapeHtml(d.title || 'Sans titre')}<br><span class="u-op-72 u-fs-xs">${d.docType === 'roman_graphique' ? (d.chapterCount || 0) + ' ' + plur(d.chapterCount || 0, 'page', 'pages') : (d.chapterCount || 0) + ' ' + plur(d.chapterCount || 0, 'chapitre', 'chapitres')} · ${d.wordCount || 0} mots — supprimé définitivement dans ${docTrashDaysLeft(d)} j</span></span>
+      <span>${escapeHtml(d.title || 'Sans titre')}<br><span class="u-op-72 u-fs-xs">${isGraphicDoc(d) ? (d.chapterCount || 0) + ' ' + plur(d.chapterCount || 0, 'page', 'pages') : (d.chapterCount || 0) + ' ' + plur(d.chapterCount || 0, 'chapitre', 'chapitres')} · ${d.wordCount || 0} mots — supprimé définitivement dans ${docTrashDaysLeft(d)} j</span></span>
       <span class="u-d-flex u-gap-4px u-fsh-0">
         <button class="action-btn btn-sm" data-doc-restore="${escapeHtml(d.id)}">${icon('undo-2')} Restaurer</button>
         <button class="action-btn btn-danger btn-sm" data-doc-purge="${escapeHtml(d.id)}">${icon('x')} Définitif</button>
@@ -1432,7 +1432,7 @@ async function libSyncManuscript(docId, opts) {
     // poids et un PBKDF2 par image). Envoi PAR PAQUETS d'au plus GIST_BATCH_CHARS caractères : un
     // livre de plusieurs dizaines de pages ne tient pas dans une seule requête.
     const imageFiles = []; // { id, name, content }
-    if (mData.docType === 'roman_graphique' && typeof getAllGraphicImagesForDocument === 'function') {
+    if (isGraphicDoc(mData) && typeof getAllGraphicImagesForDocument === 'function') {
       const referenced = new Set();
       (mData.pages || []).forEach(p => (p.elements || []).forEach(el => { if (el.type === 'image' && el.imageId) referenced.add(el.imageId); }));
       const synced = new Set(mData.gistSyncedImageIds || []);
@@ -1527,7 +1527,7 @@ async function libLoadManuscript(docId) {
     // Images (Lot 7, audit #25) : réhydrate la base locale d'images à partir
     // des fichiers "img_*" présents dans ce Gist — sans ça, un manuscrit
     // restauré sur un nouvel appareil garderait des cadres vides.
-    if (restored.docType === 'roman_graphique' && typeof putGraphicImageRecord === 'function') {
+    if (isGraphicDoc(restored) && typeof putGraphicImageRecord === 'function') {
       const imageFiles = Object.keys(data.files || {}).filter(name => /^img_.+\.txt$/.test(name));
       for (const fname of imageFiles) {
         const imgId = fname.slice(4, -4);
@@ -1986,7 +1986,7 @@ async function libExportDoc(docId) {
   try {
     const mData = await loadManuscriptData(docId);
     // v9.35.0 (AUD-02-016) : un roman graphique n'a pas de chapitres, son export est dans son propre écran.
-    if (mData.docType === 'roman_graphique' || !Array.isArray(mData.chapters)) { toast("Ce manuscrit est un roman graphique : utilisez l'export de son écran (bouton Exporter).", 'info'); return; }
+    if (isGraphicDoc(mData) || !Array.isArray(mData.chapters)) { toast("Ce manuscrit est un roman graphique : utilisez l'export de son écran (bouton Exporter).", 'info'); return; }
     openExportSelect(mData.chapters, mData.title);
   } catch(e) { toastError("L'export du manuscrit", e); }
 }

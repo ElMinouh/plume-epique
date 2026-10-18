@@ -178,7 +178,9 @@ describe('010 — index de la bibliothèque écrit en différé', () => {
   it('les points de sortie vident bien l\'index (bibliothèque, déconnexion, masquage de la page, roman graphique)', () => {
     const lib = fs.readFileSync(path.join(ROOT, 'js', 'library.js'), 'utf8');
     expect(lib).toMatch(/await save\(\);\s*\n\s*await flushDocumentMeta\(\)/);
-    expect(fs.readFileSync(path.join(ROOT, 'js', 'profiles.js'), 'utf8')).toMatch(/flushDocumentMeta/);
+    // v9.85.0 : la déconnexion passe par le registre des types (schema.js), qui appelle flushDocumentMeta pour le texte
+    expect(fs.readFileSync(path.join(ROOT, 'js', 'profiles.js'), 'utf8')).toMatch(/saveForClose/);
+    expect(fs.readFileSync(path.join(ROOT, 'js', 'schema.js'), 'utf8')).toMatch(/flushDocumentMeta/);
     expect(fs.readFileSync(path.join(ROOT, 'js', 'router.js'), 'utf8')).toMatch(/await flushDocumentMeta\(\)/);
     const gn = fs.readFileSync(path.join(ROOT, 'js', 'graphicnovel.js'), 'utf8');
     expect(gn).toMatch(/docMetaDue\(gnId, gnSig, immediate === true\)/);

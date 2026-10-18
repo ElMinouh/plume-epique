@@ -15,7 +15,10 @@ const lib = read('js/library.js');
 
 describe('AUD-03-014 — export depuis l\'éditeur', () => {
   const src = read('js/export-format-utils.js');
-  const code = src.slice(src.indexOf('let _exportSelectChapters'), src.indexOf('function getSelectedExportChapters'));
+// Bloc du registre des types (js/schema.js, v9.85.0), évalué avec les fonctions d'application du test.
+const _schema = fs.readFileSync(path.join(ROOT, 'js', 'schema.js'), 'utf8').replace(/\r\n/g, '\n');
+const REGISTRE = _schema.slice(_schema.indexOf('function _docPlainText'), _schema.indexOf('\n', _schema.indexOf('function isGraphicDoc')) + 1);
+  const code = REGISTRE + src.slice(src.indexOf('let _exportSelectChapters'), src.indexOf('function getSelectedExportChapters'));
   function ctx(libraryMode = false) {
     const dom = new JSDOM(`<body class="${libraryMode ? 'library-mode' : ''}"><div id="export-select-overlay"></div><div id="export-select-list"></div></body>`, { runScripts: 'outside-only' });
     const c = dom.getInternalVMContext(); const win = dom.window;

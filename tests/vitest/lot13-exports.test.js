@@ -139,9 +139,9 @@ describe('Messages et roman graphique (AUD-02-016 / 017)', () => {
     expect(makeContext().run('EXPORT_LIB_MISSING')).toMatch(/rechargez la page/);
   });
   it('l\'import dans un manuscrit existant ne propose pas les romans graphiques', () => {
-    expect(read('js/export-format-utils.js')).toContain("filter(d => d.docType !== 'roman_graphique')");
+    expect(read('js/export-format-utils.js')).toContain("filter(d => !isGraphicDoc(d))");
   });
   it('l\'export de la fenêtre Système refuse proprement un roman graphique', () => {
-    expect(read('js/library.js')).toMatch(/docType === 'roman_graphique' \|\| !Array\.isArray\(mData\.chapters\)/);
+    expect(read('js/library.js')).toMatch(/isGraphicDoc\(mData\) \|\| !Array\.isArray\(mData\.chapters\)/);
   });
 });

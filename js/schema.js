@@ -218,7 +218,7 @@ function rebaseWordStats(data) {
   if (!stats || !Object.keys(stats).length) return data;
   let oldT = 0, newT = 0;
   const add = c => { oldT += legacyWordCount(c); newT += getWordCount(c); };
-  if (data.docType === 'roman_graphique') (data.pages || []).forEach(p => (p.elements || []).forEach(el => { if (el.type === 'text') add(el.content); }));
+  if (isGraphicDoc(data)) (data.pages || []).forEach(p => (p.elements || []).forEach(el => { if (el.type === 'text') add(el.content); }));
   else (data.chapters || []).forEach(ch => add(ch.content));
   const offset = newT - oldT;
   if (offset) for (const k of Object.keys(stats)) if (typeof stats[k] === 'number') stats[k] = Math.max(0, stats[k] + offset);
@@ -268,6 +268,72 @@ function genChapterId() {
 // (voir js/images.js) — seule une référence (imageId) l'est, pour ne pas
 // alourdir le document synchronisé (localStorage + API Gist).
 // ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// REGISTRE DES TYPES DE DOCUMENT (v9.85.0, audit AUD-09-002 / 003)
+// Avant : chaque gestionnaire global (Ctrl+S, Ctrl+Z, Ctrl+Y, Ctrl+E, Ctrl+F, ouverture, déconnexion) testait
+// `db.docType === 'roman_graphique'` — 18 endroits dans 6 fichiers. Oublier un endroit plantait (v9.13.0 : Ctrl+S, Ctrl+Z ;
+// v9.84.1 : Ctrl+F sur `db.chapters` inexistant). Désormais le type DIT ce qu'il sait faire et les gestionnaires l'interrogent :
+// ajouter un type (bande dessinée…) = ajouter une entrée ici, sans retoucher les gestionnaires.
+// Les actions sont des fonctions paresseuses : graphicnovel.js, editor.js… sont chargés après ce fichier.
+// Un test (lot-aud09-3) interdit de comparer `docType` à 'roman_graphique' hors de ce fichier et de graphicnovel.js.
+// ═══════════════════════════════════════════════════════
+function _docPlainText(html) { return String(html == null ? '' : html).replace(/<[^>]*>/g, ' '); }
+// Occurrences de q (déjà en minuscules) dans un texte : { total, snippets } (3 extraits au plus).
+function _docFindInText(text, q) {
+  const lower = text.toLowerCase(); let idx = 0; const occs = [];
+  while ((idx = lower.indexOf(q, idx)) !== -1) { occs.push(idx); idx++; }
+  const snippets = occs.slice(0, 3).map(pos => {
+    const s = Math.max(0, pos - 60), e = Math.min(text.length, pos + q.length + 60);
+    return text.slice(s, e).replace(/\s+/g, ' ').trim();
+  });
+  return { total: occs.length, snippets };
+}
+const DOC_TYPES = {
+  texte: {
+    label: 'Texte',
+    saveNow() { flushCurrentChapter(); save(); },
+    async saveForClose() { flushCurrentChapter(); await save(); if (typeof flushDocumentMeta === 'function') await flushDocumentMeta(); },
+    undo() { undoEdit(); },
+    redo() { redoEdit(); },
+    exportShortcut() { exportFromEditor('doc'); },
+    open() { initApp(); },
+    refreshView: true,          // l'éditeur peut être réaffiché depuis `db` (refreshEditorFromDb)
+    protectedFromHotReload: false,
+    // Résultats de la recherche globale dans le contenu principal : [{ total, icon, label, snippets, go }]
+    search(q) {
+      const out = [];
+      (db.chapters || []).forEach((ch, i) => {
+        const r = _docFindInText(_docPlainText(ch.content), q);
+        if (r.total) out.push({ total: r.total, icon: 'book-open', label: ch.title, snippets: r.snippets, go: () => changeCh(i) });
+      });
+      return out;
+    }
+  },
+  roman_graphique: {
+    label: 'Roman graphique',
+    saveNow() { saveGraphicNovel(true); },
+    async saveForClose() { await saveGraphicNovel(true); },
+    undo() { gnUndo(); },
+    redo() { gnRedo(); },
+    exportShortcut() { if (typeof gnOpenBookExportModal === 'function') gnOpenBookExportModal(); },
+    open() { openGraphicNovelScreen(); },
+    refreshView: false,
+    protectedFromHotReload: true, // pas de rechargement à chaud de l'éditeur du roman graphique
+    search(q) {
+      const out = [];
+      (db.pages || []).forEach((p, i) => {
+        const text = (p.elements || []).filter(el => el.type === 'text').map(el => _docPlainText(el.content)).join(' ');
+        const r = _docFindInText(text, q);
+        if (r.total) out.push({ total: r.total, icon: 'book-open', label: 'Page ' + (i + 1), snippets: r.snippets, go: () => gnSetActivePage(i) });
+      });
+      return out;
+    }
+  }
+};
+// Type d'un document (ou d'une entrée d'index) ; un type inconnu ou absent se comporte comme « texte ».
+function docTypeOf(d) { return DOC_TYPES[d && d.docType] || DOC_TYPES.texte; }
+function isGraphicDoc(d) { return !!d && d.docType === 'roman_graphique'; }
+
 function genPageId() {
   return (crypto.randomUUID ? crypto.randomUUID() : 'pg_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
 }

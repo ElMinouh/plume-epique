@@ -82,7 +82,10 @@ describe('AUD-03-009 — « Accueil » supprimé, déconnexion honnête', () => 
     expect(read('js/profiles.js')).not.toContain('seront perdues');
   });
   const src = read('js/profiles.js');
-  const fn = src.slice(src.indexOf('async function logout()'), src.indexOf('// ── ÉCRAN 2'));
+// Bloc du registre des types (js/schema.js, v9.85.0), évalué avec les fonctions d'application du test.
+const _schema = fs.readFileSync(path.join(ROOT, 'js', 'schema.js'), 'utf8').replace(/\r\n/g, '\n');
+const REGISTRE = _schema.slice(_schema.indexOf('function _docPlainText'), _schema.indexOf('\n', _schema.indexOf('function isGraphicDoc')) + 1);
+  const fn = REGISTRE + src.slice(src.indexOf('async function logout()'), src.indexOf('// ── ÉCRAN 2'));
   function run({ library, failedSince, confirmAnswer, docType = 'texte' }) {
     const dom = new JSDOM(`<body class="${library ? 'library-mode' : ''}"></body>`, { runScripts: 'outside-only' });
     const calls = [];

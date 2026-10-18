@@ -2282,7 +2282,7 @@ function gnTakeSnapshot(pageIdx, label) {
 // un roman graphique est réellement ouvert à l'écran — sinon _gnActivePage
 // pointerait sur les pages d'un manuscrit qui n'est plus le document actif.
 setInterval(() => {
-  if (db.docType === 'roman_graphique' && document.body.classList.contains('graphicnovel-mode') && db.pages && db.pages[_gnActivePage]) {
+  if (isGraphicDoc(db) && document.body.classList.contains('graphicnovel-mode') && db.pages && db.pages[_gnActivePage]) {
     // v9.21.0 (audit AUD-01-005) — n'enregistre que si la page a réellement
     // changé depuis le dernier instantané : plus d'écriture en ligne à vide.
     if (gnTakeSnapshot(_gnActivePage)) saveGraphicNovel();

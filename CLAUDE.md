@@ -43,6 +43,7 @@ export-format-utils.js, database.js, memory.js
 
 - `profiles.js` — login/création/récupération multi-profils, DEK enveloppée (mot de passe / question secrète / code PDF)
 - `library.js` (~124 Ko) — bibliothèque multi-manuscrits par profil (`doclist_<profileId>`), grille/étagère, statut de sync
+- `schema.js` porte aussi le **registre des types de document** (`DOC_TYPES`, `docTypeOf()`, `isGraphicDoc()`, v9.85.0) : tout comportement qui dépend du type (enregistrer, annuler, exporter, ouvrir, rechercher) y est déclaré ; ne jamais comparer `docType` à `'roman_graphique'` ailleurs (un test l'interdit). Un nouveau type = une entrée du registre.
 - `graphicnovel.js` (~139 Ko, plus gros fichier) — module roman graphique, **explicitement isolé** ("entirely isolated from the rest of the app" dans son en-tête), écran/save path propres (`#graphicnovel-screen`, `saveGraphicNovel`), undo stack propre, mais **réutilise les globals/utilitaires de router.js/library.js** (`db`, `cur`, `persistData`, `docDataKey`, `mutateDocList`, `toast`, `showLibraryScreen`...). **Patron à suivre pour toute nouvelle feature majeure** : isoler écran/état, mais brancher sur les mêmes primitives globales de persistance/crypto/profil.
 - `editor.js` — CRUD chapitres, statuts brouillon/relecture/final, focus mode
 - `images.js` — assets images du roman graphique (poids, dédup, quota)

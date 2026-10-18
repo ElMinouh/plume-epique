@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.84.1';
+const APP_VERSION = '9.85.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -471,7 +471,7 @@ function markOpenDocumentBaseline() {
 }
 async function isOpenDocumentProtected(key) {
   if (!isOpenDocumentKey(key)) return false;
-  if (db && db.docType === 'roman_graphique') return true; // éditeur du roman graphique : pas de rechargement à chaud
+  if (db && docTypeOf(db).protectedFromHotReload) return true; // ex. éditeur du roman graphique : pas de rechargement à chaud
   if (!_openBaselinePromise) return true;                  // chargement non repéré : prudence
   try {
     const baseline = await _openBaselinePromise;
@@ -1739,7 +1739,7 @@ function wireAppEventListenersOnce(){
   document.getElementById('export-doc-btn').addEventListener('click',()=>exportFromEditor('doc'));
 
   document.addEventListener('keydown',e=>{
-    if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openGlobalSearch();}
+    if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openGlobalSearch();} // la recherche interroge le registre des types (schema.js)
     if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&e.key.toLowerCase()==='e'){e.preventDefault();exportShortcut();}
     // Bug corrigé (v9.13.0, testé en conditions réelles) : save()/touchDocumentMeta()
     // lisent db.chapters.length sans garde — plantage garanti sur Ctrl+S dans
@@ -1747,8 +1747,7 @@ function wireAppEventListenersOnce(){
     // saveGraphicNovel(true) est le chemin de sauvegarde dédié à ce docType.
     if((e.ctrlKey||e.metaKey)&&e.key==='s'){
       e.preventDefault();
-      if(db.docType==='roman_graphique'){ saveGraphicNovel(true); }
-      else { flushCurrentChapter(); save(); }
+      docTypeOf(db).saveNow();
       flushPendingSyncPushes();
     }
     // v7.6.0 : Annuler/Rétablir — exclu des autres champs de saisie (voir
@@ -1760,12 +1759,11 @@ function wireAppEventListenersOnce(){
     // pour ce docType). Bascule maintenant vers gnUndo/gnRedo dans ce cas.
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!isTypingTarget(e.target)&&!document.getElementById('focus-overlay').classList.contains('active')){
       e.preventDefault();
-      if(db.docType==='roman_graphique'){ if(e.shiftKey) gnRedo(); else gnUndo(); }
-      else { if(e.shiftKey) redoEdit(); else undoEdit(); }
+      if(e.shiftKey) docTypeOf(db).redo(); else docTypeOf(db).undo();
     }
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'&&!isTypingTarget(e.target)&&!document.getElementById('focus-overlay').classList.contains('active')){
       e.preventDefault();
-      if(db.docType==='roman_graphique') gnRedo(); else redoEdit();
+      docTypeOf(db).redo();
     }
     // v7.5.0 : "?" ouvre l'aide-mémoire, sauf si l'utilisateur est en train de
     // taper (sinon impossible d'écrire un vrai "?" dans le texte du roman).

@@ -33,22 +33,14 @@ function doGlobalSearch(query) {
     openTabOrSubtab(tabId);
   }
 
-  // Chapitres
-  db.chapters.forEach((ch, i) => {
-    const text = ch.content.replace(/<[^>]*>/g,' '), lower = text.toLowerCase();
-    let idx = 0, occs = [];
-    while ((idx = lower.indexOf(q, idx)) !== -1) { occs.push(idx); idx++; }
-    if (!occs.length) return;
-    total += occs.length;
-    occs.slice(0,3).forEach(pos => {
-      const s=Math.max(0,pos-60), e=Math.min(text.length,pos+q.length+60);
-      const snippet = text.slice(s,e).replace(/\s+/g,' ').trim();
-      addResult('book-open', ch.title, snippet, () => changeCh(i));
-    });
+  // Contenu principal : chapitres (texte) ou pages (roman graphique) — fourni par le registre des types (schema.js)
+  docTypeOf(db).search(q).forEach(hit => {
+    total += hit.total;
+    hit.snippets.forEach(snippet => addResult(hit.icon, hit.label, snippet, hit.go));
   });
 
   // Personnages
-  db.chars.forEach((c, i) => {
+  (db.chars || []).forEach((c, i) => {
     const text = `${c.name||''} ${c.role||''} ${c.age||''} ${c.phys||''} ${c.info||''}`;
     if (!text.toLowerCase().includes(q)) return;
     total++;
@@ -58,7 +50,7 @@ function doGlobalSearch(query) {
   });
 
   // Lieux
-  db.places.forEach((p, i) => {
+  (db.places || []).forEach((p, i) => {
     const text = `${p.name||''} ${p.type||''} ${p.mood||''} ${p.info||''}`;
     if (!text.toLowerCase().includes(q)) return;
     total++;
@@ -68,7 +60,7 @@ function doGlobalSearch(query) {
   });
 
   // Quêtes
-  db.quests.forEach((qst, i) => {
+  (db.quests || []).forEach((qst, i) => {
     const text = `${qst.text||''} ${qst.reward||''} ${qst.steps||''}`;
     if (!text.toLowerCase().includes(q)) return;
     total++;

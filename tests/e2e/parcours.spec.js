@@ -116,6 +116,41 @@ test.describe('Parcours navigateur', () => {
     expect(erreurs).toEqual([]);
   });
 
+  // AUD-09-003 : Ctrl+F sur un roman graphique lisait db.chapters (inexistant pour ce type) et levait une exception.
+  test('roman graphique : Ctrl+F ouvre la recherche et saisir un mot ne provoque aucune erreur', async ({ page }) => {
+    const erreurs = surveillerErreurs(page);
+    await ouvrirBibliotheque(page);
+    await creerProjet(page, 'Roman graphique');
+    await expect(page.locator('#gn-add-text-btn')).toBeVisible();
+    await stabiliser(page);
+    await page.keyboard.press('Control+f');
+    await expect(page.locator('#search-overlay.active')).toBeVisible();
+    await page.fill('#search-input', 'abc');
+    await stabiliser(page);
+    expect(erreurs).toEqual([]);
+  });
+
+  // AUD-09-002 : les raccourcis globaux passent par le registre des types ; aucun ne doit lever d'exception, sur les deux types.
+  for (const [libelle, pret] of [['Texte seul', '#add-chapter-btn'], ['Roman graphique', '#gn-add-text-btn']]) {
+    test(`raccourcis globaux (Ctrl+S, Z, Y, E, F) sans erreur : ${libelle}`, async ({ page }) => {
+      const erreurs = surveillerErreurs(page);
+      await ouvrirBibliotheque(page);
+      await creerProjet(page, libelle);
+      await expect(page.locator(pret)).toBeVisible();
+      await stabiliser(page);
+      for (const k of ['Control+s', 'Control+z', 'Control+y', 'Control+Shift+z']) { await page.keyboard.press(k); await page.waitForTimeout(150); }
+      await page.keyboard.press('Control+e');
+      await page.waitForTimeout(300);
+      await page.keyboard.press('Escape');
+      await page.keyboard.press('Control+f');
+      await expect(page.locator('#search-overlay.active')).toBeVisible();
+      await page.keyboard.press('Escape');
+      await stabiliser(page);
+      expect(await nbInert(page)).toBe(0);
+      expect(erreurs).toEqual([]);
+    });
+  }
+
   test.describe('téléphone (375 px)', () => {
     test.use({ viewport: { width: 375, height: 812 } });
     test('bibliothèque et éditeur sans défilement horizontal', async ({ page }) => {
