@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.88.0';
+const APP_VERSION = '9.89.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1358,7 +1358,7 @@ const tabDescriptions = {
   'tab-univers':'Personnages, lieux, quêtes, chronologie et relations',
   'tab-ia-memoire':'Assistance IA et mémoire narrative du roman',
   'tab-analysegroup':'Statistiques, mots-clés, structure et analyse détaillée du texte',
-  'tab-systeme':'Versions du chapitre et plugins',
+  'tab-systeme':'Versions du chapitre et outils d\'analyse',
   'tab-config':'Apparence, sprint, objectifs d\'écriture, profil'
 };
 

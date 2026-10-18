@@ -81,7 +81,7 @@ function renderPlugins() {
     const runBtn = document.createElement('button'); runBtn.className='action-btn btn-sm'; runBtn.innerHTML=icon('play')+' Exécuter';
     const resultDiv = document.createElement('div'); resultDiv.className='plugin-result';
     runBtn.addEventListener('click', async () => {
-      if (!enabled) { toast('Plugin désactivé','error'); return; }
+      if (!enabled) { toast('Outil désactivé','error'); return; }
       if (plugin.remote && !(await notifyThirdPartyDataUseOnce())) { resultDiv.textContent = 'Services externes refusés pour ce profil (Mon profil → Services externes).'; resultDiv.classList.add('active'); return; }
       resultDiv.innerHTML = '<div class="ai-loader"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div>';
       resultDiv.classList.add('active');

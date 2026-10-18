@@ -896,7 +896,6 @@ function removeHighlight() {
 // « déjà » ou « été » n'étaient jamais trouvés) et des mots échappés (une parenthèse faisait planter).
 // Les surlignages <mark> sont une AIDE VISUELLE : ils ne sont jamais enregistrés ni exportés
 // (stripAnalysisMarks), ils disparaissent au changement de chapitre.
-function escapeRegExp(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function stripAnalysisMarks(html) { return String(html == null ? '' : html).replace(/<\/?mark\b[^>]*>/gi, ''); }
 function unwrapMarks(root) {
   root.querySelectorAll('mark').forEach(m => {

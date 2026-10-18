@@ -74,6 +74,10 @@ Deux workers indépendants. Deux voies de déploiement coexistent :
 
 `CACHE = 'plume-epique-vX.Y.Z'` — doit être identique à `APP_VERSION` (router.js) à chaque release. Pas de `skipWaiting()` automatique (bannière de mise à jour via `pwa.js`). Le fetch handler **n'intercepte jamais** les appels API (sync Worker, IA Worker, GitHub, LanguageTool) — un bug passé (v7.22.4) avait servi des données API périmées quand ce filtre manquait.
 
+## Règle d'architecture (v9.89.0, AUD-09-011)
+
+Les fichiers `js/*.js` partagent UNE portée globale : un doublon de fonction passe les tests et le dernier fichier chargé écrase l'autre en silence. Règles : (1) tout nouveau module est un fichier ESM chargé à la demande (comme `js/odf-loader.js`), jamais un script classique de plus ; (2) les helpers communs vivent dans `js/schema.js` (`escapeHtml`, `escapeRegExp`, `formatMo`, `plur`…), jamais recopiés ; (3) aucun fichier JS au-delà de 150 Ko (`graphicnovel.js`, `router.js`, `library.js` sont les plus gros : à découper avant d'ajouter du code) ; (4) la périphérie (voir `docs/PRODUIT.md`) est gelée. Un test (`lot-aud09-7`) vérifie les points 2 et 3.
+
 ## Conventions
 
 - Fichiers `js/` : tout minuscule, pas de séparateur (`findreplace.js`) ; `pluginSystem.js` et `export-format-utils.js` sont des exceptions

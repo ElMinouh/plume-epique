@@ -5,7 +5,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.88.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.89.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -50,6 +50,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
   profils multiples (suppression de profil propagée à tous les appareils).
 - **Premiers pas** (v9.41.0) : le premier écran propose « clé de la famille » ou « écrire sur cet appareil seulement » ; la configuration de la sauvegarde GitHub est **facultative** (bulle « Plus tard », panneau Système toujours fermable, rappel discret dans la bibliothèque) ; une seule bulle d'aide à la fois ; un clic sur un type de projet le crée.
 - **Types de document** (v9.85.0) : un registre (`DOC_TYPES`, `schema.js`) dit ce que sait faire chaque type (texte, roman graphique) ; Ctrl+S, Z, Y, E et F l'interrogent. Ctrl+F cherche aussi dans le texte des pages d'un roman graphique.
+- **Architecture et périphérie** (v9.89.0) : les doublons de fonctions globales sont détectés par un test (`formatMo` existait en deux versions, une seule subsiste, en français : « 1,5 Mo ») ; helpers communs dans `schema.js` ; l'onglet « Plugins » devient « Outils d'analyse » ; la périphérie (nuage de mots, lisibilité, dictée, chronologie, relations, mémoire, outils d'analyse, visite) est classée et gelée dans `docs/PRODUIT.md` ; un test vérifie que chaque cible de la visite existe.
 - **Session et correcteur** (v9.88.0) : « Rester connecté » dit à l'écran que toute personne qui utilise le navigateur peut ouvrir vos textes sans mot de passe, et demande une confirmation à partir de 7 jours (durée par défaut inchangée : 12 h) ; la correction orthographique du navigateur est activée par défaut (un choix déjà fait est conservé ; les noms inventés s'ajoutent au dictionnaire par un clic droit).
 - **Vocabulaire et messages** (v9.87.0) : « projet » est le mot générique de l'interface (« manuscrit » ne désigne plus que le texte, dans l'éditeur) ; les erreurs de lecture de fichier, d'export du roman graphique, d'enregistrement, de dictée et de correction grammaticale sont des phrases lisibles (plus de message brut du navigateur) ; le produit s'appelle « Plume ». Règles dans `docs/GLOSSAIRE.md`.
 - **Roman graphique et aide** (v9.86.0) : thème et aide accessibles depuis l'écran du livre illustré ; la fenêtre « Aide et raccourcis » liste les raccourcis du type de document ouvert (flèches, Suppr, Alt+↑/↓ des pages pour le roman graphique) et masque les visites qui décrivent l'éditeur de texte. Limite connue : le placement libre des blocs est réservé aux écrans de plus de 900 px.

@@ -414,7 +414,6 @@ function splitImportedHtml(html, firstTitle) {
 const IMPORT_MAX_DOC_BYTES = 300 * 1024 * 1024;           // Word / OpenDocument : fichier
 const IMPORT_MAX_UNZIPPED_BYTES = 3 * 1024 * 1024 * 1024; // Word / OpenDocument : contenu une fois décompressé
 const IMPORT_MAX_JSON_BYTES = 900 * 1024 * 1024;          // export JSON de bibliothèque
-function formatMo(octets) { return (octets / 1048576 >= 10 ? Math.round(octets / 1048576) : Math.round(octets / 104857.6) / 10) + ' Mo'; }
 // Taille décompressée annoncée par l'archive (lecture de l'annuaire du ZIP seulement, sans rien décompresser).
 async function zipUnzippedSize(buf) {
   if (!(await ensureLib('jszip'))) return 0;

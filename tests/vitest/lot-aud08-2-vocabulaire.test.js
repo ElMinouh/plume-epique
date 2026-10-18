@@ -81,7 +81,7 @@ describe('AUD-08-012 — « Système » ne désigne plus qu\'un seul écran', ()
   it('l\'onglet de l\'éditeur s\'appelle « Versions » (libellé, description, régions)', () => {
     const r = read('js/router.js');
     expect(r).toContain("'tab-systeme':{ icon:'archive', label:'Versions' }");
-    expect(r).toContain("'tab-systeme':'Versions du chapitre et plugins'");
+    expect(r).toContain("'tab-systeme':'Versions du chapitre et outils d\\'analyse'");
     expect(html).toContain('<div id="tab-systeme" class="tab-content" role="region" aria-label="Versions">');
   });
   it('« Système » reste le nom de la fenêtre de la bibliothèque', () => {

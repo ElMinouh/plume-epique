@@ -207,6 +207,16 @@ function dateKey(d) {
 }
 // v9.80.0 (AUD-08-013) : accord en nombre à la française (0 et 1 au singulier) — remplace les « manuscrit(s) ».
 function plur(n, singulier, pluriel) { return Math.abs(n) >= 2 ? pluriel : singulier; }
+// v9.89.0 (audit AUD-09-011) — helpers qui existaient en plusieurs exemplaires (escapeRegExp ×3, formatMo ×2) : en scripts classiques
+// le dernier fichier chargé écrase les autres EN SILENCE (la version française de formatMo de library.js était du code mort).
+// Un test (lot-aud09-7) échoue si une même fonction globale est déclarée dans deux fichiers.
+function escapeRegExp(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+// Taille en Mo, à la française : « 1,5 Mo », « 52 Mo », « < 0,1 Mo » pour un volume presque nul.
+function formatMo(octets) {
+  if (octets > 0 && octets < 0.05 * 1048576) return '< 0,1 Mo';
+  const mo = octets / 1048576;
+  return (mo >= 10 ? String(Math.round(mo)) : String(Math.round(mo * 10) / 10).replace('.', ',')) + ' Mo';
+}
 function getTodayKey() { return dateKey(new Date()); }
 // Le nouveau comptage change les totaux : sans recalage, les objectifs hebdomadaire et mensuel
 // (total d'aujourd'hui moins total d'avant la période) seraient faux pendant 7 à 30 jours. Une seule

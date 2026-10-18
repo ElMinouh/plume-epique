@@ -44,7 +44,9 @@ describe('019 — limites d\'import (3 fois les usages réels)', () => {
   const bloc = src.slice(src.indexOf('// ── LIMITES D\'IMPORT'), src.indexOf('// ── fin des limites d\'import'));
   function charger() {
     const ctx = vm.createContext({ ensureLib: () => Promise.resolve(true),  JSZip: require('jszip'), Promise, Math, Number, String, console });
-    vm.runInContext(bloc + '\nthis.api = { IMPORT_MAX_DOC_BYTES, IMPORT_MAX_UNZIPPED_BYTES, IMPORT_MAX_JSON_BYTES, formatMo, zipUnzippedSize, assertZipNotBomb, isValidImportedEnvelope };', ctx);
+    // v9.89.0 : formatMo vit désormais dans schema.js (une seule version, en français)
+    const schema = read('js/schema.js'); const fm = schema.slice(schema.indexOf('function formatMo'), schema.indexOf('\n}', schema.indexOf('function formatMo')) + 2);
+    vm.runInContext(fm + '\n' + bloc + '\nthis.api = { IMPORT_MAX_DOC_BYTES, IMPORT_MAX_UNZIPPED_BYTES, IMPORT_MAX_JSON_BYTES, formatMo, zipUnzippedSize, assertZipNotBomb, isValidImportedEnvelope };', ctx);
     return ctx.api;
   }
   it('valeurs : 300 Mo (Word/ODT), 3 Go (décompressé), 900 Mo (JSON)', () => {
@@ -56,7 +58,7 @@ describe('019 — limites d\'import (3 fois les usages réels)', () => {
   it('formatMo : lisible', () => {
     const a = charger();
     expect(a.formatMo(3 * 1048576)).toBe('3 Mo');
-    expect(a.formatMo(1.5 * 1048576)).toBe('1.5 Mo');
+    expect(a.formatMo(1.5 * 1048576)).toBe('1,5 Mo');
     expect(a.formatMo(300 * 1048576)).toBe('300 Mo');
   });
   it('archive normale : acceptée ; archive qui se décompresserait au-delà de la limite : refusée avec un message clair', async () => {
@@ -82,7 +84,8 @@ describe('019 — limites d\'import (3 fois les usages réels)', () => {
     const msgs = [];
     const ctx = vm.createContext({ ensureLib: () => Promise.resolve(true),  Promise, Math, Number, String, console, JSZip: require('jszip'), mammoth: { convertToHtml: vi.fn() }, window: { odfKit: { odtToHtml: vi.fn() } }, EXPORT_LIB_MISSING: 'lib', toast: (m, t) => msgs.push([m, t]), sanitizeManuscriptHtml: h => h, openDocxImportModal: vi.fn() });
     const debut = src.indexOf('// ── LIMITES D\'IMPORT'), fin = src.indexOf('async function openDocxImportModal');
-    vm.runInContext(src.slice(debut, fin).replace('function splitImportedHtml', 'function splitImportedHtml_') + '\nthis.importManuscriptFile = importManuscriptFile;', ctx);
+    const _sc = read('js/schema.js'); const _fm = _sc.slice(_sc.indexOf('function formatMo'), _sc.indexOf('\n}', _sc.indexOf('function formatMo')) + 2); // formatMo vit dans schema.js (v9.89.0)
+    vm.runInContext(_fm + '\n' + src.slice(debut, fin).replace('function splitImportedHtml', 'function splitImportedHtml_') + '\nthis.importManuscriptFile = importManuscriptFile;', ctx);
     const input = { files: [fichier], value: 'x' };
     return { ctx, input, msgs };
   }

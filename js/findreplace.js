@@ -58,10 +58,9 @@ function buildFlatIndex(root) {
   return { flat, map };
 }
 
-function escapeRegExpFr(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function frRegex(query, opts) {
   const o = opts || {};
-  const core = escapeRegExpFr(query);
+  const core = escapeRegExp(query);
   const src = o.wholeWord ? '(?<![\\p{L}\\p{N}_])' + core + '(?![\\p{L}\\p{N}_])' : core;
   return new RegExp(src, o.matchCase ? 'gu' : 'giu');
 }

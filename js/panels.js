@@ -18,7 +18,7 @@ function doGlobalSearch(query) {
   container.innerHTML = '';
   if (q.length < 2) { countEl.textContent = ''; return; }
   let total = 0;
-  const qEscaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const qEscaped = escapeRegExp(q);
 
   function addResult(kind, label, snippetText, onClick) {
     const highlighted = snippetText.replace(new RegExp(`(${qEscaped})`,'gi'),'<mark>$1</mark>');

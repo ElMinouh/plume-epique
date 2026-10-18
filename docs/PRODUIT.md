@@ -55,3 +55,16 @@ qu'après le registre de types de document (AUD-09-002).
 Rendu réel sur téléphones et tablettes ; usage réel des fonctions secondaires ; compréhension par un nouvel utilisateur ;
 lecteurs d'écran ; navigateurs hors Chromium. À obtenir : tests avec 3 à 5 personnes (AUD-03-035, AUD-08-025), un mois de
 mesures d'usage locales (AUD-09-010).
+
+## Fonctions : cœur, soutien, périphérie (AUD-09-010, v9.89.0)
+
+Classement décidé le 18/10/2026. Faute de mesure d'usage, **rien n'est retiré** ; la périphérie est **gelée**.
+
+| Catégorie | Fonctions | Règle |
+|---|---|---|
+| **Cœur** | Éditeur de chapitres, statuts, notes, fiches (personnages, lieux, quêtes), bibliothèque, profils, enregistrement chiffré, synchronisation, sauvegarde GitHub, exports (DOCX, EPUB, ODT, PDF, JSON), corbeilles et versions, roman graphique | Toute évolution passe par les audits et les tests habituels |
+| **Soutien** | Statistiques d'écriture, objectifs de mots et sprint, recherche globale et remplacer, assistant IA (résumé, continuation, incohérences), synonymes, mode Focus et mode Lecture, confort de lecture, thèmes | Évolutions possibles, une à la fois |
+| **Périphérie** | Nuage de mots, Lisibilité (détail longueur et lisibilité), Dictée vocale et lecture à voix haute, Chronologie, Relations (graphe), Mémoire narrative, Outils d'analyse (correction grammaticale, temps de lecture, répétitions, synopsis), Visite complète (33 étapes) | **Gelée** : correctifs et compatibilité seulement, aucune nouvelle fonction, aucun nouveau réglage |
+
+Décision ouverte pour le propriétaire : retirer une fonction périphérique est un lot à part, à demander (une fonction retirée se
+retire de l'interface, de la visite, des tests et de la documentation). Réexamen de la périphérie : 18/01/2027.

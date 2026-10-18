@@ -15,6 +15,7 @@ Créé le 18/10/2026 (audit AUD-09-005). Un mot, un sens : à respecter dans tou
 | **bibliothèque** | L'écran qui liste les projets d'un profil | Navigation |
 | **profil** | Une personne qui écrit sur l'application, avec son mot de passe | Connexion |
 | **Plume** | Le nom du produit affiché. `plume-epique` n'est qu'un identifiant technique (dépôt, domaine, base locale) | Titre de la page, manifeste, textes |
+| **Outils d'analyse** | Les quatre outils de l'onglet Versions → « Outils d'analyse » (correction grammaticale, temps de lecture, répétitions, synopsis). Ne pas parler de « plugins » : la liste est fixe, aucun module externe n'est possible (le fichier garde son nom technique `pluginSystem.js`) | Onglet Versions, visite |
 | **version** | Un état enregistré d'un chapitre ou d'une page, récupérable | Onglet « Versions » |
 | **corbeille** | Éléments supprimés récupérables 30 jours | Projets, chapitres, pages |
 

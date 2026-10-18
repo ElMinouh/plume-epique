@@ -1944,10 +1944,6 @@ function renderLastSyncStatus() {
 }
 // v9.29.0 (audit AUD-01-016) — occupation du stockage de synchronisation, lue auprès du Worker
 // (nombres et octets seulement) : de quoi voir venir un dépassement avant qu'il ne bloque la synchro.
-function formatMo(octets) {
-  if (octets > 0 && octets < 0.05 * 1024 * 1024) return '< 0,1 Mo';
-  return (octets / (1024 * 1024)).toFixed(octets < 10 * 1024 * 1024 ? 1 : 0).replace('.', ',') + ' Mo';
-}
 async function renderSyncUsage() {
   const el = document.getElementById('lib-sync-usage');
   if (!el) return;
