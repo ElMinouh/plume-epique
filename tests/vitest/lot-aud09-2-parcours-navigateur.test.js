@@ -35,7 +35,7 @@ describe('AUD-09-001 : câblage du parcours navigateur', () => {
     expect(w).toContain('npx playwright install --with-deps chromium');
     expect(w).toContain('npm run e2e');
   });
-  it('playwright.config.js n'est pas publié avec le site (404 par _routes.json)', () => {
+  it('playwright.config.js n\'est pas publié avec le site (404 par _routes.json)', () => {
     expect(JSON.parse(read('_routes.json')).include).toContain('/playwright.config.js');
   });
   it('la décision 15 mentionne le parcours automatisé', () => {
