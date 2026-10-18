@@ -13,3 +13,27 @@ Base : v9.84.1. Document d'origine : `Audit-09` (rapport `.docx` + `.csv`, hors 
 | 7 | 9.89.0 | 010, 011 | Test de détection des déclarations globales en double (a révélé `formatMo` ×2, la version française était du code mort : unifiée dans `schema.js`) ; `escapeRegExp` ×3 → 1 ; plafond de 150 Ko par fichier ; règle « nouveau module = ESM à la demande » ; « Plugins » → « Outils d'analyse » ; périphérie classée et gelée (`docs/PRODUIT.md`, option A du 18/10/2026, rien retiré) ; test « chaque cible de la visite existe » ; Trusted Types et découpage des gros fichiers consignés dans `docs/RISQUES.md` ; `lot-aud09-7-peripherie-architecture.test.js` | livré |
 
 Décisions du propriétaire : rotation de la clé de synchro refusée (12/10/2026), maintenue le 18/10/2026 (`docs/RISQUES.md`).
+
+## Conclusion (18/10/2026)
+
+7 lots livrés en 7 versions (9.84.1 → 9.89.0) pour 16 constats réels + 1 observation. 15 traités, **1 retiré** (013 : les synonymes passent
+par l'IA, l'icône étincelles est cohérente), 1 observation de couverture (017) traitée dans `docs/PRODUIT.md` et `docs/RISQUES.md`.
+
+Corrections apportées à l'audit lui-même pendant les lots, vues au code ou au test réel :
+- 008 : la durée de session par défaut était déjà de 12 h ; le manque était l'avertissement à l'écran ;
+- 009 : le correcteur désactivé était un choix documenté (noms propres), arbitré par le propriétaire (option A, activé par défaut) ;
+- 012 : 11 erreurs brutes au lieu de 3 ;
+- 013 : retiré (hypothèse fausse) ;
+- 011 : le test de doublons a révélé `formatMo` en deux versions (la française était du code mort), non vu par l'audit.
+
+Nouveaux garde-fous : parcours navigateur en CI (13 scénarios, Playwright + axe-core), registre des types de document, test de
+cohérence documentaire, glossaire testé, détection des déclarations globales en double, plafond de 150 Ko par fichier.
+
+## Ce qui reste (hors code ou à décider)
+
+1. Tests avec 3 à 5 vraies personnes, appareils réels, lecteurs d'écran (AUD-03-035, AUD-08-025) ; tablette réelle pour le glisser tactile du roman graphique (AUD-09-015).
+2. Actions du propriétaire dans `docs/RISQUES.md` : moniteur de disponibilité (UptimeRobot) et copie de la phrase secrète de sauvegarde à confirmer.
+3. Périphérie gelée : retrait éventuel d'une fonction = lot à demander (réexamen 18/01/2027).
+4. Découpage de `graphicnovel.js`, `router.js`, `library.js` et Trusted Types : reportés, consignés dans `docs/RISQUES.md`.
+5. Bulle « Configuration initiale » qui recouvre le menu « Compte » à la première ouverture : constatée, non corrigée (à demander).
+6. La bande dessinée ne démarre qu'avec une entrée dans le registre `DOC_TYPES` (et un nouveau re-audit de cohérence ensuite).
