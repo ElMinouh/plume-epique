@@ -32,6 +32,12 @@ jobs:
         run: npm ci
       - name: Lancer les tests
         run: npm test
+      # v9.84.1 (audit AUD-09-001) — parcours dans un vrai navigateur (Chromium) : la suite Vitest tourne sous Node et ne voit
+      # ni l'affichage ni les fenêtres ; la v9.84.0 a été publiée page figée avec tous les tests verts.
+      - name: Installer Chromium (parcours navigateur)
+        run: npx playwright install --with-deps chromium
+      - name: Parcours navigateur (npm run e2e)
+        run: npm run e2e
       # v9.69.0 (audit AUD-06-020) — le contrôle est BLOQUANT au niveau « élevé » (aucune alerte élevée aujourd'hui :
       # seules 3 alertes modérées de l'outil en ligne de commande de mammoth, absent du site). Un niveau « modéré » sans
       # correctif ne doit pas empêcher de livrer ; un niveau « élevé » ou « critique » oui.

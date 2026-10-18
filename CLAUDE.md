@@ -13,6 +13,7 @@ npm test          # vitest run — seule commande de dev réelle
 npm run test:watch
 npx vitest run tests/vitest/sync.test.js   # un seul fichier
 npx vitest run -t "nom du test"            # filtre par nom
+npm run e2e       # parcours navigateur Playwright + axe-core (tests/e2e), aussi exécuté par la CI
 ```
 
 Pas de build, pas de bundler, pas de linter, pas de dev server. L'app tourne en fichiers statiques (ouvrir `index.html` ou déployer tel quel). CI (`.github/workflows/test.yml`) lance `npm test` sur chaque push/PR.

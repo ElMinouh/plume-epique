@@ -2,7 +2,7 @@
   "version": 1,
   "include": [
     "/functions/*", "/docs/*", "/worker/*", "/tests/*", "/scripts/*", "/.github/*", "/.claude/*", "/node_modules/*",
-    "/CLAUDE.md", "/README.md", "/package.json", "/package-lock.json", "/vitest.config.js", "/.gitignore"
+    "/CLAUDE.md", "/README.md", "/package.json", "/package-lock.json", "/vitest.config.js", "/playwright.config.js", "/.gitignore"
   ],
   "exclude": []
 }

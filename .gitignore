@@ -10,3 +10,7 @@ backups-kv/
 # Etat local des tests de bout en bout (base D1 locale jetable).
 .wrangler-test/
 worker/.wrangler/
+
+# Sorties des parcours navigateur (Playwright).
+test-results/
+playwright-report/

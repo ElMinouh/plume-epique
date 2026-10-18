@@ -5,7 +5,7 @@ Base : v9.84.1. Document d'origine : `Audit-09` (rapport `.docx` + `.csv`, hors 
 | Lot | Version | Constats | Contenu | Statut |
 |---|---|---|---|---|
 | 1 | 9.84.1 (inchangée) | 006, 007, 016, 017 | `docs/PRODUIT.md`, `docs/RISQUES.md`, contradictions documentaires corrigées, CLAUDE.md allégé (un seul protocole), test de cohérence `lot-aud09-1-gouvernance.test.js` | livré |
-| 2 | 9.85.0 | 001 | Parcours navigateur automatisé en CI | à valider |
+| 2 | 9.84.1 (inchangée) | 001 | Parcours navigateur Playwright + axe-core (6 scénarios, `tests/e2e/`, `npm run e2e`), étape CI ; les 6 passent au rouge sans le correctif 9.84.1 ; axe : aucune violation sur 3 écrans | livré |
 | 3 | 9.86.0 | 002, 003 | Registre `DOC_TYPES`, gardes des raccourcis globaux | à valider |
 | 4 | 9.87.0 | 004, 015 | Socle commun du roman graphique (thème, aide, raccourcis) | à valider |
 | 5 | 9.88.0 | 005, 012, 013, 014 | Vocabulaire « projet », erreurs, icône étincelles, nom | à valider |

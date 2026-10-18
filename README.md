@@ -104,7 +104,8 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 
 ```bash
 npm install
-npm test            # Vitest : ~1105 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
+npm test            # Vitest : ~1120 tests (client, Workers sur une vraie base SQLite, intégration à deux appareils)
+npm run e2e         # 6 parcours dans un vrai Chromium (ouverture d'un manuscrit, fenêtres, téléphone 375 px, roman graphique, axe-core) ; première fois : npx playwright install chromium
 ```
 
 Pas de build, pas de linter. Les tests partagent un contexte applicatif global : `fileParallelism: false`.
