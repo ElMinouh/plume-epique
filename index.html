@@ -372,16 +372,16 @@
     <button class="action-btn btn-sm u-as-flex-start" id="mp-save-question-btn" title="Utile pour récupérer votre compte en cas de mot de passe oublié">Mettre à jour la question</button>
     <hr class="u-bdc-v-border u-m-6px-0">
     <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-timer"></use></svg> Rester connecté sur cet appareil</strong>
-    <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-6px">Évite de retaper le mot de passe pendant cette durée. Se déconnecter l'annule immédiatement.</p>
+    <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-6px">Évite de retaper le mot de passe pendant cette durée. Se déconnecter l'annule immédiatement. <strong>Pendant cette durée, toute personne qui utilise ce navigateur peut ouvrir vos textes sans mot de passe</strong> : à réserver à un appareil qui n'est qu'à vous.</p>
     <select id="mp-session-duration" aria-label="Durée de connexion conservée sur cet appareil" class="field">
       <option value="0">Ne pas rester connecté</option>
       <option value="60">1 heure</option>
       <option value="360">6 heures</option>
       <option value="720">12 heures (par défaut)</option>
       <option value="1440">24 heures</option>
-      <option value="10080">7 jours</option>
-      <option value="43200">1 mois</option>
-      <option value="-1">Toujours</option>
+      <option value="10080">7 jours (appareil personnel)</option>
+      <option value="43200">1 mois (appareil personnel)</option>
+      <option value="-1">Toujours (appareil strictement personnel)</option>
     </select>
     <hr class="u-bdc-v-border u-m-6px-0">
     <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-cloud"></use></svg> Services externes (IA, correcteur, dictée)</strong>
@@ -541,7 +541,7 @@
     <strong class="u-fs-base">Vos droits</strong>
     <p class="u-fs-sm u-m-0-0-6px"><strong>Accès et copie :</strong> exports (JSON, Word, ODT, EPUB, PDF). <strong>Correction :</strong> vous modifiez vos textes et votre profil. <strong>Effacement :</strong> suppression d'un projet (définitive depuis la corbeille) ; suppression d'un profil par l'administrateur. <strong>Opposition :</strong> refuser les services externes. Pour toute demande, adressez-vous à l'administrateur du foyer.</p>
     <strong class="u-fs-base">Ce qu'il faut savoir</strong>
-    <p class="u-fs-sm u-m-0">Si vous choisissez « Rester connecté », la clé de vos textes est conservée sur l'appareil pendant la durée choisie : verrouillez votre session et ne l'utilisez pas sur un appareil partagé. Ne confiez votre code de récupération à personne : il donne accès à tout votre profil.</p>
+    <p class="u-fs-sm u-m-0">Si vous choisissez « Rester connecté », la clé de vos textes est conservée sur l'appareil pendant la durée choisie, en clair dans le navigateur : toute personne qui utilise le même navigateur peut alors ouvrir vos textes sans mot de passe, même si vos profils sont séparés. Verrouillez votre session en partant et ne choisissez pas cette option sur un appareil partagé. Ne confiez votre code de récupération à personne : il donne accès à tout votre profil.</p>
   </div>
 </div>
 
@@ -1221,7 +1221,7 @@
       <button class="mode-indicator" data-value="off">Désactivée</button>
       <button class="mode-indicator" data-value="on">Activée</button>
     </div>
-    <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-6px">Ces réglages de confort de lecture s'appliquent à l'écriture, au mode Focus et au mode Lecture, sur cet appareil. La correction du navigateur souligne les fautes sans envoyer votre texte à un service externe.</p>
+    <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-6px">Ces réglages de confort de lecture s'appliquent à l'écriture, au mode Focus et au mode Lecture, sur cet appareil. La correction du navigateur souligne les fautes sans envoyer votre texte à un service externe (sauf si vous avez activé la « vérification améliorée » dans votre navigateur). Les noms inventés — personnages, lieux — seront soulignés : ajoutez-les au dictionnaire par un clic droit, ou désactivez la correction ci-dessus.</p>
     <hr class="u-bdc-v-border u-m-10px-0">
     <strong>Mots faibles</strong>
     <div class="u-m-8px-0" id="weak-words-list"></div>

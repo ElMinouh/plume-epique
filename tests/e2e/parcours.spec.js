@@ -192,6 +192,44 @@ test.describe('Parcours navigateur', () => {
     expect(erreurs).toEqual([]);
   });
 
+  // AUD-09-009 : le correcteur du navigateur est actif par défaut dans l'éditeur (un choix déjà fait reste prioritaire).
+  test('éditeur : la correction orthographique est activée par défaut', async ({ page }) => {
+    const erreurs = surveillerErreurs(page);
+    await ouvrirBibliotheque(page);
+    await creerProjet(page, 'Texte seul');
+    await expect(page.locator('#writer')).toBeVisible();
+    expect(await page.evaluate(() => document.getElementById('writer').spellcheck)).toBe(true);
+    expect(erreurs).toEqual([]);
+  });
+
+  // AUD-09-008 : une durée de connexion longue demande une confirmation qui nomme le risque ; refuser rétablit la durée précédente.
+  test('Rester connecté : « Toujours » demande confirmation, refuser rétablit la durée', async ({ page }) => {
+    const erreurs = surveillerErreurs(page);
+    await ouvrirBibliotheque(page);
+    await page.click('#setup-tour-later-btn'); // la bulle de configuration initiale recouvre le menu Compte à la première ouverture
+    await page.click('#library-account-btn');
+    await page.click('#library-my-profile-btn');
+    await expect(page.locator('#mp-session-duration')).toBeVisible();
+    expect(await page.inputValue('#mp-session-duration')).toBe('720');
+    await page.selectOption('#mp-session-duration', '-1');
+    await expect(page.locator('#confirm-modal-overlay.active')).toBeVisible();
+    await expect(page.locator('#confirm-modal-message')).toContainText('sans mot de passe');
+    await page.click('#confirm-modal-cancel-btn');
+    await expect(page.locator('#confirm-modal-overlay.active')).toHaveCount(0);
+    expect(await page.inputValue('#mp-session-duration')).toBe('720');
+    // une durée courte ne demande rien
+    await page.selectOption('#mp-session-duration', '360');
+    await page.waitForTimeout(500);
+    await expect(page.locator('#confirm-modal-overlay.active')).toHaveCount(0);
+    // une durée longue confirmée est enregistrée
+    await page.selectOption('#mp-session-duration', '10080');
+    await expect(page.locator('#confirm-modal-overlay.active')).toBeVisible();
+    await page.click('#confirm-modal-confirm-btn');
+    await page.waitForTimeout(600);
+    expect(await page.inputValue('#mp-session-duration')).toBe('10080');
+    expect(erreurs).toEqual([]);
+  });
+
   test.describe('téléphone (375 px)', () => {
     test.use({ viewport: { width: 375, height: 812 } });
     test('bibliothèque et éditeur sans défilement horizontal', async ({ page }) => {

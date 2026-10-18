@@ -29,12 +29,13 @@ function selectUiScale(key) { try { localStorage.setItem('plume_ui_scale', key);
 applyUiScale(loadUiScale());
 
 // v9.63.0 (AUD-05-014) — confort de lecture, par appareil (comme la taille et la largeur) : interligne, espacement lettres/mots,
-// correction orthographique du navigateur (désactivée par défaut : elle souligne les noms propres d'un roman ; un auteur dyslexique
-// peut la réactiver — le texte reste dans le navigateur, rien n'est envoyé à un service externe).
+// correction orthographique du navigateur (v9.88.0, AUD-09-009 : ACTIVÉE par défaut, comme tout outil d'écriture ; elle souligne les
+// noms inventés d'un roman, qu'on ajoute au dictionnaire par un clic droit ou qu'on désactive ici. Avant la v9.88.0 le défaut était
+// « désactivée » : la valeur déjà choisie et stockée sur l'appareil prime toujours sur ce défaut).
 const COMFORT = {
   lineheight: { key: 'plume_line_height', vals: ['normal', 'confortable', 'large'], def: 'normal', picker: '#lineheight-picker' },
   spacing:    { key: 'plume_spacing',     vals: ['normal', 'large'],                 def: 'normal', picker: '#spacing-picker' },
-  spell:      { key: 'plume_spellcheck',  vals: ['off', 'on'],                       def: 'off',    picker: '#spellcheck-picker' }
+  spell:      { key: 'plume_spellcheck',  vals: ['off', 'on'],                       def: 'on',     picker: '#spellcheck-picker' }
 };
 function loadComfort(name) { const c = COMFORT[name]; try { const v = localStorage.getItem(c.key); return c.vals.includes(v) ? v : c.def; } catch (e) { return c.def; } }
 function applyComfort(name, v) {

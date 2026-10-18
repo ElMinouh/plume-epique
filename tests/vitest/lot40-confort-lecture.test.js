@@ -51,6 +51,10 @@ describe('AUD-05-014 — réglages de confort (jsdom)', () => {
     const w = monde({ plume_line_height: 'enorme' });
     expect(w.eval("loadComfort('lineheight')")).toBe('normal');
     expect(w.eval("loadComfort('spacing')")).toBe('normal');
+    expect(w.eval("loadComfort('spell')")).toBe('on');   // v9.88.0 : activé par défaut
+  });
+  it('un choix déjà fait (« Désactivée ») est conservé malgré le nouveau défaut', () => {
+    const w = monde({ plume_spellcheck: 'off' });
     expect(w.eval("loadComfort('spell')")).toBe('off');
   });
   it('interligne et espacement posés sur <html> ; boutons actifs mis à jour ; persistance', () => {

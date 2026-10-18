@@ -795,8 +795,22 @@ function openMyProfile() {
 }
 function closeMyProfile() { document.getElementById('my-profile-overlay').classList.remove('active'); }
 
+// v9.88.0 (AUD-09-008) : à partir de 7 jours, la clé de données reste en clair dans le navigateur très longtemps ; le choix demande
+// une confirmation explicite qui dit ce que cela change pour les autres utilisateurs du même navigateur.
+const LONG_SESSION_MINUTES = 10080; // 7 jours
+function isLongSession(minutes) { return minutes === -1 || minutes >= LONG_SESSION_MINUTES; }
 async function saveMySessionDuration() {
-  const minutes = parseInt(document.getElementById('mp-session-duration').value, 10);
+  const sel = document.getElementById('mp-session-duration');
+  const minutes = parseInt(sel.value, 10);
+  const avant = (_currentProfile.sessionMinutes === undefined || _currentProfile.sessionMinutes === null) ? DEFAULT_SESSION_MINUTES : _currentProfile.sessionMinutes;
+  if (isLongSession(minutes) && minutes !== avant) {
+    const ok = await showConfirmModal({
+      title: 'Rester connecté longtemps ?',
+      message: "Pendant cette durée, toute personne qui utilise ce navigateur peut ouvrir vos textes sans mot de passe, même si les profils sont séparés. Ne le choisissez que sur un appareil qui n'est qu'à vous.",
+      confirmLabel: 'Garder cette durée', cancelLabel: 'Annuler'
+    });
+    if (!ok) { sel.value = String(avant); return; }
+  }
   await mutateProfilesIndex(idx => {
     const profil = idx.profiles.find(p => p.id === _currentProfileId);
     if (profil) profil.sessionMinutes = minutes;

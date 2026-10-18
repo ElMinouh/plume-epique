@@ -8,7 +8,7 @@ Les dates de réexamen sont proposées (trois mois) et valent tant que le propri
 | Risque | Décision | Date | Justification | Réexamen |
 |---|---|---|---|---|
 | Question secrète conservée : réponse devinable, enveloppe attaquable hors ligne (AUD-06-003) | Accepté, coût de dérivation relevé | 12/10/2026 | Commodité de récupération pour un usage familial (`DECISIONS` n°3) | 18/01/2027 |
-| Session « Rester connecté » : clé de données et clé de synchro en clair dans `localStorage` (AUD-06-005) | Accepté ; libellé et défaut à revoir au lot 6 de l'AUD-09 | 12/10/2026 | Commodité ; appareil personnel supposé (`DECISIONS` n°37) | Au lot 6 |
+| Session « Rester connecté » : clé de données et clé de synchro en clair dans `localStorage` (AUD-06-005) | Accepté ; depuis la v9.88.0 le risque est dit à l'écran (avertissement + confirmation à partir de 7 jours) | 12/10/2026 | Commodité ; appareil personnel supposé (`DECISIONS` n°37) | 18/01/2027 |
 | Pas de rotation de la clé de données (AUD-06-006) | Annulé | 12/10/2026 | Un défaut de rechiffrement peut faire perdre des manuscrits ; risque jugé pire que le gain | 18/01/2027 |
 | Données liées aux enveloppes sans données associées (AUD-06-007) | Annulé | 12/10/2026 | Gain faible, risque de migration | 18/01/2027 |
 | Métadonnées en clair côté serveur : noms de profils, titres, statistiques (AUD-06-008) | Annulé | 12/10/2026 | Nécessaire au fonctionnement actuel de la bibliothèque | 18/01/2027 |
