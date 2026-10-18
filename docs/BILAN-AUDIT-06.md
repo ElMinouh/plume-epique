@@ -18,7 +18,7 @@ rapport `.docx`, liste `.csv`, preuve rejouable `poc-verification-worker.mjs`. P
 - **AUD-06-012** : `CLE-DE-SYNCHRONISATION-NE-PAS-PARTAGER.txt` et `backups-kv/` déplacés le 11/10/2026 de
   `…\OneDrive\Desktop\Plume` vers `C:\Secrets\Plume\`. **Reste à la charge du propriétaire (décision du 11/10/2026 : non
   fait)** : changer la clé de synchronisation et purger les anciennes versions OneDrive ; tant que ce n'est pas fait, la clé
-  est à considérer comme exposée (la rotation est prévue avec la séparation des clés IA/synchro du lot 2).
+  est à considérer comme exposée. **Mise à jour : la rotation a été refusée par le propriétaire le 12/10/2026 (risque accepté, voir plus bas et `docs/RISQUES.md`).**
 - **AUD-06-013** : `scripts/migrer-kv-vers-d1.cjs` (essai à blanc, `--appliquer`, `--vider-kv --confirmer`), testé par
   `tests/vitest/lot-aud06-1-migration-kv.test.js`. Étape B : repli KV supprimé du Worker (`d1Store.read/version`), binding `PLUME_SYNC` retiré de
   `wrangler-sync.toml`, tests mis à jour (`sync-d1.test.js`), ancien Worker figé en fixture pour tester la migration.

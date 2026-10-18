@@ -12,8 +12,8 @@
 // showLibraryScreen/hideLibraryScreen) — définis dans router.js/library.js,
 // chargés avant ce fichier.
 //
-// Limites assumées de cette première version (à faire évoluer) :
-//   - pas d'export PDF (bouton visible mais désactivé) ;
+// Limites assumées (état v9.84 ; l'export PDF qualité impression et l'export
+// livre numérique ZIP/DOCX/EPUB/ODT existent depuis, voir le menu « Exporter ») :
 //   - édition libre (glisser/redimensionner) réservée au PC — sur mobile,
 //     on choisit un gabarit et on remplace les images, sans positionnement
 //     libre (décision prise avec l'utilisateur lors de la maquette).

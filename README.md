@@ -12,6 +12,8 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 | Document | Contenu |
 |---|---|
 | [`CLAUDE.md`](CLAUDE.md) | Architecture, conventions, règles de travail (lots, versions, tests locaux, mise à jour du README) |
+| [`docs/PRODUIT.md`](docs/PRODUIT.md) | Public visé, échelle maximale, non-objectifs : le cadre des audits et des décisions (AUD-09-007) |
+| [`docs/RISQUES.md`](docs/RISQUES.md) | Registre des risques acceptés (décision, date, réexamen) et des actions ouvertes (AUD-09-016) |
 | [`docs/EXPLOITATION.md`](docs/EXPLOITATION.md) | Déployer, revenir en arrière, restaurer, changer la clé de synchro, quotas, journaux |
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Choix d'architecture importants et leurs raisons |
 | [`docs/BILAN-AUDIT-01.md`](docs/BILAN-AUDIT-01.md) | Bilan de remédiation de l'audit technique d'octobre 2026 (28 constats) |
