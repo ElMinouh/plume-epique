@@ -176,7 +176,7 @@ async function saveGraphicNovel(immediate) {
       if (typeof flashSave === 'function') flashSave();
     } catch(e) {
       console.error('Échec de sauvegarde (roman graphique) :', e);
-      if (typeof toast === 'function') { toast('Échec de la sauvegarde : ' + (e && e.message ? e.message : e) + '. Vos derniers ajouts ne sont peut-être pas enregistrés.', 'error', { sticky: true, kind: 'save' }); if (typeof markSaveFailed === 'function') markSaveFailed(); }
+      if (typeof toast === 'function') { toast(messageErreurLisible(e, "L'enregistrement").message + ' Vos derniers ajouts ne sont peut-être pas enregistrés.', 'error', { sticky: true, kind: 'save' }); if (typeof markSaveFailed === 'function') markSaveFailed(); }
     }
   };
   if (immediate) { clearTimeout(_gnSaveTimer); await doSave(); return; }
@@ -1230,7 +1230,7 @@ function gnAddPage() {
   gnSetActivePage(db.pages.length - 1);
 }
 async function gnDeletePage(i) {
-  if (db.pages.length <= 1) { toast('Le manuscrit doit garder au moins une page.', 'error'); return; }
+  if (db.pages.length <= 1) { toast('Le projet doit garder au moins une page.', 'error'); return; }
   const ok = await showConfirmModal({ title:'Supprimer cette page ?', message:'Déplacée vers la corbeille — récupérable pendant 30 jours.', confirmLabel:'Supprimer', danger:true });
   if (!ok) return;
   const [removed] = db.pages.splice(i, 1);
@@ -1799,7 +1799,7 @@ async function gnExportGraphicNovelPDF(opts) {
     }
   } catch (e) {
     console.error('Échec export PDF (roman graphique) :', e);
-    toast('Échec de l\'export PDF : ' + (e && e.message ? e.message : e), 'error');
+    toastError("L'export PDF", e);
   } finally {
     pageEl.classList.remove('gn-export-mode');
     pageEl.style.width = '';
@@ -1954,7 +1954,7 @@ async function gnExportZip() {
     if (inPart > 0) await savePart();
     toast('Export ZIP généré' + (parts > 1 ? ' (' + parts + ' archives de ' + GN_ZIP_PAGES_PER_PART + ' pages au plus)' : '') + '.', 'success');
   } catch(e) {
-    toast('Échec de l\'export ZIP : ' + (e && e.message ? e.message : e), 'error');
+    toastError("L'export ZIP", e);
   }
 }
 
@@ -1976,7 +1976,7 @@ async function gnExportBookDocx() {
     saveAs(blob, gnExportFilename() + '.docx');
     toast('Export DOCX généré.', 'success');
   } catch(e) {
-    toast('Échec de l\'export DOCX : ' + (e && e.message ? e.message : e), 'error');
+    toastError("L'export DOCX", e);
   }
 }
 
@@ -2049,7 +2049,7 @@ async function gnExportBookEpub() {
     saveAs(blob, gnExportFilename() + '.epub');
     toast('Export EPUB généré.', 'success');
   } catch(e) {
-    toast('Échec de l\'export EPUB : ' + (e && e.message ? e.message : e), 'error');
+    toastError("L'export EPUB", e);
   }
 }
 
@@ -2067,7 +2067,7 @@ async function gnExportBookOdt() {
     saveAs(blob, gnExportFilename() + '.odt');
     toast('Export ODT généré.', 'success');
   } catch(e) {
-    toast('Échec de l\'export ODT : ' + (e && e.message ? e.message : e), 'error');
+    toastError("L'export ODT", e);
   }
 }
 

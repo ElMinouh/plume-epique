@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Vue d'ensemble
 
-**Plume Épique** — application web d'aide à l'écriture (romans) avec un module bolt-on pour la création de **romans graphiques / bandes dessinées** (`db.docType === 'roman_graphique'`). 100% côté client, chiffrement local (AES-GCM), multi-profils, synchronisation multi-appareils optionnelle via Cloudflare Workers/KV. Déployée sur Cloudflare Pages (`plume-epique.pages.dev`).
+**Plume** (dépôt `plume-epique`) — application web d'aide à l'écriture (romans) avec un module bolt-on pour la création de **romans graphiques / bandes dessinées** (`db.docType === 'roman_graphique'`). 100% côté client, chiffrement local (AES-GCM), multi-profils, synchronisation multi-appareils optionnelle via Cloudflare Workers/KV. Déployée sur Cloudflare Pages (`plume-epique.pages.dev`).
 
 ## Commandes
 

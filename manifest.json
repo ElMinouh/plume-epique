@@ -39,7 +39,7 @@
     {
       "name": "Nouveau projet",
       "short_name": "Nouveau",
-      "description": "Créer un nouveau manuscrit",
+      "description": "Créer un nouveau projet",
       "url": "./?action=nouveau",
       "icons": [
         {

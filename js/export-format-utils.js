@@ -452,7 +452,7 @@ async function importManuscriptFile(input) {
   Promise.resolve(convert).then(html => {
     _docxImportHtml = sanitizeManuscriptHtml(html || '<p></p>'); // v9.27.0 : sans attributs style (l'import ODT en produit)
     openDocxImportModal(file.name);
-  }).catch(err => { toast('Fichier invalide : ' + err.message, 'error'); }).finally(() => { input.value = ''; });
+  }).catch(err => { toastError('La lecture du fichier', err); }).finally(() => { input.value = ''; });
 }
 async function openDocxImportModal(filename) {
   document.getElementById('docx-import-filename').textContent = filename;
@@ -495,7 +495,7 @@ async function confirmDocxImport() {
     : [mkChapter(_docxImportTitleGuess, _docxImportHtml)];
 
   if (isNew) {
-    const title = document.getElementById('docx-new-title').value.trim() || 'Nouveau manuscrit';
+    const title = document.getElementById('docx-new-title').value.trim() || 'Nouveau projet';
     const docId = genChapterId();
     const dbData = DEFAULT_DB();
     dbData.title = title;
@@ -506,13 +506,13 @@ async function confirmDocxImport() {
       list.documents.push({ id:docId, title, lastModified:Date.now(), chapterCount:newChapters.length, wordCount:newChapters.reduce((t, c) => t + getWordCount(c.content), 0), wordGoal:0, cover:'auto', docType:'texte' });
     });
     closeDocxImportModal();
-    toast('Nouveau manuscrit créé depuis le fichier importé.', 'success');
+    toast('Nouveau projet créé depuis le fichier importé.', 'success');
     await renderLibraryScreen();
     return;
   }
 
   const targetDocId = document.getElementById('docx-existing-select').value;
-  if (!targetDocId) { toast('Aucun manuscrit disponible.', 'error'); closeDocxImportModal(); return; }
+  if (!targetDocId) { toast('Aucun projet disponible.', 'error'); closeDocxImportModal(); return; }
   try {
     const otherDb = await loadManuscriptData(targetDocId);
     if (!Array.isArray(otherDb.chapters)) { toast("Un roman graphique n'accepte pas de chapitres.", 'error'); return; }
@@ -520,7 +520,7 @@ async function confirmDocxImport() {
     await persistManuscriptData(targetDocId, otherDb);
     await touchDocListEntry(targetDocId, otherDb);
     closeDocxImportModal();
-    toast(newChapters.length > 1 ? `${newChapters.length} chapitres ajoutés à « ${DOMPurify.sanitize(otherDb.title||'ce manuscrit')} ».` : `Chapitre ajouté à « ${DOMPurify.sanitize(otherDb.title||'ce manuscrit')} ».`, 'success');
+    toast(newChapters.length > 1 ? `${newChapters.length} chapitres ajoutés à « ${DOMPurify.sanitize(otherDb.title||'ce projet')} ».` : `Chapitre ajouté à « ${DOMPurify.sanitize(otherDb.title||'ce projet')} ».`, 'success');
     await renderLibraryScreen();
   } catch(e) {
     toastError("L'ajout des chapitres", e);
@@ -573,7 +573,7 @@ async function megaExportLibrary() {
 function importProjectLibrary(input) {
   const file = input.files[0]; if (!file) return;
   if (file.size > IMPORT_MAX_JSON_BYTES) {
-    toast('Ce fichier pèse ' + formatMo(file.size) + ' : au-delà de la limite d\'import (' + formatMo(IMPORT_MAX_JSON_BYTES) + '). Exportez les manuscrits un par un, ou sans leurs images.', 'error');
+    toast('Ce fichier pèse ' + formatMo(file.size) + ' : au-delà de la limite d\'import (' + formatMo(IMPORT_MAX_JSON_BYTES) + '). Exportez les projets un par un, ou sans leurs images.', 'error');
     input.value = ''; return;
   }
   const reader = new FileReader();
@@ -590,15 +590,15 @@ function importProjectLibrary(input) {
       let skipIds = new Set();
       if (dupIds.length) {
         const ignore = await showConfirmModal({
-          title: dupIds.length + ' ' + plur(dupIds.length, 'manuscrit déjà présent', 'manuscrits déjà présents'),
-          message: 'Ce fichier contient ' + dupIds.length + ' ' + plur(dupIds.length, 'manuscrit qui existe déjà', 'manuscrits qui existent déjà') + ' dans votre bibliothèque. Les ignorer et n\'importer que les autres (recommandé) ? Annuler vous permettra de les importer en copies.',
+          title: dupIds.length + ' ' + plur(dupIds.length, 'projet déjà présent', 'projets déjà présents'),
+          message: 'Ce fichier contient ' + dupIds.length + ' ' + plur(dupIds.length, 'projet qui existe déjà', 'projets qui existent déjà') + ' dans votre bibliothèque. Les ignorer et n\'importer que les autres (recommandé) ? Annuler vous permettra de les importer en copies.',
           confirmLabel: 'Ignorer les doublons'
         });
         if (ignore) skipIds = new Set(dupIds);
         else {
           const copies = await showConfirmModal({
             title: 'Importer les doublons en copies ?',
-            message: dupIds.length + ' ' + plur(dupIds.length, 'manuscrit sera ajouté', 'manuscrits seront ajoutés') + ' une seconde fois, sous un nouvel identifiant.',
+            message: dupIds.length + ' ' + plur(dupIds.length, 'projet sera ajouté', 'projets seront ajoutés') + ' une seconde fois, sous un nouvel identifiant.',
             confirmLabel: 'Importer en copies'
           });
           if (!copies) { toast('Import annulé.', 'info'); return; }
@@ -655,7 +655,7 @@ function importProjectLibrary(input) {
         await persistData(docDataKey(_currentProfileId, newId), envelope);
         newEntries.push({
           id:newId,
-          title: (oldEntry && oldEntry.title) || 'Manuscrit importé',
+          title: (oldEntry && oldEntry.title) || 'Projet importé',
           lastModified: Date.now(),
           chapterCount: (oldEntry && oldEntry.chapterCount) || 0,
           wordCount: (oldEntry && oldEntry.wordCount) || 0,
@@ -677,19 +677,19 @@ function importProjectLibrary(input) {
         try { await loadManuscriptData(firstNewId); } catch(e) { unreadable = true; }
       }
       if (unreadable) {
-        toast('Import terminé, mais ces manuscrits semblent illisibles : ce fichier vient probablement d\'un autre profil.', 'error');
+        toast('Import terminé, mais ces projets semblent illisibles : ce fichier vient probablement d\'un autre profil.', 'error');
       } else if (!added && invalidCount) {
-        toast(invalidCount + ' ' + plur(invalidCount, 'manuscrit du fichier ignoré', 'manuscrits du fichier ignorés') + ' : format invalide (fichier abîmé ou qui ne vient pas de Plume).', 'error');
+        toast(invalidCount + ' ' + plur(invalidCount, 'projet du fichier ignoré', 'projets du fichier ignorés') + ' : format invalide (fichier abîmé ou qui ne vient pas de Plume).', 'error');
       } else if (!added) {
-        toast('Aucun nouveau manuscrit : tous ceux du fichier sont déjà dans votre bibliothèque.', 'info');
+        toast('Aucun nouveau projet : tous ceux du fichier sont déjà dans votre bibliothèque.', 'info');
       } else {
-        toast(added + ' ' + plur(added, 'manuscrit importé', 'manuscrits importés') + ' dans la bibliothèque.' + (skipIds.size ? ' ' + skipIds.size + ' ' + plur(skipIds.size, 'doublon ignoré', 'doublons ignorés') + '.' : '') + (invalidCount ? ' ' + invalidCount + ' ' + plur(invalidCount, 'manuscrit ignoré', 'manuscrits ignorés') + ' : format invalide.' : ''), 'success');
+        toast(added + ' ' + plur(added, 'projet importé', 'projets importés') + ' dans la bibliothèque.' + (skipIds.size ? ' ' + skipIds.size + ' ' + plur(skipIds.size, 'doublon ignoré', 'doublons ignorés') + '.' : '') + (invalidCount ? ' ' + invalidCount + ' ' + plur(invalidCount, 'projet ignoré', 'projets ignorés') + ' : format invalide.' : ''), 'success');
       }
       await renderLibraryScreen();
     } catch(err) {
-      toast('Fichier invalide : ' + err.message, 'error');
+      toastError('La lecture du fichier', err);
     }
   };
-  reader.onerror = () => toast('Erreur de lecture', 'error');
+  reader.onerror = () => toastError('La lecture du fichier', reader.error);
   reader.readAsText(file);
 }

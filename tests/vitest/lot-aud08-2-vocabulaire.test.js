@@ -33,13 +33,13 @@ describe('AUD-08-009 — un seul libellé de création, titres par défaut numé
   const ctx = vm.createContext({}); new vm.Script(grab('js/library.js', 'uniqueDefaultTitle')).runInContext(ctx);
   const u = (b, t) => vm.runInContext(`uniqueDefaultTitle(${JSON.stringify(b)}, ${JSON.stringify(t)})`, ctx);
   it('le premier titre reste tel quel, les suivants sont numérotés', () => {
-    expect(u('Nouveau manuscrit', [])).toBe('Nouveau manuscrit');
-    expect(u('Nouveau manuscrit', ['Nouveau manuscrit'])).toBe('Nouveau manuscrit 2');
-    expect(u('Nouveau manuscrit', ['Nouveau manuscrit', 'Nouveau manuscrit 2'])).toBe('Nouveau manuscrit 3');
-    expect(u('Nouveau manuscrit', ['Le Phare'])).toBe('Nouveau manuscrit');
+    expect(u('Nouveau projet', [])).toBe('Nouveau projet');
+    expect(u('Nouveau projet', ['Nouveau projet'])).toBe('Nouveau projet 2');
+    expect(u('Nouveau projet', ['Nouveau projet', 'Nouveau projet 2'])).toBe('Nouveau projet 3');
+    expect(u('Nouveau projet', ['Le Phare'])).toBe('Nouveau projet');
   });
   it('les deux créations (texte, roman graphique) passent par cette numérotation', () => {
-    expect(lib).toContain("uniqueDefaultTitle('Nouveau manuscrit'");
+    expect(lib).toContain("uniqueDefaultTitle('Nouveau projet'");
     expect(read('js/graphicnovel.js')).toContain("uniqueDefaultTitle('Nouveau roman graphique'");
   });
 });

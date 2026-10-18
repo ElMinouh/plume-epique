@@ -167,7 +167,7 @@ function initDictation() {
       document.getElementById('dictate-preview').textContent = '';
     }
   };
-  _recognition.onerror = e => { toast('Erreur dictée : '+e.error,'error'); stopDictation(); };
+  _recognition.onerror = e => { if (e.error !== 'aborted') toast(dictationErrorMessage(e.error), 'error'); stopDictation(); };
   // Une nouvelle session de reconnaissance qui redémarre repart avec un
   // tableau `results` vide côté navigateur : notre suivi doit repartir de
   // zéro avec elle.
@@ -189,6 +189,17 @@ async function startDictation() {
   const btn = document.getElementById('dictate-btn');
   btn.classList.add('record-pulse');
   document.getElementById('dictate-status').textContent = 'Enregistrement…';
+}
+// v9.87.0 (AUD-09-012) : les codes d'erreur de la reconnaissance vocale sont techniques et en anglais ; on les traduit.
+function dictationErrorMessage(code) {
+  switch (code) {
+    case 'not-allowed': case 'service-not-allowed': return "La dictée n'a pas pu démarrer : l'accès au micro est refusé. Autorisez-le dans les réglages de votre navigateur.";
+    case 'audio-capture': return "La dictée n'a pas pu démarrer : aucun micro n'a été détecté.";
+    case 'no-speech': return "La dictée n'a rien entendu. Parlez plus près du micro, puis réessayez.";
+    case 'network': return "La dictée n'a pas abouti : la connexion a échoué (hors ligne ou service injoignable).";
+    case 'language-not-supported': return "La dictée n'est pas disponible en français sur ce navigateur.";
+    default: return "La dictée n'a pas abouti : une erreur inattendue s'est produite.";
+  }
 }
 function stopDictation() {
   _dictating = false; _recognition.stop();

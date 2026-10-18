@@ -207,7 +207,7 @@
   <h2 class="u-m-18px-0-2px" aria-level="1"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-library"></use></svg> Ma bibliothèque</h2>
   <div class="u-d-flex u-jc-space-between u-ai-center u-m-0-0-6px">
     <p class="u-fs-sm u-c-v-text-muted u-m-0" id="library-count"></p>
-    <button class="action-btn btn-secondary btn-sm u-d-none" id="library-trash-btn" title="Manuscrits supprimés, récupérables 30 jours"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-trash-2"></use></svg> Corbeille (0)</button>
+    <button class="action-btn btn-secondary btn-sm u-d-none" id="library-trash-btn" title="Projets supprimés, récupérables 30 jours"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-trash-2"></use></svg> Corbeille (0)</button>
     <div class="ch-view-toggle u-w-170px" role="group" aria-label="Vue de la bibliothèque">
       <button class="mode-indicator active" id="view-grid-btn" title="Vue grille"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-layout-grid"></use></svg> Grille</button>
       <button class="mode-indicator" id="view-shelf-btn" title="Vue en étagère"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-rows-3"></use></svg> Étagère</button>
@@ -236,15 +236,15 @@
     </div>
 
     <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border" id="lib-sys-doc-zone">
-      <label class="u-fs-base u-fwt-600" for="lib-system-doc-select"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-book-open"></use></svg> Manuscrit concerné</label>
+      <label class="u-fs-base u-fwt-600" for="lib-system-doc-select"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-book-open"></use></svg> Projet concerné</label>
       <select id="lib-system-doc-select" class="field u-w-100pc u-mt-6px"></select>
     </div>
 
     <div class="lib-sys-pane active" role="tabpanel" id="lib-sys-files" aria-labelledby="lib-systab-files">
       <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
-        <strong class="u-fs-base">Ce manuscrit</strong>
+        <strong class="u-fs-base">Ce projet</strong>
       <div class="export-row u-jc-flex-start u-mt-8px">
-        <button class="action-btn btn-secondary btn-sm" id="lib-export-btn" title="Exporter ce manuscrit (choix du format ensuite)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-upload"></use></svg> Exporter</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-export-btn" title="Exporter ce projet (choix du format ensuite)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-upload"></use></svg> Exporter</button>
         <button class="action-btn btn-secondary btn-sm" id="lib-import-doc-trigger-btn" title="Importer un fichier Word (.docx) ou OpenDocument (.odt)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-download"></use></svg> Importer (DOCX/ODT)</button>
         <input class="u-d-none" type="file" id="lib-import-doc-file" aria-label="Fichier Word ou OpenDocument à importer" accept=".docx,.odt">
       </div>
@@ -252,11 +252,11 @@
       <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
       <strong class="u-fs-base"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-library"></use></svg> Bibliothèque entière</strong><br>
       <div class="export-row u-jc-flex-start u-mt-8px">
-        <button class="action-btn btn-secondary btn-sm" id="lib-export-json-btn" title="Télécharger tous les manuscrits dans un seul fichier de sauvegarde"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-save"></use></svg> Export JSON (tout)</button>
-        <button class="action-btn btn-secondary btn-sm" id="lib-import-json-trigger-btn" title="Charger un fichier de sauvegarde JSON (ajoute les manuscrits sans écraser l'existant)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-download"></use></svg> Import JSON (tout)</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-export-json-btn" title="Télécharger tous les projets dans un seul fichier de sauvegarde"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-save"></use></svg> Export JSON (tout)</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-import-json-trigger-btn" title="Charger un fichier de sauvegarde JSON (ajoute les projets sans écraser l'existant)"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-download"></use></svg> Import JSON (tout)</button>
         <input class="u-d-none" type="file" id="lib-import-json-file" aria-label="Fichier de sauvegarde JSON à importer" accept=".json">
       </div>
-      <p class="u-fs-xs u-c-v-text-muted u-m-6px-0-0"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-triangle-alert"></use></svg> Ce fichier ne peut être réimporté que dans le <strong>même profil</strong> (ex. après réinstallation) — un import dans un autre profil produit des manuscrits illisibles.</p>
+      <p class="u-fs-xs u-c-v-text-muted u-m-6px-0-0"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-triangle-alert"></use></svg> Ce fichier ne peut être réimporté que dans le <strong>même profil</strong> (ex. après réinstallation) — un import dans un autre profil produit des projets illisibles.</p>
       </div>
     </div>
 
@@ -278,16 +278,16 @@
           <option value="60">Toutes les 60 min</option>
         </select>
       </div>
-      <p class="u-fs-xs u-c-v-text-muted u-m-6px-0-0">Se déclenche aussi au changement de manuscrit, au retour à la bibliothèque, et quand l'onglet perd le focus.</p>
+      <p class="u-fs-xs u-c-v-text-muted u-m-6px-0-0">Se déclenche aussi au changement de projet, au retour à la bibliothèque, et quand l'onglet perd le focus.</p>
       <p class="u-fs-sm u-c-v-accent u-m-6px-0-0" id="lib-cloud-status" aria-live="polite"></p>
 
       </div>
       <div class="u-bg-rgb00005 u-p-12px u-br-2 u-bd-1px-dashed-v-border">
-        <strong class="u-fs-base">Sauvegarde GitHub du manuscrit choisi ci-dessus</strong>
+        <strong class="u-fs-base">Sauvegarde GitHub du projet choisi ci-dessus</strong>
       <div class="export-row u-jc-flex-start u-mt-8px">
-        <button class="action-btn btn-secondary btn-sm" id="lib-sync-cloud-btn" title="Envoyer une sauvegarde chiffrée de ce manuscrit vers GitHub"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh-cw"></use></svg> Sauver</button>
-        <button class="action-btn btn-secondary btn-sm" id="lib-load-cloud-btn" title="Récupérer la dernière sauvegarde GitHub de ce manuscrit"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-download"></use></svg> Charger</button>
-        <button class="action-btn btn-secondary btn-sm" id="lib-gist-history-btn" title="Voir les anciennes versions sauvegardées de ce manuscrit"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-clock"></use></svg> Versions</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-sync-cloud-btn" title="Envoyer une sauvegarde chiffrée de ce projet vers GitHub"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh-cw"></use></svg> Sauver</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-load-cloud-btn" title="Récupérer la dernière sauvegarde GitHub de ce projet"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-download"></use></svg> Charger</button>
+        <button class="action-btn btn-secondary btn-sm" id="lib-gist-history-btn" title="Voir les anciennes versions sauvegardées de ce projet"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-clock"></use></svg> Versions</button>
       </div>
       <p class="u-fs-xs u-c-v-text-muted u-m-6px-0-0" id="lib-doc-gist-status"></p>
       </div>
@@ -329,15 +329,15 @@
       <button class="action-btn btn-ghost btn-sm" id="docx-import-close-btn" title="Annuler l'import" aria-label="Annuler l'import"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg></button>
     </div>
     <div class="ch-view-toggle" role="group" aria-label="Destination de l'import">
-      <button class="mode-indicator active" id="docx-mode-new-btn" title="Créer un nouveau manuscrit à partir de ce fichier"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-book-open"></use></svg> Nouveau manuscrit</button>
+      <button class="mode-indicator active" id="docx-mode-new-btn" title="Créer un nouveau projet à partir de ce fichier"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-book-open"></use></svg> Nouveau projet</button>
       <button class="mode-indicator" id="docx-mode-existing-btn" title="Ajouter comme chapitre à un manuscrit déjà existant"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-files"></use></svg> Chapitre existant</button>
     </div>
     <div id="docx-new-fields">
-      <label class="u-fs-sm u-c-v-text-muted" for="docx-new-title">Titre du nouveau manuscrit</label>
+      <label class="u-fs-sm u-c-v-text-muted" for="docx-new-title">Titre du nouveau projet</label>
       <input type="text" id="docx-new-title" class="field u-w-100pc u-mt-4px">
     </div>
     <div class="u-d-none" id="docx-existing-fields">
-      <label class="u-fs-sm u-c-v-text-muted" for="docx-existing-select">Manuscrit de destination</label>
+      <label class="u-fs-sm u-c-v-text-muted" for="docx-existing-select">Projet de destination</label>
       <select id="docx-existing-select" class="field u-w-100pc u-mt-4px"></select>
     </div>
     <div class="u-d-none u-mt-8px" id="docx-split-wrap">
@@ -499,13 +499,13 @@
   </div>
 </div>
 
-<div id="doc-trash-overlay" role="dialog" aria-modal="true" aria-label="Corbeille des manuscrits">
+<div id="doc-trash-overlay" role="dialog" aria-modal="true" aria-label="Corbeille des projets">
   <div class="u-bg-v-glass u-br-3 u-p-20px u-w-min-500px-92vw u-maxh-70vh u-d-flex u-fd-column u-gap-10px u-shadow-elev-4 u-bd-1px-solid-v-border">
     <div class="u-d-flex u-jc-space-between u-ai-center">
-      <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-trash-2"></use></svg> Corbeille (manuscrits supprimés)</strong>
+      <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-trash-2"></use></svg> Corbeille (projets supprimés)</strong>
       <button class="action-btn btn-ghost btn-sm" id="doc-trash-close-btn" title="Fermer cette fenêtre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg> Fermer</button>
     </div>
-    <div class="u-fs-xs u-c-v-text-muted">Les manuscrits supprimés restent ici 30 jours, sur tous vos appareils, avant suppression définitive automatique.</div>
+    <div class="u-fs-xs u-c-v-text-muted">Les projets supprimés restent ici 30 jours, sur tous vos appareils, avant suppression définitive automatique.</div>
     <div class="u-ovy-auto u-fg-1 u-d-flex u-fd-column u-gap-6px" id="doc-trash-list"></div>
   </div>
 </div>
@@ -529,17 +529,17 @@
       <button class="action-btn btn-ghost btn-sm" id="privacy-close-btn" title="Fermer cette fenêtre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg> Fermer</button>
     </div>
     <strong class="u-fs-base">À quoi sert Plume, et pour qui</strong>
-    <p class="u-fs-sm u-m-0-0-6px">Plume Épique est un outil d'écriture à usage <strong>personnel et familial</strong>. L'administrateur du foyer en est le responsable. Il n'est pas prévu pour des élèves, ni pour des mineurs sans un adulte responsable, ni pour un public extérieur au foyer.</p>
+    <p class="u-fs-sm u-m-0-0-6px">Plume est un outil d'écriture à usage <strong>personnel et familial</strong>. L'administrateur du foyer en est le responsable. Il n'est pas prévu pour des élèves, ni pour des mineurs sans un adulte responsable, ni pour un public extérieur au foyer.</p>
     <strong class="u-fs-base">Ce qui est enregistré, et où</strong>
-    <p class="u-fs-sm u-m-0-0-6px">Vos manuscrits, fiches, images et réglages restent d'abord <strong>sur votre appareil</strong>, chiffrés. Si vous activez la synchronisation, une copie va sur le serveur Cloudflare du foyer : le <strong>contenu</strong> (textes, fiches, images, historiques) y est chiffré avec une clé que seul vous détenez. <strong>Ne sont pas chiffrés :</strong> les prénoms des profils, la question de sécurité, les titres des manuscrits, leurs nombres de mots et leurs dates.</p>
+    <p class="u-fs-sm u-m-0-0-6px">Vos projets, fiches, images et réglages restent d'abord <strong>sur votre appareil</strong>, chiffrés. Si vous activez la synchronisation, une copie va sur le serveur Cloudflare du foyer : le <strong>contenu</strong> (textes, fiches, images, historiques) y est chiffré avec une clé que seul vous détenez. <strong>Ne sont pas chiffrés :</strong> les prénoms des profils, la question de sécurité, les titres des projets, leurs nombres de mots et leurs dates.</p>
     <strong class="u-fs-base">Services de tiers (avec votre accord)</strong>
     <p class="u-fs-sm u-m-0-0-6px">L'IA (Google Gemini), le correcteur (LanguageTool) et la dictée vocale (service de reconnaissance du navigateur, souvent Google) reçoivent le <strong>texte concerné en clair</strong>. L'offre gratuite de Gemini permet à Google de le conserver et de le réutiliser. Vous choisissez : ces envois sont refusables et réglables à tout moment dans Mon profil. La sauvegarde GitHub (facultative) reçoit des données chiffrées.</p>
     <strong class="u-fs-base">Rapports d'erreurs</strong>
-    <p class="u-fs-sm u-m-0-0-6px">Si la synchronisation est activée, une erreur technique de l'application (numéro de version, famille de navigateur, message court, nom du fichier) est signalée au serveur du foyer pour être corrigée. Elle ne contient <strong>jamais</strong> de texte de manuscrit, de nom ni d'adresse. Avec « écrire sur cet appareil seulement », rien n'est envoyé.</p>
+    <p class="u-fs-sm u-m-0-0-6px">Si la synchronisation est activée, une erreur technique de l'application (numéro de version, famille de navigateur, message court, nom du fichier) est signalée au serveur du foyer pour être corrigée. Elle ne contient <strong>jamais</strong> de texte de projet, de nom ni d'adresse. Avec « écrire sur cet appareil seulement », rien n'est envoyé.</p>
     <strong class="u-fs-base">Combien de temps</strong>
-    <p class="u-fs-sm u-m-0-0-6px">Un manuscrit ou un chapitre supprimé reste 30 jours dans la corbeille, puis il est effacé des appareils et du serveur. Une sauvegarde du serveur est conservée 7 jours (copie chiffrée). Quand l'administrateur supprime un profil, ses données sont effacées du serveur ; les copies de sauvegarde disparaissent sous 7 jours. Les révisions d'une sauvegarde GitHub restent chez GitHub tant que vous ne supprimez pas la sauvegarde. Un <strong>registre de sécurité</strong> du serveur (type d'événement, empreinte du profil, pays ; jamais d'adresse IP, de clé ni de texte) est conservé 30 jours pour repérer et comprendre une attaque.</p>
+    <p class="u-fs-sm u-m-0-0-6px">Un projet ou un chapitre supprimé reste 30 jours dans la corbeille, puis il est effacé des appareils et du serveur. Une sauvegarde du serveur est conservée 7 jours (copie chiffrée). Quand l'administrateur supprime un profil, ses données sont effacées du serveur ; les copies de sauvegarde disparaissent sous 7 jours. Les révisions d'une sauvegarde GitHub restent chez GitHub tant que vous ne supprimez pas la sauvegarde. Un <strong>registre de sécurité</strong> du serveur (type d'événement, empreinte du profil, pays ; jamais d'adresse IP, de clé ni de texte) est conservé 30 jours pour repérer et comprendre une attaque.</p>
     <strong class="u-fs-base">Vos droits</strong>
-    <p class="u-fs-sm u-m-0-0-6px"><strong>Accès et copie :</strong> exports (JSON, Word, ODT, EPUB, PDF). <strong>Correction :</strong> vous modifiez vos textes et votre profil. <strong>Effacement :</strong> suppression d'un manuscrit (définitive depuis la corbeille) ; suppression d'un profil par l'administrateur. <strong>Opposition :</strong> refuser les services externes. Pour toute demande, adressez-vous à l'administrateur du foyer.</p>
+    <p class="u-fs-sm u-m-0-0-6px"><strong>Accès et copie :</strong> exports (JSON, Word, ODT, EPUB, PDF). <strong>Correction :</strong> vous modifiez vos textes et votre profil. <strong>Effacement :</strong> suppression d'un projet (définitive depuis la corbeille) ; suppression d'un profil par l'administrateur. <strong>Opposition :</strong> refuser les services externes. Pour toute demande, adressez-vous à l'administrateur du foyer.</p>
     <strong class="u-fs-base">Ce qu'il faut savoir</strong>
     <p class="u-fs-sm u-m-0">Si vous choisissez « Rester connecté », la clé de vos textes est conservée sur l'appareil pendant la durée choisie : verrouillez votre session et ne l'utilisez pas sur un appareil partagé. Ne confiez votre code de récupération à personne : il donne accès à tout votre profil.</p>
   </div>
@@ -665,7 +665,7 @@
     </div>
     <div id="chapter-sidebar-body">
       <div class="u-d-flex u-gap-6px u-mb-6px">
-        <button class="action-btn btn-secondary btn-sm u-flex-1" id="back-to-library-btn" title="Retourner à la liste de tous vos manuscrits"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-library"></use></svg> Ma bibliothèque</button>
+        <button class="action-btn btn-secondary btn-sm u-flex-1" id="back-to-library-btn" title="Retourner à la liste de tous vos projets"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-library"></use></svg> Ma bibliothèque</button>
       </div>
       <div class="u-d-flex u-gap-6px">
         <button class="action-btn u-fg-1" id="add-chapter-btn" title="Ajouter un nouveau chapitre à ce manuscrit">+ Chapitre</button>
@@ -1263,7 +1263,7 @@
       <input type="number" id="manuscript-goal-input" aria-label="Objectif du manuscrit en mots" class="field u-w-90px" min="0" step="1000" placeholder="0">
       <span>mots au total</span>
     </div>
-    <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-0">0 = pas d'objectif. Affiché en barre de progression sur la carte de ce manuscrit dans la bibliothèque.</p>
+    <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-0">0 = pas d'objectif. Affiché en barre de progression sur la carte de ce projet dans la bibliothèque.</p>
     <p class="u-fs-sm u-c-v-accent u-m-6px-0-0" id="finish-date-estimate"></p>
     <hr class="u-bdc-v-border u-m-10px-0">
     <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-user"></use></svg> Profil</strong>
@@ -1403,7 +1403,7 @@
       <button class="action-btn" id="conflict-diff-keep-local-btn" title="Conserver la version de cet appareil et l'envoyer à l'autre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-laptop"></use></svg> Garder cet appareil</button>
       <button class="action-btn btn-secondary" id="conflict-diff-keep-backup-btn" title="Adopter la version de l'autre appareil"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-smartphone"></use></svg> Garder l'autre appareil</button>
     </div>
-    <p class="u-fs-xs u-c-v-text-muted u-m-10px-0-0">Fermer sans choisir ne perd rien : la synchronisation de ce manuscrit reste en pause jusqu'à votre décision.</p>
+    <p class="u-fs-xs u-c-v-text-muted u-m-10px-0-0">Fermer sans choisir ne perd rien : la synchronisation de ce projet reste en pause jusqu'à votre décision.</p>
   </div>
 </div>
 

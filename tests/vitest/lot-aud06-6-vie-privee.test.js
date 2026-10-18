@@ -199,7 +199,7 @@ describe('015 — client : suppression de profil et page de confidentialité', (
     const page = html.slice(html.indexOf('id="privacy-overlay"'), html.indexOf('AIDE-MÉMOIRE DES RACCOURCIS'));
     expect(html).toContain('id="help-privacy-policy-btn"');
     expect(page).toContain('id="privacy-close-btn"');
-    for (const mot of ['personnel et familial', 'Ne sont pas chiffrés', 'titres des manuscrits', 'Google Gemini', 'LanguageTool', 'dictée vocale', '30 jours', '7 jours', 'Vos droits', 'Effacement', 'mineurs', 'Rester connecté']) expect(page, mot).toContain(mot);
+    for (const mot of ['personnel et familial', 'Ne sont pas chiffrés', 'titres des projets', 'Google Gemini', 'LanguageTool', 'dictée vocale', '30 jours', '7 jours', 'Vos droits', 'Effacement', 'mineurs', 'Rester connecté']) expect(page, mot).toContain(mot);
     const r = read('js/router.js');
     expect(r).toContain("byId('privacy-overlay', () => closePrivacyPolicy())");
     expect(r).toContain("help-privacy-policy-btn");

@@ -423,7 +423,7 @@ function DEFAULT_DB_GRAPHIC() {
 // réécrit par une version plus ancienne : elle ne connaît pas ses champs et
 // rabaisserait son numéro de schéma, ce qui ferait rejouer des migrations sur
 // des données déjà migrées. On refuse avec un message clair.
-const SCHEMA_TOO_NEW_MESSAGE = "Ce manuscrit a été enregistré par une version plus récente de Plume. Mettez l'application à jour (rechargez la page puis acceptez la mise à jour) avant de l'ouvrir.";
+const SCHEMA_TOO_NEW_MESSAGE = "Ce projet a été enregistré par une version plus récente de Plume. Mettez l'application à jour (rechargez la page puis acceptez la mise à jour) avant de l'ouvrir.";
 function migrateDb(data) {
   const v = data._schemaVersion || 1;
   if (v > SCHEMA_VERSION) throw new Error(SCHEMA_TOO_NEW_MESSAGE);

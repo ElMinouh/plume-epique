@@ -21,8 +21,8 @@
 // ═══════════════════════════════════════════════════════
 
 const LIBRARY_TOUR_STEPS = [
-  { target:'#library-new-btn, #library-new-btn-shelf', title:'Vos manuscrits',
-    text:"Chaque roman que vous écrivez est un « manuscrit » séparé : ses propres chapitres, personnages et réglages, indépendants des autres. Ce bouton en crée un tout nouveau, vierge — texte seul ou roman graphique illustré, au choix. Les manuscrits déjà commencés apparaissent juste en dessous sous forme de couvertures — un clic dessus les rouvre là où vous les avez laissés." },
+  { target:'#library-new-btn, #library-new-btn-shelf', title:'Vos projets',
+    text:"Chaque roman que vous écrivez est un « projet » séparé : ses propres chapitres, personnages et réglages, indépendants des autres. Ce bouton en crée un tout nouveau, vierge — texte seul ou roman graphique illustré, au choix. Les projets déjà commencés apparaissent juste en dessous sous forme de couvertures — un clic dessus les rouvre là où vous les avez laissés." },
   // v9.0.0 — Bug rapporté : sur mobile, ces boutons sont cachés derrière le
   // menu "⋯" (chantier Responsive Mobile, écran 2/N) — la cible était donc
   // invisible, l'étape sautée, et de même pour l'étape suivante, ce qui
@@ -31,9 +31,9 @@ const LIBRARY_TOUR_STEPS = [
   // masqué), et le sélecteur de cible liste aussi l'équivalent qui y
   // apparaît.
   { ensureVisible:ensureLibraryMenuOpen, target:'#library-system-btn, #ltop-system', title:'Système',
-    text:"Ce bouton regroupe tout ce qui protège votre travail : la sauvegarde automatique sur GitHub (un service gratuit de stockage en ligne, indépendant de cet ordinateur), la synchronisation si vous écrivez depuis plusieurs appareils, et l'export ou l'import de vos manuscrits sous forme de fichier." },
+    text:"Ce bouton regroupe tout ce qui protège votre travail : la sauvegarde automatique sur GitHub (un service gratuit de stockage en ligne, indépendant de cet ordinateur), la synchronisation si vous écrivez depuis plusieurs appareils, et l'export ou l'import de vos projets sous forme de fichier." },
   { ensureVisible:ensureLibraryMenuOpen, target:'#library-manage-profiles-btn, #ltop-manage-profiles', title:'Gérer les profils',
-    text:"Si plusieurs personnes se servent de cet ordinateur pour écrire, chacune peut avoir son propre profil protégé par mot de passe : ses manuscrits restent invisibles pour les autres. Ce bouton, réservé au compte administrateur, permet d'ajouter ou de retirer des profils." }
+    text:"Si plusieurs personnes se servent de cet ordinateur pour écrire, chacune peut avoir son propre profil protégé par mot de passe : ses projets restent invisibles pour les autres. Ce bouton, réservé au compte administrateur, permet d'ajouter ou de retirer des profils." }
 ];
 
 // v9.2.3 — Repositionnement de fonctions selon l'appareil : sur PC, la barre
@@ -297,7 +297,7 @@ function launchLibraryTour() {
 async function launchEditorFullTour() {
   const list = await loadDocList();
   if (!liveDocuments(list).length) {
-    toast('Créez ou ouvrez d\'abord un manuscrit pour lancer cette visite.', 'info');
+    toast('Créez ou ouvrez d\'abord un projet pour lancer cette visite.', 'info');
     return;
   }
   const sorted = liveDocuments(list).sort((a,b) => b.lastModified - a.lastModified);

@@ -16,7 +16,7 @@ const PLUGINS_REGISTRY = [
         return data.matches.slice(0,8).map(m =>
           `• <strong>${DOMPurify.sanitize(m.context.text.substring(m.context.offset,m.context.offset+m.context.length)||'?')}</strong>: ${DOMPurify.sanitize(m.message)}${m.replacements.length?' → '+DOMPurify.sanitize(m.replacements.slice(0,2).map(r=>r.value).join(', ')):''}`
         ).join('<br>');
-      } catch(e) { return 'Erreur API: '+e.message; }
+      } catch(e) { return messageErreurLisible(e, 'La correction grammaticale').message; }
     }
   },
   {

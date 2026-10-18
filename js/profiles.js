@@ -159,7 +159,7 @@ async function notifyGistImageSyncOnce() {
   if (!_currentProfile || _currentProfile.seenGistImageNotice) return;
   await showInfoModal({
     title: 'Images du roman graphique',
-    message: 'Jusqu\'ici, les images d\'un roman graphique restaient uniquement sur cet appareil. Désormais, la sauvegarde GitHub les envoie aussi, chiffrées avec la même clé que le reste de vos données, vers la sauvegarde privée de ce manuscrit, pour qu\'elles suivent sur vos autres appareils.',
+    message: 'Jusqu\'ici, les images d\'un roman graphique restaient uniquement sur cet appareil. Désormais, la sauvegarde GitHub les envoie aussi, chiffrées avec la même clé que le reste de vos données, vers la sauvegarde privée de ce projet, pour qu\'elles suivent sur vos autres appareils.',
     confirmLabel: 'J\'ai compris'
   });
   _currentProfile.seenGistImageNotice = true;
@@ -709,7 +709,7 @@ async function adminDeleteProfile(pid) {
 
   const ok = await showConfirmModal({
     title: 'Supprimer ce profil ?',
-    message: `Cela effacera le profil « ${profil.name} » ET tous ses manuscrits de tous vos appareils, ainsi que ses données du serveur de synchronisation (une copie de sauvegarde du serveur disparaît sous 7 jours). Sans possibilité de récupération.`,
+    message: `Cela effacera le profil « ${profil.name} » ET tous ses projets de tous vos appareils, ainsi que ses données du serveur de synchronisation (une copie de sauvegarde du serveur disparaît sous 7 jours). Sans possibilité de récupération.`,
     confirmLabel: 'Supprimer définitivement',
     danger: true,
     requireText: profil.name
@@ -866,7 +866,7 @@ async function saveMyQuestion() {
 function renderMigration(legacy) {
   const encrypted = !!(legacy && legacy._enc);
   gateShell(`
-    <div class="gate-title" role="heading" aria-level="1"><i>${icon('sparkles')}</i> Mise à jour : profils</div>
+    <div class="gate-title" role="heading" aria-level="1"><i>${icon('refresh-cw')}</i> Mise à jour : profils</div>
     <div class="gate-sub">Plume gère maintenant plusieurs profils. On sécurise vos données actuelles dans le profil administrateur.</div>
     <label class="gate-label" for="mig-name">Nom du profil</label>
     <input id="mig-name" type="text" class="gate-field" placeholder="Votre prénom ou pseudo">
@@ -928,7 +928,7 @@ async function submitMigration(legacy, encrypted) {
 
   // Le roman récupéré depuis l'ancien format mono-profil devient le premier
   // manuscrit de la bibliothèque de ce nouvel administrateur.
-  if (!dbData.title) dbData.title = 'Mon manuscrit';
+  if (!dbData.title) dbData.title = 'Mon projet';
   const docId = genChapterId();
   await persistData(docDataKey(profil.id, docId), { _enc: true, data: await Crypto.encryptData(JSON.stringify(dbData), dek) });
   await persistData(docListKey(profil.id), { version:1, documents:[{

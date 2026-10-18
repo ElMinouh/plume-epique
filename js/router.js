@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.86.0';
+const APP_VERSION = '9.87.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -215,7 +215,7 @@ function renderSyncDot() {
   const label = document.getElementById('sync-status-label');
   if (!dot) return;
   dot.classList.remove('sync-ok','sync-warn','sync-error');
-  if (!getSyncKey()) { label.textContent = 'Local seulement'; dot.title = 'Synchro multi-appareils non configurée : ce manuscrit reste sur cet appareil'; return; }
+  if (!getSyncKey()) { label.textContent = 'Local seulement'; dot.title = 'Synchro multi-appareils non configurée : ce projet reste sur cet appareil'; return; }
   const status = getLastSyncStatus();
   // v9.53.1 — « Synchronisé » = le dernier échange réseau a réussi, PAS « tout est parti » : l'envoi
   // d'un manuscrit est différé (1 min sans frappe, voir scheduleSyncPush). Tant qu'il reste des
@@ -225,7 +225,7 @@ function renderSyncDot() {
   if (status.ok !== false && enAttente > 0) {
     dot.classList.add('sync-warn');
     label.innerHTML = icon('clock') + ' En attente d\'envoi';
-    dot.title = 'Pas encore envoyé au serveur (' + enAttente + ' élément' + (enAttente > 1 ? 's' : '') + ') : l\'envoi part après une minute sans frappe, ou en quittant le manuscrit.';
+    dot.title = 'Pas encore envoyé au serveur (' + enAttente + ' élément' + (enAttente > 1 ? 's' : '') + ') : l\'envoi part après une minute sans frappe, ou en quittant le projet.';
     return;
   }
   if (status.ok === null) { label.textContent = ''; dot.title = 'Aucune synchro tentée depuis l\'ouverture de la page'; return; }
@@ -721,7 +721,7 @@ function notifySyncTooLarge(key) {
   console.warn('Synchro non envoyée : contenu trop volumineux pour la clé', key);
   if (typeof key !== 'string' || !key.startsWith('doc_') || _tooLargeWarned[key]) return;
   _tooLargeWarned[key] = true;
-  if (typeof toast === 'function') toast("Ce manuscrit est trop volumineux pour la synchronisation (limite 20 Mo) : il reste enregistré sur cet appareil mais n'est plus envoyé aux autres. Réduisez-le (anciennes versions, images) puis il repartira tout seul.", 'error', { sticky: true, kind: 'sync-size' });
+  if (typeof toast === 'function') toast("Ce projet est trop volumineux pour la synchronisation (limite 20 Mo) : il reste enregistré sur cet appareil mais n'est plus envoyé aux autres. Réduisez-le (anciennes versions, images) puis il repartira tout seul.", 'error', { sticky: true, kind: 'sync-size' });
 }
 
 async function syncPush(key, payload, attempt = 0) {
@@ -862,7 +862,7 @@ async function syncPush(key, payload, attempt = 0) {
       await persistConflictBackup(key, pulled.data);
       addConflictPausedKey(key);
       if (typeof onSyncConflictDetected === 'function') onSyncConflictDetected(key);
-      if (typeof toast === 'function') toast("Synchro : ce manuscrit a été modifié sur les deux appareils. Votre texte est intact — ouvrez « Système » pour comparer et choisir.", 'error', { sticky: true, kind: 'conflict' });
+      if (typeof toast === 'function') toast("Synchro : ce projet a été modifié sur les deux appareils. Votre texte est intact — ouvrez « Système » pour comparer et choisir.", 'error', { sticky: true, kind: 'conflict' });
       return;
     }
 
@@ -1445,7 +1445,7 @@ const save = async () => {
     _unsavedChanges = false;
   } catch(e) {
     console.error('Échec de sauvegarde :', e);
-    if (typeof toast === 'function') toast('Échec de la sauvegarde : ' + (e && e.message ? e.message : e) + '. Vos derniers mots ne sont peut-être pas enregistrés — copiez votre texte par précaution.', 'error', { sticky: true, kind: 'save' });
+    if (typeof toast === 'function') toast(messageErreurLisible(e, "L'enregistrement").message + ' Vos derniers mots ne sont peut-être pas enregistrés — copiez votre texte par précaution.', 'error', { sticky: true, kind: 'save' });
     if (typeof markSaveFailed === 'function') markSaveFailed();
   }
 };

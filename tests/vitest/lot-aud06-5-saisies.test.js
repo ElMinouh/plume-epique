@@ -148,6 +148,6 @@ describe('019 — l\'utilisateur est informé des manuscrits ignorés', () => {
   it('le message d\'import mentionne les manuscrits au format invalide (jamais « déjà présents » à tort)', () => {
     const src = read('js/export-format-utils.js');
     expect(src).toContain('else if (!added && invalidCount)');
-    expect(src).toContain("'manuscrit ignoré', 'manuscrits ignorés') + ' : format invalide");
+    expect(src).toContain("'projet du fichier ignoré', 'projets du fichier ignorés') + ' : format invalide");
   });
 });

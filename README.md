@@ -1,11 +1,11 @@
-# Plume Épique
+# Plume
 
 Application web d'aide à l'écriture de romans, avec un module de **romans graphiques / livres illustrés**.
 100 % côté client, **chiffrement local** (AES-GCM), multi-profils, synchronisation multi-appareils optionnelle
 (Cloudflare Workers + D1), PWA installable. Déployée sur Cloudflare Pages : <https://plume-epique.pages.dev>.
 
 > Version courante : voir `APP_VERSION` dans `js/router.js` (et `CACHE` dans `sw.js`, toujours identiques). Ce README
-> décrit la **v9.86.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
+> décrit la **v9.87.0**. Ancien README (historique des versions jusqu'à la v9.1.1) : [`docs/HISTORIQUE.md`](docs/HISTORIQUE.md).
 
 ## Documentation
 
@@ -13,6 +13,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
 |---|---|
 | [`CLAUDE.md`](CLAUDE.md) | Architecture, conventions, règles de travail (lots, versions, tests locaux, mise à jour du README) |
 | [`docs/PRODUIT.md`](docs/PRODUIT.md) | Public visé, échelle maximale, non-objectifs : le cadre des audits et des décisions (AUD-09-007) |
+| [`docs/GLOSSAIRE.md`](docs/GLOSSAIRE.md) | Les mots de l'interface (projet / manuscrit…), la voix et les règles d'écriture des messages (AUD-09-005) |
 | [`docs/RISQUES.md`](docs/RISQUES.md) | Registre des risques acceptés (décision, date, réexamen) et des actions ouvertes (AUD-09-016) |
 | [`docs/EXPLOITATION.md`](docs/EXPLOITATION.md) | Déployer, revenir en arrière, restaurer, changer la clé de synchro, quotas, journaux |
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Choix d'architecture importants et leurs raisons |
@@ -49,6 +50,7 @@ Application web d'aide à l'écriture de romans, avec un module de **romans grap
   profils multiples (suppression de profil propagée à tous les appareils).
 - **Premiers pas** (v9.41.0) : le premier écran propose « clé de la famille » ou « écrire sur cet appareil seulement » ; la configuration de la sauvegarde GitHub est **facultative** (bulle « Plus tard », panneau Système toujours fermable, rappel discret dans la bibliothèque) ; une seule bulle d'aide à la fois ; un clic sur un type de projet le crée.
 - **Types de document** (v9.85.0) : un registre (`DOC_TYPES`, `schema.js`) dit ce que sait faire chaque type (texte, roman graphique) ; Ctrl+S, Z, Y, E et F l'interrogent. Ctrl+F cherche aussi dans le texte des pages d'un roman graphique.
+- **Vocabulaire et messages** (v9.87.0) : « projet » est le mot générique de l'interface (« manuscrit » ne désigne plus que le texte, dans l'éditeur) ; les erreurs de lecture de fichier, d'export du roman graphique, d'enregistrement, de dictée et de correction grammaticale sont des phrases lisibles (plus de message brut du navigateur) ; le produit s'appelle « Plume ». Règles dans `docs/GLOSSAIRE.md`.
 - **Roman graphique et aide** (v9.86.0) : thème et aide accessibles depuis l'écran du livre illustré ; la fenêtre « Aide et raccourcis » liste les raccourcis du type de document ouvert (flèches, Suppr, Alt+↑/↓ des pages pour le roman graphique) et masque les visites qui décrivent l'éditeur de texte. Limite connue : le placement libre des blocs est réservé aux écrans de plus de 900 px.
 - **Retours et clavier** (v9.42.0) : messages temporaires de 3 à 8 s avec ✕ pour les erreurs (pause au survol) ; un échec d'enregistrement reste affiché (message fixe + « ⚠ Non enregistré depuis hh:mm » dans le pied de page) jusqu'au prochain enregistrement réussi ; Échap ferme **une seule couche** à la fois ; Tab n'est piégé que dans les vraies fenêtres modales ; les confirmations de suppression mettent le focus sur « Annuler ».
 - **Lisibilité** (v9.43.0) : textes d'interface relevés (≥ 12,5 px) et réglage **Taille de l'interface** (Normale / Grande / Très grande, par appareil) dans Config ; contrastes des boutons ≥ 4,5:1 ; cibles de clic ≥ 24 px (44 px au toucher) ; plus de débordement horizontal de l'éditeur sur téléphone ; animations coupées si le système le demande.

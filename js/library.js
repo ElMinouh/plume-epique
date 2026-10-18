@@ -268,7 +268,7 @@ async function syncReconcileKey(key) {
   setSyncVersion(key, version);
   await persistConflictBackup(key, remote);
   addConflictPausedKey(key);
-  if (typeof toast === 'function') toast("Synchro : un manuscrit a été modifié sur les deux appareils. Ouvrez « Système » pour comparer et choisir.", 'error', { sticky: true, kind: 'conflict' });
+  if (typeof toast === 'function') toast("Synchro : un projet a été modifié sur les deux appareils. Ouvrez « Système » pour comparer et choisir.", 'error', { sticky: true, kind: 'conflict' });
 }
 
 // v9.3.0 — Points d'accroche appelés par router.js pour rafraîchir l'écran
@@ -309,14 +309,14 @@ async function reloadOpenDocumentFromLocal(key) {
     addConflictPausedKey(key);
     try { if (typeof flushCurrentChapter === 'function') flushCurrentChapter(); await save(); } catch(e) { /* meilleure tentative */ }
     if (typeof onSyncConflictDetected === 'function') onSyncConflictDetected(key);
-    if (typeof toast === 'function') toast("Synchro : ce manuscrit a été modifié sur les deux appareils. Votre texte est intact — ouvrez « Système » pour comparer et choisir.", 'error', { sticky: true, kind: 'conflict' });
+    if (typeof toast === 'function') toast("Synchro : ce projet a été modifié sur les deux appareils. Votre texte est intact — ouvrez « Système » pour comparer et choisir.", 'error', { sticky: true, kind: 'conflict' });
     return false;
   }
   db = fresh;
   if (!Array.isArray(db.chapters) || cur >= db.chapters.length) cur = 0;
   refreshEditorFromDb();
   markOpenDocumentBaseline(); // nouvelle référence : « rien tapé depuis ce chargement »
-  if (typeof toast === 'function') toast('Ce manuscrit vient d\'être modifié sur un autre appareil : sa version la plus récente est chargée.', 'info');
+  if (typeof toast === 'function') toast('Ce projet vient d\'être modifié sur un autre appareil : sa version la plus récente est chargée.', 'info');
   return true;
 }
 // Réaffiche l'éditeur depuis `db` sans repasser par initApp() (qui relance parcours guidé,
@@ -509,7 +509,7 @@ function startSetupTour() {
   // de la bibliothèque (fulltour.js) — alors qu'il s'agit d'une fenêtre
   // totalement distincte et sans lien avec elle. Fenêtre détachée : plus de
   // numérotation, juste ce qu'il faut faire et à quoi ça sert.
-  showSetupBubble('#library-system-btn', "Avant d'écrire, configurons la sauvegarde automatique de vos manuscrits sur GitHub — cliquez ici pour l'ouvrir.", 'Sauvegarde automatique');
+  showSetupBubble('#library-system-btn', "Avant d'écrire, configurons la sauvegarde automatique de vos projets sur GitHub — cliquez ici pour l'ouvrir.", 'Sauvegarde automatique');
 }
 
 function showSetupBubble(targetSel, text, counter) {
@@ -766,7 +766,7 @@ async function migrateLegacyDocumentIfNeeded() {
   if (!legacy || !legacy._enc) return;
 
   const docId = genChapterId();
-  let title = 'Mon manuscrit', chapterCount = 0, wordCount = 0, storedBlob = legacy;
+  let title = 'Mon projet', chapterCount = 0, wordCount = 0, storedBlob = legacy;
   try {
     const dec = await Crypto.decrypt(legacy.data, _dataKey);
     if (dec) {
@@ -810,10 +810,10 @@ async function renderLibraryScreen() {
   document.getElementById('library-profile-name').textContent = 'Bonjour, ' + (_currentProfile ? _currentProfile.name : '');
   document.getElementById('library-manage-profiles-btn').style.display = (_currentProfile && _currentProfile.role === 'admin') ? '' : 'none';
   document.getElementById('ltop-manage-profiles').style.display = (_currentProfile && _currentProfile.role === 'admin') ? '' : 'none';
-  document.getElementById('library-count').textContent = sorted.length + ' manuscrit' + (sorted.length > 1 ? 's' : '');
+  document.getElementById('library-count').textContent = sorted.length + ' projet' + (sorted.length > 1 ? 's' : '');
 
   const container = document.getElementById('library-grid');
-  container.innerHTML = `<div class="library-card library-new" id="library-new-btn" role="button" tabindex="0" aria-label="Nouveau projet" title="Créer un nouveau manuscrit vierge">
+  container.innerHTML = `<div class="library-card library-new" id="library-new-btn" role="button" tabindex="0" aria-label="Nouveau projet" title="Créer un nouveau projet vierge">
       <span class="library-new-icon">+</span><span>Nouveau projet</span>
     </div>` + sorted.map(d => {
       const ck = coverKeyOf(d);
@@ -838,7 +838,7 @@ async function renderLibraryScreen() {
       const coverInner = hasShapes ? `<div class="gn-cover-preview">${gnMiniIconHtml(d.gnCoverShapes)}</div>` : (isGraphic ? icon('palette', 'icon-xl') : icon('book-open', 'icon-xl'));
       return `
     <div class="library-card" data-doc-id="${escapeHtml(d.id)}" role="button" tabindex="0" title="Ouvrir « ${escapeHtml(d.title || 'Sans titre')} »">
-      <button class="library-kebab-btn" data-kebab-doc="${escapeHtml(d.id)}" title="Actions du manuscrit" aria-label="Actions du manuscrit">${icon('ellipsis-vertical')}</button>
+      <button class="library-kebab-btn" data-kebab-doc="${escapeHtml(d.id)}" title="Actions du projet" aria-label="Actions du projet">${icon('ellipsis-vertical')}</button>
       <div class="library-cover${coverClass}">${coverInner}</div>
       <div class="library-card-body">
         <p class="library-card-title">${DOMPurify.sanitize(d.title || 'Sans titre')}</p>
@@ -922,7 +922,7 @@ async function renderLibraryShelf(sorted) {
   let html = '';
   for (let i = 0; i < items.length; i += PER_ROW) {
     html += `<div class="lib-shelf-row"><div class="lib-shelf-plank"></div>` + items.slice(i, i + PER_ROW).map(it => {
-      if (it.isNew) return `<div class="lib-book lib-book-new u-h-110px" id="library-new-btn-shelf" role="button" tabindex="0" aria-label="Nouveau projet" title="Créer un nouveau manuscrit vierge"><span>+</span><span class="lib-book-new-label">Nouveau<br>projet</span></div>`;
+      if (it.isNew) return `<div class="lib-book lib-book-new u-h-110px" id="library-new-btn-shelf" role="button" tabindex="0" aria-label="Nouveau projet" title="Créer un nouveau projet vierge"><span>+</span><span class="lib-book-new-label">Nouveau<br>projet</span></div>`;
       const d = it.d;
       const ck = coverKeyOf(d);
       const shelfCoverClass = ` shelf-cover-${ck}`;
@@ -930,7 +930,7 @@ async function renderLibraryShelf(sorted) {
       const h = Math.min(190, Math.max(110 + Math.round((d.wordCount||0) / 700), 56 + Math.ceil(String(d.title || 'Sans titre').length * 4.2)));
       const safeTitle = DOMPurify.sanitize(d.title || 'Sans titre');
       return `<div class="lib-book${shelfCoverClass}" data-doc-id="${escapeHtml(d.id)}" data-h="${h}" data-band-margin-default="${Math.max(28, Math.round(h*0.16))}" data-band-margin-max="28" role="button" tabindex="0" title="Ouvrir « ${safeTitle} »">
-        <button class="lib-book-kebab" data-kebab-doc="${escapeHtml(d.id)}" title="Actions du manuscrit" aria-label="Actions du manuscrit">${icon('ellipsis-vertical')}</button>
+        <button class="lib-book-kebab" data-kebab-doc="${escapeHtml(d.id)}" title="Actions du projet" aria-label="Actions du projet">${icon('ellipsis-vertical')}</button>
         ${it.isRecent ? '<span class="lib-book-recent-dot" title="Modifié le plus récemment" aria-hidden="true"></span>' : ''}
         <span class="lib-book-band lib-book-band-top" aria-hidden="true"></span>
         <span class="lib-book-title">${safeTitle}</span>
@@ -1000,9 +1000,9 @@ async function openDocument(docId) {
   const lireVersion = () => (typeof getSyncVersion === 'function' ? getSyncVersion(dataKey) : 0);
   const versionAvantLecture = lireVersion();
   let stored = await loadData(dataKey);
-  if (!stored || !stored._enc) { toast('Manuscrit introuvable.', 'error'); return; }
+  if (!stored || !stored._enc) { toast('Projet introuvable.', 'error'); return; }
   let dec = await Crypto.decrypt(stored.data, _dataKey);
-  if (!dec) { toast('Impossible de déchiffrer ce manuscrit.', 'error'); return; }
+  if (!dec) { toast('Impossible de déchiffrer ce projet.', 'error'); return; }
   // v9.53.1 — loadData() renvoie la copie locale tout de suite et rafraîchit en arrière-plan : si ce
   // rafraîchissement a adopté une version plus récente PENDANT le déchiffrement (avant que le
   // manuscrit soit marqué ouvert, donc avant que onRemoteVersionAdopted puisse recharger l'éditeur),
@@ -1019,7 +1019,7 @@ async function openDocument(docId) {
   catch (e) {
     // v9.26.0 (AUD-01-018) — manuscrit d'une version plus récente de Plume :
     // on n'y touche pas, et on relance la recherche de mise à jour.
-    toast(e && e.message ? e.message : 'Impossible d\'ouvrir ce manuscrit.', 'error');
+    toast(e && e.message ? e.message : 'Impossible d\'ouvrir ce projet.', 'error');
     if (typeof checkForAppUpdate === 'function') checkForAppUpdate();
     return;
   }
@@ -1043,7 +1043,7 @@ function createNewDocument() { openNewDocumentTypeModal(); }
 async function createNewTextDocument() {
   const docId = genChapterId();
   const dbData = DEFAULT_DB();
-  dbData.title = uniqueDefaultTitle('Nouveau manuscrit', (await loadDocList()).documents.map(d => d.title));
+  dbData.title = uniqueDefaultTitle('Nouveau projet', (await loadDocList()).documents.map(d => d.title));
   // v9.48.0 (AUD-03-022) : un nouveau manuscrit prend l'apparence en cours (préférences du profil, sinon le système) ;
   // avant, il restait sombre par défaut même sur un système clair.
   dbData.darkMode = document.body.classList.contains('dark-mode'); dbData.paperMode = document.body.classList.contains('paper-mode');
@@ -1142,7 +1142,7 @@ async function deleteDocument(docId) {
   if (!entry) return;
   const title = entry.title || 'Sans titre';
   const ok = await showConfirmModal({
-    title: 'Supprimer définitivement ce manuscrit ?',
+    title: 'Supprimer définitivement ce projet ?',
     message: `« ${title} » et tous ses chapitres seront effacés définitivement, sur tous vos appareils, sans possibilité de récupération.`,
     confirmLabel: 'Supprimer définitivement',
     danger: true,
@@ -1153,7 +1153,7 @@ async function deleteDocument(docId) {
   await renderLibraryScreen();
   const trashOverlay = document.getElementById('doc-trash-overlay');
   if (trashOverlay && trashOverlay.classList.contains('active')) await renderDocTrash();
-  toast('Manuscrit supprimé définitivement (sur tous vos appareils)', 'success');
+  toast('Projet supprimé définitivement (sur tous vos appareils)', 'success');
 }
 // v9.39.0 (AUD-02-014) — « Supprimer » met à la corbeille 30 jours (réversible : pas de retape du titre).
 async function trashDocument(docId) {
@@ -1161,7 +1161,7 @@ async function trashDocument(docId) {
   const entry = list.documents.find(d => d.id === docId);
   if (!entry) return;
   const ok = await showConfirmModal({
-    title: 'Mettre ce manuscrit à la corbeille ?',
+    title: 'Mettre ce projet à la corbeille ?',
     message: `« ${entry.title || 'Sans titre'} » ira à la corbeille pendant 30 jours : vous pourrez le restaurer depuis la bibliothèque, sur tous vos appareils. Passé ce délai, il sera supprimé définitivement.`,
     confirmLabel: 'Mettre à la corbeille'
   });
@@ -1172,7 +1172,7 @@ async function trashDocument(docId) {
   });
   if (typeof flushPendingSyncPushes === 'function') flushPendingSyncPushes(true);
   await renderLibraryScreen();
-  toast('Manuscrit mis à la corbeille (30 jours)', 'success', { action: { label: 'Annuler', onClick: () => restoreDocumentFromTrash(docId) } });
+  toast('Projet mis à la corbeille (30 jours)', 'success', { action: { label: 'Annuler', onClick: () => restoreDocumentFromTrash(docId) } });
 }
 async function restoreDocumentFromTrash(docId) {
   await mutateDocList(l => {
@@ -1182,13 +1182,13 @@ async function restoreDocumentFromTrash(docId) {
   if (typeof flushPendingSyncPushes === 'function') flushPendingSyncPushes(true);
   await renderLibraryScreen();
   await renderDocTrash();
-  toast('Manuscrit restauré', 'success');
+  toast('Projet restauré', 'success');
 }
 // Suppression définitive automatique des manuscrits dont les 30 jours sont écoulés. Renvoie leur nombre.
 async function purgeExpiredDocTrash(list) {
   const expired = expiredTrashedDocuments(list || await loadDocList());
   for (const d of expired) await performDocumentDeletion(d.id);
-  if (expired.length) toast(expired.length + ' ' + plur(expired.length, 'manuscrit supprimé', 'manuscrits supprimés') + ' définitivement (30 jours écoulés)', 'info');
+  if (expired.length) toast(expired.length + ' ' + plur(expired.length, 'projet supprimé', 'projets supprimés') + ' définitivement (30 jours écoulés)', 'info');
   return expired.length;
 }
 function closeDocTrash() { document.getElementById('doc-trash-overlay').classList.remove('active'); }
@@ -1199,7 +1199,7 @@ async function openDocTrash() {
 async function renderDocTrash() {
   const listEl = document.getElementById('doc-trash-list');
   const trashed = trashedDocuments(await loadDocList()).sort((a, b) => b.trashedAt - a.trashedAt);
-  if (!trashed.length) { listEl.innerHTML = emptyState('trash-2', 'La corbeille est vide', 'Les manuscrits supprimés y restent récupérables.'); return; }
+  if (!trashed.length) { listEl.innerHTML = emptyState('trash-2', 'La corbeille est vide', 'Les projets supprimés y restent récupérables.'); return; }
   listEl.innerHTML = trashed.map(d => `<div class="history-item u-cur-default">
       <span>${escapeHtml(d.title || 'Sans titre')}<br><span class="u-op-72 u-fs-xs">${isGraphicDoc(d) ? (d.chapterCount || 0) + ' ' + plur(d.chapterCount || 0, 'page', 'pages') : (d.chapterCount || 0) + ' ' + plur(d.chapterCount || 0, 'chapitre', 'chapitres')} · ${d.wordCount || 0} mots — supprimé définitivement dans ${docTrashDaysLeft(d)} j</span></span>
       <span class="u-d-flex u-gap-4px u-fsh-0">
@@ -1334,7 +1334,7 @@ async function libVerifyToken() {
 // ═══════════════════════════════════════════════════════
 async function loadManuscriptData(docId) {
   const stored = await loadData(docDataKey(_currentProfileId, docId));
-  if (!stored || !stored._enc) throw new Error('Manuscrit introuvable.');
+  if (!stored || !stored._enc) throw new Error('Projet introuvable.');
   const dec = await Crypto.decrypt(stored.data, _dataKey);
   if (!dec) throw new Error('Déchiffrement impossible.');
   return migrateDb(JSON.parse(dec));
@@ -1516,7 +1516,7 @@ async function libSyncManuscript(docId, opts) {
 async function libLoadManuscript(docId) {
   try {
     const mData = await loadManuscriptData(docId);
-    if (!mData.gistId) { toast("Ce manuscrit n'a pas encore de Gist.", 'error'); return; }
+    if (!mData.gistId) { toast("Ce projet n'a pas encore de Gist.", 'error'); return; }
     const resp = await fetchWithTimeout(`https://api.github.com/gists/${mData.gistId}`, { headers: _cloudToken ? {'Authorization':`Bearer ${_cloudToken}`} : {} });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
@@ -1565,7 +1565,7 @@ async function libLoadManuscript(docId) {
     }
     await persistManuscriptData(docId, restored);
     await touchDocListEntry(docId, restored);
-    toast('Manuscrit restauré depuis la sauvegarde GitHub.', 'success');
+    toast('Projet restauré depuis la sauvegarde GitHub.', 'success');
     await renderLibraryScreen();
     refreshLibSystemDocStatus(docId);
   } catch(e) { toastError('La restauration depuis GitHub', e); }
@@ -1574,7 +1574,7 @@ function closeGistHistory() { document.getElementById('gist-history-overlay').cl
 async function libOpenGistHistory(docId) {
   let mData;
   try { mData = await loadManuscriptData(docId); } catch(e) { toast(e.message, 'error'); return; }
-  if (!mData.gistId) { toast("Ce manuscrit n'a pas encore de Gist.", 'error'); return; }
+  if (!mData.gistId) { toast("Ce projet n'a pas encore de Gist.", 'error'); return; }
   const listEl = document.getElementById('gist-history-list');
   listEl.innerHTML = '<div class="u-p-10px u-op-75">Chargement…</div>';
   document.getElementById('gist-history-overlay').classList.add('active');
@@ -1595,7 +1595,7 @@ async function libOpenGistHistory(docId) {
   } catch(e) { listEl.innerHTML = `<div class="u-p-10px u-c-v-danger">${icon('circle-alert')} ${escapeHtml(e.message)}</div>`; }
 }
 async function libLoadGistRevision(docId, gistId, sha) {
-  if (!(await showConfirmModal({ title: 'Charger cette version ?', message: 'Cette version remplacera le contenu de ce manuscrit.', confirmLabel: 'Charger cette version', danger: true }))) return;
+  if (!(await showConfirmModal({ title: 'Charger cette version ?', message: 'Cette version remplacera le contenu de ce projet.', confirmLabel: 'Charger cette version', danger: true }))) return;
   try {
     const resp = await fetchWithTimeout(`https://api.github.com/gists/${gistId}/${sha}`, { headers: _cloudToken ? {'Authorization':`Bearer ${_cloudToken}`} : {} });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -1631,7 +1631,7 @@ async function syncAllLibraryManuscripts(reason) {
     const list = await loadDocList();
     let failures = 0;
     for (const entry of list.documents) { if (!(await libSyncManuscript(entry.id, { silent:true }))) failures++; }
-    if (failures > 0 && !_libBackupWarned) { _libBackupWarned = true; toast('Sauvegarde GitHub auto : '+failures+' '+plur(failures,'manuscrit en échec','manuscrits en échec')+' (jeton expiré ?).', 'error'); }
+    if (failures > 0 && !_libBackupWarned) { _libBackupWarned = true; toast('Sauvegarde GitHub auto : '+failures+' '+plur(failures,'projet en échec','projets en échec')+' (jeton expiré ?).', 'error'); }
     else if (failures === 0) _libBackupWarned = false;
     if (document.body.classList.contains('library-mode')) await renderLibraryScreen();
   } finally { _libSyncing = false; }
@@ -1690,7 +1690,7 @@ async function openLibrarySystemPanel(preselectDocId, tab) {
   document.getElementById('library-system-overlay').classList.add('active');
 
   if (_setupTourActive) {
-    showSetupBubble('#lib-gh-token', 'Collez ici votre jeton d\'accès GitHub personnel, puis vérifiez-le : vos manuscrits seront alors sauvegardés automatiquement, à l\'abri d\'une panne ou d\'une perte d\'appareil.', 'Sauvegarde automatique');
+    showSetupBubble('#lib-gh-token', 'Collez ici votre jeton d\'accès GitHub personnel, puis vérifiez-le : vos projets seront alors sauvegardés automatiquement, à l\'abri d\'une panne ou d\'une perte d\'appareil.', 'Sauvegarde automatique');
   }
 }
 
@@ -1719,7 +1719,7 @@ async function listConflictBackups() {
     const ts = parseInt(rest.slice(lastUnderscore + 1), 10);
     if (now - ts > CONFLICT_BACKUP_MAX_AGE_MS) { await removeConflictBackup(key); continue; }
     const entry = list.documents.find(d => d.id === docId);
-    kept.push({ key, docId, ts, title: entry ? entry.title : 'Manuscrit supprimé depuis' });
+    kept.push({ key, docId, ts, title: entry ? entry.title : 'Projet supprimé depuis' });
   }
   return kept.sort((a, b) => b.ts - a.ts);
 }
@@ -1787,7 +1787,7 @@ async function renderConflictBackups() {
           ${b.awaiting ? '<span class="mp-badge conflict-badge-awaiting">En attente de votre choix</span>' : ''}
         </p>
         <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-0">Détectée le ${new Date(b.ts).toLocaleString('fr')}</p>
-        ${b.awaiting ? '<p class="u-fs-xs u-c-v-text-muted u-m-2px-0-0">Synchro de ce manuscrit en pause jusqu\'à votre décision.</p>' : ''}
+        ${b.awaiting ? '<p class="u-fs-xs u-c-v-text-muted u-m-2px-0-0">Synchro de ce projet en pause jusqu\'à votre décision.</p>' : ''}
       </div>
       <button class="action-btn btn-sm" data-conflict-compare="${b.key}" data-conflict-docid="${b.docId}" title="Comparer les deux versions avant de choisir">${icon('search')} Comparer</button>
       <button class="action-btn btn-danger btn-sm" data-conflict-delete="${b.key}" data-conflict-docid="${b.docId}" title="Supprimer cette sauvegarde">${icon('trash-2')}</button>
@@ -1837,7 +1837,7 @@ async function compareConflictBackup(key, docId) {
   document.getElementById('conflict-diff-local-date').textContent = fmt(localEnv && localEnv._ts);
   document.getElementById('conflict-diff-remote-words').textContent = manuscriptWordCount(backupData) + ' mots';
   document.getElementById('conflict-diff-remote-date').textContent = fmt(backupEnv && backupEnv._ts);
-  document.getElementById('conflict-diff-title').textContent = localData.title || backupData.title || 'Ce manuscrit';
+  document.getElementById('conflict-diff-title').textContent = localData.title || backupData.title || 'Ce projet';
   document.getElementById('conflict-diff-content').innerHTML =
     computeDiff(manuscriptPlainText(localData), manuscriptPlainText(backupData));
 
@@ -1958,7 +1958,7 @@ async function renderSyncUsage() {
     if (!resp.ok) return;
     const u = await resp.json();
     if (u.storage !== 'd1') { el.textContent = 'Stockage de synchronisation : ancien mode (KV).'; return; }
-    el.textContent = `Serveur : ${u.manuscripts} ${plur(u.manuscripts,'manuscrit','manuscrits')}, images ${formatMo(u.imagesBytes)} sur ${formatMo(u.imagesBudget)} de budget, ${formatMo(u.totalBytes)} au total (limite gratuite de la base : ${formatMo(u.dbLimit)}).`;
+    el.textContent = `Serveur : ${u.manuscripts} ${plur(u.manuscripts,'projet','projets')}, images ${formatMo(u.imagesBytes)} sur ${formatMo(u.imagesBudget)} de budget, ${formatMo(u.totalBytes)} au total (limite gratuite de la base : ${formatMo(u.dbLimit)}).`;
   } catch (e) { /* mesure purement informative */ }
 }
 function closeLibrarySystemPanel() {
@@ -1976,17 +1976,17 @@ async function refreshLibSystemDocStatus(docId) {
     const entry = list.documents.find(d => d.id === docId);
     statusEl.textContent = mData.gistId
       ? `Gist : ${mData.gistId}${gistSyncStamp(docId, entry) ? ' · dernière sauvegarde ' + formatRelativeDate(gistSyncStamp(docId, entry)).replace('Modifié ','') : ''}`
-      : 'Pas encore de sauvegarde GitHub pour ce manuscrit (créée au premier « Sauver »).';
+      : 'Pas encore de sauvegarde GitHub pour ce projet (créée au premier « Sauver »).';
   } catch(e) { statusEl.textContent = ''; }
 }
 async function libExportCurrent() { return libExportDoc(document.getElementById('lib-system-doc-select').value); }
 // v9.45.0 (AUD-03-014) : le ⋮ de la carte ouvre directement la fenêtre d'export (avant : le panneau Système, puis « Exporter »).
 async function libExportDoc(docId) {
-  if (!docId) { toast('Aucun manuscrit sélectionné.', 'error'); return; }
+  if (!docId) { toast('Aucun projet sélectionné.', 'error'); return; }
   try {
     const mData = await loadManuscriptData(docId);
     // v9.35.0 (AUD-02-016) : un roman graphique n'a pas de chapitres, son export est dans son propre écran.
-    if (isGraphicDoc(mData) || !Array.isArray(mData.chapters)) { toast("Ce manuscrit est un roman graphique : utilisez l'export de son écran (bouton Exporter).", 'info'); return; }
+    if (isGraphicDoc(mData) || !Array.isArray(mData.chapters)) { toast("Ce projet est un roman graphique : utilisez l'export de son écran (bouton Exporter).", 'info'); return; }
     openExportSelect(mData.chapters, mData.title);
-  } catch(e) { toastError("L'export du manuscrit", e); }
+  } catch(e) { toastError("L'export du projet", e); }
 }
