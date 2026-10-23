@@ -1,10 +1,14 @@
 'use strict';
+// v9.90.0 (AUD-10-002) : formule de Kandel & Moles (1958), adaptation de Flesch au français
+// (207 − 1,015·mots/phrase − 73,6·syllabes/mot). Avant, le coefficient anglais (206,835 / 84,6) sous-estimait
+// d'environ 20 à 25 points tout texte français. Les syllabes sont comptées en GROUPES de voyelles
+// (« eau », « ou » = 1), non plus voyelle par voyelle. Les seuils de fleschLabel sont inchangés.
 function fleschKincaid(text) {
   const sentences = (text.match(/[.!?]+/g)||[]).length || 1;
   const words = (text.match(/[a-zA-ZÀ-ÿ]+/g)||[]);
   const wordCount = words.length || 1;
-  const syllables = words.reduce((s,w) => s + Math.max(1,(w.toLowerCase().match(/[aeiouyàâéèêëîïôùûü]/g)||[]).length), 0);
-  const score = Math.max(0, Math.min(100, 206.835 - 1.015*(wordCount/sentences) - 84.6*(syllables/wordCount)));
+  const syllables = words.reduce((s,w) => s + Math.max(1,(w.toLowerCase().match(/[aeiouyàâäéèêëîïôöùûü]+/g)||[]).length), 0);
+  const score = Math.max(0, Math.min(100, 207 - 1.015*(wordCount/sentences) - 73.6*(syllables/wordCount)));
   return Math.round(score);
 }
 function fleschLabel(score) {

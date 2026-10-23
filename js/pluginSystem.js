@@ -43,7 +43,9 @@ const PLUGINS_REGISTRY = [
         const words = sent.toLowerCase().match(/[a-zA-ZÀ-ÿ]{4,}/g)||[];
         words.forEach(w => {
           if (STOP_WORDS.has(w)) return;
-          const count = (window5.toLowerCase().match(new RegExp(`\\b${w}\\b`,'g'))||[]).length;
+          // v9.90.0 (AUD-10-003) : \b est ASCII — « visité », « éclat » n'étaient JAMAIS comptés. Bornes Unicode
+          // (comme weakWordsRegex, editor.js) et mot échappé.
+          const count = (window5.toLowerCase().match(new RegExp('(?<![\\p{L}\\p{N}_])' + escapeRegExp(w) + '(?![\\p{L}\\p{N}_])','gu'))||[]).length;
           if (count>=3) issues.push(`"${DOMPurify.sanitize(w)}" (${icon('x')}${count} dans 5 phrases)`);
         });
       });

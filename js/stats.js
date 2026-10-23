@@ -35,6 +35,20 @@ function refreshThemedCharts() {
     if (typeof tensionChart !== 'undefined' && tensionChart) { const d = tensionChart.data.datasets[0]; d.borderColor = c; d.backgroundColor = withAlpha(c, .08); tensionChart.update('none'); }
   } catch (e) { /* purement cosmétique */ }
 }
+// v9.90.0 (AUD-10-014) : temps de saisie effectif de la séance (en mémoire, jamais enregistré). À chaque appel
+// (chaque frappe), on ajoute l'écart avec l'appel précédent s'il est inférieur à 60 s ; une pause plus longue
+// ne compte pas. Repart de zéro quand la séance change (sessionStartTime est réinitialisé à l'ouverture).
+const ACTIVE_GAP_MAX_MS = 60000;
+let _activeMs = 0, _activeLastTs = 0, _activeForStart = null;
+function trackActiveTime(now) {
+  if (_activeForStart !== sessionStartTime) { _activeForStart = sessionStartTime; _activeMs = 0; _activeLastTs = 0; }
+  if (_activeLastTs && now - _activeLastTs < ACTIVE_GAP_MAX_MS) _activeMs += now - _activeLastTs;
+  _activeLastTs = now;
+}
+function activeTypingMs() {
+  if (_activeForStart !== sessionStartTime) return 0;
+  return _activeMs;
+}
 function updateDailyStats() {
   // Garde db.chapters (v9.15.0) : undefined pour un roman graphique — cette
   // fonction est spécifique aux manuscrits texte, gnUpdateDailyStats()
@@ -191,13 +205,16 @@ function renderStats() {
   if (!db.chapters) return;
   const totalW=chaptersTotalWords(db.chapters);
   const todayW=wordsToday(totalW), sessionW=Math.max(0,totalW-sessionWordsStart), elapsed=Math.round((Date.now()-sessionStartTime)/60000);
-  const wpm=elapsed>0?Math.round(sessionW/elapsed):0;
+  // v9.90.0 (AUD-10-014) : vitesse sur le temps de SAISIE effectif (voir trackActiveTime), plus sur le temps écoulé
+  // depuis l'ouverture (pauses, lecture et onglet resté ouvert faussaient la valeur).
+  const activeMin = activeTypingMs()/60000;
+  const wpm=activeMin>=1?Math.round(sessionW/activeMin):0;
   const pct=Math.min(100,Math.round(todayW/(db.dailyGoal||500)*100));
   const streak = computeWritingStreak();
   const bestHour = computeBestWritingHour();
   const bestHourLabel = bestHour === null ? '—' : (bestHour.toString().padStart(2,'0') + 'h');
   document.getElementById('stats-grid').innerHTML=[
-    {v:totalW,l:'Mots total'},{v:todayW,l:"Aujourd'hui"},{v:wpm,l:'Mots/min'},
+    {v:totalW,l:'Mots total'},{v:todayW,l:"Aujourd'hui"},{v:wpm||'—',l:'Mots/min (saisie effective)'},
     {v:sessionW,l:'Cette séance ('+elapsed+' min)'},{v:pct+'%',l:'Objectif'},{v:db.chapters.length,l:'Chapitres'},
     {v:streak+(streak>1?' jours':' jour'),l:'Série en cours'},{v:bestHourLabel,l:'Meilleur moment'}
   ].map(s=>`<div class="stat-card"><div class="stat-val">${s.v}</div><div class="stat-label">${s.l}</div></div>`).join('');

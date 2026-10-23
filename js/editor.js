@@ -129,6 +129,7 @@ function focusLiveSync() {
   const ch = db.chapters && db.chapters[cur];
   if (!ch) return;
   ch.content = stripAnalysisMarks(document.getElementById('focus-writer').innerHTML);
+  trackActiveTime(Date.now()); // AUD-10-014 : temps de saisie effectif
   updateDailyStats();
   debouncedSave();
 }
@@ -234,6 +235,7 @@ function liveCounter() {
   // une raison quelconque sur un manuscrit particulier, plus rien ne serait
   // enregistré à partir de cette frappe (incident rapporté le 14/08/2026).
   try { saveCursorForResume(); } catch(e) { console.warn('saveCursorForResume a échoué (sans conséquence sur la sauvegarde) :', e); }
+  trackActiveTime(Date.now()); // AUD-10-014 : temps de saisie effectif
   updateDailyStats(); debouncedSave();
   scheduleChapterCountRefresh();
   updateChapterWordGoalProgress();
