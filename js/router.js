@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.90.1';
+const APP_VERSION = '9.91.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -317,7 +317,7 @@ async function makeEncryptedEnvelope(plaintext) {
 // manuscrit à chaque ouverture par syncDbAppearanceFromPrefs() (notifications.js). Deux appareils aux
 // préférences différentes se renvoyaient donc un « changement de cœur » à chaque ouverture, sans que personne
 // ait écrit : faux conflit « modifié sur les deux appareils ». Régénérable depuis les préférences locales.
-const SYNC_DERIVED_FIELDS = ['history', 'lastPosition', 'sessionStats', 'dayStart', 'hourlyActivity',
+const SYNC_DERIVED_FIELDS = ['history', 'lastPosition', 'sessionStats', 'dayStart', 'hourlyActivity', 'activeDays',
   'darkMode', 'paperMode', 'accentPalette', 'editorFont'];
 function stableStringify(v) {
   if (v === null || typeof v !== 'object') return JSON.stringify(v);
@@ -1685,6 +1685,8 @@ function wireAppEventListenersOnce(){
   document.getElementById('fr-replace-all-btn').addEventListener('click',frReplaceAll);
   document.getElementById('daily-goal-input').addEventListener('input',e=>{const v=readGoalInput(e.target);if(v===null)return;db.dailyGoal=v;debouncedSave();updateDailyStats();});
   document.getElementById('weekly-goal-input').addEventListener('input',e=>{const v=readGoalInput(e.target);if(v===null)return;db.weeklyGoal=v;debouncedSave();updateGoalsUI();});
+  document.getElementById('goal-suggestion-apply').addEventListener('click',applyGoalSuggestion); // v9.91.0 (AUD-10-005)
+  document.getElementById('sprint-duration-sel').addEventListener('change',e=>setSprintMinutesPref(e.target.value)); // v9.91.0 (AUD-10-017)
   document.getElementById('monthly-goal-input').addEventListener('input',e=>{const v=readGoalInput(e.target);if(v===null)return;db.monthlyGoal=v;debouncedSave();updateGoalsUI();});
   document.getElementById('manuscript-goal-input').addEventListener('input',e=>{db.wordGoal=parseInt(e.target.value)||0;debouncedSave();updateEstimatedFinishDate();});
   document.getElementById('project-type-sel').addEventListener('change',e=>selectProjectType(e.target.value));

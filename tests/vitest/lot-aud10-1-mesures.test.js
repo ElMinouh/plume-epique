@@ -68,7 +68,7 @@ describe('AUD-10-014 : mots/min sur le temps de saisie effectif', () => {
   const s = read('js/stats.js');
   const bloc = s.slice(s.indexOf('const ACTIVE_GAP_MAX_MS'), s.indexOf('function updateDailyStats'));
   function nouveau() {
-    const ctx = { sessionStartTime: 1000 };
+    const ctx = { sessionStartTime: 1000, db: { chapters: [] }, getTodayKey: () => '2026-10-23' };
     vm.createContext(ctx);
     vm.runInContext(bloc, ctx);
     return ctx;

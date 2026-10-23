@@ -1238,6 +1238,10 @@
       <div id="goal-bar-wrap"><div id="goal-bar"></div></div>
       <span class="u-minw-60px" id="goal-label">0 %</span>
     </div>
+    <div class="u-d-flex u-ai-center u-gap-8px u-fw-wrap u-mt-6px" id="goal-suggestion" hidden>
+      <span class="u-fs-sm u-c-v-text-muted" id="goal-suggestion-text"></span>
+      <button class="action-btn btn-secondary btn-sm" id="goal-suggestion-apply" title="Remplacer l'objectif quotidien par la valeur suggérée">Appliquer</button>
+    </div>
     <div class="u-mt-10px">
       <div class="u-d-flex u-ai-center u-gap-8px">
         <input type="number" id="weekly-goal-input" aria-label="Objectif hebdomadaire en mots" class="field u-w-90px" min="100" step="100">
@@ -1266,6 +1270,7 @@
     </div>
     <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-0">0 = pas d'objectif. Affiché en barre de progression sur la carte de ce projet dans la bibliothèque.</p>
     <p class="u-fs-sm u-c-v-accent u-m-6px-0-0" id="finish-date-estimate"></p>
+    <p class="u-fs-sm u-c-v-text-muted u-m-6px-0-0" id="revision-summary"></p>
     <hr class="u-bdc-v-border u-m-10px-0">
     <strong><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-user"></use></svg> Profil</strong>
     <div class="u-d-flex u-gap-8px u-mt-8px u-fw-wrap">
@@ -1278,6 +1283,10 @@
     <div id="tab-sprint" class="subtab-content" role="tabpanel">
       <div class="u-ta-center u-p-20px">
         <div class="u-fs-3xl u-fwt-600 u-ls-2px" id="sprint-timer" aria-live="polite">25:00</div>
+        <div class="u-d-flex u-gap-8px u-jc-center u-ai-center u-m-8px-0">
+          <label for="sprint-duration-sel" class="u-fs-sm u-c-v-text-muted">Durée</label>
+          <select id="sprint-duration-sel" class="field u-w-90px"><option value="15">15 min</option><option value="25">25 min</option><option value="45">45 min</option></select>
+        </div>
         <div class="u-d-flex u-gap-8px u-jc-center u-m-12px-0">
           <button class="action-btn" id="sprint-start-btn" title="Démarrer un sprint d'écriture chronométré"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-play"></use></svg> Démarrer</button>
           <button class="action-btn btn-secondary" id="sprint-reset-btn" title="Remettre le chronomètre à zéro"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-rotate-ccw"></use></svg> Réinitialiser</button>

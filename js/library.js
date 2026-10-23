@@ -1398,7 +1398,7 @@ async function persistGistProgress(docId, gistId, imageIds) {
 }
 // Empreinte du manuscrit pour la sauvegarde GitHub : tout ce qui est écrit PAR L'AUTEUR, sans les champs que la
 // sauvegarde modifie elle-même (gistId, images déjà envoyées) ni les compteurs régénérables.
-const GIST_FP_EXCLUDED = ['gistId', 'gistSyncedImageIds', 'sessionStats', 'dayStart', 'lastPosition', 'hourlyActivity'];
+const GIST_FP_EXCLUDED = ['gistId', 'gistSyncedImageIds', 'sessionStats', 'dayStart', 'lastPosition', 'hourlyActivity', 'activeDays'];
 async function gistFingerprint(mData) {
   const copy = { ...mData };
   for (const f of GIST_FP_EXCLUDED) delete copy[f];
