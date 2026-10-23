@@ -165,7 +165,7 @@ describe('020 — intégrité des bibliothèques de vendor/', () => {
   });
   it('SHA256SUMS couvre les 15 bibliothèques, les modules ESM et les polices', () => {
     const chemins = emp.lireSommes().map(x => x.chemin);
-    for (const f of ['dompurify-3.4.16.min.js', 'jspdf-4.2.1.umd.min.js', 'docx-9.8.1.js', 'mammoth-1.11.0.browser.min.js', 'odf-kit-0.14.3.esm.js', 'marked-18.0.14.esm.js']) expect(chemins, f).toContain(f);
+    for (const f of ['dompurify-3.4.17.min.js', 'jspdf-4.2.1.umd.min.js', 'docx-9.8.1.js', 'mammoth-1.11.0.browser.min.js', 'odf-kit-0.14.3.esm.js', 'marked-18.0.14.esm.js']) expect(chemins, f).toContain(f);
     expect(chemins.some(c => c.startsWith('fonts/') && c.endsWith('.woff2'))).toBe(true);
     expect(chemins.length).toBeGreaterThanOrEqual(24);
   });

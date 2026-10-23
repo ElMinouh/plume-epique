@@ -13,3 +13,9 @@ vérification après livraison, test réel sur copie locale après chaque push).
 | 5 | — | 008, 009 | Relecture annotée, passes de révision | à valider |
 | 6 | — | 011, 012 | Accueil par missions, niveaux d'usage | à valider |
 | 7 | — | 001, 016, 013, 020 | Objectifs produit, note de reprise, modèles de plan, tests utilisateurs | à valider |
+
+## Hors lot : DOMPurify 3.4.17 (v9.90.1, 23/10/2026)
+
+La CI a échoué sur l'étape « npm audit » (tests et parcours navigateur au vert) : nouvel avis critique sur DOMPurify ≤ 3.4.16. Mise à jour de la copie
+de `vendor/` en 3.4.17 (jsDelivr `dompurify@3.4.17/dist/purify.min.js`, ligne `sourceMappingURL` finale retirée comme pour la 3.4.16, vérifié
+octet pour octet sur l'ancienne version), `package.json`/`package-lock.json`, `index.html`, `sw.js`, `vendor/SHA256SUMS`, tests qui citent le nom du fichier.

@@ -89,7 +89,7 @@ describe('004 — cohérence des six librairies (VENDOR_LIBS, sw.js, package.jso
     });
   }
   it('le chargement initial garde l\'essentiel : DOMPurify, idb, file-saver', () => {
-    for (const f of ['dompurify-3.4.16.min.js', 'idb-8.0.3.umd.js', 'file-saver-2.0.5.min.js']) expect(html).toContain('vendor/' + f);
+    for (const f of ['dompurify-3.4.17.min.js', 'idb-8.0.3.umd.js', 'file-saver-2.0.5.min.js']) expect(html).toContain('vendor/' + f);
   });
   it('chaque point d\'usage attend le chargement (exports, import DOCX, graphe, graphiques, PDF de récupération)', () => {
     const attendu = {

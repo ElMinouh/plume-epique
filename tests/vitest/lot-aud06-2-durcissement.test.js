@@ -169,7 +169,7 @@ describe('Dépôt publié et en-têtes (AUD-06-011 / 022)', () => {
     expect(routes.version).toBe(1);
     expect(routes.include.length).toBeLessThanOrEqual(100);
     for (const p of ['/docs/*', '/worker/*', '/tests/*', '/scripts/*', '/CLAUDE.md', '/README.md', '/package.json', '/functions/*']) expect(routes.include).toContain(p);
-    const appli = ['/index.html', '/sw.js', '/manifest.json', '/css/style.css', '/js/router.js', '/vendor/dompurify-3.4.16.min.js', '/icons/plume.svg', '/_headers'];
+    const appli = ['/index.html', '/sw.js', '/manifest.json', '/css/style.css', '/js/router.js', '/vendor/dompurify-3.4.17.min.js', '/icons/plume.svg', '/_headers'];
     for (const chemin of appli) {
       const touche = routes.include.some(r => r === chemin || (r.endsWith('/*') && chemin.startsWith(r.slice(0, -1))));
       expect(touche, chemin).toBe(false);

@@ -10,7 +10,7 @@ Icônes : `lucide-static` (ISC) n'est PAS un fichier de `vendor/` : seules les ~
 
 | Fichier | Paquet | Version |
 |---|---|---|
-| `dompurify-3.4.16.min.js` | dompurify | 3.4.16 |
+| `dompurify-3.4.17.min.js` | dompurify | 3.4.17 |
 | `chart-4.5.1.umd.min.js` | chart.js | 4.5.1 |
 | `idb-8.0.3.umd.js` | idb | 8.0.3 |
 | `docx-9.8.1.js` | docx (build navigateur `dist/index.iife.js`, copie exacte du paquet npm ; **chargé à la demande**, pas dans index.html) | 9.8.1 |

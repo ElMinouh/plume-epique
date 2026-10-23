@@ -13,7 +13,7 @@ const ROOT = path.resolve(__dirname, '..');
 
 // fichier de vendor/ -> [paquet npm, chemin du fichier dans le paquet]
 const CORRESPONDANCES = {
-  'dompurify-3.4.16.min.js': ['dompurify', 'dist/purify.min.js'],
+  'dompurify-3.4.17.min.js': ['dompurify', 'dist/purify.min.js'],
   'd3-7.9.0.min.js': ['d3', 'dist/d3.min.js'],
   'jszip-3.10.1.min.js': ['jszip', 'dist/jszip.min.js'],
   'jspdf-4.2.1.umd.min.js': ['jspdf', 'dist/jspdf.umd.min.js'],
