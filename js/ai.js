@@ -188,13 +188,115 @@ function aiShowResult(el, scopeNote, body) {
   el.innerHTML = `<div class="u-fs-sm u-c-v-text-muted u-mb-6px">${escapeHtml(scopeNote)}</div>` + DOMPurify.sanitize(String(body || '').replace(/\n/g, '<br>'));
 }
 
+// ═══════════════════════════════════════════════════════
+// POINTS D'INCOHÉRENCE EXPLOITABLES (v9.92.0, AUD-10-007)
+// Avant : le retour de l'IA était du texte brut. L'auteur cherchait le passage à la main, constatait un faux positif, et le
+// revoyait à l'analyse suivante. Désormais l'IA répond « un point par ligne, préfixé [Ch.N] » ; chaque ligne devient un point
+// avec « Aller au chapitre N » et « Ignorer ». Un point ignoré est mémorisé (db.aiIgnored, champ du manuscrit : c'est un choix
+// de l'auteur, il se synchronise) et ne réapparaît plus, même si l'IA le reformule un peu. Une réponse qui n'a pas le format
+// attendu reste affichée telle quelle : rien n'est perdu.
+// ═══════════════════════════════════════════════════════
+const AI_IGNORED_MAX = 60;
+function aiNormWord(w) { return String(w).toLowerCase().normalize('NFD').replace(/\p{M}/gu, ''); }
+// Mots significatifs d'un point (4 lettres et plus, hors mots vides), triés, au plus 8 : sert à reconnaître un point reformulé.
+function aiPointWords(text) {
+  const vus = new Set();
+  (String(text).match(/[\p{L}\p{N}]{4,}/gu) || []).forEach(w => {
+    const n = aiNormWord(w);
+    if (/^\d+$/.test(n) || (typeof STOP_WORDS !== 'undefined' && STOP_WORDS.has(w.toLowerCase())) || /^chap/.test(n)) return;
+    vus.add(n);
+  });
+  return [...vus].sort((a, b) => b.length - a.length || (a < b ? -1 : 1)).slice(0, 8);
+}
+// Découpe la réponse de l'IA en points. Un point = une ligne d'au moins 8 caractères, sans puce ni numéro en tête ;
+// chapitres cités : ceux du crochet initial « [Ch.3, Ch.9] », sinon toute mention « Ch.N » / « chapitre N » de la ligne.
+function parseAiPoints(text, nbChapters) {
+  const points = [];
+  String(text || '').split(/\n+/).forEach(raw => {
+    let ligne = raw.replace(/^\s*(?:[-*•–]|\d+[.)])\s*/, '').trim();
+    if (ligne.length < 8) return;
+    if (/^(?:partie|groupe)\s+\d+\s*:?\s*$/i.test(ligne)) return;
+    let nums = [];
+    const m = ligne.match(/^\[([^\]]*)\]\s*/);
+    if (m) { nums = (m[1].match(/\d+/g) || []).map(Number); ligne = ligne.slice(m[0].length).trim(); }
+    else { for (const x of ligne.matchAll(/\bch(?:apitres?)?\.?\s*(\d{1,4})/gi)) nums.push(Number(x[1])); }
+    const chapitres = [...new Set(nums)].filter(n => n >= 1 && n <= nbChapters).slice(0, 4);
+    if (ligne.length < 4) return;
+    points.push({ texte: ligne, chapitres, neutre: /^(?:aucune?\b|rien à signaler|tout est cohérent)/i.test(ligne) });
+  });
+  return points;
+}
+function aiIgnoredList() { return Array.isArray(db.aiIgnored) ? db.aiIgnored : []; }
+// Un point est « déjà ignoré » s'il cite les mêmes chapitres (par identifiant stable) et partage au moins 60 % de ses mots
+// significatifs avec un point ignoré.
+function aiMatchIgnored(point) {
+  const ids = point.chapitres.map(n => (db.chapters[n - 1] || {}).id).filter(Boolean).sort().join(',');
+  const mots = aiPointWords(point.texte);
+  return aiIgnoredList().find(e => {
+    if ((e.c || []).slice().sort().join(',') !== ids) return false;
+    const petit = Math.min(mots.length, (e.w || []).length);
+    if (!petit) return false;
+    const commun = mots.filter(w => e.w.includes(w)).length;
+    return commun / petit >= 0.6;
+  }) || null;
+}
+function aiIgnorePoint(point) {
+  if (!Array.isArray(db.aiIgnored)) db.aiIgnored = [];
+  if (aiMatchIgnored(point)) return;
+  db.aiIgnored.push({ c: point.chapitres.map(n => (db.chapters[n - 1] || {}).id).filter(Boolean), w: aiPointWords(point.texte), t: point.texte.slice(0, 80) });
+  if (db.aiIgnored.length > AI_IGNORED_MAX) db.aiIgnored.splice(0, db.aiIgnored.length - AI_IGNORED_MAX);
+  save();
+}
+function aiRestorePoint(point) {
+  const e = aiMatchIgnored(point);
+  if (!e) return;
+  db.aiIgnored.splice(db.aiIgnored.indexOf(e), 1);
+  save();
+}
+let _aiPointsView = null; // { el, note, points, showIgnored } du dernier résultat affiché
+function aiShowPoints(el, scopeNote, body) {
+  const points = parseAiPoints(body, (db.chapters || []).length);
+  if (!points.length) { aiShowResult(el, scopeNote, body); _aiPointsView = null; return; }
+  _aiPointsView = { el, note: scopeNote, points, showIgnored: false };
+  aiRenderPoints();
+}
+function aiRenderPoints() {
+  const v = _aiPointsView; if (!v) return;
+  const { el, note, points } = v;
+  el.innerHTML = '';
+  const n = document.createElement('div'); n.className = 'u-fs-sm u-c-v-text-muted u-mb-6px'; n.textContent = note; el.appendChild(n);
+  let ignores = 0;
+  points.forEach(p => {
+    const deja = !p.neutre && !!aiMatchIgnored(p);
+    if (deja) { ignores++; if (!v.showIgnored) return; }
+    const row = document.createElement('div'); row.className = 'u-d-flex u-gap-6px u-fw-wrap u-ai-center u-mb-6px';
+    const t = document.createElement('span'); t.className = 'u-flex-1 u-minw-180px' + (deja ? ' u-c-v-text-muted' : ''); t.textContent = (p.chapitres.length ? '[' + p.chapitres.map(n => 'Ch.' + n).join(', ') + '] ' : '') + p.texte; row.appendChild(t);
+    p.chapitres.forEach(num => {
+      const b = document.createElement('button'); b.className = 'action-btn btn-secondary btn-sm'; b.textContent = 'Aller au chapitre ' + num; b.title = 'Ouvrir le chapitre ' + num + ' pour vérifier ce point';
+      b.addEventListener('click', () => { if (typeof changeCh === 'function') changeCh(num - 1); }); row.appendChild(b);
+    });
+    if (!p.neutre) {
+      const b = document.createElement('button'); b.className = 'action-btn btn-ghost btn-sm';
+      b.textContent = deja ? 'Rétablir' : 'Ignorer'; b.title = deja ? 'Faire de nouveau compter ce point' : 'Ce point est une fausse alerte : ne plus me le montrer';
+      b.addEventListener('click', () => { if (deja) aiRestorePoint(p); else aiIgnorePoint(p); aiRenderPoints(); }); row.appendChild(b);
+    }
+    el.appendChild(row);
+  });
+  if (ignores) {
+    const b = document.createElement('button'); b.className = 'action-btn btn-ghost btn-sm';
+    b.textContent = v.showIgnored ? 'Masquer les points ignorés' : ignores + ' ' + plur(ignores, 'point ignoré', 'points ignorés') + ' — afficher';
+    b.addEventListener('click', () => { v.showIgnored = !v.showIgnored; aiRenderPoints(); }); el.appendChild(b);
+  }
+}
+
 async function generateAISummary() {
   if (!(await notifyThirdPartyDataUseOnce())) return;
   flushCurrentChapter();
   const panel = document.getElementById('ai-summary-panel'), textEl = document.getElementById('ai-summary-text');
   const ch = db.chapters[cur];
   const txt = getPlainText(ch.content);
-  if (txt.length < 50) { toast('Chapitre trop court.','error'); return; }
+  // v9.92.0 (AUD-10-018) : ces refus étaient des alertes rouges (« Écrivez davantage. ») ; ce sont des informations, qui disent le seuil et où l'on en est.
+  if (txt.length < 50) { toast(`Ce chapitre est encore court pour un résumé : il faut au moins 50 caractères (vous en avez ${txt.length}).`,'info'); return; }
   panel.classList.add('active'); showAiLoader('ai-summary-text');
   const chunks = aiChunkText(txt, AI_CHUNK_CHARS);
   const words = chapterWordCount(ch);
@@ -227,7 +329,7 @@ async function aiContinueSuggestions() {
   if (!(await notifyThirdPartyDataUseOnce())) return;
   flushCurrentChapter();
   const text = getPlainText(db.chapters[cur].content);
-  if (text.length < 100) { toast('Écrivez davantage.','error'); return; }
+  if (text.length < 100) { toast(`Il faut au moins 100 caractères pour que l'IA propose une suite (vous en avez ${text.length}).`,'info'); return; }
   const el = document.getElementById('ai-continue-result'); showAiLoader('ai-continue-result');
   try {
     const r = await callClaude(`Voici la fin d'un chapitre: "...${text.slice(-600)}"\n\nPropose 3 continuations numérotées 1. 2. 3., chacune en 2-3 phrases en français, avec des tons variés.`, 800,
@@ -242,11 +344,11 @@ async function aiCheckInconsistencies() {
   const el = document.getElementById('ai-check-result');
   const scopeSel = document.getElementById('ai-check-scope');
   const scope = scopeSel ? scopeSel.value : 'chapter';
-  if (_aiCheckToken && !_aiCheckToken.done) { toast('Une analyse est déjà en cours.', 'error'); return; }
+  if (_aiCheckToken && !_aiCheckToken.done) { toast('Une analyse est déjà en cours : attendez sa fin ou annulez-la.', 'info'); return; }
   if (scope === 'novel') return aiCheckWholeNovel(el);
   const ch = db.chapters[cur];
   const text = getPlainText(ch.content);
-  if (text.trim().length < 100) { toast('Pas assez de texte.','error'); return; }
+  if (text.trim().length < 100) { toast(`Il faut au moins 100 caractères pour analyser le chapitre (vous en avez ${text.trim().length}).`,'info'); return; }
   const chunks = aiChunkText(text, AI_CHUNK_CHARS);
   const bible = aiBibleText();
   const token = _aiCheckToken = { cancelled: false, done: false };
@@ -254,18 +356,18 @@ async function aiCheckInconsistencies() {
     const results = [];
     for (let i = 0; i < chunks.length; i++) {
       aiShowProgress(el, chunks.length > 1 ? `Analyse de la partie ${i + 1} sur ${chunks.length}…` : 'Analyse du chapitre…', token);
-      const r = await aiCall(`Personnages: ${bible || '(vide)'}\n\nTexte${chunks.length > 1 ? ` (partie ${i + 1} sur ${chunks.length} du chapitre « ${ch.title} »)` : ` du chapitre « ${ch.title} »`}: ${chunks[i]}\n\nListe les incohérences potentielles avec les fiches des personnages, en français (max 5 points).`, 600, token);
-      results.push(chunks.length > 1 ? `Partie ${i + 1} :\n${r}` : r);
+      const r = await aiCall(`Personnages: ${bible || '(vide)'}\n\nTexte${chunks.length > 1 ? ` (partie ${i + 1} sur ${chunks.length} du chapitre « ${ch.title} »)` : ` du chapitre « ${ch.title} »`}: ${chunks[i]}\n\nListe les incohérences potentielles avec les fiches des personnages, en français (max 5 points). Écris un point par ligne, chaque ligne commençant par « [Ch.${cur + 1}] » puis une phrase courte, sans titre ni commentaire. S'il n'y en a aucune, écris seulement « Aucune incohérence détectée. »`, 600, token);
+      results.push(r);
     }
     const words = chapterWordCount(ch);
-    aiShowResult(el, `Analysé : chapitre « ${ch.title || cur + 1} » lu en entier (${words} mots), comparé aux fiches des personnages. Les autres chapitres n'ont pas été comparés : choisissez « Tout le roman » pour cela.`, results.join('\n\n'));
+    aiShowPoints(el, `Analysé : chapitre « ${ch.title || cur + 1} » lu en entier (${words} mots), comparé aux fiches des personnages. Les autres chapitres n'ont pas été comparés : choisissez « Tout le roman » pour cela.`, results.join('\n\n'));
   } catch(e) { el.innerHTML = `<span class="u-c-v-danger">${icon('circle-alert')} ${escapeHtml(e.message)}</span>`; }
   finally { token.done = true; }
 }
 // Tout le roman, en deux temps : (1) faits extraits par paquets de chapitres, (2) faits comparés entre eux.
 async function aiCheckWholeNovel(el) {
   const est = aiNovelEstimate(db.chapters);
-  if (!est.batches.length || est.words < 50) { toast('Pas assez de texte.', 'error'); return; }
+  if (!est.batches.length || est.words < 50) { toast(`Il faut au moins 50 mots pour analyser le roman (vous en avez ${est.words}).`, 'info'); return; }
   if (est.calls > AI_MAX_CALLS) {
     el.innerHTML = `<span class="u-c-v-danger">${icon('circle-alert')} Ce roman demanderait environ ${est.calls} appels IA (maximum ${AI_MAX_CALLS}). Analysez-le par chapitre.</span>`;
     return;
@@ -295,13 +397,13 @@ async function aiCheckWholeNovel(el) {
     const results = [];
     for (let g = 0; g < groups.length; g++) {
       aiShowProgress(el, `Comparaison des faits (étape ${est.batches.length + g + 1} sur ${est.batches.length + groups.length})…`, token);
-      const r = await aiCall(`Personnages: ${bible || '(vide)'}\n\nVoici des faits relevés dans les chapitres d'un roman :\n${groups[g]}\n\nRepère les contradictions entre ces faits, ou avec les fiches des personnages (par exemple une couleur d'yeux, un âge, un lieu ou une date qui diffèrent d'un chapitre à l'autre). Pour chaque point, cite les chapitres concernés. Français, 8 points au plus ; si tout est cohérent, dis-le.`, 800, token);
-      results.push(groups.length > 1 ? `Groupe ${g + 1} :\n${r}` : r);
+      const r = await aiCall(`Personnages: ${bible || '(vide)'}\n\nVoici des faits relevés dans les chapitres d'un roman :\n${groups[g]}\n\nRepère les contradictions entre ces faits, ou avec les fiches des personnages (par exemple une couleur d'yeux, un âge, un lieu ou une date qui diffèrent d'un chapitre à l'autre). Écris un point par ligne, chaque ligne commençant par les chapitres concernés entre crochets, par exemple « [Ch.3, Ch.9] » puis une phrase courte, sans titre ni commentaire. Français, 8 points au plus ; si tout est cohérent, écris seulement « Aucune incohérence détectée. »`, 800, token);
+      results.push(r);
     }
     let note = `Analysé : ${db.chapters.length} chapitres en entier (${est.words} mots), en ${est.batches.length + groups.length} appels. Méthode : faits extraits par chapitre, puis comparés entre eux.`;
     if (groups.length > 1) note += ' Le roman est long : la comparaison est faite par groupes de chapitres consécutifs, une contradiction entre deux groupes peut échapper.';
     if (limited) note += ' Comparaison partielle (plafond d\'appels atteint).';
-    aiShowResult(el, note, results.join('\n\n'));
+    aiShowPoints(el, note, results.join('\n'));
   } catch(e) { el.innerHTML = `<span class="u-c-v-danger">${icon('circle-alert')} ${escapeHtml(e.message)}</span>`; }
   finally { token.done = true; }
 }
@@ -609,12 +711,12 @@ function replaceWithAiChatMessage(idx) {
 // une fois la réponse de l'IA obtenue.
 async function sendManuscriptSelectionToChat() {
   const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) { toast('Sélectionnez d\'abord un passage du manuscrit.', 'error'); return; }
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) { toast('Sélectionnez d\'abord, dans le texte, le passage à envoyer à l\'assistant.', 'info'); return; }
   const range = sel.getRangeAt(0);
   const writer = document.getElementById('writer');
-  if (!writer.contains(range.commonAncestorContainer)) { toast('Sélectionnez un passage dans le texte du chapitre.', 'error'); return; }
+  if (!writer.contains(range.commonAncestorContainer)) { toast('Sélectionnez le passage dans le texte du chapitre (et non ailleurs) pour l\'envoyer à l\'assistant.', 'info'); return; }
   const text = sel.toString().trim();
-  if (!text) { toast('Sélection vide.', 'error'); return; }
+  if (!text) { toast('La sélection est vide : sélectionnez au moins un mot.', 'info'); return; }
   _aiChatPendingReplaceRange = range.cloneRange();
   _aiChatSelectionText = text.substring(0, 1500);
   await openAiChat();

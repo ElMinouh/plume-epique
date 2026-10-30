@@ -8,7 +8,7 @@ vérification après livraison, test réel sur copie locale après chaque push).
 |---|---|---|---|---|
 | 1 | 9.90.0 | 002, 003, 014 | Lisibilité en formule française (Kandel & Moles, syllabes en groupes de voyelles) ; détecteur de répétitions avec bornes Unicode (les mots en -é n'étaient jamais comptés) ; mots/min sur le temps de saisie effectif (`trackActiveTime`, pause > 60 s exclue, en mémoire) ; `lot-aud10-1-mesures.test.js` | livré |
 | 2 | 9.91.0 | 004, 005, 015, 017 | Série en jours d'écriture (`db.activeDays`, 1 min de saisie, un jour de répit toléré, règle historique conservée), « Aujourd'hui » en net signé, objectif suggéré (médiane 14 jours + 15 %, à appliquer), avancement de la révision, messages factuels, date de fin en fourchette (quartiles 30 jours), sprint 15/25/45 min (préférence d'appareil) ; `activeDays` exclu de la synchro et du Gist ; `lot-aud10-2-stats-objectifs.test.js` | livré |
-| 3 | — | 018, 010, 007 | Messages, repères d'indicateurs, retours IA cliquables | à valider |
+| 3 | 9.92.0 | 018, 010, 007 | Points d'incohérence de l'IA (une ligne par point, « [Ch.N] », « Aller au chapitre », « Ignorer » mémorisé dans `db.aiIgnored`, reconnaissance par chapitres + 60 % de mots communs, repli sur le texte brut) ; refus de seuil en information avec les chiffres ; textes de repère sur Détail et mots faibles (périphérie gelée : aucune valeur par chapitre) ; `lot-aud10-3-retours.test.js` | livré |
 | 4 | — | 006, 019 | Mode coach de l'IA, résumé de chapitre | à valider |
 | 5 | — | 008, 009 | Relecture annotée, passes de révision | à valider |
 | 6 | — | 011, 012 | Accueil par missions, niveaux d'usage | à valider |
