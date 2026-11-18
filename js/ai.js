@@ -189,6 +189,40 @@ function aiShowResult(el, scopeNote, body) {
 }
 
 // ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// MODE « PRODUIRE » / « COACH » DU CHAT (v9.93.0, AUD-10-006)
+// Avant : toutes les aides produisaient du texte prêt à coller, que « Insérer » et « Remplacer » écrivaient dans le manuscrit :
+// l'effort qui construit la compétence d'écriture était retiré à l'auteur (Bastani et al., 2025 : une IA sans garde-fous améliore
+// l'exercice mais pas l'apprentissage ; une version « tuteur » qui questionne atténue l'effet). Le mode Coach signale, nomme le
+// principe et pose une question, sans réécrire. Le défaut reste « Produire » (rien ne change sans choix) ; le choix est propre à
+// l'APPAREIL (localStorage), comme les réglages de confort : aucune donnée de manuscrit en plus, aucune synchro.
+// ═══════════════════════════════════════════════════════
+const AI_MODES = ['produce', 'coach'];
+let _aiModeMem = 'produce'; // repli si le stockage de l'appareil est indisponible : le choix vaut pour la session
+function aiMode() {
+  try { const v = localStorage.getItem('plume_ai_mode'); if (AI_MODES.includes(v)) return v; } catch (e) { /* stockage indisponible */ }
+  return _aiModeMem;
+}
+function setAiMode(v) {
+  if (!AI_MODES.includes(v)) return;
+  _aiModeMem = v;
+  try { localStorage.setItem('plume_ai_mode', v); } catch (e) { /* sans conséquence : le mode vaut pour cette session */ }
+  applyAiModeUI();
+}
+function aiSystemLine() {
+  if (aiMode() === 'coach') return "Tu es un coach d'écriture pour un auteur de roman, en français. Ton rôle est de faire progresser l'auteur, pas d'écrire à sa place : ne réécris jamais son texte et ne propose aucun passage prêt à coller. Signale les 2 ou 3 points les plus importants ; pour chacun, nomme le principe en jeu en une phrase (rythme, répétition, point de vue, montrer plutôt que dire…) ; termine par une question qui aide l'auteur à corriger lui-même. Réponds toujours en français, de façon concise.";
+  return "Tu es un assistant d'écriture pour un roman en français. Réponds toujours en français, de façon concise et utile.";
+}
+function applyAiModeUI() {
+  const sel = document.getElementById('ai-chat-mode-sel');
+  if (sel) sel.value = aiMode();
+  const note = document.getElementById('ai-chat-mode-note');
+  if (note) note.textContent = aiMode() === 'coach' ? "Coach : l'IA signale, explique et questionne ; elle ne réécrit pas, et « Insérer » / « Remplacer » sont masqués." : '';
+  if (typeof renderAiChatMessages === 'function') renderAiChatMessages();
+  if (typeof renderAiChatChips === 'function') { if (typeof _aiChatSelectionText !== 'undefined' && _aiChatSelectionText) renderAiChatSelectionChips(); else renderAiChatChips(); }
+}
+
+// ═══════════════════════════════════════════════════════
 // POINTS D'INCOHÉRENCE EXPLOITABLES (v9.92.0, AUD-10-007)
 // Avant : le retour de l'IA était du texte brut. L'auteur cherchait le passage à la main, constatait un faux positif, et le
 // revoyait à l'analyse suivante. Désormais l'IA répond « un point par ligne, préfixé [Ch.N] » ; chaque ligne devient un point
@@ -485,8 +519,7 @@ async function saveAiChatHistory() {
 
 async function openAiChat() {
   await loadAiChatHistoryIfNeeded();
-  renderAiChatMessages();
-  renderAiChatChips();
+  applyAiModeUI();
   document.getElementById('ai-chat-panel').classList.add('active');
   updateAiChatContextNote();
   document.getElementById('ai-chat-input').focus();
@@ -532,7 +565,7 @@ function buildAiChatPrompt(userMessage) {
   // taille de prompt raisonnable côté relais IA.
   const prior = _aiChatHistory.slice(0, -1).slice(-16);
   const historyText = prior.map(m => (m.role === 'user' ? 'Utilisateur : ' : 'Assistant : ') + m.text).join('\n');
-  return `Tu es un assistant d'écriture pour un roman en français. Réponds toujours en français, de façon concise et utile.\n\n${ctx}${historyText ? historyText + '\n' : ''}Utilisateur : ${userMessage}\nAssistant :`;
+  return `${aiSystemLine()}\n\n${ctx}${historyText ? historyText + '\n' : ''}Utilisateur : ${userMessage}\nAssistant :`;
 }
 
 async function sendAiChatMessage() {
@@ -579,13 +612,14 @@ function renderAiChatMessages() {
     cont.innerHTML = `<p class="u-fs-sm u-c-v-text-muted u-m-0">Posez une question, demandez une suite, une reformulation…</p>`;
     return;
   }
-  const showReplace = !!_aiChatPendingReplaceRange;
+  const coach = aiMode() === 'coach';
+  const showReplace = !!_aiChatPendingReplaceRange && !coach;
   cont.innerHTML = _aiChatHistory.map((m, i) => {
     const bubble = `<div class="ai-chat-bubble">${DOMPurify.sanitize(m.text).replace(/\n/g,'<br>')}</div>`;
     if (m.role === 'user') return `<div class="ai-chat-msg ai-chat-msg-user" data-ai-msg-idx="${i}">${bubble}</div>`;
     return `<div class="ai-chat-msg ai-chat-msg-assistant" data-ai-msg-idx="${i}">${bubble}
       <div class="ai-chat-msg-actions">
-        <button class="ai-chat-chip" data-ai-insert="${i}">${icon('plus')} Insérer</button>
+        ${coach ? '' : `<button class="ai-chat-chip" data-ai-insert="${i}">${icon('plus')} Insérer</button>`}
         <button class="ai-chat-chip" data-ai-copy="${i}">${icon('clipboard-copy')} Copier</button>
         ${showReplace ? `<button class="ai-chat-chip" data-ai-replace="${i}">${icon('replace')} Remplacer</button>` : ''}
       </div>
@@ -603,7 +637,11 @@ function renderAiChatMessages() {
 function renderAiChatChips() {
   const cont = document.getElementById('ai-chat-chips');
   if (!cont) return;
-  const generic = [
+  const generic = aiMode() === 'coach' ? [
+    ['Qu\'est-ce qui cloche ?', 'Qu\'est-ce qui cloche dans ce chapitre ? Signale les 2 ou 3 points principaux et pose-moi une question pour que je les corrige moi-même.'],
+    ['Que ressent ce personnage ?', 'Pose-moi des questions pour m\'aider à préciser ce que ressent le personnage principal dans ce chapitre.'],
+    ['Quel est l\'enjeu de la scène ?', 'Aide-moi à clarifier l\'enjeu de cette scène : pose-moi trois questions, sans proposer de texte.']
+  ] : [
     ['Trouver un nom', 'Propose-moi 5 noms de personnages originaux adaptés à mon roman.'],
     ['Suite possible', 'Propose-moi une suite possible pour ce chapitre.'],
     ['Idée de rebondissement', 'Propose-moi un rebondissement inattendu mais cohérent avec l\'histoire.']
@@ -618,10 +656,14 @@ function renderAiChatSelectionChips() {
   const cont = document.getElementById('ai-chat-chips');
   if (!cont || !_aiChatSelectionText) return;
   const excerpt = _aiChatSelectionText;
-  const actions = [
+  const actions = aiMode() === 'coach' ? [
+    ['Points forts et faibles', `Indique les points forts et les points faibles de ce passage de mon manuscrit, sans le réécrire :\n\n« ${excerpt} »`],
+    ['Pose-moi des questions', `Pose-moi trois questions qui m'aident à améliorer ce passage de mon manuscrit, sans proposer de réécriture :\n\n« ${excerpt} »`],
+    ['Qu\'est-ce qui est confus ?', `Dis-moi ce qui peut être confus ou lourd dans ce passage de mon manuscrit et pourquoi, sans le réécrire :\n\n« ${excerpt} »`]
+  ] : [
     ['Reformuler ce passage', `Reformule ce passage de mon manuscrit en gardant le sens mais en variant le style :\n\n« ${excerpt} »`],
     ['Continuer ce passage', `Voici la fin d'un passage de mon manuscrit :\n\n« ${excerpt} »\n\nPropose une suite cohérente en 2-3 phrases.`],
-    ['Corriger ce passage', `Corrige les fautes et lourdeurs de ce passage de mon manuscrit, sans changer le sens :\n\n« ${excerpt} »`]
+    ['Corriger ce passage', `Corrige les fautes et lourdeurs de ce passage de mon manuscrit, sans changer le sens, puis liste en 2 ou 3 puces ce que tu as corrigé et pourquoi :\n\n« ${excerpt} »`]
   ];
   cont.innerHTML = actions.map((a,i) => `<button class="ai-chat-chip" data-sel-chip-idx="${i}">${DOMPurify.sanitize(a[0])}</button>`).join('');
   cont.querySelectorAll('[data-sel-chip-idx]').forEach(btn => btn.addEventListener('click', () => fillAiChatChip(actions[parseInt(btn.dataset.selChipIdx,10)][1])));
