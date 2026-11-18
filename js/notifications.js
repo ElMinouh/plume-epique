@@ -258,18 +258,54 @@ function openPrivacyPolicy() { closeShortcutsHelp(); document.getElementById('pr
 function closePrivacyPolicy() { document.getElementById('privacy-overlay').classList.remove('active'); }
 
 // ═══════════════════════════════════════════════════════
-// PARCOURS "PREMIERS PAS" (nouveau v7.36.0, ergonomie)
-// 4 bulles pointant sidebar chapitres / barre d'outils / bandeau du bas /
-// onglets — montrées une seule fois par profil (profil.onboardingDone),
-// à la première ouverture d'un manuscrit. "Passer" disponible à tout moment.
+// PREMIERS PAS PAR LA PRATIQUE (v9.95.0, AUD-10-011)
+// Avant : 4 bulles à lire (passives), puis une visite de 33 étapes. On retient mieux en agissant (Carroll & Rosson, 1987).
+// Désormais : 3 missions courtes dans une petite carte, validées par l'ACTION de l'auteur (écrire, ajouter un personnage, ouvrir la
+// Lecture). Montrée une fois par profil (profil.onboardingDone, comme avant) ; « Passer » à tout moment ; « Revoir les premiers pas »
+// (aide) la rouvre. La progression et le niveau d'usage restent sur l'APPAREIL (localStorage) : aucune donnée de manuscrit.
 // ═══════════════════════════════════════════════════════
-const ONBOARDING_STEPS = [
-  { target:'#chapter-sidebar', text:'Vos chapitres apparaissent ici. Glissez-les pour les réordonner, ou passez en vue Fiches.' },
-  { target:'.toolbar', text:'La barre d\'outils : mise en forme, structure, mode Focus, recherche et dictionnaire. L\'assistant IA est dans le bandeau du bas (« IA »).' },
-  { target:'#mode-bar', text:'Ce bandeau reste toujours visible : état d\'enregistrement, dictée, chat IA, thème.' },
-  { target:'#tab-menu', text:'Tout le reste — personnages, statistiques, réglages — se trouve dans ces onglets.' }
+const MISSIONS = [
+  { id: 'write', text: 'Écrivez une phrase dans le chapitre.', action: 'Écrire', go: () => { const w = document.getElementById('writer'); if (w) w.focus(); } },
+  { id: 'char', text: 'Ajoutez un personnage : onglet « Univers », bouton « + Personnage ».', action: "M'y emmener", go: () => openTabOrSubtab('tab-chars') },
+  { id: 'read', text: 'Relisez comme un lecteur : ouvrez le mode Lecture.', action: 'Ouvrir', go: () => enterReadingMode() }
 ];
-let _onboardingStep = 0;
+const MISSIONS_KEY = 'plume_missions';
+let _missionsActive = false, _missionsDone = [];
+function missionsLoad() {
+  try { const v = JSON.parse(localStorage.getItem(MISSIONS_KEY) || '[]'); if (Array.isArray(v)) return v.filter(id => MISSIONS.some(m => m.id === id)); } catch (e) { /* stockage indisponible */ }
+  return [];
+}
+function missionsStore() { try { localStorage.setItem(MISSIONS_KEY, JSON.stringify(_missionsDone)); } catch (e) { /* valable pour cette session */ } }
+function missionDone(id) {
+  if (!_missionsActive || _missionsDone.includes(id) || !MISSIONS.some(m => m.id === id)) return;
+  _missionsDone.push(id); missionsStore(); renderMissions();
+  if (_missionsDone.length >= MISSIONS.length) { toast('Premiers pas terminés. La touche « ? » rouvre l\'aide, les raccourcis et les visites.', 'success'); endOnboardingTour(); }
+}
+// Appelée à chaque frappe tant que les missions sont actives : la 1re est validée à trois mots.
+function missionsOnType() {
+  if (!_missionsActive || _missionsDone.includes('write')) return;
+  const ch = db.chapters && db.chapters[cur];
+  if (ch && chapterWordCount(ch) >= 3) missionDone('write');
+}
+function renderMissions() {
+  const card = document.getElementById('missions-card');
+  if (!card) return;
+  card.hidden = !_missionsActive;
+  if (!_missionsActive) return;
+  const niveau = (typeof usageLevel === 'function') ? usageLevel() : 'tout';
+  card.querySelectorAll('[data-level]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.level === niveau)));
+  const list = document.getElementById('missions-list'); list.textContent = '';
+  MISSIONS.forEach(m => {
+    const fait = _missionsDone.includes(m.id);
+    const li = document.createElement('li'); li.className = 'mission-item' + (fait ? ' done' : '');
+    const ic = document.createElement('span'); ic.className = 'mission-icon'; ic.setAttribute('aria-hidden', 'true'); ic.innerHTML = icon(fait ? 'circle-check' : 'circle');
+    const t = document.createElement('span'); t.className = 'mission-text'; t.textContent = m.text + (fait ? ' (fait)' : '');
+    li.append(ic, t);
+    if (!fait) { const b = document.createElement('button'); b.type = 'button'; b.className = 'action-btn btn-secondary btn-sm'; b.textContent = m.action; b.addEventListener('click', m.go); li.appendChild(b); }
+    list.appendChild(li);
+  });
+  document.getElementById('missions-progress').textContent = _missionsDone.length + ' sur ' + MISSIONS.length;
+}
 // v7.40.0 — Corrige un bug rapporté : lancer la visite guidée complète
 // (launchEditorFullTour(), fulltour.js) ouvre un manuscrit, ce qui déclenche
 // aussi ce parcours "premiers pas" s'il n'a jamais été vu (1ère installation)
@@ -287,31 +323,15 @@ async function maybeStartOnboardingTour() {
     if (profil && !profil.onboardingDone) startOnboardingTour();
   } catch(e) { /* ne bloque jamais l'ouverture du manuscrit */ }
 }
-function startOnboardingTour() {
-  _onboardingStep = 0;
-  document.getElementById('onboarding-tour-bubble').classList.add('active');
-  showOnboardingStep();
-}
-function showOnboardingStep() {
-  const step = ONBOARDING_STEPS[_onboardingStep];
-  const bubble = document.getElementById('onboarding-tour-bubble');
-  const target = document.querySelector(step.target);
-  document.getElementById('onboarding-tour-text').textContent = step.text;
-  document.getElementById('onboarding-tour-counter').textContent = `${_onboardingStep+1} / ${ONBOARDING_STEPS.length}`;
-  document.getElementById('onboarding-tour-next-btn').textContent = _onboardingStep === ONBOARDING_STEPS.length-1 ? 'Terminer' : 'Suivant';
-  if (target) {
-    const r = target.getBoundingClientRect();
-    bubble.style.top = Math.max(10, Math.min(window.innerHeight-160, r.top)) + 'px';
-    bubble.style.left = Math.max(10, Math.min(window.innerWidth-280, r.right + 12)) + 'px';
-  }
-}
-function onboardingNext() {
-  _onboardingStep++;
-  if (_onboardingStep >= ONBOARDING_STEPS.length) { endOnboardingTour(); return; }
-  showOnboardingStep();
+function startOnboardingTour(replay) {
+  _missionsDone = replay ? [] : missionsLoad();
+  if (replay) missionsStore();
+  _missionsActive = true;
+  renderMissions();
 }
 async function endOnboardingTour() {
-  document.getElementById('onboarding-tour-bubble').classList.remove('active');
+  _missionsActive = false;
+  renderMissions();
   try {
     const idx = await loadProfilesIndex();
     const profil = idx && idx.profiles && idx.profiles.find(p => p.id === _currentProfileId);

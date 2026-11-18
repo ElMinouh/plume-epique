@@ -1040,16 +1040,19 @@ async function openDocument(docId) {
 // js/graphicnovel.js), plutôt qu'une création directe.
 function createNewDocument() { openNewDocumentTypeModal(); }
 
-async function createNewTextDocument() {
+// v9.95.0 (AUD-10-011) : `preset` (projet d'exemple, js/exemple.js) complète le manuscrit neuf ; le reste est identique.
+async function createNewTextDocument(preset) {
   const docId = genChapterId();
   const dbData = DEFAULT_DB();
-  dbData.title = uniqueDefaultTitle('Nouveau projet', (await loadDocList()).documents.map(d => d.title));
+  if (preset) Object.assign(dbData, preset);
+  const titres = (await loadDocList()).documents.map(d => d.title);
+  dbData.title = preset ? uniqueDefaultTitle(preset.title, titres) : uniqueDefaultTitle('Nouveau projet', titres);
   // v9.48.0 (AUD-03-022) : un nouveau manuscrit prend l'apparence en cours (préférences du profil, sinon le système) ;
   // avant, il restait sombre par défaut même sur un système clair.
   dbData.darkMode = document.body.classList.contains('dark-mode'); dbData.paperMode = document.body.classList.contains('paper-mode');
   await persistData(docDataKey(_currentProfileId, docId), await makeEncryptedEnvelope(JSON.stringify(dbData)));
   await mutateDocList(list => {
-    list.documents.push({ id:docId, title:dbData.title, docType:'texte', lastModified:Date.now(), chapterCount:1, wordCount:0, wordGoal:0, cover:'auto' });
+    list.documents.push({ id:docId, title:dbData.title, docType:'texte', lastModified:Date.now(), chapterCount:dbData.chapters.length, wordCount:chaptersTotalWords(dbData.chapters), wordGoal:dbData.wordGoal || 0, cover:'auto' });
   });
   db = dbData;
   _currentDocumentId = docId;
@@ -1058,6 +1061,15 @@ async function createNewTextDocument() {
   initApp();
   // v9.53.1 — référence « rien tapé depuis ce chargement » (voir isOpenDocumentProtected, router.js).
   if (typeof markOpenDocumentBaseline === 'function') markOpenDocumentBaseline();
+}
+
+// Projet d'exemple (v9.95.0, AUD-10-011) : un petit manuscrit pour essayer les outils. Module chargé à la demande ; le projet créé est
+// un projet comme un autre (corbeille 30 jours, exports, synchro).
+async function createExampleDocument() {
+  try {
+    const m = await import('./exemple.js');
+    await createNewTextDocument(m.buildExample(genChapterId, getTodayKey()));
+  } catch (e) { console.warn('Projet d\'exemple impossible :', e); toast('Le projet d\'exemple n\'a pas pu être créé. Réessayez, ou créez un projet vide.', 'error'); }
 }
 
 // Suppression définitive d'un manuscrit depuis la bibliothèque — confirmation

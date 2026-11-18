@@ -57,7 +57,9 @@ describe('AUD-03-024 — une seule aide', () => {
     expect(set.length).toBe(5);
     expect(f).toContain('if (!HELP_ICON_TITLES.has(step.title)) return;');
     expect(read('js/notifications.js')).not.toContain('(menu 🤖 IA)');
-    expect(read('js/notifications.js')).toContain('bandeau du bas (« IA »)');
+    // v9.95.0 (AUD-10-011) : les 4 bulles des premiers pas (qui citaient le « bandeau du bas ») sont remplacées par des missions ;
+    // l'emplacement de l'IA reste dit par la visite complète.
+    expect(f).toContain('bandeau du bas');
   });
   it('les étapes de la visite guidée visent les nouveaux identifiants', () => {
     const f = read('js/fulltour.js');

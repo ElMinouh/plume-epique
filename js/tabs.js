@@ -1,4 +1,47 @@
 'use strict';
+// ═══════════════════════════════════════════════════════
+// NIVEAUX D'USAGE (v9.95.0, AUD-10-012)
+// Avant : 5 onglets et une vingtaine de sous-onglets pour tout le monde, dont la périphérie gelée (docs/PRODUIT.md). Un débutant
+// devait trier une quarantaine de fonctions avant d'écrire ; un guidage utile au novice gêne l'expert (Kalyuga et al., 2003).
+// Trois niveaux, propres à l'APPAREIL (localStorage, comme le thème) : aucune donnée de manuscrit, rien n'est supprimé, les
+// sections sont seulement masquées. Le défaut est « Tout voir » : aucun changement sans choix.
+// ═══════════════════════════════════════════════════════
+const LEVEL_KEY = 'plume_level';
+const LEVEL_SUBS_PERIPHERIE = ['tab-timeline', 'tab-graph', 'tab-memory', 'tab-wordcloud', 'tab-analytics', 'tab-plugins'];
+const USAGE_LEVELS = {
+  debuter: { label: 'Débuter', tabs: ['tab-ia-memoire', 'tab-analysegroup'], subs: LEVEL_SUBS_PERIPHERIE },
+  ecrire: { label: 'Écrire', tabs: [], subs: LEVEL_SUBS_PERIPHERIE },
+  tout: { label: 'Tout voir', tabs: [], subs: [] }
+};
+let _usageLevelMem = 'tout';          // repli si le stockage de l'appareil est indisponible
+let _usageLevelOverride = null;       // « tout » pendant la visite complète, qui traverse toutes les sections
+function storedLevel() {
+  try { const v = localStorage.getItem(LEVEL_KEY); if (USAGE_LEVELS[v]) return v; } catch (e) { /* stockage indisponible */ }
+  return _usageLevelMem;
+}
+function usageLevel() { return _usageLevelOverride || storedLevel(); }
+function hiddenByLevel(id) { const L = USAGE_LEVELS[usageLevel()]; return L.tabs.includes(id) || L.subs.includes(id); }
+function applyUsageLevel() {
+  document.querySelectorAll('.tab-btn').forEach(b => { b.hidden = hiddenByLevel(b.dataset.tabId); });
+  document.querySelectorAll('.subtab-btn').forEach(b => { b.hidden = hiddenByLevel(b.dataset.subtab); });
+  const sel = document.getElementById('usage-level-sel'); if (sel) sel.value = storedLevel();
+  // Un panneau ouvert qui vient d'être masqué se referme ; un sous-onglet masqué laisse la place au premier visible.
+  const actif = document.querySelector('.tab-btn.active');
+  if (actif && actif.hidden) { if (typeof closeSidePanel === 'function') closeSidePanel(false); return; }
+  document.querySelectorAll('.tab-content.active').forEach(cat => {
+    const courant = cat.querySelector('.subtab-btn.active');
+    if (courant && courant.hidden) { const premier = [...cat.querySelectorAll('.subtab-btn')].find(b => !b.hidden); if (premier && typeof activateSubtab === 'function') activateSubtab(cat.id, premier.dataset.subtab); }
+  });
+}
+function setUsageLevel(v) {
+  if (!USAGE_LEVELS[v]) return;
+  _usageLevelMem = v;
+  try { localStorage.setItem(LEVEL_KEY, v); } catch (e) { /* le niveau vaut pour cette session */ }
+  applyUsageLevel();
+  if (typeof renderMissions === 'function') renderMissions();
+}
+function setUsageLevelOverride(v) { _usageLevelOverride = v || null; applyUsageLevel(); }
+
 function renderTabs(){
   const nav=document.getElementById('tab-menu');nav.innerHTML='';
   db.tabOrder.forEach(id=>{
@@ -54,6 +97,7 @@ function renderTabs(){
     });
     nav.appendChild(btn);
   });
+  applyUsageLevel(); // v9.95.0 (AUD-10-012)
 }
 // Correspondance sous-onglet → catégorie parente (nouveau v7.4.0). Utilisée
 // pour la navigation par lien (personnage/lieu/quête, recherche globale) qui
@@ -111,6 +155,8 @@ function openTabOrSubtab(id){
   const topId = parentId || id;
   const topBtn = document.querySelector(`button[data-tab-id="${topId}"]`);
   if (!topBtn) return;
+  // v9.95.0 (AUD-10-012) : une section masquée par le niveau d'usage se dit, au lieu d'échouer en silence.
+  if (hiddenByLevel(topId) || hiddenByLevel(id)) { toast('Cette section est masquée au niveau « ' + USAGE_LEVELS[usageLevel()].label + ' ». Changez de niveau dans Config → Réglages.', 'info'); return; }
   toggleTab(topId, topBtn, true);
   if (parentId) activateSubtab(parentId, id);
 }

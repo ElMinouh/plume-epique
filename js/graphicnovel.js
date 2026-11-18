@@ -330,6 +330,7 @@ function openNewDocumentTypeModal() {
         </div>
       </div>
       <div class="gn-modal-actions">
+        <button class="action-btn btn-ghost" id="gn-type-example" type="button" title="Créer un petit projet déjà rempli (3 chapitres, 2 personnages) pour essayer les outils ; il se supprime comme les autres">Essayer avec un projet d'exemple</button>
         <button class="action-btn btn-secondary" id="gn-type-cancel" type="button">Annuler</button>
       </div>
     </div>`;
@@ -346,6 +347,7 @@ function openNewDocumentTypeModal() {
     card.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); pick(); } });
   });
   document.getElementById('gn-type-cancel').addEventListener('click', closeNewDocumentTypeModal);
+  document.getElementById('gn-type-example').addEventListener('click', () => { closeNewDocumentTypeModal(); createExampleDocument(); }); // AUD-10-011
   overlay.addEventListener('click', e => { if (e.target === overlay) closeNewDocumentTypeModal(); });
   gnWireModalA11y(overlay, closeNewDocumentTypeModal);
 }

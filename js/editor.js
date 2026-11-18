@@ -238,6 +238,7 @@ function liveCounter() {
   try { saveCursorForResume(); } catch(e) { console.warn('saveCursorForResume a échoué (sans conséquence sur la sauvegarde) :', e); }
   trackActiveTime(Date.now()); // AUD-10-014 : temps de saisie effectif
   updateDailyStats(); debouncedSave();
+  missionsOnType(); // AUD-10-011 : mission « écrire »
   scheduleChapterCountRefresh();
   updateChapterWordGoalProgress();
   scheduleUndoSnapshot();
@@ -1002,6 +1003,7 @@ function enterReadingMode() {
   ).join('<hr class="reading-divider">');
   document.getElementById('reading-overlay').classList.add('active');
   container.scrollTop = 0;
+  missionDone('read'); // AUD-10-011 : mission « mode Lecture »
 }
 function exitReadingMode() {
   document.getElementById('reading-overlay').classList.remove('active');

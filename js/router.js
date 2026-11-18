@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.94.0';
+const APP_VERSION = '9.95.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1596,7 +1596,7 @@ function wireAppEventListenersOnce(){
   document.getElementById('fmt-lang-clear-btn').addEventListener('click',clearPassageLanguage);
   document.getElementById('chapter-filter').addEventListener('input',applyChapterFilter);
   // Centre d'aide unique (AUD-03-024)
-  document.getElementById('help-onboarding-btn').addEventListener('click',()=>{ closeShortcutsHelp(); startOnboardingTour(); });
+  document.getElementById('help-onboarding-btn').addEventListener('click',()=>{ closeShortcutsHelp(); startOnboardingTour(true); });
   document.getElementById('help-tour-btn').addEventListener('click',()=>{ closeShortcutsHelp(); startFullTour(getFullTourSteps()); });
   document.getElementById('help-privacy-btn').addEventListener('click',()=>showAiPrivacyNotice());
   document.getElementById('help-privacy-policy-btn').addEventListener('click',openPrivacyPolicy);
@@ -1702,8 +1702,9 @@ function wireAppEventListenersOnce(){
   document.getElementById('chapter-research-notes').addEventListener('input',e=>{
     db.chapters[cur].researchNotes=e.target.value;debouncedSave();
   });
-  document.getElementById('onboarding-tour-skip-btn').addEventListener('click',endOnboardingTour);
-  document.getElementById('onboarding-tour-next-btn').addEventListener('click',onboardingNext);
+  document.getElementById('missions-skip-btn').addEventListener('click',endOnboardingTour); // v9.95.0 (AUD-10-011)
+  document.querySelectorAll('#missions-card [data-level]').forEach(b=>b.addEventListener('click',()=>setUsageLevel(b.dataset.level)));
+  document.getElementById('usage-level-sel').addEventListener('change',e=>setUsageLevel(e.target.value)); // AUD-10-012
   // v7.0.0 — profils
   document.getElementById('my-profile-btn').addEventListener('click',openMyProfile);
   document.getElementById('logout-btn').addEventListener('click',logout);

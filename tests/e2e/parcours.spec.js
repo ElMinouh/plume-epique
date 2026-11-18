@@ -86,6 +86,46 @@ test.describe('Parcours navigateur', () => {
     expect(erreurs).toEqual([]);
   });
 
+  // AUD-10-011 / 012 : un profil neuf voit la carte « Premiers pas » ; écrire valide la 1re mission ; le niveau « Débuter » masque
+  // des onglets sans rien casser, « Tout voir » les rend ; « Passer » ferme la carte.
+  test('premiers pas : missions validées par l\'action, niveaux d\'usage, aucune erreur ni élément inerte', async ({ page }) => {
+    const erreurs = surveillerErreurs(page);
+    await ouvrirBibliotheque(page);
+    await creerProjet(page, 'Texte seul');
+    await expect(page.locator('#add-chapter-btn')).toBeVisible();
+    await expect(page.locator('#missions-card')).toBeVisible();
+    await expect(page.locator('#missions-progress')).toHaveText('0 sur 3');
+    await page.click('#writer');
+    await page.keyboard.type('Une première phrase de test.');
+    await expect(page.locator('#missions-progress')).toHaveText('1 sur 3');
+    await expect(page.locator('.tab-btn[data-tab-id="tab-ia-memoire"]')).toBeVisible();
+    await page.click('#missions-card [data-level="debuter"]');
+    await expect(page.locator('.tab-btn[data-tab-id="tab-ia-memoire"]')).toBeHidden();
+    await expect(page.locator('.tab-btn[data-tab-id="tab-analysegroup"]')).toBeHidden();
+    await expect(page.locator('.tab-btn[data-tab-id="tab-univers"]')).toBeVisible();
+    await page.click('#missions-card [data-level="tout"]');
+    await expect(page.locator('.tab-btn[data-tab-id="tab-ia-memoire"]')).toBeVisible();
+    await page.click('#missions-skip-btn');
+    await expect(page.locator('#missions-card')).toBeHidden();
+    await stabiliser(page);
+    expect(await nbInert(page)).toBe(0);
+    expect(erreurs).toEqual([]);
+  });
+
+  test('projet d\'exemple : « Nouveau projet » → « Essayer avec un projet d\'exemple » ouvre un manuscrit rempli', async ({ page }) => {
+    const erreurs = surveillerErreurs(page);
+    await ouvrirBibliotheque(page);
+    await page.click('#library-new-btn');
+    await page.click('#gn-type-example');
+    await expect(page.locator('#add-chapter-btn')).toBeVisible();
+    await expect(page.locator('#chapter-list > *')).toHaveCount(3);
+    expect(await page.evaluate(() => db.title)).toContain('Projet d\'exemple');
+    expect(await page.evaluate(() => db.chars.length)).toBe(2);
+    await stabiliser(page);
+    expect(await nbInert(page)).toBe(0);
+    expect(erreurs).toEqual([]);
+  });
+
   // AUD-10-008 : la fenêtre de saisie « Remarque de relecture » s'ouvre PAR-DESSUS le mode Lecture (z-index) ; à la fermeture
   // des deux, plus rien n'est inert (même classe de bug que la v9.84.0).
   test('mode Lecture : « Noter la sélection » ouvre la saisie au premier plan, et tout se referme proprement', async ({ page }) => {

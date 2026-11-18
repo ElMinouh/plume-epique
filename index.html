@@ -439,18 +439,21 @@
 <!-- TRASH OVERLAY (nouveau v6.2.0) -->
 <!-- MODALE DE CONFIRMATION GÉNÉRIQUE (nouveau v7.36.0, ergonomie) — remplace
      confirm()/prompt() natifs pour les suppressions définitives. -->
-<!-- PARCOURS "PREMIERS PAS" (nouveau v7.36.0, ergonomie) — 4 bulles montrées
-     une seule fois par profil, à la première ouverture d'un manuscrit. -->
-<div id="onboarding-tour-bubble" role="dialog" aria-label="Premiers pas">
-  <p class="u-fs-base u-m-0-0-10px" id="onboarding-tour-text"></p>
-  <div class="u-d-flex u-ai-center u-jc-space-between">
-    <span class="u-fs-xs u-c-v-text-muted" id="onboarding-tour-counter"></span>
-    <div class="u-d-flex u-gap-6px">
-      <button class="action-btn btn-secondary btn-sm" id="onboarding-tour-skip-btn">Passer</button>
-      <button class="action-btn btn-sm" id="onboarding-tour-next-btn">Suivant</button>
-    </div>
+<!-- PREMIERS PAS PAR LA PRATIQUE (v9.95.0, AUD-10-011) — 3 missions validées par l'action ; montrées une fois par profil. -->
+<aside id="missions-card" aria-label="Premiers pas" hidden>
+  <div class="u-d-flex u-ai-center u-jc-space-between u-gap-8px">
+    <strong class="u-fs-base">Premiers pas</strong>
+    <button class="action-btn btn-ghost btn-sm" id="missions-skip-btn" type="button" title="Fermer les premiers pas">Passer</button>
   </div>
-</div>
+  <div class="u-fs-xs u-c-v-text-muted u-mt-6px">Niveau d'usage (modifiable dans Config → Réglages)</div>
+  <div class="u-d-flex u-gap-6px u-fw-wrap u-mt-4px" role="group" aria-label="Niveau d'usage">
+    <button class="action-btn btn-secondary btn-sm" type="button" data-level="debuter" aria-pressed="false" title="Seulement l'essentiel : fiches, versions, réglages">Débuter</button>
+    <button class="action-btn btn-secondary btn-sm" type="button" data-level="ecrire" aria-pressed="false" title="Essentiel, IA et statistiques">Écrire</button>
+    <button class="action-btn btn-secondary btn-sm" type="button" data-level="tout" aria-pressed="true" title="Toutes les sections">Tout voir</button>
+  </div>
+  <ol id="missions-list" class="missions-list"></ol>
+  <div class="u-fs-xs u-c-v-text-muted" id="missions-progress" aria-live="polite"></div>
+</aside>
 
 <!-- PARCOURS "CONFIGURATION INITIALE" — étape 3/3 (nouveau v7.37.0) : pas de
      bouton, elle avance toute seule au fil des vrais clics (bouton Système,
@@ -1243,6 +1246,13 @@
       <button class="mode-indicator" data-value="on">Activée</button>
     </div>
     <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-6px">Ces réglages de confort de lecture s'appliquent à l'écriture, au mode Focus et au mode Lecture, sur cet appareil. La correction du navigateur souligne les fautes sans envoyer votre texte à un service externe (sauf si vous avez activé la « vérification améliorée » dans votre navigateur). Les noms inventés — personnages, lieux — seront soulignés : ajoutez-les au dictionnaire par un clic droit, ou désactivez la correction ci-dessus.</p>
+    <hr class="u-bdc-v-border u-m-10px-0">
+    <strong>Niveau d'usage</strong>
+    <div class="u-d-flex u-ai-center u-gap-8px u-fw-wrap u-m-6px-0">
+      <label for="usage-level-sel" class="u-fs-sm u-c-v-text-muted">Sections affichées</label>
+      <select id="usage-level-sel" class="field u-w-auto"><option value="debuter">Débuter</option><option value="ecrire">Écrire</option><option value="tout">Tout voir</option></select>
+    </div>
+    <p class="u-fs-xs u-c-v-text-muted u-m-0-0-6px">Propre à cet appareil. Masquer ne supprime rien : « Tout voir » rend toutes les sections.</p>
     <hr class="u-bdc-v-border u-m-10px-0">
     <strong>Mots faibles</strong>
     <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-6px">Mots passe-partout (intensité, approximation) qui affaiblissent une phrase quand ils s'accumulent. « juste » et « très » sont proposés au départ ; ajoutez les vôtres. Le bouton « Analyser le style » du menu Outils les surligne dans le chapitre, sans rien modifier au texte.</p>

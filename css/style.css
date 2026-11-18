@@ -493,10 +493,15 @@ select.gate-field{height:38px;}
   backdrop-filter:blur(6px);
   align-items:center;justify-content:center;}
 #confirm-modal-overlay.active{display:flex;}
-#onboarding-tour-bubble{display:none;position:fixed;z-index:9200;width:260px;
-  background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-3);
-  padding:14px;box-shadow:var(--elev-3);}
-#onboarding-tour-bubble.active{display:block;}
+/* Premiers pas par la pratique (v9.95.0, AUD-10-011) */
+#missions-card{position:fixed;z-index:9000;left:16px;bottom:64px;width:min(320px,calc(100vw - 32px));
+  background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-3);padding:14px;box-shadow:var(--elev-3);}
+#missions-card[hidden],body.library-mode #missions-card,body.graphicnovel-mode #missions-card{display:none;}
+.missions-list{list-style:none;margin:10px 0 6px;padding:0;}
+.mission-item{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin:8px 0;font-size:var(--fs-sm);}
+.mission-icon{display:inline-flex;color:var(--accent-text);}
+.mission-text{flex:1;min-width:140px;}
+.mission-item.done .mission-text{color:var(--text-muted);text-decoration:line-through;}
 #setup-tour-bubble{display:none;position:fixed;z-index:9200;width:260px;
   background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-3);
   padding:14px;box-shadow:var(--elev-3);}
@@ -950,10 +955,10 @@ body.library-mode #library-screen{display:block;}
      étroit. Largeur désormais plafonnée à celle de l'écran ; les calculs
      de position en JS restent des majorants sûrs, aucune modification JS
      nécessaire. Aucun changement sur desktop. */
-  #onboarding-tour-bubble,#setup-tour-bubble{width:min(260px,calc(100vw - 24px));}
+  #setup-tour-bubble{width:min(260px,calc(100vw - 24px));}
   #full-tour-bubble{width:min(300px,calc(100vw - 24px));}
   #info-popover{width:min(280px,calc(100vw - 24px));}
-  #onboarding-tour-bubble .action-btn,#full-tour-bubble .action-btn{min-height:44px;padding:9px 12px;}
+  #missions-card .action-btn,#full-tour-bubble .action-btn{min-height:44px;padding:9px 12px;}
   /* Icônes d'aide ⓘ : agrandies modérément (16→22px) plutôt qu'au standard
      44px, pour ne pas se chevaucher dans les rangées déjà serrées de
      sous-onglets où elles sont accolées à un bouton déjà assez grand. */
@@ -1961,7 +1966,7 @@ body.theme-switching,body.theme-switching *,body.theme-switching *::before,body.
   @page{margin:18mm;}
   html,body{background:#fff !important;color:#000 !important;height:auto !important;overflow:visible !important;}
   header,#chapter-sidebar,#tab-container,#editor-wrapper > .toolbar,#mode-bar,#panel-resizer,#toast,#library-screen,
-  #chapter-notes-panel,[id$="-overlay"]:not(#reading-overlay),#sync-status-label,#shortcuts-hint-btn{display:none !important;}
+  #missions-card,#chapter-notes-panel,[id$="-overlay"]:not(#reading-overlay),#sync-status-label,#shortcuts-hint-btn{display:none !important;}
   main{display:block !important;height:auto !important;width:100% !important;max-width:none !important;margin:0 !important;}
   #editor-wrapper{display:block !important;height:auto !important;overflow:visible !important;box-shadow:0 0 0 0 transparent !important;background:transparent !important;border:none !important;}
   #chapter-title-row{padding:0 0 8pt !important;}

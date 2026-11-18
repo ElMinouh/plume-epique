@@ -352,6 +352,7 @@ function addItem(k){
   // il fallait recliquer pour ouvrir la fiche — création immédiate ("Sans
   // titre") et focus direct sur le champ nom, un seul clic suffit désormais.
   db[k].push({id:genChapterId(),name:'Sans nom',info:''});
+  if(k==='chars')missionDone('char'); // AUD-10-011 : mission « ajouter un personnage »
   save();
   renderLibrary(k);
   const newIdx = db[k].length-1;

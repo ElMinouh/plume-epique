@@ -150,6 +150,7 @@ function startFullTour(steps) {
   _fullTourSteps = steps;
   _fullTourIdx = 0;
   _fullTourActive = true;
+  if (typeof setUsageLevelOverride === 'function') setUsageLevelOverride('tout'); // v9.95.0 : les étapes visitent aussi les sections masquées par le niveau
   document.getElementById('full-tour-spotlight').classList.add('active');
   document.getElementById('full-tour-bubble').classList.add('active');
   showFullTourStep();
@@ -275,6 +276,7 @@ function fullTourPrev() {
 }
 function endFullTour() {
   _fullTourActive = false;
+  if (typeof setUsageLevelOverride === 'function') setUsageLevelOverride(null);
   document.body.click();
   document.getElementById('full-tour-spotlight').classList.remove('active');
   document.getElementById('full-tour-bubble').classList.remove('active');
