@@ -19,11 +19,11 @@ export function buildExample(genId, today) {
         content: p("Léa trouva la lettre un matin de novembre, glissée sous le grillage de la boîte aux lettres. L'enveloppe était très ancienne, le papier juste assez jaune pour qu'on le devine fragile.") +
           p("Elle la retourna deux fois. Aucun nom, aucune adresse, seulement une écriture penchée qu'elle crut reconnaître sans savoir d'où.") },
       { id: ch[1], title: 'Le village', tension: 45, summary: 'Léa interroge Armand sur la lettre et le village se referme.', status: 'review', tags: [], wordGoal: 600, researchNotes: '',
-        content: p("Au village, tout le monde avait déjà tout vu. Léa marcha lentement jusqu'à la place, lentement jusqu'au café, lentement jusqu'à la maison d'Armand.") +
+        content: p("Au village, tout le monde avait déjà tout vu. Léa marcha lentement vers la place, lentement vers le café, lentement vers la maison d'Armand.") +
           p("— Cette lettre, dit-elle, vous savez qui l'a écrite ?") +
           p("Armand posa sa tasse très doucement. Il regarda par la fenêtre, comme si la réponse se trouvait dehors.") +
           p("— Rentre chez toi, Léa. Certaines choses sont juste faites pour rester dans leur enveloppe."),
-        remarks: [{ id: 'rexemple01', q: 'lentement jusqu\'à la place', n: 'Le mot « lentement » revient trois fois : varier ou couper ?', done: false, at: today }],
+        remarks: [{ id: 'rexemple01', q: 'lentement vers la place', n: 'Le mot « lentement » revient trois fois : varier ou couper ?', done: false, at: today }],
         passes: { structure: today, continuite: null, style: null, langue: null } },
       { id: ch[2], title: 'Le retour', tension: 70, summary: 'À la gare, Léa reconnaît enfin l\'écriture.', status: 'draft', tags: [], wordGoal: 600, researchNotes: '',
         content: p("Elle ne comprit qu'à la gare, en voyant le nom griffonné sur un billet oublié. La même écriture penchée, les mêmes boucles.") +

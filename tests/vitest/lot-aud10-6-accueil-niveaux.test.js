@@ -192,8 +192,8 @@ describe('AUD-10-011 : projet d\'exemple', () => {
     expect(e.chapters).toHaveLength(3); expect(e.chars).toHaveLength(2); expect(e.places).toHaveLength(2); expect(e.quests).toHaveLength(1);
     const ids = [...e.chapters, ...e.chars, ...e.places, ...e.quests].map(x => x.id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(e.chapters[1].remarks[0].q).toBe("lentement jusqu'à la place");
-    expect(e.chapters[1].content).toContain("lentement jusqu'à la place");
+    expect(e.chapters[1].remarks[0].q).toBe('lentement vers la place');
+    expect(e.chapters[1].content).toContain('lentement vers la place');
     expect(e.chapters[1].passes.structure).toBe('2026-11-19');
     expect(e.chapters.every(c => ['draft', 'review', 'final'].includes(c.status))).toBe(true);
   });

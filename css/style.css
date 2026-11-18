@@ -497,6 +497,7 @@ select.gate-field{height:38px;}
 #missions-card{position:fixed;z-index:9000;left:16px;bottom:64px;width:min(320px,calc(100vw - 32px));
   background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-3);padding:14px;box-shadow:var(--elev-3);}
 #missions-card[hidden],body.library-mode #missions-card,body.graphicnovel-mode #missions-card{display:none;}
+@media (min-width:901px){#missions-card{left:auto;right:16px;}} /* bureau : à droite, pour ne pas masquer les compteurs et la tension de la colonne des chapitres */
 .missions-list{list-style:none;margin:10px 0 6px;padding:0;}
 .mission-item{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin:8px 0;font-size:var(--fs-sm);}
 .mission-icon{display:inline-flex;color:var(--accent-text);}
