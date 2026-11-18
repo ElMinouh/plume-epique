@@ -34,3 +34,13 @@ le 16/10/2026 (AUD-08-001 annulé). Ne pas le modifier sans nouvelle décision.
 - Pluriels par `plur()`, jamais « (s) ».
 - Les icônes ont un seul sens (voir `js/icons.js`) : l'icône « étincelles » désigne les fonctions qui envoient du texte à l'IA
   (résumés, synonymes, générateur de noms, reformulation).
+
+## Statuts de chapitre et relecture (v9.94.0, AUD-10-009)
+
+| Mot | Sens |
+|---|---|
+| **Brouillon** | Chapitre en cours d'écriture |
+| **À revoir** | Relecture en cours |
+| **Final** | Relu, prêt à être lu par d'autres. Information (non bloquante) si des passes ne sont pas faites |
+| **Passe de relecture** | Une relecture ciblée : structure, continuité, style, langue. Chaque passe cochée garde sa date |
+| **Remarque de relecture** | Une note attachée à un passage, créée en mode Lecture (« Noter la sélection ») |

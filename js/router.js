@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.93.0';
+const APP_VERSION = '9.94.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1627,6 +1627,8 @@ function wireAppEventListenersOnce(){
   document.getElementById('trash-close-btn').addEventListener('click',closeTrash);
   document.getElementById('reading-mode-btn').addEventListener('click',enterReadingMode);
   document.getElementById('reading-close-btn').addEventListener('click',exitReadingMode);
+  document.getElementById('reading-note-btn').addEventListener('click',addRemarkFromReading); // v9.94.0 (AUD-10-008)
+  REVIEW_PASSES.forEach(([k])=>document.getElementById('pass-'+k).addEventListener('change',e=>onPassToggle(k,e.target.checked))); // AUD-10-009
   document.getElementById('sprint-start-btn').addEventListener('click',startSprint);
   document.getElementById('sprint-reset-btn').addEventListener('click',resetSprint);
 
@@ -1676,7 +1678,7 @@ function wireAppEventListenersOnce(){
   document.getElementById('focus-writer').addEventListener('paste', handleManuscriptPaste);
   document.getElementById('chapter-title').addEventListener('blur',e=>updateTitle(e.target.innerText.trim()));
   document.getElementById('tension-slider').addEventListener('input',e=>updateTension(e.target.value));
-  document.getElementById('chapter-status-sel').addEventListener('change',e=>{db.chapters[cur].status=e.target.value;renderChapterList();debouncedSave();});
+  document.getElementById('chapter-status-sel').addEventListener('change',e=>{db.chapters[cur].status=e.target.value;renderChapterList();debouncedSave();if(e.target.value==='final')warnFinalWithoutPasses();});
   document.getElementById('find-replace-btn').addEventListener('click',openFindReplace);
   document.getElementById('fr-panel-close').addEventListener('click',closeFindReplace);
   document.getElementById('fr-find-input').addEventListener('input',doFind);

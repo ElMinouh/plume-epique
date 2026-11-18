@@ -797,8 +797,8 @@
     </div>
     <div class="u-d-flex u-ai-center u-gap-10px u-mb-6px" id="chapter-title-row">
       <div class="u-fs-xl u-fwt-600 u-c-title u-outline-none u-minh-28px u-fg-1" id="chapter-title" contenteditable="true" role="textbox" aria-label="Titre" title="Cliquez pour renommer ce chapitre"></div>
-      <button class="mode-indicator u-fsh-0" id="chapter-notes-toggle-btn" title="Objectif de mots et notes de recherche pour ce chapitre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-notebook"></use></svg> Notes</button>
-      <select id="chapter-status-sel" class="field u-w-auto u-fsh-0" aria-label="Statut du chapitre" title="Statut d'avancement de ce chapitre">
+      <button class="mode-indicator u-fsh-0" id="chapter-notes-toggle-btn" title="Objectif de mots et notes de recherche pour ce chapitre"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-notebook"></use></svg> Notes<span id="chapter-notes-badge"></span></button>
+      <select id="chapter-status-sel" class="field u-w-auto u-fsh-0" aria-label="Statut du chapitre" title="Brouillon : en cours d'écriture · À revoir : relecture en cours · Final : relu, prêt à être lu par d'autres.">
         <option value="draft">Brouillon</option>
         <option value="review">À revoir</option>
         <option value="final">Final</option>
@@ -812,6 +812,20 @@
       </div>
       <label class="u-fs-sm u-c-v-text-muted u-d-block u-mb-4px" for="chapter-research-notes"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-notebook"></use></svg> Notes de recherche</label>
       <textarea id="chapter-research-notes" class="field u-w-100pc" rows="3" placeholder="Prononciation, faits historiques, références..."></textarea>
+      <div class="u-mt-10px">
+        <strong class="u-fs-sm">Passes de relecture</strong>
+        <div class="u-d-flex u-gap-12px u-fw-wrap u-mt-4px">
+          <label class="u-fs-sm"><input type="checkbox" id="pass-structure"> Structure</label>
+          <label class="u-fs-sm"><input type="checkbox" id="pass-continuite"> Continuité</label>
+          <label class="u-fs-sm"><input type="checkbox" id="pass-style"> Style</label>
+          <label class="u-fs-sm"><input type="checkbox" id="pass-langue"> Langue</label>
+        </div>
+        <p class="u-fs-xs u-c-v-text-muted u-m-4px-0-0">Brouillon : en cours d'écriture · À revoir : relecture en cours · Final : relu, prêt à être lu par d'autres. Cocher une passe enregistre sa date.</p>
+      </div>
+      <div class="u-mt-10px">
+        <strong class="u-fs-sm">Remarques de relecture</strong>
+        <div class="u-mt-4px" id="chapter-remarks-list"></div>
+      </div>
     </div>
     <div id="writer" contenteditable="true" role="textbox" aria-multiline="true"
       aria-label="Zone d'écriture" spellcheck="false" data-placeholder="Commencez à écrire ici… (touche ? pour l'aide)"></div>
@@ -1386,7 +1400,10 @@
 <!-- READING MODE (nouveau v6.2.0) -->
 <div id="reading-overlay" role="dialog" aria-modal="true" aria-label="Mode lecture">
   <div id="reading-content"></div>
-  <button id="reading-close-btn" title="Revenir à l'écriture normale"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg> Quitter la lecture</button>
+  <div id="reading-actions">
+    <button id="reading-note-btn" title="Ajouter une remarque sur le passage sélectionné"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-notebook"></use></svg> Noter la sélection</button>
+    <button id="reading-close-btn" title="Revenir à l'écriture normale"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg> Quitter la lecture</button>
+  </div>
 </div>
 
 <!-- v9.2.0 — Modale de comparaison avant restauration d'une sauvegarde de

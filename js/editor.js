@@ -195,6 +195,7 @@ function loadChapter(i) {
   if (s) { s.value = ch.tension ?? 20; const tv = document.getElementById('tension-value'); if (tv) tv.textContent = s.value; }
   if (st) st.value = ch.status || 'draft';
   _chapterBaseline = w.innerHTML;
+  renderChapterReview(); // v9.94.0 (AUD-10-008/009) : remarques et passes du chapitre
   // v7.36.0 (ergonomie) — objectif de mots et notes de recherche, propres à
   // chaque chapitre (panneau "📓 Notes", replié par défaut).
   const wg = document.getElementById('chapter-word-goal-input');
@@ -997,7 +998,7 @@ function enterReadingMode() {
   const minutes = Math.ceil(totalW/200);
   const readingTimeHtml = `<p class="u-fs-sm u-c-v-text-muted u-ta-center u-m-0-0-14px">≈ ${minutes} min de lecture (${totalW} mots)</p>`;
   container.innerHTML = readingTimeHtml + db.chapters.map((ch,i) =>
-    `<div class="reading-chapter"><h2>${DOMPurify.sanitize(ch.title||('Chapitre '+(i+1)))}</h2>${DOMPurify.sanitize(ch.content||'<p><em>(chapitre vide)</em></p>')}</div>`
+    `<div class="reading-chapter" data-ch-idx="${i}"><h2>${DOMPurify.sanitize(ch.title||('Chapitre '+(i+1)))}</h2>${DOMPurify.sanitize(ch.content||'<p><em>(chapitre vide)</em></p>')}</div>`
   ).join('<hr class="reading-divider">');
   document.getElementById('reading-overlay').classList.add('active');
   container.scrollTop = 0;
@@ -1005,3 +1006,130 @@ function enterReadingMode() {
 function exitReadingMode() {
   document.getElementById('reading-overlay').classList.remove('active');
 }
+
+// ═══════════════════════════════════════════════════════
+// RELECTURE OUTILLÉE (v9.94.0, AUD-10-008 et AUD-10-009)
+// 1. Remarques : depuis le mode Lecture, « Noter la sélection » range une remarque dans le chapitre (ch.remarks). Le passage est
+//    retrouvé par son TEXTE (rien n'est inséré dans le chapitre : texte, exports et impression ne changent pas).
+// 2. Passes : quatre relectures distinctes (structure, continuité, style, langue), chacune datée quand on la coche (ch.passes).
+//    Réviser par passes est plus efficace que de tout reprendre à la fois (Graham & Perin, 2007) ; « Final » n'était qu'une étiquette.
+// Champs d'auteur : ils se synchronisent comme le texte. Lus de façon défensive (import, restauration, autre appareil).
+// ═══════════════════════════════════════════════════════
+const REVIEW_PASSES = [['structure', 'Structure'], ['continuite', 'Continuité'], ['style', 'Style'], ['langue', 'Langue']];
+const REMARKS_MAX = 50, REMARK_QUOTE_MAX = 200, REMARK_NOTE_MAX = 500;
+const STATUS_HELP = 'Brouillon : en cours d\'écriture · À revoir : relecture en cours · Final : relu, prêt à être lu par d\'autres.';
+// Normalise remarques et passes d'un chapitre (données venues d'un import ou d'un autre appareil : jamais de confiance aveugle).
+function normalizeChapterReview(ch) {
+  if (!ch) return;
+  ch.remarks = (Array.isArray(ch.remarks) ? ch.remarks : []).filter(r => r && typeof r.q === 'string' && typeof r.n === 'string')
+    .slice(0, REMARKS_MAX).map(r => ({ id: typeof r.id === 'string' && r.id ? r.id : 'r' + Math.random().toString(36).slice(2, 9), q: r.q.slice(0, REMARK_QUOTE_MAX), n: r.n.slice(0, REMARK_NOTE_MAX), done: r.done === true, at: typeof r.at === 'string' ? r.at.slice(0, 10) : '' }));
+  const p = ch.passes && typeof ch.passes === 'object' ? ch.passes : {};
+  ch.passes = {};
+  REVIEW_PASSES.forEach(([k]) => { ch.passes[k] = typeof p[k] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(p[k]) ? p[k] : null; });
+}
+function missingPasses(ch) { normalizeChapterReview(ch); return REVIEW_PASSES.filter(([k]) => !ch.passes[k]).map(([, label]) => label); }
+// Retrouve un extrait dans un élément : renvoie un Range, ou null. Les espaces (y compris insécables et retours) sont comparés après repliement.
+function findQuoteRange(root, quote) {
+  const q = String(quote || '').replace(/\s+/g, ' ').trim();
+  if (!q || !root) return null;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let full = '', map = [], node, lastSpace = true;
+  while ((node = walker.nextNode())) {
+    const t = node.textContent;
+    for (let i = 0; i < t.length; i++) {
+      const sp = /\s/.test(t[i]);
+      if (sp && lastSpace) continue;
+      full += sp ? ' ' : t[i]; map.push([node, i]); lastSpace = sp;
+    }
+  }
+  const at = full.toLowerCase().indexOf(q.toLowerCase());
+  if (at < 0) return null;
+  const range = document.createRange();
+  range.setStart(map[at][0], map[at][1]);
+  const end = map[at + q.length - 1];
+  range.setEnd(end[0], end[1] + 1);
+  return range;
+}
+async function addRemarkFromReading() {
+  const sel = window.getSelection();
+  const box = document.getElementById('reading-content');
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed || !box || !box.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+    toast('Sélectionnez d\'abord, dans le texte, le passage à commenter.', 'info'); return;
+  }
+  const anchor = sel.getRangeAt(0).startContainer;
+  const chEl = (anchor.nodeType === 1 ? anchor : anchor.parentElement).closest('.reading-chapter');
+  const ch = chEl ? db.chapters[parseInt(chEl.dataset.chIdx, 10)] : null;
+  const quote = sel.toString().replace(/\s+/g, ' ').trim().slice(0, REMARK_QUOTE_MAX);
+  if (!ch || !quote) { toast('Sélectionnez un passage à l\'intérieur d\'un chapitre.', 'info'); return; }
+  normalizeChapterReview(ch);
+  if (ch.remarks.length >= REMARKS_MAX) { toast('Ce chapitre a déjà ' + REMARKS_MAX + ' remarques : marquez-en comme faites et supprimez-les avant d\'en ajouter.', 'info'); return; }
+  const note = await showPromptModal({ title: 'Remarque de relecture', message: '« ' + quote.slice(0, 120) + (quote.length > 120 ? '…' : '') + ' »', label: 'Votre remarque', confirmLabel: 'Ajouter' });
+  const texte = String(note || '').trim().slice(0, REMARK_NOTE_MAX);
+  if (!texte) return;
+  ch.remarks.push({ id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), q: quote, n: texte, done: false, at: getTodayKey() });
+  sel.removeAllRanges();
+  debouncedSave();
+  if (db.chapters[cur] === ch) renderChapterReview();
+  toast('Remarque ajoutée au chapitre ' + (db.chapters.indexOf(ch) + 1) + '.', 'success');
+}
+function goToRemark(id) {
+  const ch = db.chapters[cur], r = ch && (ch.remarks || []).find(x => x.id === id);
+  if (!r) return;
+  const writer = document.getElementById('writer');
+  const range = findQuoteRange(writer, r.q);
+  if (!range) { toast('Passage introuvable : le texte a changé depuis. La remarque reste dans la liste.', 'info'); return; }
+  const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+  const el = range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement;
+  if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center' });
+}
+function renderChapterReview() {
+  const ch = db.chapters && db.chapters[cur];
+  if (!ch) return;
+  normalizeChapterReview(ch);
+  // Passes
+  REVIEW_PASSES.forEach(([k, label]) => {
+    const cb = document.getElementById('pass-' + k);
+    if (!cb) return;
+    cb.checked = !!ch.passes[k];
+    cb.title = ch.passes[k] ? label + ' : faite le ' + new Date(ch.passes[k] + 'T12:00:00').toLocaleDateString('fr') : label + ' : pas encore faite';
+  });
+  // Remarques
+  const list = document.getElementById('chapter-remarks-list'), writer = document.getElementById('writer');
+  const ouvertes = ch.remarks.filter(r => !r.done).length;
+  const badge = document.getElementById('chapter-notes-badge');
+  if (badge) badge.textContent = ouvertes ? ' (' + ouvertes + ')' : '';
+  if (!list) return;
+  list.innerHTML = '';
+  if (!ch.remarks.length) {
+    const p = document.createElement('p'); p.className = 'u-fs-xs u-c-v-text-muted u-m-0';
+    p.textContent = 'Aucune remarque. En mode Lecture, sélectionnez un passage puis « Noter la sélection ».'; list.appendChild(p); return;
+  }
+  ch.remarks.forEach(r => {
+    const row = document.createElement('div'); row.className = 'u-d-flex u-gap-6px u-fw-wrap u-ai-center u-mb-6px';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = r.done; cb.setAttribute('aria-label', 'Remarque faite'); cb.title = 'Marquer comme faite';
+    cb.addEventListener('change', () => { r.done = cb.checked; debouncedSave(); renderChapterReview(); });
+    const t = document.createElement('span'); t.className = 'u-flex-1 u-minw-180px u-fs-sm' + (r.done ? ' u-c-v-text-muted' : '');
+    const trouve = !!findQuoteRange(writer, r.q);
+    t.textContent = '« ' + r.q.slice(0, 80) + (r.q.length > 80 ? '…' : '') + ' » — ' + r.n + (trouve ? '' : ' (passage modifié depuis)');
+    const go = document.createElement('button'); go.className = 'action-btn btn-secondary btn-sm'; go.textContent = 'Aller au passage'; go.addEventListener('click', () => goToRemark(r.id));
+    const del = document.createElement('button'); del.className = 'action-btn btn-ghost btn-sm'; del.textContent = 'Supprimer'; del.title = 'Supprimer cette remarque';
+    del.addEventListener('click', () => { ch.remarks = ch.remarks.filter(x => x.id !== r.id); debouncedSave(); renderChapterReview(); });
+    row.append(cb, t, go, del); list.appendChild(row);
+  });
+}
+function onPassToggle(key, checked) {
+  const ch = db.chapters && db.chapters[cur];
+  if (!ch) return;
+  normalizeChapterReview(ch);
+  ch.passes[key] = checked ? getTodayKey() : null;
+  debouncedSave(); renderChapterReview();
+  if (typeof updateGoalsUI === 'function') updateGoalsUI();
+}
+// Passage en « Final » : information NON bloquante si des passes ne sont pas faites (l'auteur reste maître de son statut).
+function warnFinalWithoutPasses() {
+  const ch = db.chapters && db.chapters[cur];
+  if (!ch) return;
+  const m = missingPasses(ch);
+  if (m.length) toast('Final avec ' + m.length + ' ' + plur(m.length, 'passe non faite', 'passes non faites') + ' (' + m.join(', ').toLowerCase() + ').', 'info');
+}
+

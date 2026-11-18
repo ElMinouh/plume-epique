@@ -488,7 +488,7 @@ select.gate-field{height:38px;}
   backdrop-filter:blur(6px);
   align-items:center;justify-content:center;}
 #doc-trash-overlay.active,#trash-overlay.active,#export-select-overlay.active,#shortcuts-overlay.active,#privacy-overlay.active,#docx-import-overlay.active,#library-system-overlay.active,#conflict-diff-overlay.active{display:flex;}
-#confirm-modal-overlay{display:none;position:fixed;inset:0;z-index:9500;
+#confirm-modal-overlay{display:none;position:fixed;inset:0;z-index:9600;
   background:var(--scrim);
   backdrop-filter:blur(6px);
   align-items:center;justify-content:center;}
@@ -537,8 +537,8 @@ body:has(.gn-modal-overlay, #my-profile-overlay.active, #manage-profiles-overlay
   font-family:var(--font-read);font-size:var(--fs-lg);line-height:var(--lh-write);}
 .reading-chapter h2{color:var(--title);margin-top:1.4em;font-size:var(--fs-lg);}
 .reading-divider{border:none;border-top:1px solid color-mix(in srgb,var(--imm-text) 14%,transparent);margin:2.5em 0;}
-#reading-close-btn{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-  background:color-mix(in srgb,var(--accent) 30%,transparent);border:1px solid color-mix(in srgb,var(--accent) 50%,transparent);
+#reading-actions{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;gap:10px;flex-wrap:wrap;justify-content:center;width:max-content;max-width:calc(100vw - 24px);}
+#reading-close-btn,#reading-note-btn{background:color-mix(in srgb,var(--accent) 30%,transparent);border:1px solid color-mix(in srgb,var(--accent) 50%,transparent);
   color:var(--accent-text);padding:8px 20px;border-radius:var(--radius-pill);cursor:pointer;
   font-size:var(--fs-sm);font-weight:500;font-family:inherit;}
 #wordcloud-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
@@ -1974,7 +1974,7 @@ body.theme-switching,body.theme-switching *,body.theme-switching *::before,body.
   #writer h1,#writer h2,#writer h3{break-after:avoid;color:#000 !important;}
   /* mode Lecture ouvert : tout le manuscrit sort, un chapitre après l'autre */
   #reading-overlay.active{position:static !important;display:block !important;background:#fff !important;color:#000 !important;overflow:visible !important;}
-  #reading-overlay.active ~ *,#reading-overlay.active button{display:none !important;}
+  #reading-overlay.active ~ *,#reading-overlay.active button,#reading-actions{display:none !important;}
   .reading-chapter{break-before:page;}
   .reading-chapter:first-child{break-before:auto;}
   .reading-chapter h2{color:#000 !important;}

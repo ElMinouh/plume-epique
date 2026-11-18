@@ -86,6 +86,43 @@ test.describe('Parcours navigateur', () => {
     expect(erreurs).toEqual([]);
   });
 
+  // AUD-10-008 : la fenêtre de saisie « Remarque de relecture » s'ouvre PAR-DESSUS le mode Lecture (z-index) ; à la fermeture
+  // des deux, plus rien n'est inert (même classe de bug que la v9.84.0).
+  test('mode Lecture : « Noter la sélection » ouvre la saisie au premier plan, et tout se referme proprement', async ({ page }) => {
+    const erreurs = surveillerErreurs(page);
+    await ouvrirBibliotheque(page);
+    await creerProjet(page, 'Texte seul');
+    await expect(page.locator('#add-chapter-btn')).toBeVisible();
+    await page.click('#writer');
+    await page.keyboard.type('Marie ouvrit la porte et regarda dehors.');
+    await stabiliser(page);
+    await page.evaluate(() => enterReadingMode());
+    await expect(page.locator('#reading-overlay.active')).toBeVisible();
+    await page.evaluate(() => {
+      const w = document.createTreeWalker(document.querySelector('#reading-content .reading-chapter'), NodeFilter.SHOW_TEXT);
+      let t; while ((t = w.nextNode())) if (t.textContent.includes('la porte')) break;
+      const i = t.textContent.indexOf('la porte');
+      const r = document.createRange(); r.setStart(t, i); r.setEnd(t, i + 8);
+      const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    });
+    await page.click('#reading-note-btn');
+    await expect(page.locator('#confirm-modal-overlay.active')).toBeVisible();
+    const dessus = await page.evaluate(() => { const m = document.getElementById('confirm-modal-overlay').getBoundingClientRect(); const e = document.elementFromPoint(m.x + m.width / 2, m.y + m.height / 2); return !!e && !!e.closest('#confirm-modal-overlay'); });
+    expect(dessus, 'la saisie doit être AU-DESSUS du mode Lecture').toBe(true);
+    await page.fill('#confirm-modal-input', 'Porte déjà ouverte ?');
+    await page.click('#confirm-modal-confirm-btn');
+    await expect(page.locator('#confirm-modal-overlay.active')).toHaveCount(0);
+    await expect(page.locator('#reading-overlay.active')).toBeVisible();
+    await page.click('#reading-close-btn');
+    await expect(page.locator('#reading-overlay.active')).toHaveCount(0);
+    await stabiliser(page);
+    expect(await nbInert(page), 'fenêtres fermées : plus rien d\'inert').toBe(0);
+    await page.click('#chapter-notes-toggle-btn');
+    await expect(page.locator('#chapter-remarks-list')).toContainText('Porte déjà ouverte ?');
+    await expect(page.locator('#chapter-notes-badge')).toHaveText(' (1)');
+    expect(erreurs).toEqual([]);
+  });
+
   test('ouvrir puis fermer une fenêtre (recherche) rend la page à l\'état normal', async ({ page }) => {
     const erreurs = surveillerErreurs(page);
     await ouvrirBibliotheque(page);

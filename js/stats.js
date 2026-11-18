@@ -172,11 +172,18 @@ function revisionSentence() {
   if (c.total < 2) return '';
   return ` Révision : ${c.final} ${plur(c.final, 'chapitre', 'chapitres')} sur ${c.total} en Final.`;
 }
+// v9.94.0 (AUD-10-009) : passes de relecture faites / possibles (4 par chapitre : structure, continuité, style, langue).
+function reviewPassesCount() {
+  const chs = db.chapters || [];
+  let faites = 0;
+  chs.forEach(ch => { const p = ch.passes && typeof ch.passes === 'object' ? ch.passes : {}; ['structure', 'continuite', 'style', 'langue'].forEach(k => { if (typeof p[k] === 'string' && p[k]) faites++; }); });
+  return { faites, total: chs.length * 4 };
+}
 function renderRevisionSummary() {
   const el = document.getElementById('revision-summary');
   if (!el || !db.chapters) return;
   const c = revisionCounts();
-  el.textContent = `Révision : ${c.final} Final, ${c.review} À revoir, ${c.draft} Brouillon (${c.total} ${plur(c.total, 'chapitre', 'chapitres')}).`;
+  el.textContent = `Révision : ${c.final} Final, ${c.review} À revoir, ${c.draft} Brouillon (${c.total} ${plur(c.total, 'chapitre', 'chapitres')}). Passes de relecture : ${reviewPassesCount().faites} sur ${reviewPassesCount().total}.`;
 }
 
 // v7.36.0 (ergonomie) — À partir de l'objectif de mots du manuscrit et du
