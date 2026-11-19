@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.98.0';
+const APP_VERSION = '9.99.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -317,7 +317,7 @@ async function makeEncryptedEnvelope(plaintext) {
 // manuscrit à chaque ouverture par syncDbAppearanceFromPrefs() (notifications.js). Deux appareils aux
 // préférences différentes se renvoyaient donc un « changement de cœur » à chaque ouverture, sans que personne
 // ait écrit : faux conflit « modifié sur les deux appareils ». Régénérable depuis les préférences locales.
-const SYNC_DERIVED_FIELDS = ['history', 'lastPosition', 'sessionStats', 'dayStart', 'hourlyActivity', 'activeDays',
+const SYNC_DERIVED_FIELDS = ['history', 'lastPosition', 'sessionStats', 'dayStart', 'hourlyActivity', 'hourlyDays', 'activeDays',
   'darkMode', 'paperMode', 'accentPalette', 'editorFont'];
 function stableStringify(v) {
   if (v === null || typeof v !== 'object') return JSON.stringify(v);

@@ -291,7 +291,20 @@ function trackHourlyActivity(totalW) {
   if (delta > 0) {
     if (!Array.isArray(db.hourlyActivity) || db.hourlyActivity.length !== 24) db.hourlyActivity = new Array(24).fill(0);
     db.hourlyActivity[new Date().getHours()] += delta;
+    // v9.99.0 (AUD-11-011) : même activité, par JOUR, sur 90 jours glissants (champ dérivé, exclu de la synchro).
+    if (!db.hourlyDays || typeof db.hourlyDays !== 'object') db.hourlyDays = {};
+    const k = getTodayKey(), h = new Date().getHours();
+    if (!Array.isArray(db.hourlyDays[k]) || db.hourlyDays[k].length !== 24) db.hourlyDays[k] = new Array(24).fill(0);
+    db.hourlyDays[k][h] += delta;
+    pruneHourlyDays();
   }
+}
+const HOURLY_DAYS_KEPT = 90;
+function pruneHourlyDays() {
+  const ks = Object.keys(db.hourlyDays || {});
+  if (ks.length <= HOURLY_DAYS_KEPT + 5) return;
+  const cut = new Date(); cut.setDate(cut.getDate() - HOURLY_DAYS_KEPT); const cutKey = dateKey(cut);
+  ks.forEach(k => { if (k < cutKey) delete db.hourlyDays[k]; });
 }
 
 // Série de jours d'écriture (v9.91.0, AUD-10-004). Un jour compte s'il compte au moins une minute de saisie effective
@@ -358,6 +371,16 @@ function streakNote(streak, best) {
 // Heure de la journée où le plus de mots ont été accumulés (toutes sessions
 // confondues depuis que cette statistique existe). Retourne null tant qu'il
 // n'y a pas encore assez de données (évite d'afficher "0h" par défaut).
+// v9.99.0 (AUD-11-011) : créneau sur les 90 derniers jours (un changement d'horaires se voit en quelques semaines) ;
+// tant qu'il n'y a pas de données récentes, repli sur le cumul historique. Retourne { hour, recent } ou null.
+function bestWritingSlot() {
+  const days = db.hourlyDays || {}, cut = new Date(); cut.setDate(cut.getDate() - HOURLY_DAYS_KEPT);
+  const cutKey = dateKey(cut), sum = new Array(24).fill(0);
+  Object.keys(days).forEach(k => { if (k >= cutKey && Array.isArray(days[k])) days[k].forEach((v, h) => { if (h < 24 && v > 0) sum[h] += v; }); });
+  if (sum.some(v => v > 0)) { let b = 0; sum.forEach((v, h) => { if (v > sum[b]) b = h; }); return { hour: b, recent: true }; }
+  const old = computeBestWritingHour();
+  return old === null ? null : { hour: old, recent: false };
+}
 function computeBestWritingHour() {
   const arr = db.hourlyActivity;
   if (!Array.isArray(arr) || !arr.some(v => v > 0)) return null;
@@ -382,13 +405,13 @@ function renderStats() {
   const streak = computeWritingStreak(), best = computeBestStreak();
   const noteEl = document.getElementById('streak-note');
   if (noteEl) { const t = streakNote(streak, best); noteEl.textContent = t; noteEl.hidden = !t; }
-  const bestHour = computeBestWritingHour();
-  const bestHourLabel = bestHour === null ? '—' : (bestHour.toString().padStart(2,'0') + 'h');
+  const slot = bestWritingSlot();
+  const bestHourLabel = slot === null ? '—' : (slot.hour.toString().padStart(2,'0') + 'h');
   document.getElementById('stats-grid').innerHTML=[
     {v:totalW,l:'Mots total'},{v:netLabel,l:"Aujourd'hui, net"+(minToday>0?' ('+minToday+' min de saisie)':'')},{v:wpm||'—',l:'Mots/min (saisie effective)'},
     {v:sessionW,l:'Cette séance ('+elapsed+' min)'},{v:pct+'%',l:'Objectif'},{v:db.chapters.length,l:'Chapitres'},
     {v:streak+(streak>1?' jours':' jour'),l:'Série en cours'},{v:best+(best>1?' jours':' jour'),l:'Meilleure série'},
-    {v:writingDaysIn(30)+' / 30',l:"Jours d'écriture (30 derniers)"},{v:bestHourLabel,l:'Meilleur moment'}
+    {v:writingDaysIn(30)+' / 30',l:"Jours d'écriture (30 derniers)"},{v:bestHourLabel,l:(slot && slot.recent) ? 'Créneau le plus productif (3 mois)' : 'Meilleur moment'}
   ].map(s=>`<div class="stat-card"><div class="stat-val">${s.v}</div><div class="stat-label">${s.l}</div></div>`).join('');
   const days=[],counts=dailyWordsSeries(7,totalW);
   for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d.toLocaleDateString('fr',{weekday:'short'}));}
@@ -409,7 +432,28 @@ function renderStats() {
 // v9.91.0 (AUD-10-017) : durée au choix (15 / 25 / 45 min), préférence propre à l'APPAREIL (localStorage, comme les
 // réglages de confort : aucun effet sur les données ni sur la synchro). La durée du sprint en cours est mémorisée
 // dans db.sprint.minutes, pour la reprise après rechargement.
-const SPRINT_MINUTES_CHOICES = [15, 25, 45];
+const SPRINT_MINUTES_CHOICES = [5, 15, 25, 45];
+// v9.99.0 (AUD-11-008) : les 20 derniers sprints terminés (durée, mots nets), sur l'APPAREIL (comme la durée préférée) :
+// la fin d'un sprint se compare à soi-même, à durée égale. Aucune donnée de manuscrit, rien à synchroniser.
+const SPRINT_HISTORY_KEY = 'plume_sprint_hist', SPRINT_HISTORY_MAX = 20;
+function sprintHistoryLoad() {
+  try {
+    const v = JSON.parse(localStorage.getItem(SPRINT_HISTORY_KEY) || '[]');
+    if (Array.isArray(v)) return v.filter(e => e && SPRINT_MINUTES_CHOICES.includes(e.m) && Number.isFinite(e.w));
+  } catch (e) { /* stockage indisponible */ }
+  return [];
+}
+function sprintHistoryAdd(minutes, words) {
+  const h = sprintHistoryLoad(); h.push({ m: minutes, w: words, t: Date.now() });
+  try { localStorage.setItem(SPRINT_HISTORY_KEY, JSON.stringify(h.slice(-SPRINT_HISTORY_MAX))); } catch (e) { /* sans conséquence */ }
+}
+function sprintSummary(minutes, words) {
+  const sgn = n => (n >= 0 ? '+' : '\u2212') + Math.abs(n);
+  let msg = 'Sprint terminé : ' + sgn(words) + ' mots en ' + minutes + ' minutes.';
+  const same = sprintHistoryLoad().filter(e => e.m === minutes);
+  if (same.length) msg += ' Précédent : ' + sgn(same[same.length - 1].w) + '. Meilleur : ' + sgn(Math.max(...same.map(e => e.w))) + '.';
+  return msg;
+}
 const SPRINT_MINUTES_DEFAULT = 25;
 function sprintMinutesPref() {
   try { const v = parseInt(localStorage.getItem('plume_sprint_min'), 10); if (SPRINT_MINUTES_CHOICES.includes(v)) return v; } catch (e) { /* stockage indisponible */ }
@@ -466,7 +510,8 @@ function runSprintTick() {
     if (remaining <= 0) {
       const minutes = db.sprint.minutes || SPRINT_MINUTES_DEFAULT;
       resetSprint();
-      toast('Sprint terminé : ' + (words >= 0 ? '+' : '') + words + ' mots en ' + minutes + ' minutes.', 'success', { sticky: true, kind: 'sprint' });
+      const resume = sprintSummary(minutes, words); sprintHistoryAdd(minutes, words);
+      toast(resume, 'success', { sticky: true, kind: 'sprint' });
     }
   };
   sprintInterval = setInterval(tick, 1000);
