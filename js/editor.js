@@ -196,6 +196,7 @@ function loadChapter(i) {
   if (st) st.value = ch.status || 'draft';
   _chapterBaseline = w.innerHTML;
   renderChapterReview(); // v9.94.0 (AUD-10-008/009) : remarques et passes du chapitre
+  renderChapterScene(); // v9.96.0 (AUD-10-013) : fiche de scène
   // v7.36.0 (ergonomie) — objectif de mots et notes de recherche, propres à
   // chaque chapitre (panneau "📓 Notes", replié par défaut).
   const wg = document.getElementById('chapter-word-goal-input');
@@ -505,7 +506,7 @@ function duplicateChapter(i) {
   const orig = db.chapters[i];
   const copy = { id: genChapterId(), title: (orig.title||'Chapitre') + ' (copie)', content: orig.content, tension: orig.tension, summary: orig.summary, status: 'draft', tags: [...(orig.tags||[])],
     // v9.36.0 (AUD-02-018) : objectif de mots et notes de recherche suivent la copie.
-    wordGoal: orig.wordGoal || 0, researchNotes: orig.researchNotes || '' };
+    wordGoal: orig.wordGoal || 0, researchNotes: orig.researchNotes || '', scene: { ...(orig.scene || {}) } };
   db.chapters.splice(i+1, 0, copy);
   if (cur > i) cur++;
   renderChapterList(); loadChapter(cur);
@@ -1118,6 +1119,29 @@ function renderChapterReview() {
     del.addEventListener('click', () => { ch.remarks = ch.remarks.filter(x => x.id !== r.id); debouncedSave(); renderChapterReview(); });
     row.append(cb, t, go, del); list.appendChild(row);
   });
+}
+// Fiche de scène facultative (v9.96.0, AUD-10-013) : trois questions qui ancrent une scène (but, obstacle, enjeu). Données du chapitre
+// (ch.scene), synchronisées avec lui ; jamais exportées. Lues de façon défensive (import, autre appareil).
+const SCENE_FIELDS = [['but', 'But'], ['obstacle', 'Obstacle'], ['enjeu', 'Enjeu']];
+const SCENE_MAX = 200;
+function normalizeChapterScene(ch) {
+  if (!ch) return;
+  const s = ch.scene && typeof ch.scene === 'object' ? ch.scene : {};
+  ch.scene = {};
+  SCENE_FIELDS.forEach(([k]) => { ch.scene[k] = typeof s[k] === 'string' ? s[k].slice(0, SCENE_MAX) : ''; });
+}
+function renderChapterScene() {
+  const ch = db.chapters && db.chapters[cur];
+  if (!ch) return;
+  normalizeChapterScene(ch);
+  SCENE_FIELDS.forEach(([k]) => { const el = document.getElementById('scene-' + k); if (el) el.value = ch.scene[k]; });
+}
+function onSceneInput(key, value) {
+  const ch = db.chapters && db.chapters[cur];
+  if (!ch) return;
+  normalizeChapterScene(ch);
+  ch.scene[key] = String(value).slice(0, SCENE_MAX);
+  debouncedSave();
 }
 function onPassToggle(key, checked) {
   const ch = db.chapters && db.chapters[cur];

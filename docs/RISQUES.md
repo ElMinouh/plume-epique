@@ -16,6 +16,10 @@ Les dates de réexamen sont proposées (trois mois) et valent tant que le propri
 | Plafond CPU du plan gratuit non éprouvé en production pour les très gros contenus (AUD-07-018) | Partiellement traité (essai local 19,5 Mio OK, 21 Mio refusé) | 12/10/2026 | Un manuscrit réaliste est très en dessous | À la première erreur de synchro d'un gros manuscrit |
 | Trois fichiers JS dépassent 120 Ko : `graphicnovel.js` (139 Ko), `router.js` (132 Ko), `library.js` (124 Ko). Plafond de 150 Ko vérifié par test ; découpage non fait (AUD-09-011) | Reporté | 18/10/2026 | Casse de nombreux tests qui lisent leur code source ; gain non visible tant qu'une seule personne maintient | 18/01/2027 |
 | Trusted Types non activé : environ 160 `innerHTML` restent dans `js/` (AUD-06-022) | Reporté | 18/10/2026 | La CSP stricte (aucun script ni style en ligne) et DOMPurify couvrent l'essentiel ; l'activation exige d'assainir ces 160 sites | 18/01/2027 |
+| Résumé de chapitre produit par l'IA, sans rappel préalable par l'auteur (AUD-10-019) | Refusé | 13/11/2026 | Le résumé IA reste un gain de temps facultatif | 18/02/2027 |
+| Aucun objectif d'accompagnement de l'auteur écrit dans `docs/PRODUIT.md` (AUD-10-001) | Refusé | 19/11/2026 | Les critères actuels (données, sécurité, performances, accessibilité, évolution) suffisent pour un usage familial | 18/02/2027 |
+| Pas de note « prochaine étape » pour reprendre après une interruption (AUD-10-016) | Refusé | 19/11/2026 | La reprise au curseur existe ; effet d'une note non étayé pour l'écriture longue (confiance faible de l'audit) | 18/02/2027 |
+| Efficacité pédagogique non mesurée : pas de protocole de tests utilisateurs écrit (AUD-10-020) | Refusé | 19/11/2026 | Les tests avec 3 à 5 personnes restent une action ouverte du propriétaire (voir ci-dessous) | 18/02/2027 |
 | Une seule personne maintient le produit | Assumé | 18/10/2026 | Projet personnel | Sans objet ; limiter la surface fonctionnelle (AUD-09-010) |
 
 Effet cumulé à garder en tête : la clé de synchro est exposée, la clé de données peut rester en clair en session, la question

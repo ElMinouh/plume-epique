@@ -689,7 +689,8 @@
         <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-file-text"></use></svg> <strong id="total-words">0</strong> mots &nbsp;|&nbsp; <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-calendar"></use></svg> <strong id="today-words">0</strong> aujourd'hui
         <div class="daily-bar-wrap"><div class="daily-bar" id="sidebar-goal-bar"></div></div>
         <label for="tension-slider" title="Intensité dramatique de ce chapitre (0 = calme, 100 = paroxysme). Elle alimente la courbe de Analyse → Structure.">Tension du chapitre : <strong id="tension-value">20</strong>/100</label>
-        <input type="range" id="tension-slider" min="0" max="100" value="20" aria-describedby="tension-value">
+        <input type="range" id="tension-slider" min="0" max="100" value="20" aria-describedby="tension-value tension-anchors">
+        <div class="u-fs-xs u-c-v-text-muted" id="tension-anchors">0 calme · 50 tendu · 100 paroxysme</div>
       </div>
     </div>
   </aside>
@@ -815,6 +816,14 @@
       </div>
       <label class="u-fs-sm u-c-v-text-muted u-d-block u-mb-4px" for="chapter-research-notes"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-notebook"></use></svg> Notes de recherche</label>
       <textarea id="chapter-research-notes" class="field u-w-100pc" rows="3" placeholder="Prononciation, faits historiques, références..."></textarea>
+      <div class="u-mt-10px">
+        <strong class="u-fs-sm">Fiche de scène (facultative)</strong>
+        <div class="u-d-flex u-fd-column u-gap-4px u-mt-4px">
+          <input type="text" id="scene-but" class="field" maxlength="200" aria-label="But du personnage dans cette scène" placeholder="But : que veut le personnage dans cette scène ?">
+          <input type="text" id="scene-obstacle" class="field" maxlength="200" aria-label="Obstacle dans cette scène" placeholder="Obstacle : qu'est-ce qui l'en empêche ?">
+          <input type="text" id="scene-enjeu" class="field" maxlength="200" aria-label="Enjeu de cette scène" placeholder="Enjeu : que risque-t-il s'il échoue ?">
+        </div>
+      </div>
       <div class="u-mt-10px">
         <strong class="u-fs-sm">Passes de relecture</strong>
         <div class="u-d-flex u-gap-12px u-fw-wrap u-mt-4px">
@@ -1146,7 +1155,14 @@
     <div id="tab-map" class="subtab-content" role="tabpanel">
       <div class="db-grid">
         <div><strong>Tension narrative</strong><br><small class="u-op-75">Curseur dans la sidebar</small></div>
-        <div class="u-h-280px"><canvas id="tensionChart"></canvas></div>
+        <div>
+          <div class="u-d-flex u-ai-center u-gap-8px u-fw-wrap u-mb-6px">
+            <label for="plan-model-sel" class="u-fs-sm u-c-v-text-muted">Modèle de plan (facultatif)</label>
+            <select id="plan-model-sel" class="field u-w-auto" aria-describedby="plan-model-help"><option value="aucun">Aucun</option><option value="actes">Trois actes</option><option value="heros">Arc du héros</option></select>
+          </div>
+          <p class="u-fs-xs u-c-v-text-muted u-m-0-0-6px" id="plan-model-help">Trace en pointillés un schéma d'enseignement courant pour comparer votre courbe. C'est un repère visuel, pas une règle : beaucoup de bons livres s'en écartent.</p>
+          <div class="u-h-280px"><canvas id="tensionChart"></canvas></div>
+        </div>
       </div>
     </div>
   </div>

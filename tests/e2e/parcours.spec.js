@@ -112,6 +112,31 @@ test.describe('Parcours navigateur', () => {
     expect(erreurs).toEqual([]);
   });
 
+  // AUD-10-013 : modèle de plan facultatif sur la courbe de tension, repères d'échelle, fiche de scène.
+  test('aide au plan : modèle de courbe, repères du curseur et fiche de scène, sans erreur', async ({ page }) => {
+    const erreurs = surveillerErreurs(page);
+    await ouvrirBibliotheque(page);
+    await creerProjet(page, 'Texte seul');
+    await expect(page.locator('#add-chapter-btn')).toBeVisible();
+    await expect(page.locator('#tension-anchors')).toHaveText('0 calme · 50 tendu · 100 paroxysme');
+    await page.click('#missions-skip-btn');
+    await page.click('.tab-btn[data-tab-id="tab-analysegroup"]');
+    await page.click('.subtab-btn[data-subtab="tab-map"]');
+    await expect(page.locator('#plan-model-sel')).toBeVisible();
+    await page.selectOption('#plan-model-sel', 'actes');
+    await expect.poll(() => page.evaluate(() => tensionChart && tensionChart.data.datasets.length)).toBe(2);
+    await page.selectOption('#plan-model-sel', 'aucun');
+    await expect.poll(() => page.evaluate(() => tensionChart.data.datasets.length)).toBe(1);
+    await page.click('#panel-close-btn');
+    await page.click('#chapter-notes-toggle-btn');
+    await page.fill('#scene-but', 'Ouvrir la porte');
+    await page.fill('#scene-obstacle', 'Elle est verrouillée');
+    expect(await page.evaluate(() => db.chapters[0].scene)).toEqual({ but: 'Ouvrir la porte', obstacle: 'Elle est verrouillée', enjeu: '' });
+    await stabiliser(page);
+    expect(await nbInert(page)).toBe(0);
+    expect(erreurs).toEqual([]);
+  });
+
   test('projet d\'exemple : « Nouveau projet » → « Essayer avec un projet d\'exemple » ouvre un manuscrit rempli', async ({ page }) => {
     const erreurs = surveillerErreurs(page);
     await ouvrirBibliotheque(page);

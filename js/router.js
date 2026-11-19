@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.95.1';
+const APP_VERSION = '9.96.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1515,6 +1515,7 @@ function initApp(){
     const ctx=document.getElementById('tensionChart').getContext('2d');
     if (tensionChart) { tensionChart.destroy(); tensionChart = null; }
     tensionChart=new Chart(ctx,{type:'line',data:{labels:db.chapters.map((_,i)=>i+1),datasets:[{label:'Tension',data:db.chapters.map(c=>c.tension),borderColor:chartPalette()[0],backgroundColor:withAlpha(chartPalette()[0],.08),tension:.3,fill:true}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+    applyPlanModelToChart(); tensionChart.update(); // v9.96.0 (AUD-10-013) : modèle de plan facultatif
   });
 
   const mgi=document.getElementById('manuscript-goal-input');if(mgi)mgi.value=db.wordGoal||'';
@@ -1702,6 +1703,8 @@ function wireAppEventListenersOnce(){
   document.getElementById('chapter-research-notes').addEventListener('input',e=>{
     db.chapters[cur].researchNotes=e.target.value;debouncedSave();
   });
+  document.getElementById('plan-model-sel').addEventListener('change',e=>setPlanModel(e.target.value)); // v9.96.0 (AUD-10-013)
+  SCENE_FIELDS.forEach(([k])=>document.getElementById('scene-'+k).addEventListener('input',e=>onSceneInput(k,e.target.value)));
   document.getElementById('missions-skip-btn').addEventListener('click',endOnboardingTour); // v9.95.0 (AUD-10-011)
   document.querySelectorAll('#missions-card [data-level]').forEach(b=>b.addEventListener('click',()=>setUsageLevel(b.dataset.level)));
   document.getElementById('usage-level-sel').addEventListener('change',e=>setUsageLevel(e.target.value)); // AUD-10-012

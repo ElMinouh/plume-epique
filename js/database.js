@@ -319,9 +319,57 @@ function renderAppearanceUI() {
 // ═══════════════════════════════════════════════════════
 // DIVERS
 // ═══════════════════════════════════════════════════════
-// v9.62.0 (AUD-05-008) : équivalent textuel de la courbe de tension (nom du canvas + tableau), mis à jour avec elle.
-function setTensionAlt(){setChartAlt('tensionChart','Tension narrative par chapitre (échelle du curseur)',['Chapitre','Tension'],db.chapters.map((c,i)=>[(i+1)+' — '+(c.title||'sans titre'),c.tension]));}
-function updateChart(){if(!tensionChart)return;setTensionAlt();tensionChart.data.labels=db.chapters.map((_,i)=>i+1);tensionChart.data.datasets[0].data=db.chapters.map(c=>c.tension);tensionChart.update();}
+// ═══════════════════════════════════════════════════════
+// AIDE À LA PLANIFICATION (v9.96.0, AUD-10-013)
+// Avant : un curseur de tension 0-100 sans repère, et une courbe sans point de comparaison. Enseigner des stratégies de planification
+// est l'une des interventions les plus efficaces en écriture (Graham & Perin, 2007) : la courbe peut maintenant être comparée,
+// si on le souhaite, à un schéma d'enseignement courant. Ces formes sont des CONVENTIONS pédagogiques, pas des résultats de recherche
+// ni des normes : un repère visuel, jamais une règle. Choix propre à l'APPAREIL (localStorage) ; défaut « Aucun ».
+// ═══════════════════════════════════════════════════════
+const PLAN_MODELS = {
+  aucun: { label: 'Aucun', pts: null },
+  actes: { label: 'Trois actes', pts: [[0, 15], [0.25, 45], [0.5, 55], [0.75, 85], [0.9, 100], [1, 35]] },
+  heros: { label: 'Arc du héros', pts: [[0, 10], [0.15, 30], [0.25, 50], [0.5, 40], [0.7, 75], [0.9, 100], [1, 30]] }
+};
+let _planModelMem = 'aucun';
+function planModel() {
+  try { const v = localStorage.getItem('plume_plan_model'); if (PLAN_MODELS[v]) return v; } catch (e) { /* stockage indisponible */ }
+  return _planModelMem;
+}
+function setPlanModel(v) {
+  if (!PLAN_MODELS[v]) return;
+  _planModelMem = v;
+  try { localStorage.setItem('plume_plan_model', v); } catch (e) { /* le choix vaut pour cette session */ }
+  const sel = document.getElementById('plan-model-sel'); if (sel) sel.value = v;
+  if (typeof updateChart === 'function') updateChart();
+}
+// Valeur du modèle pour chacun des n chapitres (position relative dans le livre, interpolation linéaire entre les points du schéma).
+function planModelCurve(id, n) {
+  const pts = PLAN_MODELS[id] && PLAN_MODELS[id].pts;
+  if (!pts || !(n >= 1)) return null;
+  return Array.from({ length: n }, (_, i) => {
+    const x = n === 1 ? 0.5 : i / (n - 1);
+    for (let k = 1; k < pts.length; k++) {
+      if (x <= pts[k][0]) { const [x0, y0] = pts[k - 1], [x1, y1] = pts[k]; return Math.round(y0 + (y1 - y0) * ((x - x0) / (x1 - x0 || 1))); }
+    }
+    return pts[pts.length - 1][1];
+  });
+}
+// Met la courbe de modèle (pointillés) sur le graphique de tension, ou la retire.
+function applyPlanModelToChart() {
+  if (!tensionChart) return;
+  const id = planModel(), curve = planModelCurve(id, db.chapters.length), ds = tensionChart.data.datasets;
+  const sel = document.getElementById('plan-model-sel'); if (sel) sel.value = id;
+  if (curve) {
+    const c = chartPalette()[1];
+    const d = { label: 'Modèle : ' + PLAN_MODELS[id].label, data: curve, borderColor: c, borderDash: [6, 4], borderWidth: 2, pointRadius: 0, fill: false, tension: .3 };
+    if (ds[1]) Object.assign(ds[1], d); else ds.push(d);
+  } else if (ds[1]) ds.splice(1);
+  tensionChart.options.plugins.legend.display = !!curve;
+}
+// v9.62.0 (AUD-05-008) : équivalent textuel de la courbe de tension (nom du canvas + tableau), mis à jour avec elle (et avec le modèle choisi).
+function setTensionAlt(){const m=planModelCurve(planModel(),db.chapters.length);setChartAlt('tensionChart','Tension narrative par chapitre (échelle du curseur)'+(m?', avec le modèle « '+PLAN_MODELS[planModel()].label+' »':''),m?['Chapitre','Tension','Modèle']:['Chapitre','Tension'],db.chapters.map((c,i)=>{const r=[(i+1)+' — '+(c.title||'sans titre'),c.tension];if(m)r.push(m[i]);return r;}));}
+function updateChart(){if(!tensionChart)return;setTensionAlt();tensionChart.data.labels=db.chapters.map((_,i)=>i+1);tensionChart.data.datasets[0].data=db.chapters.map(c=>c.tension);applyPlanModelToChart();tensionChart.update();}
 // v9.81.0 (AUD-08-011) : le bouton annonce la CIBLE du clic (Clair en thème sombre, Sombre sinon).
 function updateThemeToggleLabel() {
   const sombre = document.body.classList.contains('dark-mode');

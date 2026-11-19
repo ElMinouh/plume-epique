@@ -32,7 +32,7 @@ function refreshThemedCharts() {
   const c = chartPalette()[0];
   try {
     if (typeof sessionChart !== 'undefined' && sessionChart) { const d = sessionChart.data.datasets[0]; d.borderColor = c; d.backgroundColor = withAlpha(c, .5); sessionChart.update('none'); }
-    if (typeof tensionChart !== 'undefined' && tensionChart) { const d = tensionChart.data.datasets[0]; d.borderColor = c; d.backgroundColor = withAlpha(c, .08); tensionChart.update('none'); }
+    if (typeof tensionChart !== 'undefined' && tensionChart) { const d = tensionChart.data.datasets[0]; d.borderColor = c; d.backgroundColor = withAlpha(c, .08); if (tensionChart.data.datasets[1]) tensionChart.data.datasets[1].borderColor = chartPalette()[1]; tensionChart.update('none'); }
   } catch (e) { /* purement cosmétique */ }
 }
 // v9.90.0 (AUD-10-014) : temps de saisie effectif de la séance (en mémoire, jamais enregistré). À chaque appel
