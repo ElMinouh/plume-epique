@@ -686,8 +686,10 @@
       </div>
       <div class="chapter-list-container" id="chapter-list" role="list"></div>
       <div class="sidebar-stats">
+        <div class="sidebar-counters">
         <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-file-text"></use></svg> <strong id="total-words">0</strong> mots &nbsp;|&nbsp; <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-calendar"></use></svg> <strong id="today-words">0</strong> aujourd'hui
         <div class="daily-bar-wrap"><div class="daily-bar" id="sidebar-goal-bar"></div></div>
+        </div>
         <label for="tension-slider" title="Intensité dramatique de ce chapitre (0 = calme, 100 = paroxysme). Elle alimente la courbe de Analyse → Structure.">Tension du chapitre : <strong id="tension-value">20</strong>/100</label>
         <input type="range" id="tension-slider" min="0" max="100" value="20" aria-describedby="tension-value tension-anchors">
         <div class="u-fs-xs u-c-v-text-muted" id="tension-anchors">0 calme · 50 tendu · 100 paroxysme</div>
@@ -1285,6 +1287,7 @@
       <div id="goal-bar-wrap"><div id="goal-bar"></div></div>
       <span class="u-minw-60px" id="goal-label">0 %</span>
     </div>
+    <label class="u-d-flex u-ai-center u-gap-8px u-fs-sm u-mt-8px" for="hide-counters-cb"><input type="checkbox" id="hide-counters-cb"> Masquer les compteurs et la barre d'objectif de la barre latérale (cet appareil)</label>
     <div class="u-d-flex u-ai-center u-gap-8px u-fw-wrap u-mt-6px" id="goal-suggestion" hidden>
       <span class="u-fs-sm u-c-v-text-muted" id="goal-suggestion-text"></span>
       <button class="action-btn btn-secondary btn-sm" id="goal-suggestion-apply" title="Remplacer l'objectif quotidien par la valeur suggérée">Appliquer</button>

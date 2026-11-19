@@ -17,7 +17,7 @@
 // Les deux vivent dans des contextes séparés (page vs Service Worker), ils
 // ne peuvent pas se partager une même variable.
 // ═══════════════════════════════════════════════════════
-const APP_VERSION = '9.96.0';
+const APP_VERSION = '9.97.0';
 
 // ═══════════════════════════════════════════════════════
 // INDEXEDDB
@@ -1689,6 +1689,7 @@ function wireAppEventListenersOnce(){
   document.getElementById('fr-replace-all-btn').addEventListener('click',frReplaceAll);
   document.getElementById('daily-goal-input').addEventListener('input',e=>{const v=readGoalInput(e.target);if(v===null)return;db.dailyGoal=v;debouncedSave();updateDailyStats();});
   document.getElementById('weekly-goal-input').addEventListener('input',e=>{const v=readGoalInput(e.target);if(v===null)return;db.weeklyGoal=v;debouncedSave();updateGoalsUI();});
+  document.getElementById('hide-counters-cb').addEventListener('change',e=>setHideCountersPref(e.target.checked)); // v9.97.0 (AUD-11-017)
   document.getElementById('goal-suggestion-apply').addEventListener('click',applyGoalSuggestion); // v9.91.0 (AUD-10-005)
   document.getElementById('sprint-duration-sel').addEventListener('change',e=>setSprintMinutesPref(e.target.value)); // v9.91.0 (AUD-10-017)
   document.getElementById('monthly-goal-input').addEventListener('input',e=>{const v=readGoalInput(e.target);if(v===null)return;db.monthlyGoal=v;debouncedSave();updateGoalsUI();});

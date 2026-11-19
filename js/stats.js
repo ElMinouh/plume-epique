@@ -14,6 +14,27 @@ function dayStartWords(totalW) {
   return db.dayStart.w;
 }
 function wordsToday(totalW) { return Math.max(0, totalW - dayStartWords(totalW)); }
+// v9.97.0 (AUD-11-001) : l'objectif du jour est atteint par les mots NETS ou par 20 minutes de saisie effective
+// (db.activeDays) : un jour passé à couper et reformuler vaut un jour d'écriture, comme dans la série (AUD-10-004).
+const EFFORT_GOAL_SECONDS = 20 * 60;
+function activeSecondsToday() { return Math.round((db.activeDays || {})[getTodayKey()] || 0); }
+function dayGoalPct(todayW, goal) {
+  const parMots = Math.round(todayW / goal * 100), parTemps = Math.round(activeSecondsToday() / EFFORT_GOAL_SECONDS * 100);
+  return Math.min(100, Math.max(parMots, parTemps));
+}
+// v9.97.0 (AUD-11-017) : mode « sans chiffres » (préférence d'APPAREIL, comme la durée du sprint) : masque les compteurs et
+// la barre d'objectif de la barre latérale et les messages d'objectif. Le panneau Statistiques reste consultable.
+const HIDE_COUNTERS_KEY = 'plume_hide_counters';
+function hideCountersPref() { try { return localStorage.getItem(HIDE_COUNTERS_KEY) === '1'; } catch (e) { return false; } }
+function setHideCountersPref(v) {
+  try { if (v) localStorage.setItem(HIDE_COUNTERS_KEY, '1'); else localStorage.removeItem(HIDE_COUNTERS_KEY); } catch (e) { /* valable pour cette session */ }
+  applyHideCounters();
+}
+function applyHideCounters() {
+  const on = hideCountersPref();
+  if (document.body) document.body.classList.toggle('hide-counters', on);
+  const cb = document.getElementById('hide-counters-cb'); if (cb) cb.checked = on;
+}
 // v9.80.0 (AUD-08-004) : db.sessionStats[jour] est un TOTAL cumulé ; le graphique « mots par jour » doit tracer
 // l'écart avec le dernier total connu avant ce jour (0 si le jour n'a pas d'entrée), et « aujourd'hui » via dayStart.
 function dailyWordsSeries(n, totalW) {
@@ -75,26 +96,40 @@ function updateDailyStats() {
   // l'heure actuelle — voir trackHourlyActivity() ci-dessous.
   trackHourlyActivity(totalW);
   const todayW = wordsToday(totalW);
+  const netToday = totalW - dayStartWords(totalW);
   const el_total = document.getElementById('total-words'), el_today = document.getElementById('today-words');
   if (el_total) el_total.innerText = totalW;
-  if (el_today) el_today.innerText = todayW;
-  const goal = db.dailyGoal || 500, pct = Math.min(100, Math.round(todayW/goal*100));
+  // v9.97.0 (AUD-11-001) : une journée de coupes n'est plus affichée « 0 » : le net signé est montré (comme dans Statistiques).
+  if (el_today) el_today.innerText = netToday < 0 ? '−' + Math.abs(netToday) : todayW;
+  const goal = db.dailyGoal || 500, pct = dayGoalPct(todayW, goal);
   ['goal-bar','sidebar-goal-bar'].forEach(id => { const el=document.getElementById(id); if(el) el.style.width=pct+'%'; });
   const lbl = document.getElementById('goal-label'); if (lbl) lbl.textContent = pct + ' %';
-  // Correction (audit) : updateDailyStats() est appelée à CHAQUE frappe
-  // (via liveCounter()) — sans ce garde-fou, le toast de célébration se
-  // redéclenchait à chaque caractère tapé tant que l'objectif restait
-  // dépassé. On ne félicite qu'une fois par jour (_goalCelebratedDay
-  // mémorise la date, remis à zéro naturellement dès que le jour change).
-  if (pct >= 100 && todayW > 0 && _goalCelebratedDay !== today) {
-    _goalCelebratedDay = today;
-    // v9.91.0 (AUD-10-005) : message factuel (ce qui est accompli, où en est la révision) au lieu d'un éloge vide.
-    toast('Objectif atteint : ' + todayW + ' ' + plur(todayW, 'mot', 'mots') + ' aujourd\'hui.' + revisionSentence(),'success');
-  }
+  // Correction (audit) : updateDailyStats() est appelée à CHAQUE frappe (via liveCounter()) : on ne félicite
+  // qu'une fois par jour (_goalCelebratedDay). v9.97.0 (AUD-11-015) : la barre se met à jour tout de suite, mais le
+  // message attend 3 s sans frappe (et la sortie des modes Focus et Lecture) pour ne pas couper la phrase en cours.
+  if (pct >= 100 && _goalCelebratedDay !== today) scheduleGoalMessage(today);
   updateGoalsUI(totalW);
   updateEstimatedFinishDate();
 }
-let _goalCelebratedDay = null;
+let _goalCelebratedDay = null, _goalMsgTimer = null;
+const GOAL_MSG_DELAY_MS = 3000;
+function scheduleGoalMessage(today) {
+  clearTimeout(_goalMsgTimer);
+  _goalMsgTimer = setTimeout(() => { _goalMsgTimer = null; emitGoalMessage(today); }, GOAL_MSG_DELAY_MS);
+}
+function emitGoalMessage(today) {
+  if (_goalCelebratedDay === today || getTodayKey() !== today || !db.chapters) return;
+  const totalW = chaptersTotalWords(db.chapters), todayW = wordsToday(totalW);
+  if (dayGoalPct(todayW, db.dailyGoal || 500) < 100) return; // l'auteur a supprimé du texte entre-temps
+  if (hideCountersPref()) { _goalCelebratedDay = today; return; } // AUD-11-017 : « sans chiffres », aucun message
+  const immersif = ['focus-overlay', 'reading-overlay'].some(id => { const el = document.getElementById(id); return !!(el && el.classList.contains('active')); });
+  if (immersif) { scheduleGoalMessage(today); return; }
+  _goalCelebratedDay = today;
+  // v9.91.0 (AUD-10-005) : message factuel (ce qui est accompli, où en est la révision) au lieu d'un éloge vide.
+  const min = Math.round(activeSecondsToday() / 60), net = totalW - dayStartWords(totalW);
+  if (todayW >= (db.dailyGoal || 500)) toast('Objectif atteint : ' + todayW + ' ' + plur(todayW, 'mot', 'mots') + " aujourd'hui." + revisionSentence(), 'success');
+  else toast('Séance accomplie : ' + min + ' ' + plur(min, 'minute', 'minutes') + ' de saisie, ' + (net > 0 ? '+' : net < 0 ? '−' : '') + Math.abs(net) + ' ' + plur(Math.abs(net), 'mot', 'mots') + '.' + revisionSentence(), 'success');
+}
 
 // ═══════════════════════════════════════════════════════
 // OBJECTIFS HEBDOMADAIRE & MENSUEL (nouveau v6.2.0)
