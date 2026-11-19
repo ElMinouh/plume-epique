@@ -8,7 +8,7 @@ vérification après livraison, test réel sur copie locale après chaque push, 
 |---|---|---|---|---|
 | 1 | 9.97.0 | 001, 015, 017 | Objectif du jour atteint par mots nets OU 20 min de saisie (`dayGoalPct`), net signé dans la barre latérale, message d'objectif différé (3 s sans frappe, jamais en Focus/Lecture), mode « sans chiffres » (`hide-counters`, préférence d'appareil) ; `lot-aud11-1-indicateurs-du-jour.test.js` | livré |
 | 2 | 9.98.0 | 005, 007 | Meilleure série et jours d'écriture sur 30 (`computeBestStreak`, `writingDaysIn`, message de reprise neutre), unité d'objectif au choix (`db.goalUnit` mots / minutes / aucun, `db.dailyMinutes`) ; `lot-aud11-2-serie-objectif.test.js` | livré |
-| 3 | — | 003, 009 | Jalons factuels, bilan de séance | à faire |
+| 3 | — | 003, 009 | Jalons factuels, bilan de séance | **annulé par le propriétaire le 19/11/2026** (voir `docs/RISQUES.md`) |
 | 4 | — | 008, 011 | Historique des sprints et départ en 5 min, créneau productif sur 90 jours | à faire |
 | 5 | — | 004, 016 | Vue mois/année, jours d'écriture sur 90 jours | à faire |
 | 6 | — | 006, 010 | Carte « Reprendre », pistes contextuelles | à faire |

@@ -20,6 +20,7 @@ Les dates de réexamen sont proposées (trois mois) et valent tant que le propri
 | Aucun objectif d'accompagnement de l'auteur écrit dans `docs/PRODUIT.md` (AUD-10-001) | Refusé | 19/11/2026 | Les critères actuels (données, sécurité, performances, accessibilité, évolution) suffisent pour un usage familial | 18/02/2027 |
 | Pas de note « prochaine étape » pour reprendre après une interruption (AUD-10-016) | Refusé | 19/11/2026 | La reprise au curseur existe ; effet d'une note non étayé pour l'écriture longue (confiance faible de l'audit) | 18/02/2027 |
 | Efficacité pédagogique non mesurée : pas de protocole de tests utilisateurs écrit (AUD-10-020) | Refusé | 19/11/2026 | Les tests avec 3 à 5 personnes restent une action ouverte du propriétaire (voir ci-dessous) | 18/02/2027 |
+| Aucun jalon reconnu hors objectif du jour ni bilan de fin de séance (AUD-11-003, AUD-11-009) | Refusé (lot 3 annulé) | 19/11/2026 | Le propriétaire n'en veut pas ; l'objectif du jour, la série et le sprint suffisent | 18/02/2027 |
 | Une seule personne maintient le produit | Assumé | 18/10/2026 | Projet personnel | Sans objet ; limiter la surface fonctionnelle (AUD-09-010) |
 
 Effet cumulé à garder en tête : la clé de synchro est exposée, la clé de données peut rester en clair en session, la question
