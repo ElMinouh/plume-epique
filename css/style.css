@@ -178,6 +178,8 @@ main{flex-grow:1;width:98%;max-width:1500px;margin:0 auto 6px;
 .sidebar-stats{font-size:var(--fs-sm);color:var(--text-muted);line-height:var(--lh-relaxed);}
 /* v9.97.0 (AUD-11-017) : mode « sans chiffres » (préférence d'appareil) */
 body.hide-counters .sidebar-counters{display:none;}
+/* v9.98.0 (AUD-11-007) : « aucun objectif » masque la barre du jour */
+body.goal-none .daily-bar-wrap{display:none;}
 .daily-bar-wrap{background:var(--item-bg);border-radius:var(--r-2);height:6px;margin:4px 0 8px;overflow:hidden;}
 .daily-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:var(--r-2);transition:width var(--t-slow);}
 #editor-wrapper{background:var(--glass);border-radius:var(--r-3);padding:18px;

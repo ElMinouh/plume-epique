@@ -1121,6 +1121,7 @@
 
     <div id="tab-stats" class="subtab-content active" role="tabpanel">
       <div class="stats-grid" id="stats-grid"></div>
+      <p class="u-fs-sm u-c-v-text-muted" id="streak-note" hidden></p>
       <div class="u-fg-1 u-minh-120px"><canvas id="sessionChart"></canvas></div>
     </div>
 
@@ -1282,8 +1283,16 @@
     <hr class="u-bdc-v-border u-m-10px-0">
     <strong>Objectif quotidien</strong>
     <div class="u-mt-8px" id="goal-section">
+      <label for="goal-unit-sel" class="u-fs-sm u-c-v-text-muted">Mon objectif du jour se mesure en</label>
+      <select id="goal-unit-sel" class="field"><option value="words">mots</option><option value="minutes">minutes de saisie</option><option value="none">aucun objectif</option></select>
+      <span id="goal-words-row">
       <input type="number" id="daily-goal-input" aria-label="Objectif quotidien en mots" class="field u-w-90px" min="100" max="10000" step="100">
       <span>mots/jour</span>
+      </span>
+      <span id="goal-minutes-row" hidden>
+        <input type="number" id="daily-minutes-input" aria-label="Objectif quotidien en minutes de saisie" class="field u-w-90px" min="5" max="600" step="5">
+        <span>minutes/jour</span>
+      </span>
       <div id="goal-bar-wrap"><div id="goal-bar"></div></div>
       <span class="u-minw-60px" id="goal-label">0 %</span>
     </div>

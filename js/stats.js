@@ -18,9 +18,29 @@ function wordsToday(totalW) { return Math.max(0, totalW - dayStartWords(totalW))
 // (db.activeDays) : un jour passé à couper et reformuler vaut un jour d'écriture, comme dans la série (AUD-10-004).
 const EFFORT_GOAL_SECONDS = 20 * 60;
 function activeSecondsToday() { return Math.round((db.activeDays || {})[getTodayKey()] || 0); }
+// v9.98.0 (AUD-11-007) : l'auteur choisit la mesure de son objectif du jour : mots (défaut, comportement de la v9.97.0),
+// minutes de saisie, ou aucun objectif (ni barre ni message ; série et statistiques restent). Champs db.goalUnit / db.dailyMinutes.
+const GOAL_UNITS = ['words', 'minutes', 'none'];
+function goalUnit() { return GOAL_UNITS.includes(db.goalUnit) ? db.goalUnit : 'words'; }
+function dailyMinutesGoal() { return db.dailyMinutes >= 1 ? db.dailyMinutes : 30; }
 function dayGoalPct(todayW, goal) {
-  const parMots = Math.round(todayW / goal * 100), parTemps = Math.round(activeSecondsToday() / EFFORT_GOAL_SECONDS * 100);
-  return Math.min(100, Math.max(parMots, parTemps));
+  const u = goalUnit();
+  if (u === 'none') return 0;
+  if (u === 'minutes') return Math.min(100, Math.round(activeSecondsToday() / (dailyMinutesGoal() * 60) * 100));
+  return Math.min(100, Math.max(Math.round(todayW / goal * 100), Math.round(activeSecondsToday() / EFFORT_GOAL_SECONDS * 100)));
+}
+function applyGoalUnitUI() {
+  const u = goalUnit(), g = id => document.getElementById(id);
+  if (document.body) document.body.classList.toggle('goal-none', u === 'none');
+  const sel = g('goal-unit-sel'); if (sel) sel.value = u;
+  const w = g('goal-words-row'); if (w) w.hidden = u !== 'words';
+  const m = g('goal-minutes-row'); if (m) m.hidden = u !== 'minutes';
+  const bar = g('goal-bar-wrap'), lbl = g('goal-label'); if (bar) bar.hidden = u === 'none'; if (lbl) lbl.hidden = u === 'none';
+  const mi = g('daily-minutes-input'); if (mi) mi.value = dailyMinutesGoal();
+}
+function setGoalUnit(v) {
+  if (!GOAL_UNITS.includes(v)) return;
+  db.goalUnit = v; debouncedSave(); applyGoalUnitUI(); updateDailyStats();
 }
 // v9.97.0 (AUD-11-017) : mode « sans chiffres » (préférence d'APPAREIL, comme la durée du sprint) : masque les compteurs et
 // la barre d'objectif de la barre latérale et les messages d'objectif. Le panneau Statistiques reste consultable.
@@ -120,6 +140,7 @@ function scheduleGoalMessage(today) {
 function emitGoalMessage(today) {
   if (_goalCelebratedDay === today || getTodayKey() !== today || !db.chapters) return;
   const totalW = chaptersTotalWords(db.chapters), todayW = wordsToday(totalW);
+  if (goalUnit() === 'none') { _goalCelebratedDay = today; return; }
   if (dayGoalPct(todayW, db.dailyGoal || 500) < 100) return; // l'auteur a supprimé du texte entre-temps
   if (hideCountersPref()) { _goalCelebratedDay = today; return; } // AUD-11-017 : « sans chiffres », aucun message
   const immersif = ['focus-overlay', 'reading-overlay'].some(id => { const el = document.getElementById(id); return !!(el && el.classList.contains('active')); });
@@ -127,7 +148,8 @@ function emitGoalMessage(today) {
   _goalCelebratedDay = today;
   // v9.91.0 (AUD-10-005) : message factuel (ce qui est accompli, où en est la révision) au lieu d'un éloge vide.
   const min = Math.round(activeSecondsToday() / 60), net = totalW - dayStartWords(totalW);
-  if (todayW >= (db.dailyGoal || 500)) toast('Objectif atteint : ' + todayW + ' ' + plur(todayW, 'mot', 'mots') + " aujourd'hui." + revisionSentence(), 'success');
+  if (goalUnit() === 'minutes') toast('Objectif atteint : ' + min + ' ' + plur(min, 'minute', 'minutes') + " de saisie aujourd'hui." + revisionSentence(), 'success');
+  else if (todayW >= (db.dailyGoal || 500)) toast('Objectif atteint : ' + todayW + ' ' + plur(todayW, 'mot', 'mots') + " aujourd'hui." + revisionSentence(), 'success');
   else toast('Séance accomplie : ' + min + ' ' + plur(min, 'minute', 'minutes') + ' de saisie, ' + (net > 0 ? '+' : net < 0 ? '−' : '') + Math.abs(net) + ' ' + plur(Math.abs(net), 'mot', 'mots') + '.' + revisionSentence(), 'success');
 }
 
@@ -182,7 +204,7 @@ function renderGoalSuggestion(totalW) {
   if (!row) return;
   const s = suggestedDailyGoal(totalW);
   const txt = document.getElementById('goal-suggestion-text'), btn = document.getElementById('goal-suggestion-apply');
-  if (s === null || s === (db.dailyGoal || 500)) { row.hidden = true; return; }
+  if (goalUnit() !== 'words' || s === null || s === (db.dailyGoal || 500)) { row.hidden = true; return; }
   row.hidden = false;
   if (txt) txt.textContent = `Suggestion d'après vos 14 derniers jours : ${s} mots par jour.`;
   if (btn) btn.dataset.goal = String(s);
@@ -299,6 +321,40 @@ function computeWritingStreak() {
   return streak;
 }
 
+// v9.98.0 (AUD-11-005) : mémoire de la série, calculée à la volée depuis les données existantes (aucun champ de plus,
+// rien à synchroniser). Même règle que computeWritingStreak : un jour compte s'il est un jour d'écriture ; deux jours
+// consécutifs sans écriture rompent la série. La meilleure série n'est jamais inférieure à la série en cours.
+function earliestDayKey(stats, active) {
+  const ks = Object.keys(stats).concat(Object.keys(active)).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
+  return ks.length ? ks[0] : null;
+}
+function computeBestStreak() {
+  const stats = db.sessionStats || {}, active = db.activeDays || {}, first = earliestDayKey(stats, active);
+  if (!first) return 0;
+  const d = new Date(first + 'T12:00:00'), fin = dateKey(new Date());
+  let run = 0, best = 0, manques = 0;
+  for (let i = 0; i < 3650; i++) {
+    const k = dateKey(d);
+    if (isWritingDay(k, stats, active)) { run++; manques = 0; if (run > best) best = run; }
+    else if (++manques >= 2) run = 0;
+    if (k >= fin) break;
+    d.setDate(d.getDate() + 1);
+  }
+  return Math.max(best, computeWritingStreak());
+}
+// Nombre de jours d'écriture parmi les n derniers jours (aujourd'hui compris) : une mesure qui ne retombe jamais à 0 d'un coup.
+function writingDaysIn(n) {
+  const stats = db.sessionStats || {}, active = db.activeDays || {}, d = new Date();
+  let c = 0;
+  for (let i = 0; i < n; i++) { if (isWritingDay(dateKey(d), stats, active)) c++; d.setDate(d.getDate() - 1); }
+  return c;
+}
+// Message de reprise, neutre : seulement quand une série d'au moins 7 jours vient de se rompre. Jamais d'éloge ni de reproche.
+function streakNote(streak, best) {
+  if (best >= 7 && streak <= 1 && best > streak) return 'Meilleure série : ' + best + " jours. Une nouvelle série commence dès qu'une minute de saisie est écrite.";
+  return '';
+}
+
 // Heure de la journée où le plus de mots ont été accumulés (toutes sessions
 // confondues depuis que cette statistique existe). Retourne null tant qu'il
 // n'y a pas encore assez de données (évite d'afficher "0h" par défaut).
@@ -323,13 +379,16 @@ function renderStats() {
   const netLabel = (netToday > 0 ? '+' : netToday < 0 ? '−' : '') + Math.abs(netToday);
   const wpm=activeMin>=1?Math.round(sessionW/activeMin):0;
   const pct=Math.min(100,Math.round(todayW/(db.dailyGoal||500)*100));
-  const streak = computeWritingStreak();
+  const streak = computeWritingStreak(), best = computeBestStreak();
+  const noteEl = document.getElementById('streak-note');
+  if (noteEl) { const t = streakNote(streak, best); noteEl.textContent = t; noteEl.hidden = !t; }
   const bestHour = computeBestWritingHour();
   const bestHourLabel = bestHour === null ? '—' : (bestHour.toString().padStart(2,'0') + 'h');
   document.getElementById('stats-grid').innerHTML=[
     {v:totalW,l:'Mots total'},{v:netLabel,l:"Aujourd'hui, net"+(minToday>0?' ('+minToday+' min de saisie)':'')},{v:wpm||'—',l:'Mots/min (saisie effective)'},
     {v:sessionW,l:'Cette séance ('+elapsed+' min)'},{v:pct+'%',l:'Objectif'},{v:db.chapters.length,l:'Chapitres'},
-    {v:streak+(streak>1?' jours':' jour'),l:'Série en cours'},{v:bestHourLabel,l:'Meilleur moment'}
+    {v:streak+(streak>1?' jours':' jour'),l:'Série en cours'},{v:best+(best>1?' jours':' jour'),l:'Meilleure série'},
+    {v:writingDaysIn(30)+' / 30',l:"Jours d'écriture (30 derniers)"},{v:bestHourLabel,l:'Meilleur moment'}
   ].map(s=>`<div class="stat-card"><div class="stat-val">${s.v}</div><div class="stat-label">${s.l}</div></div>`).join('');
   const days=[],counts=dailyWordsSeries(7,totalW);
   for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d.toLocaleDateString('fr',{weekday:'short'}));}

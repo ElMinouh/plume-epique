@@ -225,7 +225,7 @@ function initSidePanel(){
   });
 }
 function initGoalUI(){
-  const i=document.getElementById('daily-goal-input');if(i)i.value=db.dailyGoal||500;if(typeof applyHideCounters==='function')applyHideCounters();
+  const i=document.getElementById('daily-goal-input');if(i)i.value=db.dailyGoal||500;if(typeof applyHideCounters==='function')applyHideCounters();if(typeof applyGoalUnitUI==='function')applyGoalUnitUI();
   const w=document.getElementById('weekly-goal-input');if(w)w.value=db.weeklyGoal||3000;
   const m=document.getElementById('monthly-goal-input');if(m)m.value=db.monthlyGoal||12000;
   updateGoalsUI();
